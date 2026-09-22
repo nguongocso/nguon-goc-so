@@ -1,5 +1,15 @@
 package vn.nguongocso.trace.service.impl;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +26,15 @@ import vn.nguongocso.organization.entity.OrganizationUser;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.report.entity.TraceCodeScanLog;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
-import vn.nguongocso.trace.dto.response.*;
+import vn.nguongocso.trace.dto.response.ChainEventTraceDto;
+import vn.nguongocso.trace.dto.response.EvidenceEventResponse;
+import vn.nguongocso.trace.dto.response.FarmAreaTraceDto;
+import vn.nguongocso.trace.dto.response.ImpactScopeSummaryDto;
+import vn.nguongocso.trace.dto.response.ImpactScopeTraceResponse;
+import vn.nguongocso.trace.dto.response.ProductionLotTraceDto;
+import vn.nguongocso.trace.dto.response.ReceivingOrganizationTraceDto;
+import vn.nguongocso.trace.dto.response.ScanStatsTraceDto;
+import vn.nguongocso.trace.dto.response.ShipmentTraceDto;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
@@ -24,9 +42,6 @@ import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.ImpactScopeTraceService;
-
-import java.time.LocalDateTime;
-import java.util.*;
 
 /** Triển khai dịch vụ truy vết phạm vi ảnh hưởng hai chiều. */
 @Service

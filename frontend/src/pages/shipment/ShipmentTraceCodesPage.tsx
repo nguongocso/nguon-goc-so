@@ -116,7 +116,7 @@ export default function ShipmentTraceCodesPage() {
     getShipmentById(shipmentId)
       .then(setShipment)
       .catch((err: any) => {
-        console.error('Không thể tải thông tin lô hàng:', err);
+        setError(err?.message || 'Không thể tải thông tin lô hàng');
       });
   }, [shipmentId]);
 

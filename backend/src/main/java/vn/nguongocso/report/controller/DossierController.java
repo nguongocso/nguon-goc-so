@@ -1,11 +1,12 @@
 package vn.nguongocso.report.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -13,21 +14,35 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
+import vn.nguongocso.export.service.ProfileTemplateService;
 import vn.nguongocso.permission.service.PermissionChecker;
-import vn.nguongocso.report.exception.DossierValidationException;
+import vn.nguongocso.report.dto.request.BatchDossierCheckRequest;
+import vn.nguongocso.report.dto.request.BatchDossierExportRequest;
+import vn.nguongocso.report.dto.response.BatchDossierCheckResponse;
+import vn.nguongocso.report.dto.response.BatchDossierHistoryDto;
 import vn.nguongocso.report.dto.response.DossierCheckResponse;
 import vn.nguongocso.report.dto.response.Gs1DossierExportResponse;
-import vn.nguongocso.export.service.ProfileTemplateService;
+import vn.nguongocso.report.exception.DossierValidationException;
 import vn.nguongocso.report.service.DossierService;
-
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Map;
-import java.util.UUID;
 
 /**
  * Controller quản lý hồ sơ truy xuất.
@@ -42,21 +57,20 @@ public class DossierController {
     private final ProfileTemplateService profileTemplateService;
 
     /**
-     * Kiểm tra điều kiện xuất hồ sơ truy xuất.
+     * API Kiểm tra điều kiện xuất hồ sơ truy xuất.
      */
     @GetMapping("/{shipmentId}/dossier/check")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<DossierCheckResponse>> checkEligibility(
             @PathVariable UUID shipmentId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-
         permissionChecker.check("SHIPMENT", "READ");
         DossierCheckResponse response = dossierService.checkEligibility(shipmentId, currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
     /**
-     * Xuất và tải hồ sơ truy xuất nguồn gốc dưới dạng file PDF.
+     * API Xuất và tải hồ sơ truy xuất nguồn gốc dưới dạng file PDF.
      */
     @GetMapping("/{shipmentId}/dossier/export")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
@@ -65,15 +79,14 @@ public class DossierController {
             @RequestParam(name = "templateId", required = false) UUID templateId,
             @AuthenticationPrincipal CustomUserDetails currentUser,
             HttpServletRequest request) {
-
         permissionChecker.check("SHIPMENT", "READ");
         String ipAddress = extractClientIp(request);
         byte[] pdfBytes = templateId != null
                 ? dossierService.exportDossierPdf(shipmentId, templateId, currentUser, ipAddress)
                 : dossierService.exportDossierPdf(shipmentId, currentUser, ipAddress);
 
-        String rawFileName = "Ho_so_truy_xuat_" + shipmentId + "_" +
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
+        String rawFileName = "Ho_so_truy_xuat_" + shipmentId + "_"
+                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
 
         ContentDisposition contentDisposition = ContentDisposition.attachment()
                 .filename(rawFileName, StandardCharsets.UTF_8)
@@ -86,7 +99,7 @@ public class DossierController {
     }
 
     /**
-     * Xem trước hồ sơ truy xuất áp dụng mẫu cấu hình trường dữ liệu đối tác.
+     * API Xem trước hồ sơ truy xuất áp dụng mẫu cấu hình trường dữ liệu đối tác.
      */
     @GetMapping("/{shipmentId}/dossier/preview")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
@@ -94,14 +107,13 @@ public class DossierController {
             @PathVariable UUID shipmentId,
             @RequestParam(name = "templateId", required = false) UUID templateId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-
         permissionChecker.check("SHIPMENT", "READ");
         Map<String, Object> previewData = profileTemplateService.buildPreview(shipmentId, templateId, currentUser);
         return ResponseEntity.ok(ApiResult.success(previewData));
     }
 
     /**
-     * Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng.
+     * API Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng.
      */
     @GetMapping("/{shipmentId}/dossier/gs1")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
@@ -111,7 +123,6 @@ public class DossierController {
             @RequestParam(name = "includeMapping", defaultValue = "true") boolean includeMapping,
             @AuthenticationPrincipal CustomUserDetails currentUser,
             HttpServletRequest request) {
-
         permissionChecker.check("SHIPMENT", "READ");
         String ipAddress = extractClientIp(request);
         Gs1DossierExportResponse response = dossierService.exportGs1Dossier(
@@ -133,7 +144,6 @@ public class DossierController {
             }
         }
 
-        // JSON (default) – bọc trong ApiResult theo convention project
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
@@ -146,35 +156,33 @@ public class DossierController {
     }
 
     /**
-     * Kiểm tra điều kiện xuất hồ sơ hàng loạt.
+     * API Kiểm tra điều kiện xuất hồ sơ hàng loạt.
      */
     @PostMapping("/dossiers/batch-check")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
-    public ResponseEntity<ApiResult<vn.nguongocso.report.dto.response.BatchDossierCheckResponse>> checkBatchEligibility(
-            @jakarta.validation.Valid @RequestBody vn.nguongocso.report.dto.request.BatchDossierCheckRequest request,
+    public ResponseEntity<ApiResult<BatchDossierCheckResponse>> checkBatchEligibility(
+            @Valid @RequestBody BatchDossierCheckRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-
         permissionChecker.check("SHIPMENT", "READ");
-        vn.nguongocso.report.dto.response.BatchDossierCheckResponse response = dossierService.checkBatchEligibility(request, currentUser);
+        BatchDossierCheckResponse response = dossierService.checkBatchEligibility(request, currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
     /**
-     * Xuất và tải về tệp PDF bộ hồ sơ truy xuất hợp nhất.
+     * API Xuất và tải về duy nhất một tệp PDF bộ hồ sơ truy xuất hợp nhất.
      */
     @PostMapping("/dossiers/batch-export")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
     public ResponseEntity<byte[]> exportBatchDossierPdf(
-            @jakarta.validation.Valid @RequestBody vn.nguongocso.report.dto.request.BatchDossierExportRequest request,
+            @Valid @RequestBody BatchDossierExportRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser,
             HttpServletRequest servletRequest) {
-
         permissionChecker.check("SHIPMENT", "READ");
         String ipAddress = extractClientIp(servletRequest);
         byte[] pdfBytes = dossierService.exportBatchDossierPdf(request, currentUser, ipAddress);
 
-        String rawFileName = "Bo_ho_so_truy_xuat_" +
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
+        String rawFileName = "Bo_ho_so_truy_xuat_"
+                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
 
         ContentDisposition contentDisposition = ContentDisposition.attachment()
                 .filename(rawFileName, StandardCharsets.UTF_8)
@@ -187,15 +195,14 @@ public class DossierController {
     }
 
     /**
-     * Lấy lịch sử xuất bộ hồ sơ hàng loạt.
+     * API Lấy lịch sử xuất bộ hồ sơ hàng loạt.
      */
     @GetMapping("/dossiers/batch-history")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
-    public ResponseEntity<ApiResult<java.util.List<vn.nguongocso.report.dto.response.BatchDossierHistoryDto>>> getBatchExportHistory(
+    public ResponseEntity<ApiResult<List<BatchDossierHistoryDto>>> getBatchExportHistory(
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-
         permissionChecker.check("SHIPMENT", "READ");
-        java.util.List<vn.nguongocso.report.dto.response.BatchDossierHistoryDto> response = dossierService.getBatchExportHistory(currentUser);
+        List<BatchDossierHistoryDto> response = dossierService.getBatchExportHistory(currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
@@ -206,7 +213,6 @@ public class DossierController {
     public ResponseEntity<ApiResult<Void>> handleDossierValidation(
             DossierValidationException e,
             HttpServletRequest request) {
-
         ApiResult<Void> body = ApiResult.error(
                 HttpStatus.BAD_REQUEST.value(),
                 e.getMessage(),
