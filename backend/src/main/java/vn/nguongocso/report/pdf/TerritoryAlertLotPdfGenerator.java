@@ -9,10 +9,5 @@ import vn.nguongocso.report.dto.response.AlertLotSummaryResponse;
 public interface TerritoryAlertLotPdfGenerator {
 
     /** Tạo file PDF danh sách lô có cảnh báo theo địa bàn. */
-    byte[] generate(
-            List<AlertLotSummaryResponse> alertLots,
-            String officerName,
-            LocalDate fromDate,
-            LocalDate toDate
-    );
+    byte[] generate(List<AlertLotSummaryResponse> alertLots, String officerName, LocalDate fromDate, LocalDate toDate);
 }

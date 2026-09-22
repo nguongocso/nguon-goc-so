@@ -9,12 +9,7 @@ import vn.nguongocso.report.dto.response.AlertLotSummaryResponse;
 public interface TerritoryAlertLotExcelGenerator {
 
     /** Sinh nội dung file Excel dưới dạng byte array. */
-    byte[] generate(
-            List<AlertLotSummaryResponse> alertLots,
-            String officerName,
-            LocalDate fromDate,
-            LocalDate toDate
-    );
+    byte[] generate(List<AlertLotSummaryResponse> alertLots, String officerName, LocalDate fromDate, LocalDate toDate);
 
     /** Sinh nội dung file Excel tiện ích chỉ với danh sách lô. */
     default byte[] generateExcel(List<AlertLotSummaryResponse> alertLots) {

@@ -47,12 +47,7 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
     private static final Color BORDER_COLOR = new Color(226, 232, 240);
 
     @Override
-    public byte[] generate(
-            List<AlertLotSummaryResponse> alertLots,
-            String officerName,
-            LocalDate fromDate,
-            LocalDate toDate
-    ) {
+    public byte[] generate(List<AlertLotSummaryResponse> alertLots, String officerName, LocalDate fromDate, LocalDate toDate) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4.rotate(), 24F, 24F, 24F, 24F);
             PdfWriter.getInstance(document, outputStream);
@@ -121,23 +116,11 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
     }
 
     /** Khởi tạo và điền dữ liệu bảng danh sách lô có cảnh báo. */
-    private PdfPTable buildAlertLotsTable(
-            List<AlertLotSummaryResponse> alertLots,
-            Font headerFont,
-            Font dataFont
-    ) throws DocumentException {
+    private PdfPTable buildAlertLotsTable(List<AlertLotSummaryResponse> alertLots, Font headerFont, Font dataFont)
+            throws DocumentException {
         PdfPTable table = new PdfPTable(8);
         table.setWidthPercentage(100);
-        table.setWidths(new float[] {
-                4F,
-                18F,
-                13F,
-                13F,
-                18F,
-                16F,
-                10F,
-                8F
-        });
+        table.setWidths(new float[] {4F, 18F, 13F, 13F, 18F, 16F, 10F, 8F});
         table.setSpacingBefore(4F);
         table.setSpacingAfter(8F);
 
@@ -195,12 +178,7 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
     }
 
     /** Tạo ô tiêu đề bảng. */
-    private void addTableHeaderCell(
-            PdfPTable table,
-            String text,
-            Font font,
-            int alignment
-    ) {
+    private void addTableHeaderCell(PdfPTable table, String text, Font font, int alignment) {
         PdfPCell cell = new PdfPCell(new Phrase(text, font));
         cell.setHorizontalAlignment(alignment);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
@@ -214,13 +192,7 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
     }
 
     /** Tạo ô dữ liệu trong bảng với màu nền và đường kẻ viền nhẹ. */
-    private void addDataCell(
-            PdfPTable table,
-            String text,
-            Font font,
-            int alignment,
-            Color bgColor
-    ) {
+    private void addDataCell(PdfPTable table, String text, Font font, int alignment, Color bgColor) {
         PdfPCell cell = new PdfPCell(new Phrase(text != null ? text : "—", font));
         cell.setHorizontalAlignment(alignment);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
@@ -307,12 +279,7 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
     }
 
     /** Tải phông chữ Roboto Unicode hỗ trợ đầy đủ tiếng Việt có dấu. */
-    private Font loadFont(
-            String resource,
-            float size,
-            int style,
-            Color color
-    ) {
+    private Font loadFont(String resource, float size, int style, Color color) {
         String resourcePath = resource.startsWith("/") ? resource : "/" + resource;
         try (InputStream inputStream = getClass().getResourceAsStream(resourcePath)) {
             byte[] fontBytes;

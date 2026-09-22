@@ -50,12 +50,7 @@ public class TerritoryAlertLotExcelGeneratorImpl implements TerritoryAlertLotExc
     };
 
     @Override
-    public byte[] generate(
-            List<AlertLotSummaryResponse> alertLots,
-            String officerName,
-            LocalDate fromDate,
-            LocalDate toDate
-    ) {
+    public byte[] generate(List<AlertLotSummaryResponse> alertLots, String officerName, LocalDate fromDate, LocalDate toDate) {
         try (Workbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 

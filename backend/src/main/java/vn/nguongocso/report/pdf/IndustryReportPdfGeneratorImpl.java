@@ -67,12 +67,8 @@ public class IndustryReportPdfGeneratorImpl implements IndustryReportPdfGenerato
     }
 
     /** Thông tin tổng quan báo cáo. */
-    private void addGeneralInformation(
-            Document document,
-            IndustryReportResponse report,
-            Font titleFont,
-            Font normalFont
-    ) throws DocumentException {
+    private void addGeneralInformation(Document document, IndustryReportResponse report, Font titleFont, Font normalFont)
+            throws DocumentException {
         Paragraph title = new Paragraph("BÁO CÁO TỔNG HỢP NGÀNH", titleFont);
         title.setAlignment(Paragraph.ALIGN_CENTER);
         document.add(title);
@@ -98,11 +94,8 @@ public class IndustryReportPdfGeneratorImpl implements IndustryReportPdfGenerato
     }
 
     /** Tạo bảng thống kê theo loại nông sản. */
-    private PdfPTable buildProductTable(
-            IndustryReportResponse report,
-            Font headerFont,
-            Font normalFont
-    ) throws DocumentException {
+    private PdfPTable buildProductTable(IndustryReportResponse report, Font headerFont, Font normalFont)
+            throws DocumentException {
         PdfPTable table = new PdfPTable(3);
         table.setWidthPercentage(100);
         table.setWidths(new float[] {4F, 2F, 3F});
@@ -134,11 +127,7 @@ public class IndustryReportPdfGeneratorImpl implements IndustryReportPdfGenerato
     }
 
     /** Thêm tiêu đề bảng. */
-    private void addHeader(
-            PdfPTable table,
-            String title,
-            Font font
-    ) {
+    private void addHeader(PdfPTable table, String title, Font font) {
         PdfPCell cell = new PdfPCell(new Phrase(title, font));
         cell.setHorizontalAlignment(PdfPCell.ALIGN_CENTER);
         cell.setVerticalAlignment(PdfPCell.ALIGN_MIDDLE);
@@ -148,11 +137,7 @@ public class IndustryReportPdfGeneratorImpl implements IndustryReportPdfGenerato
     }
 
     /** Tải font Unicode từ resources. */
-    private Font loadFont(
-            String resource,
-            float size,
-            int style
-    ) {
+    private Font loadFont(String resource, float size, int style) {
         String resourcePath = resource.startsWith("/") ? resource : "/" + resource;
         try (InputStream inputStream = getClass().getResourceAsStream(resourcePath)) {
             byte[] fontBytes;

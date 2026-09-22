@@ -101,17 +101,13 @@ public class IndustryReportExcelGeneratorImpl implements IndustryReportExcelGene
             Cell titleCell = titleRow.createCell(0);
             titleCell.setCellValue("BÁO CÁO TỔNG HỢP NGÀNH");
             titleCell.setCellStyle(titleStyle);
-            sheet.addMergedRegion(
-                    new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 2)
-            );
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 2));
 
             Row infoRow = sheet.createRow(2);
             Cell infoCell = infoRow.createCell(0);
             infoCell.setCellValue("Địa bàn: " + safeString(report.getRegion()));
             infoCell.setCellStyle(normalStyle);
-            sheet.addMergedRegion(
-                    new org.apache.poi.ss.util.CellRangeAddress(2, 2, 0, 2)
-            );
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(2, 2, 0, 2));
 
             Row dateRow = sheet.createRow(3);
             Cell dateCell = dateRow.createCell(0);
@@ -123,33 +119,24 @@ public class IndustryReportExcelGeneratorImpl implements IndustryReportExcelGene
                     : report.getToDate().format(DATE_FORMAT);
             dateCell.setCellValue("Thời gian: " + fromDate + " - " + toDate);
             dateCell.setCellStyle(normalStyle);
-            sheet.addMergedRegion(
-                    new org.apache.poi.ss.util.CellRangeAddress(3, 3, 0, 2)
-            );
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(3, 3, 0, 2));
 
             Row orgRow = sheet.createRow(4);
             cellWithValue(orgRow, 0, "Tổng tổ chức: " + report.getTotalOrganizations(), normalStyle);
-            sheet.addMergedRegion(
-                    new org.apache.poi.ss.util.CellRangeAddress(4, 4, 0, 2)
-            );
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(4, 4, 0, 2));
 
             Row shipmentRow = sheet.createRow(5);
             cellWithValue(shipmentRow, 0, "Tổng lô hàng: " + report.getTotalShipments(), normalStyle);
-            sheet.addMergedRegion(
-                    new org.apache.poi.ss.util.CellRangeAddress(5, 5, 0, 2)
-            );
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(5, 5, 0, 2));
 
             Row quantityRow = sheet.createRow(6);
             cellWithValue(
                     quantityRow,
                     0,
-                    "Tổng sản lượng: " + new java.text.DecimalFormat("#,##0")
-                            .format(report.getTotalQuantity()) + " kg",
+                    "Tổng sản lượng: " + new java.text.DecimalFormat("#,##0").format(report.getTotalQuantity()) + " kg",
                     normalStyle
             );
-            sheet.addMergedRegion(
-                    new org.apache.poi.ss.util.CellRangeAddress(6, 6, 0, 2)
-            );
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(6, 6, 0, 2));
 
             Row headerRow = sheet.createRow(8);
             for (int i = 0; i < HEADERS.length; i++) {
@@ -166,9 +153,7 @@ public class IndustryReportExcelGeneratorImpl implements IndustryReportExcelGene
                 Cell emptyCell = emptyRow.createCell(0);
                 emptyCell.setCellValue("Không có dữ liệu");
                 emptyCell.setCellStyle(messageStyle);
-                sheet.addMergedRegion(
-                        new org.apache.poi.ss.util.CellRangeAddress(rowIndex, rowIndex, 0, 2)
-                );
+                sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowIndex, rowIndex, 0, 2));
             } else {
                 for (ProductBreakdownItem item : items) {
                     Row row = sheet.createRow(rowIndex++);
@@ -198,34 +183,19 @@ public class IndustryReportExcelGeneratorImpl implements IndustryReportExcelGene
         }
     }
 
-    private void cellWithValue(
-            Row row,
-            int col,
-            String value,
-            CellStyle style
-    ) {
+    private void cellWithValue(Row row, int col, String value, CellStyle style) {
         Cell cell = row.createCell(col);
         cell.setCellValue(value);
         cell.setCellStyle(style);
     }
 
-    private void cellWithValue(
-            Row row,
-            int col,
-            int value,
-            CellStyle style
-    ) {
+    private void cellWithValue(Row row, int col, int value, CellStyle style) {
         Cell cell = row.createCell(col);
         cell.setCellValue(value);
         cell.setCellStyle(style);
     }
 
-    private void cellWithValue(
-            Row row,
-            int col,
-            double value,
-            CellStyle style
-    ) {
+    private void cellWithValue(Row row, int col, double value, CellStyle style) {
         Cell cell = row.createCell(col);
         cell.setCellValue(value);
         cell.setCellStyle(style);

@@ -118,11 +118,7 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
     }
 
     /** Xây dựng bảng dữ liệu mức độ sử dụng theo từng tổ chức. */
-    private PdfPTable buildUsageTable(
-            OrganizationUsageDashboardResponse dashboard,
-            Font headerFont,
-            Font dataFont
-    ) {
+    private PdfPTable buildUsageTable(OrganizationUsageDashboardResponse dashboard, Font headerFont, Font dataFont) {
         PdfPTable table = new PdfPTable(TABLE_WIDTHS);
         table.setWidthPercentage(100F);
         table.setSpacingAfter(12F);
@@ -131,9 +127,7 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
             addCell(table, header, headerFont, HEADER_BG_COLOR, Color.WHITE, Element.ALIGN_CENTER);
         }
 
-        List<OrganizationUsageItem> items = dashboard.getItems() != null
-                ? dashboard.getItems()
-                : List.of();
+        List<OrganizationUsageItem> items = dashboard.getItems() != null ? dashboard.getItems() : List.of();
         int stt = 1;
         for (OrganizationUsageItem item : items) {
             Color bgColor = stt % 2 == 0 ? ALT_ROW_BG_COLOR : Color.WHITE;
@@ -156,14 +150,7 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
     }
 
     /** Thêm một ô dữ liệu vào bảng với nền, căn lề và viền thống nhất. */
-    private void addCell(
-            PdfPTable table,
-            String text,
-            Font font,
-            Color bgColor,
-            Color fontColor,
-            int horizontalAlignment
-    ) {
+    private void addCell(PdfPTable table, String text, Font font, Color bgColor, Color fontColor, int horizontalAlignment) {
         Font effectiveFont = fontColor != null
                 ? new Font(font.getBaseFont(), font.getSize(), font.getStyle(), fontColor)
                 : font;
@@ -179,10 +166,7 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
     }
 
     /** Định dạng một chỉ số kèm % thay đổi so với kỳ trước. */
-    private String formatMetric(
-            MetricComparison metric,
-            boolean hasData
-    ) {
+    private String formatMetric(MetricComparison metric, boolean hasData) {
         if (!hasData || metric == null) {
             return "—";
         }
@@ -231,12 +215,7 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
     }
 
     /** Tải phông chữ Roboto Unicode hỗ trợ đầy đủ tiếng Việt có dấu. */
-    private Font loadFont(
-            String resource,
-            float size,
-            int style,
-            Color color
-    ) {
+    private Font loadFont(String resource, float size, int style, Color color) {
         String resourcePath = resource.startsWith("/") ? resource : "/" + resource;
         try (InputStream inputStream = getClass().getResourceAsStream(resourcePath)) {
             byte[] fontBytes;
