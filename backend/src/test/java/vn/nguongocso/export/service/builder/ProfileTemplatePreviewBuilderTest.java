@@ -43,12 +43,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 /**
- * Kiểm thử đơn vị cho ProfileTemplatePreviewBuilder.
- * Đảm bảo logic truy vấn và định dạng dữ liệu snapshot xem trước hồ sơ truy xuất
- * hoạt động chính xác theo cấu hình trường được chọn và độc lập với transaction.
+ * Kiểm thử đơn vị cho ProfileTemplatePreviewBuilder (NCL-12-CN-003).
+ * Đảm bảo logic trích xuất snapshot xem trước hồ sơ truy xuất theo cấu hình trường và độc lập với transaction.
  */
 @ExtendWith(MockitoExtension.class)
-public class ProfileTemplatePreviewBuilderTest {
+class ProfileTemplatePreviewBuilderTest {
 
     @Mock
     private FarmLogRepository farmLogRepository;
@@ -71,7 +70,6 @@ public class ProfileTemplatePreviewBuilderTest {
     @InjectMocks
     private ProfileTemplatePreviewBuilder previewBuilder;
 
-    private UUID orgId;
     private UUID shipmentId;
     private Organization testOrg;
     private FarmArea testFarmArea;
@@ -80,7 +78,7 @@ public class ProfileTemplatePreviewBuilderTest {
 
     @BeforeEach
     void setUp() {
-        orgId = UUID.randomUUID();
+        UUID orgId = UUID.randomUUID();
         shipmentId = UUID.randomUUID();
 
         testOrg = Organization.builder()
@@ -121,7 +119,7 @@ public class ProfileTemplatePreviewBuilderTest {
 
     @Test
     @DisplayName("TC-01: buildPreviewSnapshot với 10 trường được cấu hình trả về đúng 10 trường")
-    void tc01_buildPreviewSnapshot_withTenSelectedFields_returnsExactlyTenFields() {
+    void shouldReturnExactlyTenFieldsWhenTenFieldsSelected() {
         UUID templateId = UUID.randomUUID();
         ProfileTemplate template = ProfileTemplate.builder()
                 .id(templateId)
@@ -202,7 +200,7 @@ public class ProfileTemplatePreviewBuilderTest {
 
     @Test
     @DisplayName("TC-01b: buildPreviewSnapshot khi template == null -> thông tin mẫu hiển thị Mặc định hệ thống")
-    void tc01b_buildPreviewSnapshot_nullTemplate_fallsBackToSystemDefault() {
+    void shouldFallBackToSystemDefaultWhenTemplateIsNull() {
         Set<String> selectedFieldKeys = MandatoryFields.QTN11_MANDATORY_FIELD_KEYS;
 
         Map<String, Object> preview = previewBuilder.buildPreviewSnapshot(testShipment, null, selectedFieldKeys);
@@ -219,7 +217,7 @@ public class ProfileTemplatePreviewBuilderTest {
 
     @Test
     @DisplayName("buildPreviewSnapshot với chứng chỉ và kiểm định chất lượng: dữ liệu được trích xuất chính xác")
-    void buildPreviewSnapshot_withCertificationsAndInspections_materializesData() {
+    void shouldMaterializeDataCorrectlyWhenCertificationsAndInspectionsConfigured() {
         Set<String> selectedFieldKeys = Set.of(
                 "organization.name",
                 "certification.name",
@@ -271,7 +269,7 @@ public class ProfileTemplatePreviewBuilderTest {
 
     @Test
     @DisplayName("buildPreviewSnapshot với nhật ký canh tác và tệp đính kèm: định dạng danh sách thành công")
-    void buildPreviewSnapshot_withFarmLogAttachments_materializesData() {
+    void shouldMaterializeFarmLogAndAttachmentsCorrectlyWhenConfigured() {
         Set<String> selectedFieldKeys = Set.of(
                 "farmLog.activityType",
                 "farmLog.attachments"

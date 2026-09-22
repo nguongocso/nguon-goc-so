@@ -25,7 +25,8 @@ import vn.nguongocso.event.repository.FailedEventLogRepository;
 import vn.nguongocso.exception.BusinessException;
 
 /**
- * Unit test cho FailedEventLogRecorder.
+ * Kiểm thử đơn vị cho FailedEventLogRecorder (NCL-05-CN-008).
+ * Xác thực việc ghi nhận lịch sử các lần ghi sự kiện chuỗi cung ứng thất bại.
  */
 @ExtendWith(MockitoExtension.class)
 class FailedEventLogRecorderTest {
@@ -56,7 +57,7 @@ class FailedEventLogRecorderTest {
     }
 
     @Test
-    void recordFailedAttempt_success() {
+    void shouldRecordFailedAttemptSuccessfullyWhenUserExists() {
         when(currentUser.getUserId()).thenReturn(userId);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -75,7 +76,7 @@ class FailedEventLogRecorderTest {
     }
 
     @Test
-    void recordFailedAttempt_userNotFound_throwsException() {
+    void shouldThrowBusinessExceptionWhenUserNotFound() {
         when(currentUser.getUserId()).thenReturn(userId);
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 

@@ -22,11 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
- * Kiểm thử xác minh snapshot rời transaction hoàn toàn độc lập,
- * không chứa thực thể JPA, Hibernate proxy hay PersistentCollection,
- * và chứng minh ExportCsvRenderer cùng JSON serializer hoạt động hoàn hảo sau khi transaction đóng.
+ * Kiểm thử đơn vị và bộ test bất biến (Golden Master) cho ExportCsvRenderer (NCL-12-CN-003).
+ * Xác thực việc kết xuất CSV độc lập với giao dịch, hỗ trợ BOM UTF-8 và bảo vệ cấu trúc byte-for-byte.
  */
-public class PostTransactionDetachedRendererTest {
+class ExportCsvRendererTest {
 
     private ExportCsvRenderer exportCsvRenderer;
     private ObjectMapper objectMapper;
@@ -39,7 +38,6 @@ public class PostTransactionDetachedRendererTest {
                 .registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        // Tạo snapshot dữ liệu đã materialize 100% (mô phỏng kết quả từ ProfileTemplatePreviewBuilder)
         materializedSnapshot = new LinkedHashMap<>();
         materializedSnapshot.put("shipmentId", UUID.randomUUID());
 
@@ -92,31 +90,27 @@ public class PostTransactionDetachedRendererTest {
     }
 
     @Test
-    @DisplayName("Snapshot rời transaction: Xác nhận không chứa bất kỳ JPA Entity, Hibernate Proxy hoặc PersistentCollection nào")
-    void snapshot_containsNoJpaEntitiesOrHibernateProxies() {
+    @DisplayName("Snapshot rời transaction: Xác nhận không chứa JPA Entity hoặc Hibernate Proxy")
+    void shouldContainNoJpaEntitiesOrHibernateProxiesWhenSnapshotMaterialized() {
         assertPureMaterializedStructure(materializedSnapshot);
     }
 
     @Test
-    @DisplayName("Renderer hoạt động độc lập sau transaction: ExportCsvRenderer tạo CSV byte-for-byte chuẩn với BOM UTF-8")
-    void renderer_generatesCsvWithoutTransaction_withBomAndHeaders() {
+    @DisplayName("Renderer hoạt động độc lập sau transaction: ExportCsvRenderer tạo CSV chuẩn với BOM UTF-8")
+    void shouldGenerateCsvWithBomAndHeadersWhenRenderingPreviewWithoutTransaction() {
         assertThatCode(() -> {
             String csv = exportCsvRenderer.renderPreviewToCsv(materializedSnapshot);
             assertThat(csv).isNotNull();
 
-            // Kiểm tra BOM UTF-8 ở đầu tệp
             assertThat(csv).startsWith("\uFEFF");
 
-            // Kiểm tra các dòng tiêu đề cố định
             assertThat(csv).contains("# HỒ SƠ TRUY XUẤT NGUỒN GỐC SẢN PHẨM");
             assertThat(csv).contains("# Mẫu hồ sơ: Mẫu chuẩn VietGAP");
             assertThat(csv).contains("Nhóm thông tin,Trường dữ liệu,Giá trị");
 
-            // Kiểm tra các bảng con nghiệp vụ
             assertThat(csv).contains("# LỊCH TRÌNH CANH TÁC & CHỨNG TỪ");
             assertThat(csv).contains("# DÒNG SỰ KIỆN CHUỖI CUNG ỨNG");
 
-            // Kiểm tra các giá trị nghiệp vụ thực tế
             assertThat(csv).contains("Hợp tác xã Nông nghiệp Lam Đồng");
             assertThat(csv).contains("Vùng chuyên canh Cà rốt");
             assertThat(csv).contains("Lô Cà rốt 2026-01");
@@ -124,10 +118,8 @@ public class PostTransactionDetachedRendererTest {
             assertThat(csv).contains("Tưới nước");
             assertThat(csv).contains("Thu hoạch");
 
-            // Kiểm tra chuyển đổi byte UTF-8
             byte[] bytes = csv.getBytes(StandardCharsets.UTF_8);
             assertThat(bytes).isNotEmpty();
-            // 3 byte đầu tiên của UTF-8 BOM: 0xEF, 0xBB, 0xBF
             assertThat(bytes[0]).isEqualTo((byte) 0xEF);
             assertThat(bytes[1]).isEqualTo((byte) 0xBB);
             assertThat(bytes[2]).isEqualTo((byte) 0xBF);
@@ -135,8 +127,8 @@ public class PostTransactionDetachedRendererTest {
     }
 
     @Test
-    @DisplayName("Renderer hoạt động độc lập sau transaction: JSON serializer tuần tự hóa snapshot hoàn hảo không cần Session")
-    void renderer_serializesJsonWithoutTransaction_successfully() {
+    @DisplayName("Renderer hoạt động độc lập sau transaction: JSON serializer tuần tự hóa snapshot hoàn hảo")
+    void shouldSerializeJsonSuccessfullyWhenMaterializedWithoutTransaction() {
         assertThatCode(() -> {
             String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(materializedSnapshot);
             assertThat(json).isNotNull();
@@ -149,8 +141,8 @@ public class PostTransactionDetachedRendererTest {
     }
 
     @Test
-    @DisplayName("Golden-Master CSV: So sánh byte-for-byte toàn bộ byte[] với fixture tham chiếu trước refactor (Unicode, comma, quote, newline, line endings)")
-    void goldenMasterCsv_byteForByteExactMatch_withComplexUnicodeCommaQuoteNewline() {
+    @DisplayName("Golden-Master CSV: So sánh byte-for-byte toàn bộ byte[] với fixture tham chiếu")
+    void shouldMatchReferenceGoldenMasterByteForByteWhenRenderingComplexCsv() {
         LocalDateTime fixedExportTime = LocalDateTime.of(2026, 9, 21, 10, 0, 0);
 
         Map<String, Object> fixtureSnapshot = new LinkedHashMap<>();
@@ -226,7 +218,6 @@ public class PostTransactionDetachedRendererTest {
         timeline.add(event1);
         fixtureSnapshot.put("timelineEvents", timeline);
 
-        // Chuỗi reference chuẩn xác tuyệt đối theo thuật toán cũ trước refactor
         String expectedCsv = "\uFEFF# HỒ SƠ TRUY XUẤT NGUỒN GỐC SẢN PHẨM\n"
                 + "# Mẫu hồ sơ: \"Mẫu \"\"Đặc Biệt\"\", Xuất Khẩu EU\"\n"
                 + "# Thời gian xuất: 2026-09-21 10:00:00\n\n"
@@ -256,28 +247,18 @@ public class PostTransactionDetachedRendererTest {
                 + "STT,Thời điểm ghi nhận,Loại sự kiện,Tọa độ địa điểm,Chi tiết sự kiện,Người ghi nhận\n"
                 + "1,2026-09-20T07:15,Thu hoạch (HARVEST),\"11.9404, 108.4583\",Nhiệt độ: 18°C; Độ ẩm: 70%,Trần Văn Quản Lý\n";
 
-        // Thực thi render từ component mới
         String actualCsv = exportCsvRenderer.renderPreviewToCsv(fixtureSnapshot, fixedExportTime);
         byte[] actualBytes = actualCsv.getBytes(StandardCharsets.UTF_8);
         byte[] expectedBytes = expectedCsv.getBytes(StandardCharsets.UTF_8);
 
-        // So sánh chuỗi và line endings
         assertThat(actualCsv).isEqualTo(expectedCsv);
-
-        // So sánh chính xác từng byte (Golden-Master Byte-for-Byte comparison)
         assertThat(actualBytes).isEqualTo(expectedBytes);
 
-        // Xác minh 3 bytes đầu tiên là BOM UTF-8 (0xEF, 0xBB, 0xBF)
         assertThat(actualBytes[0]).isEqualTo((byte) 0xEF);
         assertThat(actualBytes[1]).isEqualTo((byte) 0xBB);
         assertThat(actualBytes[2]).isEqualTo((byte) 0xBF);
     }
 
-    /**
-     * Hàm đệ quy kiểm tra toàn bộ cây snapshot: đảm bảo không có object nào thuộc package
-     * jakarta.persistence, org.hibernate hoặc là Hibernate proxy / PersistentCollection.
-     */
-    @SuppressWarnings("unchecked")
     private void assertPureMaterializedStructure(Object node) {
         if (node == null) {
             return;
@@ -286,17 +267,14 @@ public class PostTransactionDetachedRendererTest {
         Class<?> clazz = node.getClass();
         String className = clazz.getName();
 
-        // 1. Tuyệt đối không thuộc Hibernate proxy hoặc Hibernate collection
         assertThat(className)
                 .as("Lớp '%s' không được thuộc gói org.hibernate", className)
                 .doesNotContain("org.hibernate");
 
-        // 2. Tuyệt đối không chứa JPA Entity
         assertThat(clazz.isAnnotationPresent(jakarta.persistence.Entity.class))
                 .as("Đối tượng '%s' không được là @Entity", className)
                 .isFalse();
 
-        // 3. Duyệt đệ quy nếu là Map hoặc Collection
         if (node instanceof Map<?, ?> map) {
             for (Map.Entry<?, ?> entry : map.entrySet()) {
                 assertThat(entry.getKey()).isInstanceOf(String.class);

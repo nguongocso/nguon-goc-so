@@ -2,10 +2,11 @@ package vn.nguongocso.event.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,13 +53,11 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
 /**
- * Baseline test kiểm chứng hành vi transaction của WarehouseReceiptServiceImpl qua Spring transaction proxy.
- *
- * <p>Mục tiêu: Xác định chính xác khi NotificationRepository ném DataAccess/Runtime exception,
- * transaction của WarehouseReceipt ngoài COMMIT hay ROLLBACK.</p>
+ * Kiểm thử cho WarehouseReceiptService (NCL-05-CN-008).
+ * Xác thực ranh giới giao dịch proxy và quy tắc non-blocking của thông báo chênh lệch nhập kho.
  */
 @ExtendWith(SpringExtension.class)
-class WarehouseReceiptTransactionBaselineTest {
+class WarehouseReceiptServiceTest {
 
     private TraceCodeRepository traceCodeRepository;
     private ShipmentRepository shipmentRepository;
@@ -125,7 +124,6 @@ class WarehouseReceiptTransactionBaselineTest {
                 objectMapper
         );
 
-        // Tạo Spring Transactional Proxy quanh target
         txManager = new TrackingTransactionManager();
         RuleBasedTransactionAttribute txAttr = new RuleBasedTransactionAttribute();
         txAttr.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
@@ -142,7 +140,6 @@ class WarehouseReceiptTransactionBaselineTest {
 
         transactionalProxy = (WarehouseReceiptService) pf.getProxy();
 
-        // Chuẩn bị User VT-04
         UUID userId = UUID.randomUUID();
         UUID orgId = UUID.randomUUID();
         vt04User = mock(CustomUserDetails.class);
@@ -157,7 +154,6 @@ class WarehouseReceiptTransactionBaselineTest {
         actor.setFullName("Nguyễn Thu Mua");
         when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
 
-        // Chuẩn bị Shipment & Handover
         Organization org = new Organization();
         org.setOrganizationId(orgId);
 
@@ -174,7 +170,6 @@ class WarehouseReceiptTransactionBaselineTest {
         traceCode.setShipment(shipment);
         when(traceCodeRepository.findByCodeValue("TC-123456")).thenReturn(Optional.of(traceCode));
 
-        // Mock procurement event for validateProcurementRelationship
         ChainEvent procurementEvent = ChainEvent.builder()
                 .eventType(ChainEventType.PROCUREMENT)
                 .recordedBy(actor)
@@ -182,13 +177,11 @@ class WarehouseReceiptTransactionBaselineTest {
         when(chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId()))
                 .thenReturn(List.of(procurementEvent));
 
-        // Mock organizationUserRepository to verify actor belongs to orgId
         OrganizationUser actorOrgUser = new OrganizationUser();
         actorOrgUser.setUser(actor);
         when(organizationUserRepository.findByOrganization_OrganizationIdAndUser_UserId(orgId, userId))
                 .thenReturn(Optional.of(actorOrgUser));
 
-        // Mock chainEventService.saveWithChainHash
         when(chainEventService.saveWithChainHash(any())).thenAnswer(invocation -> {
             ChainEvent e = invocation.getArgument(0);
             e.setId(UUID.randomUUID());
@@ -196,7 +189,6 @@ class WarehouseReceiptTransactionBaselineTest {
             return e;
         });
 
-        // Mock Organization User list for notification recipients (VT-02)
         User managerUser = new User();
         managerUser.setUserId(UUID.randomUUID());
         OrganizationUser managerOrgUser = new OrganizationUser();
@@ -204,7 +196,6 @@ class WarehouseReceiptTransactionBaselineTest {
         when(organizationUserRepository.findAllByOrganization_OrganizationIdAndRole_Code(orgId, RoleCode.ORG_MANAGER))
                 .thenReturn(List.of(managerOrgUser));
 
-        // Request chênh lệch vượt ngưỡng (>2%): khai báo 100.0 kg, nhận 80.0 kg (lệch 20%)
         request = new WarehouseReceiptRequest();
         request.setCodeValue("TC-123456");
         request.setReceivedQuantity(80.0);
@@ -215,7 +206,7 @@ class WarehouseReceiptTransactionBaselineTest {
 
     @Test
     @DisplayName("Khi NotificationRepository lưu thành công: outer transaction COMMIT và notificationSent = true")
-    void recordWarehouseReceipt_whenNotificationSucceeds_commitsTransaction() {
+    void shouldCommitTransactionWhenNotificationSucceeds() {
         WarehouseReceiptResponse response = transactionalProxy.recordWarehouseReceipt(request, vt04User);
 
         assertThat(response).isNotNull();
@@ -225,9 +216,8 @@ class WarehouseReceiptTransactionBaselineTest {
     }
 
     @Test
-    @DisplayName("Khi NotificationRepository ném DataIntegrityViolationException: outer transaction VẪN COMMIT và notificationSent = false")
-    void recordWarehouseReceipt_whenNotificationThrowsDataAccessException_stillCommitsTransaction() {
-        // Giả lập NotificationRepository ném DataAccessException
+    @DisplayName("Khi NotificationRepository ném DataIntegrityViolationException: outer transaction VẪN COMMIT")
+    void shouldStillCommitTransactionWhenNotificationThrowsDataAccessException() {
         doThrow(new DataIntegrityViolationException("Simulated DB notification error"))
                 .when(notificationRepository).saveAll(any());
 
@@ -235,15 +225,13 @@ class WarehouseReceiptTransactionBaselineTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getNotificationSent()).isFalse();
-        // Kiểm chứng giao dịch ngoài VẪN ĐƯỢC COMMIT (không bị rollback)
         assertThat(txManager.commitCount).isEqualTo(1);
         assertThat(txManager.rollbackCount).isEqualTo(0);
     }
 
     @Test
-    @DisplayName("Khi NotificationRepository ném RuntimeException: outer transaction VẪN COMMIT và notificationSent = false")
-    void recordWarehouseReceipt_whenNotificationThrowsRuntimeException_stillCommitsTransaction() {
-        // Giả lập NotificationRepository ném RuntimeException
+    @DisplayName("Khi NotificationRepository ném RuntimeException: outer transaction VẪN COMMIT")
+    void shouldStillCommitTransactionWhenNotificationThrowsRuntimeException() {
         doThrow(new RuntimeException("Simulated generic runtime error"))
                 .when(notificationRepository).saveAll(any());
 
