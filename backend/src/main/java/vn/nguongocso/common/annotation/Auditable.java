@@ -1,13 +1,12 @@
 package vn.nguongocso.common.annotation;
 
-import java.lang.annotation.*;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-/**
- * Annotation Auditable được sử dụng để đánh dấu các phương thức cần được ghi
- * lại trong nhật ký (audit log).
- * Nó cung cấp thông tin về hành động, loại thực thể và mô tả liên quan đến
- * phương thức đó.
- */
+/** Đánh dấu phương thức cần ghi nhật ký lưu vết (Audit Log). */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
