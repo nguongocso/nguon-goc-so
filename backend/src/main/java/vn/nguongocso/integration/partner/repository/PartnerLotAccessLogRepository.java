@@ -12,13 +12,12 @@ import org.springframework.stereotype.Repository;
 import vn.nguongocso.integration.partner.entity.PartnerLotAccessLog;
 
 /**
- * Repository truy vấn nhật ký truy xuất lô của đối tác (NCL-12-CN-006).
- */
+ * Repository truy vấn nhật ký truy xuất lô của đối tác.
+*/
 @Repository
 public interface PartnerLotAccessLogRepository extends JpaRepository<PartnerLotAccessLog, UUID> {
-
     /**
-     * Tìm danh sách ID khóa API đối tác đã từng truy xuất lô hàng hoặc lô sản xuất trong khoảng thời gian cấu hình (TC-03).
+     * Tìm danh sách khóa API đối tác đã từng truy xuất lô hàng hoặc lô sản xuất.
      */
     @Query("""
             SELECT DISTINCT log.partnerApiKey.id
@@ -32,7 +31,7 @@ public interface PartnerLotAccessLogRepository extends JpaRepository<PartnerLotA
             @Param("since") LocalDateTime since);
 
     /**
-     * Kiểm tra đối tác đã từng truy xuất lô hàng hoặc lô sản xuất sau thời điểm `since` hay chưa.
+     * Kiểm tra đối tác đã từng truy xuất lô hàng hoặc lô sản xuất hay chưa.
      */
     @Query("""
             SELECT COUNT(log) > 0

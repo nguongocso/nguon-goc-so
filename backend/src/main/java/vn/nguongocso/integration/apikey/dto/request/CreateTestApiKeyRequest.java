@@ -14,18 +14,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Yêu cầu cấp mới khóa thử nghiệm (Sandbox/Test Key) dành cho đối tác bên thứ ba.
- * <p>
- * Khóa thử nghiệm có các ràng buộc nghiêm ngặt: hạn mức thấp (tối đa 100 lượt/giờ)
- * và thời hạn ngắn (tối đa 30 ngày) để đối tác kiểm thử tích hợp mà không chạm vào dữ liệu thật (NCL-12-CN-004).
- */
+ * Yêu cầu cấp mới khóa thử nghiệm dành cho đối tác bên thứ ba.
+*/
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateTestApiKeyRequest {
-
     @Size(max = 255, message = "Tên đối tác không vượt quá 255 ký tự")
     private String partnerName;
 
@@ -36,18 +32,27 @@ public class CreateTestApiKeyRequest {
     @Future(message = "Ngày hết hạn phải ở thời điểm tương lai")
     private LocalDateTime expiresAt;
 
+    /**
+     * Gán tên đối tác khi chưa có.
+     */
     public void setName(String name) {
         if (this.partnerName == null || this.partnerName.isBlank()) {
             this.partnerName = name;
         }
     }
 
+    /**
+     * Gán thời hạn theo số ngày khi chưa có.
+     */
     public void setExpireDays(Integer expireDays) {
         if (this.expiresAt == null && expireDays != null && expireDays > 0) {
             this.expiresAt = LocalDateTime.now().plusDays(expireDays);
         }
     }
 
+    /**
+     * Gán hạn mức khi chưa có.
+     */
     public void setRateLimit(Integer rateLimit) {
         if (this.rateLimitPerHour == null) {
             this.rateLimitPerHour = rateLimit;

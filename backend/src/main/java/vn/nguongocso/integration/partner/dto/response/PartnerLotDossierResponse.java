@@ -12,8 +12,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Hồ sơ truy xuất lô sản xuất dành cho bên thứ ba (NCL-12-CN-002, NCL-12-CN-004).
- */
+ * DTO hồ sơ truy xuất lô sản xuất dành cho bên thứ ba.
+*/
 @Getter
 @Setter
 @Builder
@@ -22,24 +22,32 @@ import lombok.Setter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PartnerLotDossierResponse {
     private PartnerLotInfoResponse lotInfo;
+
     private PartnerOrgInfoResponse organizationInfo;
+
     private PartnerFarmAreaResponse farmAreaInfo;
+
     private List<PartnerCertificationResponse> certifications;
+
     private PartnerFarmLogSummaryResponse farmLogSummary;
 
-    /** Đánh dấu dữ liệu thử nghiệm (Sandbox). */
     @JsonProperty("is_test")
     private Boolean isTest;
 
+    /**
+     * Lấy cờ dữ liệu thử nghiệm theo định dạng camel.
+     */
     @JsonProperty("isTest")
     public Boolean getIsTestCamel() {
         return isTest;
     }
 
-    /** Thông điệp thông báo dữ liệu thử nghiệm. */
     @JsonProperty("test_notice")
     private String testNotice;
 
+    /**
+     * Lấy thông điệp dữ liệu thử nghiệm theo định dạng camel.
+     */
     @JsonProperty("testNotice")
     public String getTestNoticeCamel() {
         return testNotice;

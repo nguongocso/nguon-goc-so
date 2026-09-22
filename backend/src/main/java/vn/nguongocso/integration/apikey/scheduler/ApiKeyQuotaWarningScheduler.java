@@ -10,20 +10,11 @@ import lombok.RequiredArgsConstructor;
 import vn.nguongocso.integration.apikey.service.ApiKeyWarningService;
 
 /**
- * Scheduler đối soát cảnh báo hạn mức khóa truy cập (NCL-12-CN-005).
- * <p>
- * Chạy mỗi giờ (mặc định phút 30) để gửi bù cảnh báo "sắp chạm hạn mức" cho các
- * khóa đã vượt ngưỡng nhưng chưa được cảnh báo, ví dụ backend vừa khởi động lại,
- * chạy nhiều instance, hoặc lượt gọi vượt ngưỡng mà không trúng mốc bắn của luồng
- * realtime. Logic chi tiết nằm ở {@link ApiKeyWarningService#reconcileQuotaWarnings()}.
- * <p>
- * Chọn nhịp mỗi giờ thay vì quét hằng ngày lúc 00:00 vì mốc 00:00 là lúc sang
- * ngày mới (usage của ngày hôm đó bằng 0) nên quét đúng 00:00 sẽ không phát hiện được gì.
- */
+ * Scheduler đối soát cảnh báo hạn mức khóa truy cập.
+*/
 @Component
 @RequiredArgsConstructor
 public class ApiKeyQuotaWarningScheduler {
-
     private static final Logger log = LoggerFactory.getLogger(ApiKeyQuotaWarningScheduler.class);
 
     private final ApiKeyWarningService apiKeyWarningService;

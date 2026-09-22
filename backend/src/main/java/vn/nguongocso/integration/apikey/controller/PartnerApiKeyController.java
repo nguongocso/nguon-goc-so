@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.integration.apikey.dto.request.CreateApiKeyRequest;
@@ -42,22 +43,20 @@ import vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus;
 import vn.nguongocso.integration.partner.service.PartnerWebhookService;
 
 /**
- * Controller quản lý khóa truy cập dành cho Quản lý Hợp tác xã (VT-02).
- * <p>
- * Phân quyền nghiêm ngặt: Chỉ tài khoản có vai trò VT-02 mới được phép thực hiện (TC-04).
- */
+ * Controller quản lý khóa truy cập dành cho Quản lý Hợp tác xã.
+*/
 @RestController
 @RequestMapping("/api/v1/organization/api-keys")
 @RequiredArgsConstructor
 public class PartnerApiKeyController {
-
     private static final Logger log = LoggerFactory.getLogger(PartnerApiKeyController.class);
 
     private final PartnerApiKeyService partnerApiKeyService;
+
     private final PartnerWebhookService partnerWebhookService;
 
     /**
-     * Cấp mới khóa truy cập cho bên thứ ba (TC-01, TC-03).
+     * Cấp mới khóa truy cập cho bên thứ ba.
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
@@ -73,10 +72,7 @@ public class PartnerApiKeyController {
     }
 
     /**
-     * Cấp mới khóa thử nghiệm (Sandbox) cho đối tác bên thứ ba (NCL-12-CN-004, TC-01, TC-04).
-     * <p>
-     * Phân quyền nghiêm ngặt: Chỉ Quản lý Hợp tác xã (VT-02) hoặc Quản trị viên nền tảng (VT-01).
-     * Người dùng có vai trò Người ghi sự kiện (VT-03) hoặc vai trò khác sẽ bị từ chối 403 Forbidden (TC-04).
+     * Cấp mới khóa thử nghiệm cho đối tác bên thứ ba.
      */
     @PostMapping("/test")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
@@ -93,9 +89,6 @@ public class PartnerApiKeyController {
 
     /**
      * Lấy danh sách khóa truy cập thuộc Hợp tác xã hiện tại.
-     * <p>
-     * Trả DTO phân trang tường minh {@code {content, page, size, totalElements, totalPages}}
-     * (NCL-12-CN-005: sửa lỗi FE đọc {@code totalElements = 0}).
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
@@ -110,7 +103,7 @@ public class PartnerApiKeyController {
     }
 
     /**
-     * Thu hồi khóa truy cập (TC-02).
+     * Thu hồi khóa truy cập.
      */
     @PostMapping("/{id}/revoke")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
@@ -123,9 +116,7 @@ public class PartnerApiKeyController {
     }
 
     /**
-     * Gia hạn khóa truy cập (NCL-12-CN-005).
-     * <p>
-     * PATCH /api/v1/organization/api-keys/{id}/expiry
+     * Gia hạn khóa truy cập.
      */
     @PatchMapping("/{id}/expiry")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
@@ -137,11 +128,7 @@ public class PartnerApiKeyController {
     }
 
     /**
-     * Nâng hạn mức (NCL-12-CN-005).
-     * <p>
-     * Hạn mức mới = hạn mức hiện tại + {@code incrementBy} (số lượt hạn mức bổ sung, phải lớn hơn 0).
-     * <p>
-     * PATCH /api/v1/organization/api-keys/{id}/quota
+     * Nâng hạn mức khóa truy cập.
      */
     @PatchMapping("/{id}/quota")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
@@ -153,7 +140,7 @@ public class PartnerApiKeyController {
     }
 
     /**
-     * Lấy thông tin cấu hình Webhook (bao gồm webhookSecret) của một khóa API (NCL-12-CN-006).
+     * Lấy thông tin cấu hình Webhook của một khóa API.
      */
     @GetMapping("/{id}/webhook")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
@@ -167,7 +154,7 @@ public class PartnerApiKeyController {
     }
 
     /**
-     * Đăng ký hoặc cập nhật địa chỉ nhận thông báo Webhook cho khóa API (NCL-12-CN-006).
+     * Đăng ký hoặc cập nhật địa chỉ nhận thông báo Webhook cho khóa API.
      */
     @PutMapping("/{id}/webhook")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
@@ -182,7 +169,7 @@ public class PartnerApiKeyController {
     }
 
     /**
-     * Bắn thử nghiệm webhook kiểm tra kết nối tới máy chủ đối tác (NCL-12-CN-006).
+     * Bắn thử nghiệm webhook kiểm tra kết nối tới máy chủ đối tác.
      */
     @PostMapping("/{id}/webhook/test-ping")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
@@ -196,7 +183,7 @@ public class PartnerApiKeyController {
     }
 
     /**
-     * Xem lịch sử thông báo thu hồi đã gửi cho khóa API đối tác (NCL-12-CN-006).
+     * Xem lịch sử thông báo thu hồi đã gửi cho khóa API đối tác.
      */
     @GetMapping("/{id}/notifications")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")

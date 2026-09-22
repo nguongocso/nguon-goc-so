@@ -16,13 +16,12 @@ import vn.nguongocso.integration.partner.entity.PartnerWebhookNotification;
 import vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus;
 
 /**
- * Repository quản lý thông báo Webhook gửi tới đối tác (NCL-12-CN-006).
- */
+ * Repository quản lý thông báo Webhook gửi tới đối tác.
+*/
 @Repository
 public interface PartnerWebhookNotificationRepository extends JpaRepository<PartnerWebhookNotification, UUID> {
-
     /**
-     * Lấy danh sách thông báo theo khóa API đối tác, sắp xếp giảm dần theo thời gian tạo.
+     * Lấy danh sách thông báo theo khóa API đối tác.
      */
     Page<PartnerWebhookNotification> findByPartnerApiKey_IdOrderByCreatedAtDesc(UUID partnerApiKeyId,
             Pageable pageable);
@@ -34,7 +33,7 @@ public interface PartnerWebhookNotificationRepository extends JpaRepository<Part
             UUID partnerApiKeyId, WebhookDeliveryStatus deliveryStatus, Pageable pageable);
 
     /**
-     * Tìm các thông báo đang chờ thử lại mà thời điểm hẹn gửi lại đã đến hoặc qua (`nextRetryAt <= now`).
+     * Tìm các thông báo đang chờ thử lại mà thời điểm hẹn gửi lại đã đến.
      */
     List<PartnerWebhookNotification> findByDeliveryStatusAndNextRetryAtLessThanEqualOrderByNextRetryAtAsc(
             WebhookDeliveryStatus deliveryStatus, LocalDateTime now);
@@ -45,13 +44,13 @@ public interface PartnerWebhookNotificationRepository extends JpaRepository<Part
     long countByPartnerApiKey_IdAndDeliveryStatus(UUID partnerApiKeyId, WebhookDeliveryStatus deliveryStatus);
 
     /**
-     * Kiểm tra xem thông báo thu hồi với cùng lô hàng và trạng thái mới đã được phát cho đối tác hay chưa (Idempotency).
+     * Kiểm tra thông báo thu hồi đã được phát cho đối tác hay chưa.
      */
     boolean existsByPartnerApiKey_IdAndShipment_IdAndNewStatus(
             UUID partnerApiKeyId, UUID shipmentId, String newStatus);
 
     /**
-     * Hủy bỏ toàn bộ các thông báo đang chờ thử lại của một khóa API khi khóa bị thu hồi (TC-04).
+     * Hủy bỏ toàn bộ các thông báo đang chờ thử lại của một khóa API khi khóa bị thu hồi.
      */
     @Modifying
     @Query("""

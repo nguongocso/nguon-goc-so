@@ -3,9 +3,6 @@ package vn.nguongocso.integration.partner.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,6 +15,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,21 +23,21 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus;
 import vn.nguongocso.trace.entity.Shipment;
 
 /**
- * Thực thể lưu trữ lịch sử gửi thông báo Webhook thu hồi lô tới bên thứ ba (NCL-12-CN-006).
- * <p>
- * Lưu trữ trạng thái gửi, số lần thử lại theo lịch giãn dần và toàn bộ nhật ký các lần gửi trong
- * trường {@code attemptsLog} định dạng JSON.
- */
+ * Thực thể lưu trữ lịch sử gửi thông báo Webhook thu hồi lô tới bên thứ ba.
+*/
 @Entity
 @Table(
     name = "partner_webhook_notifications",
     uniqueConstraints = {
-        @jakarta.persistence.UniqueConstraint(
+        @UniqueConstraint(
             name = "uq_pwn_key_shipment_status",
             columnNames = {"partner_api_key_id", "shipment_id", "new_status"}
         )
@@ -111,6 +109,9 @@ public class PartnerWebhookNotification {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    /**
+     * Thiết lập giá trị mặc định trước khi lưu mới.
+     */
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {

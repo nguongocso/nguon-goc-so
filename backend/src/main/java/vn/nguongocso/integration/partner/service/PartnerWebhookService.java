@@ -11,6 +11,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -18,11 +23,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.RequiredArgsConstructor;
 
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.exception.BusinessException;
@@ -38,16 +38,17 @@ import vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus;
 import vn.nguongocso.integration.partner.repository.PartnerWebhookNotificationRepository;
 
 /**
- * Service quản lý địa chỉ nhận thông báo (Webhook) và lịch sử gửi thông báo tới đối tác (NCL-12-CN-006).
- */
+ * Service quản lý địa chỉ nhận thông báo và lịch sử gửi thông báo tới đối tác.
+*/
 @Service
 @RequiredArgsConstructor
 public class PartnerWebhookService {
-
     private static final Logger log = LoggerFactory.getLogger(PartnerWebhookService.class);
 
     private final PartnerApiKeyRepository partnerApiKeyRepository;
+
     private final PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
+
     private final ObjectMapper objectMapper;
 
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
@@ -55,7 +56,7 @@ public class PartnerWebhookService {
             .build();
 
     /**
-     * Xác thực địa chỉ URL nhận thông báo phải sử dụng giao thức an toàn HTTPS (hoặc localhost khi dev/test).
+     * Xác thực địa chỉ URL nhận thông báo phải sử dụng giao thức an toàn.
      */
     public static void validateSecureUrl(String url) {
         if (url == null || url.isBlank()) {
@@ -80,7 +81,7 @@ public class PartnerWebhookService {
     }
 
     /**
-     * Đăng ký hoặc cập nhật địa chỉ nhận thông báo webhook cho khóa API (dành cho Quản lý HTX / Quản trị viên).
+     * Đăng ký hoặc cập nhật địa chỉ nhận thông báo webhook cho khóa API.
      */
     @Transactional
     public PartnerWebhookResponse registerWebhookForOrganizationKey(
@@ -91,7 +92,6 @@ public class PartnerWebhookService {
         PartnerApiKey apiKey = partnerApiKeyRepository.findById(apiKeyId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin khóa truy cập đối tác."));
 
-        // Kiểm tra quyền tổ chức: Chỉ quản lý của tổ chức sở hữu khóa hoặc VT-01 mới được cấu hình
         if (!"VT-01".equals(currentUser.getRoleCode()) &&
                 !apiKey.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
             throw new BusinessException("Bạn không có quyền quản lý khóa truy cập của tổ chức khác.");
@@ -101,7 +101,7 @@ public class PartnerWebhookService {
     }
 
     /**
-     * Lấy thông tin cấu hình webhook chi tiết của một khóa API (bao gồm webhookSecret).
+     * Lấy thông tin cấu hình webhook chi tiết của một khóa API.
      */
     public PartnerWebhookResponse getWebhookForOrganizationKey(UUID apiKeyId, CustomUserDetails currentUser) {
         PartnerApiKey apiKey = partnerApiKeyRepository.findById(apiKeyId)
@@ -116,7 +116,7 @@ public class PartnerWebhookService {
     }
 
     /**
-     * Đăng ký hoặc cập nhật địa chỉ nhận thông báo webhook trực tiếp qua API đối tác (Header X-API-KEY).
+     * Đăng ký hoặc cập nhật địa chỉ nhận thông báo webhook qua cổng đối tác.
      */
     @Transactional
     public PartnerWebhookResponse registerWebhookForPartnerKey(
@@ -130,6 +130,9 @@ public class PartnerWebhookService {
         return applyWebhookRegistration(apiKey, request);
     }
 
+    /**
+     * Áp dụng đăng ký webhook cho khóa API.
+     */
     private PartnerWebhookResponse applyWebhookRegistration(
             PartnerApiKey apiKey,
             PartnerWebhookRegistrationRequest request) {
@@ -146,7 +149,6 @@ public class PartnerWebhookService {
         apiKey.setWebhookUrl(request.getWebhookUrl().trim());
         apiKey.setIsWebhookActive(request.getIsActive() == null || request.getIsActive());
 
-        // Nếu chưa có khóa bí mật ký số, sinh mới
         if (apiKey.getWebhookSecret() == null || apiKey.getWebhookSecret().isBlank()) {
             apiKey.setWebhookSecret("sec_wh_" + UUID.randomUUID().toString().replace("-", ""));
         }
@@ -228,7 +230,7 @@ public class PartnerWebhookService {
     }
 
     /**
-     * Lấy lịch sử thông báo thu hồi của một khóa API (dành cho màn hình quản lý khóa).
+     * Lấy lịch sử thông báo thu hồi của một khóa API.
      */
     @Transactional(readOnly = true)
     public Page<PartnerWebhookNotificationResponse> getNotificationsForOrganizationKey(
@@ -258,7 +260,7 @@ public class PartnerWebhookService {
     }
 
     /**
-     * Lấy lịch sử thông báo thu hồi của khóa API đối tác hiện tại (qua Cổng đối tác).
+     * Lấy lịch sử thông báo thu hồi của khóa API đối tác hiện tại.
      */
     @Transactional(readOnly = true)
     public Page<PartnerWebhookNotificationResponse> getNotificationsForPartnerKey(
@@ -284,6 +286,9 @@ public class PartnerWebhookService {
         return new PageImpl<>(dtoList, pageable, pageData.getTotalElements());
     }
 
+    /**
+     * Chuyển đổi khóa API sang response cấu hình webhook.
+     */
     private PartnerWebhookResponse mapToWebhookResponse(PartnerApiKey key) {
         return PartnerWebhookResponse.builder()
                 .id(key.getId())
@@ -296,6 +301,9 @@ public class PartnerWebhookService {
                 .build();
     }
 
+    /**
+     * Chuyển đổi entity thông báo sang response.
+     */
     public PartnerWebhookNotificationResponse mapToNotificationResponse(PartnerWebhookNotification notification) {
         List<PartnerWebhookAttemptDto> attempts = parseAttemptsLog(notification.getAttemptsLog());
 
@@ -320,6 +328,9 @@ public class PartnerWebhookService {
                 .build();
     }
 
+    /**
+     * Phân tích nhật ký các lần thử gửi từ chuỗi JSON.
+     */
     public List<PartnerWebhookAttemptDto> parseAttemptsLog(String json) {
         if (json == null || json.isBlank()) {
             return Collections.emptyList();

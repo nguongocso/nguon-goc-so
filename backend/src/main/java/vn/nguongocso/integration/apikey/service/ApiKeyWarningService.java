@@ -28,42 +28,38 @@ import vn.nguongocso.notification.repository.NotificationRepository;
 import vn.nguongocso.notification.service.NotificationService;
 
 /**
- * Dịch vụ cảnh báo khóa truy cập sắp hết hạn và sắp chạm hạn mức (NCL-12-CN-005, QTN-20).
- * <p>
- * Nguyên tắc: quét hằng ngày lúc 00:00 các khóa {@code ACTIVE} để cảnh báo sắp hết
- * hạn, đồng thời gửi ngay khi vừa cấp hoặc gia hạn khóa đã nằm trong ngưỡng
- * ({@code ApiKeyLifecycleEvent}); cảnh báo hạn mức bắn ngay khi lượt gọi trong
- * giờ hiện tại chạm ngưỡng và được gửi bù bởi job đối soát. Mỗi khóa chỉ nhận một
- * cảnh báo hết hạn trong ngày nhờ khử trùng theo {@code entityId} + tiêu đề;
- * khóa đã thu hồi/hết hạn bị bỏ qua (TC-03, TC-04).
- * Thông báo tái dùng hạ tầng hộp thư NCL-08-CN-005 (không tạo endpoint mới).
- */
+ * Dịch vụ cảnh báo khóa truy cập sắp hết hạn và sắp chạm hạn mức.
+*/
 @Service
 @RequiredArgsConstructor
 public class ApiKeyWarningService {
-
     private static final Logger log = LoggerFactory.getLogger(ApiKeyWarningService.class);
 
     static final String EXPIRY_SOON_TITLE = "Khóa truy cập sắp hết hạn";
+
     static final String EXPIRED_TITLE = "Khóa truy cập đã hết hạn";
+
     static final String QUOTA_TITLE = "Khóa truy cập sắp chạm hạn mức";
 
     private static final DateTimeFormatter VI_DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final PartnerApiKeyRepository partnerApiKeyRepository;
+
     private final NotificationRepository notificationRepository;
+
     private final NotificationService notificationService;
+
     private final PartnerApiKeyUsageService partnerApiKeyUsageService;
+
     private final ApiKeyQuotaPolicy apiKeyQuotaPolicy;
+
     private final PartnerApiKeyService partnerApiKeyService;
 
     @Value("${app.apikey.expiry-warning-days:7}")
     private int expiryWarningDays;
 
     /**
-     * Quét hằng ngày: persist khóa đã quá hạn thành {@code EXPIRED} (để filter theo
-     * trạng thái ở tầng DB hoạt động đúng) và gửi cảnh báo sắp hết hạn cho các khóa
-     * còn hiệu lực nằm trong ngưỡng cấu hình.
+     * Quét hằng ngày các khóa sắp hết hạn và gửi cảnh báo.
      */
     @Transactional
     public void scanExpiringKeys() {
@@ -115,12 +111,7 @@ public class ApiKeyWarningService {
     }
 
     /**
-     * Nhận sự kiện cấp hoặc gia hạn khóa và gửi ngay cảnh báo sắp hết hạn (NCL-12-CN-005).
-     * <p>
-     * Chỉ gửi khi khóa ở trạng thái {@code ACTIVE} và thời hạn mới nằm trong ngưỡng
-     * {@code 0 < expiresAt - now <= expiryWarningDays}. Tái dùng khử trùng theo ngày
-     * của job quét 00:00 nên lần quét cùng ngày không gửi trùng. Không bao giờ ném
-     * lỗi ra ngoài để tránh chặn nghiệp vụ cấp hoặc gia hạn khóa.
+     * Nhận sự kiện cấp hoặc gia hạn khóa và gửi cảnh báo sắp hết hạn.
      */
     @EventListener
     @Transactional
@@ -153,13 +144,7 @@ public class ApiKeyWarningService {
     }
 
     /**
-     * Nhận sự kiện chạm ngưỡng hạn mức THEO GIỜ (QTN-20) và gửi cảnh báo.
-     * <p>
-     * Sự kiện được phát khi số lượt gọi THÀNH CÔNG trong giờ hiện tại chạm ngưỡng;
-     * cờ {@code warning_sent_at} trên dòng usage NGÀY vẫn đảm bảo mỗi khóa chỉ nhận
-     * tối đa một cảnh báo trong ngày (không đổi so với trước).
-     * <p>
-     * Không bao giờ ném lỗi ra ngoài để tránh chặn request của đối tác.
+     * Nhận sự kiện chạm ngưỡng hạn mức và gửi cảnh báo.
      */
     @EventListener
     @Transactional
@@ -179,12 +164,7 @@ public class ApiKeyWarningService {
     }
 
     /**
-     * Job đối soát hạn mức: quét usage hôm nay chưa gửi cảnh báo mà đã vượt ngưỡng
-     * và gửi bù (NCL-12-CN-005).
-     * <p>
-     * Bù cho các trường hợp cảnh báo realtime bị mất: backend vừa khởi động lại,
-     * chạy nhiều instance, hoặc bộ đếm đã vượt ngưỡng mà không trúng mốc bắn.
-     * Vẫn đảm bảo mỗi khóa chỉ nhận một cảnh báo trong ngày nhờ cờ claim ở DB.
+     * Đối soát hạn mức và gửi bù cảnh báo chưa được gửi.
      */
     @Transactional
     public void reconcileQuotaWarnings() {
@@ -206,9 +186,6 @@ public class ApiKeyWarningService {
             if (key == null || key.getStatus() != PartnerApiKeyStatus.ACTIVE) {
                 continue;
             }
-            // P0: Quota warning tính theo giờ hiện tại (hourly), không dùng daily usage để trigger.
-            // Dùng `getCurrentHourCalls()` từ bộ đếm giờ để kiểm tra điều kiện; vẫn giữ claim trên DB (`usage.getId()`)
-            // để chống gửi trùng trong ngày.
             int usedCalls = partnerApiKeyService.getCurrentHourCalls(key.getId());
             if (!apiKeyQuotaPolicy.isReached(usedCalls, key.getRateLimitPerHour())) {
                 continue;
@@ -230,11 +207,6 @@ public class ApiKeyWarningService {
 
     /**
      * Gửi cảnh báo hạn mức nếu giành được quyền gửi cho dòng usage tương ứng.
-     * <p>
-     * Cờ {@code warning_sent_at} ở DB đảm bảo chỉ một tiến trình gửi cho mỗi khóa
-     * trong ngày; nếu gửi thông báo thất bại thì nhả cờ để lần đối soát sau thử lại.
-     *
-     * @return {@code true} nếu đã gửi cảnh báo trong lần gọi này
      */
     private boolean sendQuotaWarningIfNeeded(UUID apiKeyId, UUID usageId, UUID organizationId,
             String partnerName, int rateLimitPerHour, int usedCalls) {

@@ -26,24 +26,21 @@ import vn.nguongocso.report.dto.response.Gs1InspectionCriterion;
 import vn.nguongocso.report.dto.response.Gs1ShipmentInfo;
 
 /**
- * Lớp tiện ích cung cấp bộ dữ liệu mẫu chuẩn hóa (Sandbox Dataset).
- * <p>
- * Phục vụ chế độ thử nghiệm (Sandbox Mode) cho bên thứ ba khi gọi API với khóa thử nghiệm (NCL-12-CN-004).
- * Đảm bảo dữ liệu trả về nhất quán 100% với tài liệu công khai và cách ly hoàn toàn khỏi cơ sở dữ liệu thật.
- */
+ * Lớp tiện ích cung cấp bộ dữ liệu mẫu cho chế độ thử nghiệm.
+*/
 public final class PartnerSampleDataProvider {
-
     public static final String TEST_NOTICE = "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế";
 
-    /** Mã lô mẫu chuẩn Sandbox được dùng trong tài liệu và ví dụ tích hợp. */
     public static final String SAMPLE_LOT_ID = "sample-lot-001";
 
+    /**
+     * Khởi tạo trình cung cấp dữ liệu mẫu.
+     */
     private PartnerSampleDataProvider() {
-        // Utility class
     }
 
     /**
-     * Tạo hồ sơ truy xuất Lô sản xuất mẫu (Sample Production Lot Dossier).
+     * Tạo hồ sơ truy xuất lô sản xuất mẫu.
      */
     public static PartnerLotDossierResponse getSampleLotDossier() {
         PartnerLotInfoResponse lotInfo = PartnerLotInfoResponse.builder()
@@ -102,7 +99,7 @@ public final class PartnerSampleDataProvider {
     }
 
     /**
-     * Tạo dữ liệu tra cứu hành trình theo Mã tem mẫu (Sample Trace Response).
+     * Tạo dữ liệu tra cứu hành trình theo mã tem mẫu.
      */
     public static PublicTraceResponse getSampleTraceResponse() {
         Map<String, Object> harvestData = new LinkedHashMap<>();
@@ -159,7 +156,7 @@ public final class PartnerSampleDataProvider {
     }
 
     /**
-     * Tạo hồ sơ xuất theo lược đồ GS1 mô phỏng mẫu (Sample GS1 Dossier Export).
+     * Tạo hồ sơ xuất theo lược đồ GS1 mô phỏng mẫu.
      */
     public static Gs1DossierExportResponse getSampleGs1DossierResponse() {
         Gs1ShipmentInfo shipmentInfo = Gs1ShipmentInfo.builder()

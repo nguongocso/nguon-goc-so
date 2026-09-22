@@ -15,6 +15,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -34,27 +35,21 @@ public class HelpContent {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    /** Mã định danh màn hình (ví dụ: {@code farm-log-create}). */
     @Column(name = "screen_key", nullable = false, length = 100)
     private String screenKey;
 
-    /** Mã vai trò (ví dụ: {@code VT-03}). Ký tự {@code GENERAL} là hướng dẫn dùng chung. */
     @Column(name = "role_code", nullable = false, length = 20)
     private String roleCode;
 
-    /** Tiêu đề hướng dẫn. */
     @Column(name = "title", nullable = false, length = 255)
     private String title;
 
-    /** JSON array chứa các bước hướng dẫn. */
     @Column(name = "steps", nullable = false, columnDefinition = "TEXT")
     private String steps;
 
-    /** Dữ liệu ví dụ tuỳ chọn. */
     @Column(name = "example_data", columnDefinition = "TEXT")
     private String exampleData;
 
-    /** Thứ tự hiển thị. */
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder = 0;
 
@@ -64,6 +59,9 @@ public class HelpContent {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * Thiết lập thời điểm tạo và giá trị mặc định trước khi lưu mới.
+     */
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -74,6 +72,9 @@ public class HelpContent {
         updatedAt = now;
     }
 
+    /**
+     * Cập nhật thời điểm chỉnh sửa trước khi cập nhật bản ghi.
+     */
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();

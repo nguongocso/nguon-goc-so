@@ -12,18 +12,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Request gia hạn khóa truy cập (NCL-12-CN-005).
- */
+ * Yêu cầu gia hạn khóa truy cập.
+*/
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class RenewApiKeyRequest {
-
-    /**
-     * Thời hạn mới của khóa. Phải ở thời điểm tương lai.
-     */
     @NotNull(message = "Ngày hết hạn mới không được để trống")
     @Future(message = "Ngày hết hạn mới phải ở thời điểm tương lai")
     private LocalDateTime expiresAt;

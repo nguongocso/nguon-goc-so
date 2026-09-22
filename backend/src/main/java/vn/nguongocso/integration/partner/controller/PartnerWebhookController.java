@@ -27,15 +27,12 @@ import vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus;
 import vn.nguongocso.integration.partner.service.PartnerWebhookService;
 
 /**
- * Controller cổng dữ liệu đối tác cho phép bên thứ ba tự đăng ký webhook và xem lịch sử thông báo (NCL-12-CN-006).
- * <p>
- * Yêu cầu đối tác gửi Header {@code X-API-KEY}. Đã qua xác thực từ {@code ApiKeyAuthenticationFilter}.
- */
+ * Controller cổng dữ liệu đối tác cho phép bên thứ ba tự quản lý webhook.
+*/
 @RestController
 @RequestMapping("/api/v1/partner")
 @RequiredArgsConstructor
 public class PartnerWebhookController {
-
     private static final Logger log = LoggerFactory.getLogger(PartnerWebhookController.class);
 
     private final PartnerWebhookService partnerWebhookService;
