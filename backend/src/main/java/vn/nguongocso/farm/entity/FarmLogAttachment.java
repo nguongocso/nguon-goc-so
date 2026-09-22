@@ -36,6 +36,7 @@ import vn.nguongocso.auth.entity.User;
 @AllArgsConstructor
 @Builder
 public class FarmLogAttachment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)

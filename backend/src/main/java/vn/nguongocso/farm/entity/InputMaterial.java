@@ -40,6 +40,7 @@ import vn.nguongocso.farm.enums.MaterialGroup;
 @AllArgsConstructor
 @Builder
 public class InputMaterial {
+
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -111,6 +112,7 @@ public class InputMaterial {
             this.quarantineDays = 0;
         }
     }
+
     /** Cập nhật thời điểm sửa đổi trước khi lưu bản ghi hiện có. */
     @PreUpdate
     public void preUpdate() {

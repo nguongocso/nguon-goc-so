@@ -1,4 +1,5 @@
 package vn.nguongocso.mail.service;
+
 /**
  * Dịch vụ gửi email thông báo và xác thực trong hệ thống.
 */

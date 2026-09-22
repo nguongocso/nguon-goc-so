@@ -37,6 +37,7 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PartnerApiKeyDailyUsage {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -77,6 +78,7 @@ public class PartnerApiKeyDailyUsage {
             callCount = 0;
         }
     }
+
     /**
      * Cập nhật thời điểm chỉnh sửa trước khi cập nhật bản ghi.
      */

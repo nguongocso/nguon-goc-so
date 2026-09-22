@@ -12,4 +12,5 @@ public class ProductionLotImportRowError {
     private Integer rowNumber;
 
     private String reason;
+
 }

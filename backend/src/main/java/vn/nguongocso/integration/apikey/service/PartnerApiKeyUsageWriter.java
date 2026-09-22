@@ -27,9 +27,11 @@ public class PartnerApiKeyUsageWriter {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int incrementInNewTransaction(UUID apiKeyId, LocalDate usageDate) {
         LocalDateTime now = LocalDateTime.now();
+
         if (usageRepository.incrementCallCount(apiKeyId, usageDate, now) > 0) {
             return readCount(apiKeyId, usageDate);
         }
+
         usageRepository.saveAndFlush(PartnerApiKeyDailyUsage.builder()
                 .apiKeyId(apiKeyId)
                 .usageDate(usageDate)
@@ -38,6 +40,7 @@ public class PartnerApiKeyUsageWriter {
 
         return readCount(apiKeyId, usageDate);
     }
+
     /**
      * Giành quyền gửi cảnh báo hạn mức của một dòng usage trong transaction riêng.
      */
@@ -45,6 +48,7 @@ public class PartnerApiKeyUsageWriter {
     public boolean claimQuotaWarningInNewTransaction(UUID usageId) {
         return usageRepository.claimWarning(usageId, LocalDateTime.now()) == 1;
     }
+
     /**
      * Nhả quyền gửi cảnh báo để lần đối soát sau gửi lại.
      */
@@ -52,6 +56,7 @@ public class PartnerApiKeyUsageWriter {
     public void releaseQuotaWarningInNewTransaction(UUID usageId) {
         usageRepository.releaseWarning(usageId, LocalDateTime.now());
     }
+
     /**
      * Đọc tổng số lượt gọi của khóa trong ngày.
      */

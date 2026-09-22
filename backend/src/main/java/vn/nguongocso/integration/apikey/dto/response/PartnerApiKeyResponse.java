@@ -50,6 +50,7 @@ public class PartnerApiKeyResponse {
     public Boolean getIsTestCamel() {
         return isTest;
     }
+
     private Long totalCalls;
 
     private Long failedCalls;

@@ -15,6 +15,7 @@ import org.springframework.data.repository.query.Param;
 import vn.nguongocso.farm.entity.ProductFeedback;
 import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
 import vn.nguongocso.farm.enums.ProductFeedbackStatus;
+
 /**
  * Repository thao tác dữ liệu phản hồi sản phẩm.
 */
@@ -53,3 +54,4 @@ public interface ProductFeedbackRepository extends JpaRepository<ProductFeedback
     List<ProductFeedback> findByStatusIn(
             Collection<ProductFeedbackStatus> statuses);
 }
+

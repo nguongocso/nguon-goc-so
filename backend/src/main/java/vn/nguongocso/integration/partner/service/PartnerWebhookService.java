@@ -54,6 +54,7 @@ public class PartnerWebhookService {
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
+
     /**
      * Xác thực địa chỉ URL nhận thông báo phải sử dụng giao thức an toàn.
      */
@@ -78,6 +79,7 @@ public class PartnerWebhookService {
             throw new BusinessException("Định dạng URL địa chỉ nhận thông báo không hợp lệ.");
         }
     }
+
     /**
      * Đăng ký hoặc cập nhật địa chỉ nhận thông báo webhook cho khóa API.
      */
@@ -86,6 +88,7 @@ public class PartnerWebhookService {
             UUID apiKeyId,
             PartnerWebhookRegistrationRequest request,
             CustomUserDetails currentUser) {
+
         PartnerApiKey apiKey = partnerApiKeyRepository.findById(apiKeyId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin khóa truy cập đối tác."));
 
@@ -93,8 +96,10 @@ public class PartnerWebhookService {
                 !apiKey.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
             throw new BusinessException("Bạn không có quyền quản lý khóa truy cập của tổ chức khác.");
         }
+
         return applyWebhookRegistration(apiKey, request);
     }
+
     /**
      * Lấy thông tin cấu hình webhook chi tiết của một khóa API.
      */
@@ -106,8 +111,10 @@ public class PartnerWebhookService {
                 !apiKey.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
             throw new BusinessException("Bạn không có quyền truy cập khóa của tổ chức khác.");
         }
+
         return mapToWebhookResponse(apiKey);
     }
+
     /**
      * Đăng ký hoặc cập nhật địa chỉ nhận thông báo webhook qua cổng đối tác.
      */
@@ -115,36 +122,44 @@ public class PartnerWebhookService {
     public PartnerWebhookResponse registerWebhookForPartnerKey(
             PartnerApiKey apiKey,
             PartnerWebhookRegistrationRequest request) {
+
         if (apiKey == null) {
             throw new BusinessException("Khóa truy cập không hợp lệ.");
         }
+
         return applyWebhookRegistration(apiKey, request);
     }
+
     /**
      * Áp dụng đăng ký webhook cho khóa API.
      */
     private PartnerWebhookResponse applyWebhookRegistration(
             PartnerApiKey apiKey,
             PartnerWebhookRegistrationRequest request) {
+
         if (request.getWebhookUrl() == null || request.getWebhookUrl().isBlank()) {
             apiKey.setWebhookUrl(null);
             apiKey.setIsWebhookActive(false);
             PartnerApiKey saved = partnerApiKeyRepository.save(apiKey);
             return mapToWebhookResponse(saved);
         }
+
         validateSecureUrl(request.getWebhookUrl());
 
         apiKey.setWebhookUrl(request.getWebhookUrl().trim());
         apiKey.setIsWebhookActive(request.getIsActive() == null || request.getIsActive());
+
         if (apiKey.getWebhookSecret() == null || apiKey.getWebhookSecret().isBlank()) {
             apiKey.setWebhookSecret("sec_wh_" + UUID.randomUUID().toString().replace("-", ""));
         }
+
         PartnerApiKey saved = partnerApiKeyRepository.save(apiKey);
         log.info("Đã cập nhật Webhook URL cho đối tác '{}' (keyId={}): {}",
                 saved.getPartnerName(), saved.getId(), saved.getWebhookUrl());
 
         return mapToWebhookResponse(saved);
     }
+
     /**
      * Bắn thử nghiệm webhook (Test Ping) kiểm tra kết nối tới máy chủ đối tác.
      */
@@ -156,18 +171,22 @@ public class PartnerWebhookService {
                 !apiKey.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
             throw new BusinessException("Bạn không có quyền thao tác trên khóa truy cập này.");
         }
+
         String webhookUrl = apiKey.getWebhookUrl();
         if (webhookUrl == null || webhookUrl.isBlank()) {
             throw new BusinessException("Khóa này chưa được đăng ký địa chỉ nhận thông báo Webhook.");
         }
+
         return executePingRequest(webhookUrl, apiKey.getWebhookSecret());
     }
+
     /**
      * Thực hiện gửi HTTP POST Ping.
      */
     public WebhookTestPingResponse executePingRequest(String targetUrl, String secret) {
         long startTime = System.currentTimeMillis();
         String pingPayload = "{\"event\":\"PING\",\"timestamp\":\"" + LocalDateTime.now() + "\",\"message\":\"NguonGocSo Webhook Test Ping\"}";
+
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(targetUrl))
@@ -187,6 +206,7 @@ public class PartnerWebhookService {
             if (body != null && body.length() > 500) {
                 body = body.substring(0, 500) + "...";
             }
+
             return WebhookTestPingResponse.builder()
                     .targetUrl(targetUrl)
                     .httpStatus(status)
@@ -208,6 +228,7 @@ public class PartnerWebhookService {
                     .build();
         }
     }
+
     /**
      * Lấy lịch sử thông báo thu hồi của một khóa API.
      */
@@ -217,6 +238,7 @@ public class PartnerWebhookService {
             WebhookDeliveryStatus status,
             Pageable pageable,
             CustomUserDetails currentUser) {
+
         PartnerApiKey apiKey = partnerApiKeyRepository.findById(apiKeyId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin khóa truy cập đối tác."));
 
@@ -224,6 +246,7 @@ public class PartnerWebhookService {
                 !apiKey.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
             throw new BusinessException("Bạn không có quyền xem thông báo của khóa này.");
         }
+
         Page<PartnerWebhookNotification> pageData = (status != null)
                 ? partnerWebhookNotificationRepository
                         .findByPartnerApiKey_IdAndDeliveryStatusOrderByCreatedAtDesc(apiKeyId, status, pageable)
@@ -235,6 +258,7 @@ public class PartnerWebhookService {
 
         return new PageImpl<>(dtoList, pageable, pageData.getTotalElements());
     }
+
     /**
      * Lấy lịch sử thông báo thu hồi của khóa API đối tác hiện tại.
      */
@@ -243,9 +267,11 @@ public class PartnerWebhookService {
             PartnerApiKey apiKey,
             WebhookDeliveryStatus status,
             Pageable pageable) {
+
         if (apiKey == null) {
             throw new BusinessException("Khóa truy cập không hợp lệ.");
         }
+
         Page<PartnerWebhookNotification> pageData = (status != null)
                 ? partnerWebhookNotificationRepository
                         .findByPartnerApiKey_IdAndDeliveryStatusOrderByCreatedAtDesc(apiKey.getId(),
@@ -259,6 +285,7 @@ public class PartnerWebhookService {
 
         return new PageImpl<>(dtoList, pageable, pageData.getTotalElements());
     }
+
     /**
      * Chuyển đổi khóa API sang response cấu hình webhook.
      */
@@ -273,6 +300,7 @@ public class PartnerWebhookService {
                 .updatedAt(LocalDateTime.now())
                 .build();
     }
+
     /**
      * Chuyển đổi entity thông báo sang response.
      */
@@ -299,6 +327,7 @@ public class PartnerWebhookService {
                 .attempts(attempts)
                 .build();
     }
+
     /**
      * Phân tích nhật ký các lần thử gửi từ chuỗi JSON.
      */

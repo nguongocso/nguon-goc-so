@@ -35,6 +35,7 @@ import vn.nguongocso.organization.entity.Organization;
 @AllArgsConstructor
 @Builder
 public class LotAssignment {
+
     @Id
     @Column(name = "id")
     @JdbcTypeCode(SqlTypes.CHAR)

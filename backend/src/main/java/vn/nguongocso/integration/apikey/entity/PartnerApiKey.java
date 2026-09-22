@@ -40,6 +40,7 @@ import vn.nguongocso.organization.entity.Organization;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PartnerApiKey {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)

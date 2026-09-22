@@ -48,6 +48,7 @@ public class PartnerLotService {
         if (partnerApiKey == null || partnerApiKey.getOrganization() == null) {
             throw new BusinessException("Khóa truy cập không hợp lệ hoặc thiếu thông tin tổ chức");
         }
+
         if (Boolean.TRUE.equals(partnerApiKey.getIsTest())
                 || (partnerApiKey.getKeyPrefix() != null && partnerApiKey.getKeyPrefix().startsWith("nks_test_"))) {
             log.warn(
@@ -56,20 +57,24 @@ public class PartnerLotService {
             throw new BusinessException(HttpStatus.FORBIDDEN,
                     "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
         }
+
         UUID organizationId = partnerApiKey.getOrganization().getOrganizationId();
 
         ProductionLot lot = productionLotRepository.findById(lotId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin lô sản xuất"));
+
         if (!lot.getOrganization().getOrganizationId().equals(organizationId)) {
             log.warn("Bên thứ ba '{}' (orgId={}) cố tình truy cập lô {} thuộc orgId khác={}",
                     partnerApiKey.getPartnerName(), organizationId, lotId, lot.getOrganization().getOrganizationId());
             throw new BusinessException("Lô sản xuất nằm ngoài phạm vi truy xuất của khóa truy cập");
         }
+
         ProductionLot fullLot = productionLotRepository.findDossierByIdAndOrganizationId(lotId, organizationId)
                 .orElse(lot);
 
         return mapToDossierResponse(fullLot);
     }
+
     /**
      * Chuyển đổi entity lô sản xuất sang response hồ sơ truy xuất.
      */
@@ -106,6 +111,7 @@ public class PartnerLotService {
                     .areaUnit(fa.getAreaUnit() != null ? fa.getAreaUnit().name() : null)
                     .build();
         }
+
         List<PartnerCertificationResponse> certResponses = new ArrayList<>();
         if (lot.getCertifications() != null) {
             for (ProductionLotCertification plc : lot.getCertifications()) {
@@ -122,6 +128,7 @@ public class PartnerLotService {
                 }
             }
         }
+
         int logCount = 0;
         try {
             var logs = farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lot.getId());
@@ -131,6 +138,7 @@ public class PartnerLotService {
         } catch (Exception e) {
             log.warn("Không thể lấy tóm tắt nhật ký canh tác cho lô {}", lot.getId());
         }
+
         PartnerFarmLogSummaryResponse logSummary = PartnerFarmLogSummaryResponse.builder()
                 .totalLogsRecorded(logCount)
                 .lastActivityAt(lot.getUpdatedAt())

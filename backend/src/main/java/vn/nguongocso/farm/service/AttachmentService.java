@@ -66,10 +66,12 @@ public class AttachmentService {
 
     @Value("${app.upload.farm-log.max-size:5242880}")
     private long maxFileSize;
+
     /** Xác định thư mục tải lên của một nhật ký. */
     private String getUploadDir(UUID logId) {
         return Paths.get(baseDir, farmLogRelativePath, logId.toString()).toString();
     }
+
     private static final Set<String> ALLOWED_TYPES = Set.of(
             "image/jpeg", "image/png", "application/pdf");
 
@@ -77,6 +79,7 @@ public class AttachmentService {
     @Transactional
     public AttachmentResponse uploadAttachment(UUID logId, MultipartFile file, String description,
             CustomUserDetails userDetails) {
+
         FarmLog farmLog = farmLogRepository.findById(logId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy nhật ký canh tác"));
 
@@ -85,6 +88,7 @@ public class AttachmentService {
         if (!lotOrgId.equals(orgId)) {
             throw new BusinessException("Nhật ký không thuộc tổ chức của bạn");
         }
+
         if (file.isEmpty())
             throw new BusinessException("File không được để trống");
         if (file.getSize() > maxFileSize) {
@@ -94,6 +98,7 @@ public class AttachmentService {
         if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
             throw new BusinessException("Loại file không hỗ trợ. Chỉ chấp nhận JPG, PNG, PDF");
         }
+
         String originalFilename = file.getOriginalFilename();
         String extension = "";
         if (originalFilename != null && originalFilename.contains(".")) {
@@ -103,6 +108,7 @@ public class AttachmentService {
                 + extension;
         String uploadDir = getUploadDir(logId);
         String filePath = uploadDir + newFileName;
+
         try {
             Path uploadPath = Paths.get(uploadDir);
             if (!Files.exists(uploadPath)) {
@@ -113,6 +119,7 @@ public class AttachmentService {
             log.error("Lỗi khi lưu file: {}", e.getMessage());
             throw new BusinessException("Lỗi hệ thống khi lưu file");
         }
+
         User user = userRepository.findById(userDetails.getUserId())
                 .orElseThrow(() -> new BusinessException("Không tìm thấy người dùng"));
 
@@ -137,9 +144,11 @@ public class AttachmentService {
 
         return toResponse(attachment);
     }
+
     /** Lấy danh sách tệp đính kèm của nhật ký. */
     @Transactional(readOnly = true)
     public List<AttachmentResponse> getAttachments(UUID logId, CustomUserDetails userDetails) {
+
         FarmLog farmLog = farmLogRepository.findById(logId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy nhật ký canh tác"));
 
@@ -148,11 +157,13 @@ public class AttachmentService {
         if (!lotOrgId.equals(orgId)) {
             throw new BusinessException("Nhật ký không thuộc tổ chức của bạn");
         }
+
         return attachmentRepository.findByFarmLogId(logId)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
+
     /** Xóa tệp đính kèm. */
     @Transactional
     public void deleteAttachment(UUID attachmentId, CustomUserDetails userDetails) {
@@ -164,6 +175,7 @@ public class AttachmentService {
         if (!lotOrgId.equals(orgId)) {
             throw new BusinessException("Bạn không có quyền xóa file này");
         }
+
         try {
             Path filePath = Paths.get(attachment.getFilePath());
             if (Files.exists(filePath)) {
@@ -175,9 +187,11 @@ public class AttachmentService {
             log.error("Không thể xóa file: {}, lỗi: {}", attachment.getFilePath(), e.getMessage());
             throw new BusinessException("Không thể xóa file, vui lòng thử lại");
         }
+
         attachmentRepository.delete(attachment);
         log.info("Xóa attachment thành công: id={}", attachmentId);
     }
+
     /** Lấy tệp đính kèm để hiển thị (view). */
     @Transactional(readOnly = true)
     public Map.Entry<Resource, MediaType> getAttachmentForView(
@@ -187,6 +201,7 @@ public class AttachmentService {
         MediaType contentType = resolveContentType(attachment.getFileType());
         return new AbstractMap.SimpleEntry<>(resource, contentType);
     }
+
     /** DTO nội bộ cho download: chứa Resource, MediaType và tên file. */
     public record AttachmentResource(Resource resource, MediaType contentType, String fileName) {}
 
@@ -201,6 +216,7 @@ public class AttachmentService {
                 .replace("+", "%20");
         return new AttachmentResource(resource, contentType, encodedFileName);
     }
+
     /** Kiểm tra quyền truy cập và trả về attachment. */
     private FarmLogAttachment validateAttachmentAccess(UUID attachmentId, CustomUserDetails userDetails) {
         FarmLogAttachment attachment = attachmentRepository.findById(attachmentId)
@@ -211,8 +227,10 @@ public class AttachmentService {
         if (!lotOrgId.equals(orgId)) {
             throw new BusinessException("Bạn không có quyền truy cập file này");
         }
+
         return attachment;
     }
+
     /** Giải quyết file vật lý từ đường dẫn, ngăn path traversal. */
     private Resource resolveFileResource(FarmLogAttachment attachment) {
         Path filePath = Paths.get(attachment.getFilePath()).toAbsolutePath().normalize();
@@ -222,11 +240,14 @@ public class AttachmentService {
             log.warn("Path traversal attempt: {}", attachment.getFilePath());
             throw new BusinessException("Đường dẫn file không hợp lệ");
         }
+
         if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
             throw new BusinessException("File không tồn tại hoặc không thể đọc");
         }
+
         return new FileSystemResource(filePath);
     }
+
     /** Xác định MediaType từ chuỗi MIME type. */
     private MediaType resolveContentType(String fileType) {
         if (fileType == null || fileType.isBlank()) {
@@ -238,6 +259,7 @@ public class AttachmentService {
             return MediaType.APPLICATION_OCTET_STREAM;
         }
     }
+
     /** Gửi sự kiện nhật ký hoạt động. */
     private void publishActivityLog(CustomUserDetails currentUser, String action, String description, String entityType,
             String entityId) {
@@ -254,6 +276,7 @@ public class AttachmentService {
                 .timestamp(LocalDateTime.now(clock))
                 .build());
     }
+
     /** Chuyển entity đính kèm sang response. */
     private AttachmentResponse toResponse(FarmLogAttachment attachment) {
         return AttachmentResponse.builder()

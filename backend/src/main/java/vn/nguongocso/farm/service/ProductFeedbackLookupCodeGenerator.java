@@ -23,24 +23,29 @@ public class ProductFeedbackLookupCodeGenerator {
     private static final String PREFIX = "PA";
 
     private final SecureRandom secureRandom = new SecureRandom();
+
     /** Sinh mã tra cứu mới. */
     public GeneratedLookupCode generate() {
         StringBuilder compactCode = new StringBuilder(PREFIX);
         for (int index = 0; index < RANDOM_CHARACTER_COUNT; index++) {
             compactCode.append(ALPHABET.charAt(secureRandom.nextInt(ALPHABET.length())));
         }
+
         String normalizedCode = compactCode.toString();
         return new GeneratedLookupCode(format(normalizedCode), sha256(normalizedCode));
     }
+
     /** Băm mã tra cứu. */
     public String hash(String lookupCode) {
         return sha256(normalize(lookupCode));
     }
+
     /** Chuẩn hóa mã tra cứu. */
     private String normalize(String lookupCode) {
         if (lookupCode == null) {
             throw new IllegalArgumentException("Mã tra cứu không hợp lệ");
         }
+
         String normalized = lookupCode.trim()
                 .toUpperCase(Locale.ROOT)
                 .replace("-", "");
@@ -48,6 +53,7 @@ public class ProductFeedbackLookupCodeGenerator {
                 || !normalized.startsWith(PREFIX)) {
             throw new IllegalArgumentException("Mã tra cứu không hợp lệ");
         }
+
         for (int index = PREFIX.length(); index < normalized.length(); index++) {
             if (ALPHABET.indexOf(normalized.charAt(index)) < 0) {
                 throw new IllegalArgumentException("Mã tra cứu không hợp lệ");
@@ -55,6 +61,7 @@ public class ProductFeedbackLookupCodeGenerator {
         }
         return normalized;
     }
+
     /** Định dạng mã hiển thị. */
     private String format(String normalizedCode) {
         String randomPart = normalizedCode.substring(PREFIX.length());
@@ -65,6 +72,7 @@ public class ProductFeedbackLookupCodeGenerator {
         }
         return displayCode.toString();
     }
+
     /** Băm SHA-256. */
     private String sha256(String normalizedCode) {
         try {
@@ -74,6 +82,7 @@ public class ProductFeedbackLookupCodeGenerator {
             throw new IllegalStateException("SHA-256 không khả dụng", exception);
         }
     }
+
     /** Cặp mã hiển thị và băm. */
     public record GeneratedLookupCode(String displayValue, String hash) {
     }

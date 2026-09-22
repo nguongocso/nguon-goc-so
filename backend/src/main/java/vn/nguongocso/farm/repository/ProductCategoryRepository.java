@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import vn.nguongocso.farm.entity.ProductCategory;
+
 /**
  * Repository thao tác dữ liệu danh mục loại cây trồng.
 */

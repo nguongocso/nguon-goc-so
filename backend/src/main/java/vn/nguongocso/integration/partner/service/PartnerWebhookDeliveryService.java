@@ -68,6 +68,7 @@ public class PartnerWebhookDeliveryService {
             String publicReason,
             String remediationSummary,
             LocalDateTime since) {
+
         UUID productionLotId = (shipment.getProductionLot() != null)
                 ? shipment.getProductionLot().getId()
                 : null;
@@ -75,28 +76,35 @@ public class PartnerWebhookDeliveryService {
         // 1. Tìm các ID khóa đối tác đã từng lấy dữ liệu lô này trong cửa sổ cấu hình (TC-03)
         List<UUID> candidateApiKeyIds = partnerLotAccessLogRepository
                 .findDistinctPartnerApiKeyIdsByShipmentOrProductionLot(shipment.getId(), productionLotId, since);
+
         if (candidateApiKeyIds.isEmpty()) {
             log.info("Không có đối tác bên thứ ba nào truy xuất dữ liệu của lô {} trong cửa sổ cấu hình.",
                     shipment.getName());
             return;
         }
+
         List<PartnerApiKey> eligibleKeys = partnerApiKeyRepository
                 .findEligibleWebhookKeys(candidateApiKeyIds, LocalDateTime.now());
+
         if (eligibleKeys.isEmpty()) {
             log.info("Lô {}: Tìm thấy {} đối tác đã truy xuất nhưng không có khóa nào đủ điều kiện nhận webhook.",
                     shipment.getName(), candidateApiKeyIds.size());
             return;
         }
+
         log.info("Phát hiện {} đối tác đủ điều kiện nhận thông báo thu hồi cho lô {}",
                 eligibleKeys.size(), shipment.getName());
+
         for (PartnerApiKey apiKey : eligibleKeys) {
             if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
                 log.warn("Khóa của đối tác '{}' đã bị thu hồi.", apiKey.getPartnerName());
                 continue;
             }
+
             createAndSendNotification(apiKey, shipment, newStatus, publicReason, remediationSummary);
         }
     }
+
     /**
      * Khởi tạo bản ghi thông báo và thực hiện lượt gửi đầu tiên.
      */
@@ -107,12 +115,14 @@ public class PartnerWebhookDeliveryService {
             String newStatus,
             String publicReason,
             String remediationSummary) {
+
         if (partnerWebhookNotificationRepository.existsByPartnerApiKey_IdAndShipment_IdAndNewStatus(
                 apiKey.getId(), shipment.getId(), newStatus)) {
             log.info("Bỏ qua thông báo trùng lặp: đối tác apiKeyId={} đã được gửi thông báo cho lô shipmentId={} trạng thái={}",
                     apiKey.getId(), shipment.getId(), newStatus);
             return;
         }
+
         String shipmentCode = (shipment.getName() != null && !shipment.getName().isBlank())
                 ? shipment.getName()
                 : shipment.getId().toString();
@@ -166,6 +176,7 @@ public class PartnerWebhookDeliveryService {
 
         executeWebhookDelivery(saved, apiKey.getWebhookSecret());
     }
+
     /**
      * Thực thi một lượt gửi HTTP Webhook kèm chữ ký số và ghi nhận kết quả.
      */
@@ -181,8 +192,10 @@ public class PartnerWebhookDeliveryService {
                     notification.getId(), apiKey.getId());
             return;
         }
+
         int currentAttempt = notification.getAttemptCount() + 1;
         long startNano = System.nanoTime();
+
         try {
             long timestampEpoch = Instant.now().getEpochSecond();
             String payload = notification.getPayload();
@@ -210,23 +223,27 @@ public class PartnerWebhookDeliveryService {
             if (responseBody != null && responseBody.length() > 500) {
                 responseBody = responseBody.substring(0, 500) + "...";
             }
+
             boolean isSuccess = (statusCode >= 200 && statusCode < 300);
             String errorMsg = isSuccess ? null : ("Máy chủ đối tác phản hồi HTTP " + statusCode);
 
             recordAttemptResult(notification, currentAttempt, statusCode, responseBody, errorMsg, durationMs,
                     isSuccess);
+
         } catch (Exception e) {
             long durationMs = Duration.ofNanos(System.nanoTime() - startNano).toMillis();
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             if (errorMsg.length() > 500) {
                 errorMsg = errorMsg.substring(0, 500);
             }
+
             log.warn("Gửi webhook thất bại tới {} (lần thử {}): {}",
                     notification.getTargetUrl(), currentAttempt, errorMsg);
 
             recordAttemptResult(notification, currentAttempt, null, null, errorMsg, durationMs, false);
         }
     }
+
     /**
      * Ghi nhận kết quả của một lần thử gửi, tính toán lịch giãn dần nếu thất bại.
      */
@@ -238,6 +255,7 @@ public class PartnerWebhookDeliveryService {
             String errorMessage,
             long durationMs,
             boolean success) {
+
         List<PartnerWebhookAttemptDto> attempts = parseAttemptsLog(notification.getAttemptsLog());
         attempts.add(PartnerWebhookAttemptDto.builder()
                 .attemptNumber(attemptNumber)
@@ -252,6 +270,7 @@ public class PartnerWebhookDeliveryService {
         notification.setAttemptCount(attemptNumber);
         notification.setLastHttpStatus(httpStatus);
         notification.setLastErrorMessage(errorMessage);
+
         if (success) {
             notification.setDeliveryStatus(WebhookDeliveryStatus.SUCCESS);
             notification.setNextRetryAt(null);
@@ -273,8 +292,10 @@ public class PartnerWebhookDeliveryService {
                         attemptNumber + 1, notification.getTargetUrl(), delayMinutes);
             }
         }
+
         partnerWebhookNotificationRepository.save(notification);
     }
+
     /**
      * Tính toán chữ ký của dữ liệu gửi webhook.
      */
@@ -301,6 +322,7 @@ public class PartnerWebhookDeliveryService {
             return "";
         }
     }
+
     /**
      * Chuyển đổi payload thông báo sang chuỗi JSON.
      */
@@ -311,6 +333,7 @@ public class PartnerWebhookDeliveryService {
             return "{}";
         }
     }
+
     /**
      * Chuyển đổi danh sách các lần thử gửi sang chuỗi JSON.
      */
@@ -321,6 +344,7 @@ public class PartnerWebhookDeliveryService {
             return "[]";
         }
     }
+
     /**
      * Phân tích danh sách các lần thử gửi từ chuỗi JSON.
      */

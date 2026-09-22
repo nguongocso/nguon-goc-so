@@ -80,6 +80,7 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
             ProductionLotImportRequest request,
             CustomUserDetails userDetails,
             String ipAddress) {
+
         permissionChecker.check(RESOURCE, ACTION_CREATE);
 
         Organization organization = resolveOrganization(
@@ -87,11 +88,13 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
                 userDetails);
 
         List<ProductionLotImportRow> rows = fileParser.parse(request.getFile());
+
         if (rows.isEmpty()) {
             throw new BusinessException(
                     "File Excel không có dữ liệu lô sản xuất. "
                             + "Vui lòng nhập ít nhất một dòng dữ liệu.");
         }
+
         List<ValidImportRow> validRows = new ArrayList<>();
         List<UUID> savedLotIds = new ArrayList<>();
         List<ProductionLotImportRowError> rowErrors = new ArrayList<>();
@@ -130,15 +133,18 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
                 savedLotIds,
                 rowErrors);
     }
+
     /** Xác định tổ chức được phép nhập dữ liệu theo vai trò người dùng. */
     private Organization resolveOrganization(
             UUID organizationId,
             CustomUserDetails userDetails) {
+
         boolean isAdmin = userDetails.getAuthorities()
                 .stream()
                 .anyMatch(authority -> authority.getAuthority().equals("ROLE_VT-01"));
 
         UUID targetOrganizationId;
+
         if (isAdmin && organizationId != null) {
             targetOrganizationId = organizationId;
         } else {
@@ -150,13 +156,16 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
                         "Bạn không có quyền nhập dữ liệu cho tổ chức này.");
             }
         }
+
         if (targetOrganizationId == null) {
             throw new BusinessException(
                     "Không xác định được tổ chức để nhập dữ liệu.");
         }
+
         return organizationRepository.findById(targetOrganizationId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy tổ chức."));
     }
+
     /** Kiểm tra từng dòng Excel và gom dòng hợp lệ cùng danh sách lỗi. */
     private void validateRows(
             List<ProductionLotImportRow> rows,
@@ -164,6 +173,7 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
             CustomUserDetails userDetails,
             List<ValidImportRow> validRows,
             List<ProductionLotImportRowError> rowErrors) {
+
         for (ProductionLotImportRow row : rows) {
             try {
                 validateBasicInformation(row);
@@ -182,6 +192,7 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
                                         category,
                                         farmArea))
                                 .build());
+
             } catch (BusinessException ex) {
                 rowErrors.add(
                         ProductionLotImportRowError.builder()
@@ -191,37 +202,48 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
             }
         }
     }
+
     /** Lưu danh sách lô sản xuất hợp lệ. */
     private void saveProductionLots(
             List<ValidImportRow> validRows,
             List<UUID> savedLotIds) {
+
         if (validRows.isEmpty()) {
             return;
         }
+
         List<ProductionLot> lots = validRows.stream()
                 .map(ValidImportRow::getProductionLot)
                 .toList();
 
         List<ProductionLot> savedLots = productionLotRepository.saveAll(lots);
+
         for (ProductionLot lot : savedLots) {
             savedLotIds.add(lot.getId());
         }
     }
+
     /** Tạo và lưu nhật ký canh tác cho các dòng Excel có hoạt động. */
     private void saveFarmLogs(
             List<ValidImportRow> validRows,
             CustomUserDetails userDetails) {
+
         if (validRows.isEmpty()) {
             return;
         }
+
         List<FarmLog> farmLogs = new ArrayList<>();
 
         LocalDateTime importedAt = LocalDateTime.now(clock);
+
         for (ValidImportRow item : validRows) {
+
             ProductionLotImportRow row = item.getRow();
+
             if (row.getActivityType() == null) {
                 continue;
             }
+
             farmLogs.add(
                     FarmLog.builder()
                             .productionLotId(item.getProductionLot())
@@ -235,85 +257,108 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
                             .createdAt(importedAt)
                             .build());
         }
+
         if (!farmLogs.isEmpty()) {
             farmLogRepository.saveAll(farmLogs);
         }
     }
+
     /** Kiểm tra các thông tin bắt buộc của dòng Excel. */
     private void validateBasicInformation(ProductionLotImportRow row) {
+
         if (row.getLotName() == null || row.getLotName().isBlank()) {
             throw new BusinessException(
                     "Tên lô (ten_lo) không được để trống.");
         }
+
         if (row.getProductCategoryId() == null
                 || row.getProductCategoryId().isBlank()) {
             throw new BusinessException(
                     "Mã loại nông sản (ma_loai_nong_san) không được để trống.");
         }
+
         if (row.getFarmAreaId() == null
                 || row.getFarmAreaId().isBlank()) {
             throw new BusinessException(
                     "Mã vùng trồng (ma_vung_trong) không được để trống.");
         }
+
         if (row.getExpectedQuantity() == null) {
             throw new BusinessException(
                     "Sản lượng dự kiến (san_luong_du_kien) không được để trống.");
         }
+
         if (row.getExpectedQuantity() <= 0) {
             throw new BusinessException(
                     "Sản lượng dự kiến (san_luong_du_kien) phải lớn hơn 0.");
         }
+
         if (row.getActualQuantity() != null
                 && row.getActualQuantity() < 0) {
             throw new BusinessException(
                     "Sản lượng thực thu không được nhỏ hơn 0.");
         }
+
         if (row.getPlantingDate() != null) {
             throw new BusinessException(
                     "Ngày gieo trồng (ngay_gieo_trong) không đúng định dạng dd/MM/yyyy.");
         }
+
         if (row.getHarvestDate() != null
                 && row.getHarvestDate().isBefore(row.getPlantingDate())) {
             throw new BusinessException(
                     "Ngày thu hoạch phải sau ngày gieo trồng.");
         }
     }
+
     /** Kiểm tra mã loại nông sản trong dòng Excel. */
     private ProductCategory validateProductCategory(
             ProductionLotImportRow row) {
+
         if (row.getProductCategoryId() == null
                 || row.getProductCategoryId().isBlank()) {
+
             throw new BusinessException(
                     "Mã loại nông sản không được để trống.");
         }
+
         UUID id = parseUuid(row.getProductCategoryId());
+
         if (id == null) {
             throw new BusinessException(
                     "Mã loại nông sản không hợp lệ.");
         }
+
         ProductCategory category = productCategoryRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(
                         "Loại nông sản không tồn tại."));
+
         if (!Boolean.TRUE.equals(category.getIsActive())) {
             throw new BusinessException(
                     "Loại nông sản đã ngừng sử dụng.");
         }
+
         return category;
     }
+
     /** Kiểm tra mã vùng trồng trong dòng Excel thuộc tổ chức đang nhập. */
     private FarmArea validateFarmArea(
             ProductionLotImportRow row,
             Organization organization) {
+
         if (row.getFarmAreaId() == null
                 || row.getFarmAreaId().isBlank()) {
             throw new BusinessException(
                     "Mã vùng trồng (ma_vung_trong) không được để trống.");
         }
+
         UUID id = parseUuid(row.getFarmAreaId());
+
         if (id == null) {
             throw new BusinessException(
                     "Mã vùng trồng (ma_vung_trong) không hợp lệ.");
         }
+
         FarmArea farmArea = farmAreaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(
                         "Vùng trồng không tồn tại."));
@@ -321,11 +366,14 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
         if (!farmArea.getOrganization()
                 .getOrganizationId()
                 .equals(organization.getOrganizationId())) {
+
             throw new BusinessException(
                     "Vùng trồng không thuộc tổ chức.");
         }
+
         return farmArea;
     }
+
     /** Tạo lô sản xuất từ một dòng Excel hợp lệ. */
     private ProductionLot buildProductionLot(
             ProductionLotImportRow row,
@@ -333,6 +381,7 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
             CustomUserDetails userDetails,
             ProductCategory category,
             FarmArea farmArea) {
+
         return ProductionLot.builder()
                 .organization(organization)
                 .farmArea(farmArea)
@@ -347,17 +396,22 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
                 .expectedQuantityUnit("kg")
                 .build();
     }
+
     /** Chuyển chuỗi UUID, trả null nếu không hợp lệ. */
     private UUID parseUuid(String value) {
+
         if (value == null || value.isBlank()) {
             return null;
         }
+
         try {
             return UUID.fromString(value.trim());
+
         } catch (IllegalArgumentException ex) {
             return null;
         }
     }
+
     /** Lưu lịch sử nhập dữ liệu kèm trạng thái kết quả. */
     private ProductionLotImportHistory saveImportHistory(
             String fileName,
@@ -366,14 +420,19 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
             Integer totalRows,
             Integer successCount,
             Integer failedCount) {
+
         ProductionLotImportStatus status;
+
         if (failedCount == 0) {
             status = ProductionLotImportStatus.SUCCESS;
+
         } else if (successCount == 0) {
             status = ProductionLotImportStatus.FAILED;
+
         } else {
             status = ProductionLotImportStatus.PARTIAL_SUCCESS;
         }
+
         ProductionLotImportHistory history = ProductionLotImportHistory.builder()
                 .organization(organization)
                 .importedBy(userDetails.getUser())
@@ -386,12 +445,14 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
 
         return importHistoryRepository.save(history);
     }
+
     /** Ghi nhật ký hoạt động sau khi nhập dữ liệu. */
     private void writeActivityLog(
             Organization organization,
             CustomUserDetails userDetails,
             ProductionLotImportHistory history,
             String ipAddress) {
+
         activityLogService.logActivity(
                 ActivityLogRequest.builder()
                         .organizationId(
@@ -416,11 +477,13 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
                         .ipAddress(ipAddress)
                         .build());
     }
+
     /** Tạo phản hồi kết quả cho API nhập dữ liệu. */
     private ProductionLotImportResultResponse buildResponse(
             ProductionLotImportHistory history,
             List<UUID> savedLotIds,
             List<ProductionLotImportRowError> rowErrors) {
+
         return ProductionLotImportResultResponse.builder()
                 .importHistoryId(history.getId())
                 .status(history.getStatus().name())
@@ -433,6 +496,7 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
                 .importedAt(history.getImportedAt())
                 .build();
     }
+
     /** Tạo tệp Excel mẫu nhập lô sản xuất. */
     @Override
     @Transactional(readOnly = true)
@@ -440,27 +504,35 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
             UUID productCategoryId,
             UUID farmAreaId,
             CustomUserDetails userDetails) {
+
         permissionChecker.check(RESOURCE, ACTION_CREATE);
+
         if (productCategoryId == null) {
             throw new BusinessException(
                     "Vui lòng chọn loại nông sản.");
         }
+
         if (farmAreaId == null) {
             throw new BusinessException(
                     "Vui lòng chọn vùng trồng.");
         }
+
         UUID organizationId = userDetails.getOrganizationId();
+
         if (organizationId == null) {
             throw new BusinessException(
                     "Không xác định được tổ chức hiện tại.");
         }
+
         ProductCategory category = productCategoryRepository.findById(productCategoryId)
                 .orElseThrow(() -> new BusinessException(
                         "Loại nông sản không tồn tại."));
+
         if (!Boolean.TRUE.equals(category.getIsActive())) {
             throw new BusinessException(
                     "Loại nông sản đã ngừng sử dụng.");
         }
+
         FarmArea farmArea = farmAreaRepository.findById(farmAreaId)
                 .orElseThrow(() -> new BusinessException(
                         "Vùng trồng không tồn tại."));
@@ -468,9 +540,11 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
         if (!farmArea.getOrganization()
                 .getOrganizationId()
                 .equals(organizationId)) {
+
             throw new BusinessException(
                     "Vùng trồng không thuộc tổ chức hiện tại.");
         }
+
         byte[] excelBytes = excelGenerator.generate(
                 productCategoryId,
                 farmAreaId);

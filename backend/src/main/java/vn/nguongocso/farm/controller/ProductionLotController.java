@@ -77,10 +77,12 @@ public class ProductionLotController {
     public ResponseEntity<ApiResult<CreateProductionLotResponse>> create(
         @Valid @RequestBody CreateProductionLotRequest request,
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         permissionChecker.check("PRODUCTION_LOT", "CREATE");
         CreateProductionLotResponse response = productionLotService.createProductionLot(request, userDetails);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * API tải file Excel mẫu dùng cho chức năng import lô sản xuất.
      */
@@ -90,6 +92,7 @@ public class ProductionLotController {
         @RequestParam UUID productCategoryId,
         @RequestParam UUID farmAreaId,
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         Resource resource = productionLotImportService.generateImportExcelTemplate(
             productCategoryId, farmAreaId, userDetails);
         return ResponseEntity.ok()
@@ -98,6 +101,7 @@ public class ProductionLotController {
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
             .body(resource);
     }
+
     /**
      * API lấy dashboard lô sản xuất.
      */
@@ -109,11 +113,13 @@ public class ProductionLotController {
         @RequestParam(required = false) UUID organizationId,
         @RequestParam(required = false, defaultValue = "MONTH") String groupBy,
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         String ipAddress = IpUtils.getClientIp();
         ProductionLotDashboardResponse response = productionLotService.getDashboard(
             startDate, endDate, organizationId, groupBy, userDetails, ipAddress);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * API lấy bảng theo dõi tiến độ chuỗi của từng lô.
      */
@@ -124,10 +130,12 @@ public class ProductionLotController {
         @RequestParam(required = false, defaultValue = "10") Integer stagnantThresholdDays,
         @RequestParam(required = false) String search,
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         ChainProgressBoardResponse response = productionLotService.getChainProgressBoard(
             organizationId, stagnantThresholdDays, search, userDetails);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * API lấy lịch sử nhập dữ liệu lô sản xuất.
      */
@@ -135,6 +143,7 @@ public class ProductionLotController {
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
     public ResponseEntity<ApiResult<List<ProductionLotImportHistoryResponse>>> getImportHistory(
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         UUID organizationId = userDetails.getOrganizationId();
         List<ProductionLotImportHistoryResponse> history = importHistoryRepository
             .findByOrganization_OrganizationIdOrderByImportedAtDesc(organizationId)
@@ -151,6 +160,7 @@ public class ProductionLotController {
             .toList();
         return ResponseEntity.ok(ApiResult.success(history));
     }
+
     /**
      * API nhập danh sách lô sản xuất từ file Excel.
      */
@@ -160,6 +170,7 @@ public class ProductionLotController {
         @RequestParam("file") MultipartFile file,
         @RequestParam(value = "organizationId", required = false) String organizationIdStr,
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         ProductionLotImportRequest request = new ProductionLotImportRequest();
         request.setFile(file);
         if (organizationIdStr != null && !organizationIdStr.isBlank()) {
@@ -174,6 +185,7 @@ public class ProductionLotController {
             request, userDetails, ipAddress);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * API lấy thông tin chi tiết lô sản xuất.
      */
@@ -183,6 +195,7 @@ public class ProductionLotController {
         CreateProductionLotResponse response = productionLotService.getProductionLotById(id);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * API cập nhật lô sản xuất.
      */
@@ -192,9 +205,11 @@ public class ProductionLotController {
         @PathVariable UUID id,
         @Valid @RequestBody UpdateProductionLotRequest request,
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         UpdateProductionLotResponse response = productionLotService.updateProductionLot(id, request, userDetails);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * API lấy danh sách lô sản xuất của tổ chức hiện tại.
      */
@@ -202,9 +217,11 @@ public class ProductionLotController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResult<List<?>>> getAll(
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         List<?> response = productionLotService.getAllProductionLots(userDetails);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * API gửi lô sản xuất lên trạng thái chờ duyệt.
      */
@@ -213,9 +230,11 @@ public class ProductionLotController {
     public ResponseEntity<ApiResult<?>> submitForApproval(
         @PathVariable UUID id,
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         permissionChecker.check("PRODUCTION_LOT", "UPDATE");
         return ResponseEntity.ok(ApiResult.success(productionLotService.submitForApproval(id, userDetails)));
     }
+
     /**
      * API duyệt lô sản xuất.
      */
@@ -224,11 +243,13 @@ public class ProductionLotController {
     public ResponseEntity<ApiResult<CreateProductionLotResponse>> approve(
         @PathVariable UUID id,
         @Valid @RequestBody ApproveProductionLotRequest request) {
+
         permissionChecker.check("PRODUCTION_LOT", "UPDATE");
         CustomUserDetails userDetails = SecurityUtils.getCurrentUserDetails();
         CreateProductionLotResponse response = productionLotService.approveProductionLot(id, request, userDetails);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * API hủy lô sản xuất.
      */
@@ -238,10 +259,12 @@ public class ProductionLotController {
         @PathVariable UUID id,
         @Valid @RequestBody CancelProductionLotRequest request,
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         permissionChecker.check("PRODUCTION_LOT", "UPDATE");
         CreateProductionLotResponse response = productionLotService.cancelProductionLot(id, request, userDetails);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * API loại bỏ lô sản xuất.
      */
@@ -251,10 +274,12 @@ public class ProductionLotController {
         @PathVariable UUID id,
         @Valid @RequestBody DisposeProductionLotRequest request,
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         permissionChecker.check("PRODUCTION_LOT", "UPDATE");
         CreateProductionLotResponse response = productionLotService.disposeProductionLot(id, request, userDetails);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * API lấy dữ liệu xem trước khi tạo lô sản xuất mới từ mẫu vụ trước.
      */
@@ -263,10 +288,12 @@ public class ProductionLotController {
     public ResponseEntity<ApiResult<CloneProductionLotPreviewResponse>> getClonePreview(
         @PathVariable UUID sourceLotId,
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         permissionChecker.check("PRODUCTION_LOT", "CREATE");
         CloneProductionLotPreviewResponse response = productionLotService.getClonePreview(sourceLotId, userDetails);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * API tạo lô sản xuất mới từ mẫu vụ trước.
      */
@@ -276,10 +303,12 @@ public class ProductionLotController {
         @PathVariable UUID sourceLotId,
         @Valid @RequestBody CloneProductionLotRequest request,
         @AuthenticationPrincipal CustomUserDetails userDetails) {
+
         permissionChecker.check("PRODUCTION_LOT", "CREATE");
         CloneProductionLotResponse response = productionLotService.cloneProductionLot(sourceLotId, request, userDetails);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * API kích hoạt quét và kiểm tra hạn kết quả kiểm nghiệm của các lô sản xuất.
      */

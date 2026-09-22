@@ -41,6 +41,7 @@ public class HelpServiceImpl implements HelpService {
         if (screenKey == null || screenKey.isBlank()) {
             return null;
         }
+
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
         String roleCode = currentUser.getRoleCode();
 
@@ -49,13 +50,16 @@ public class HelpServiceImpl implements HelpService {
         if (!roleSpecificContents.isEmpty()) {
             return toResponse(roleSpecificContents.get(0));
         }
+
         List<HelpContent> generalContents = helpContentRepository
                 .findByScreenKeyAndRoleCodeOrderBySortOrderAsc(screenKey, GENERAL_ROLE_CODE);
         if (!generalContents.isEmpty()) {
             return toResponse(generalContents.get(0));
         }
+
         return null;
     }
+
     /**
      * Chuyển đổi entity sang response DTO.
      */
@@ -70,6 +74,7 @@ public class HelpServiceImpl implements HelpService {
                 .exampleData(entity.getExampleData())
                 .build();
     }
+
     /**
      * Phân tích chuỗi JSON các bước hướng dẫn sang danh sách.
      */

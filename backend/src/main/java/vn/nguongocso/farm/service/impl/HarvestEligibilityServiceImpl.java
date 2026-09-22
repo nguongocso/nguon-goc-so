@@ -44,8 +44,10 @@ public class HarvestEligibilityServiceImpl implements HarvestEligibilityService 
         if (productionLotId == null || !productionLotRepository.existsById(productionLotId)) {
             throw new BusinessException("Không tìm thấy lô sản xuất");
         }
+
         List<FarmLog> pesticideLogs = farmLogRepository
                 .findByProductionLotIdAndActivityType(productionLotId, FarmActivityType.PESTICIDE);
+
         if (pesticideLogs == null || pesticideLogs.isEmpty()) {
             return HarvestEligibilityResponse.builder()
                     .determined(true)
@@ -53,21 +55,26 @@ public class HarvestEligibilityServiceImpl implements HarvestEligibilityService 
                     .unmatchedMaterials(Collections.emptyList())
                     .build();
         }
+
         boolean allResolved = true;
         LocalDate maxEligibleDate = null;
         Set<String> unmatchedSet = new LinkedHashSet<>();
+
         for (FarmLog logItem : pesticideLogs) {
             if (logItem.getExecutedDate() == null) {
                 throw new BusinessException("Mục nhật ký sử dụng thuốc BVTV thiếu ngày thực hiện. Vui lòng bổ sung ngày trước khi thu hoạch.");
             }
+
             String rawMaterial = logItem.getMaterial();
             if (rawMaterial == null || rawMaterial.trim().isEmpty()) {
                 allResolved = false;
                 unmatchedSet.add("(Chưa đặt tên)");
                 continue;
             }
+
             String trimmedMaterial = rawMaterial.trim();
             List<InputMaterial> matches = inputMaterialRepository.findByNameNormalized(trimmedMaterial);
+
             if (matches == null || matches.isEmpty()) {
                 allResolved = false;
                 unmatchedSet.add(trimmedMaterial);
@@ -83,6 +90,7 @@ public class HarvestEligibilityServiceImpl implements HarvestEligibilityService 
                 }
             }
         }
+
         if (!allResolved) {
             return HarvestEligibilityResponse.builder()
                     .determined(false)
@@ -90,6 +98,7 @@ public class HarvestEligibilityServiceImpl implements HarvestEligibilityService 
                     .unmatchedMaterials(new ArrayList<>(unmatchedSet))
                     .build();
         }
+
         return HarvestEligibilityResponse.builder()
                 .determined(true)
                 .eligibleHarvestDate(maxEligibleDate)

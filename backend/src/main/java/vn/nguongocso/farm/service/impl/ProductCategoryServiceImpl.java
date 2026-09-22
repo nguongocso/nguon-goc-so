@@ -38,6 +38,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
                 .map(this::toResponse)
                 .toList();
     }
+
     /** Tìm kiếm loại cây trồng theo điều kiện lọc. */
     @Override
     @Transactional(readOnly = true)
@@ -48,26 +49,31 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
         Boolean filterActive = isActive;
         boolean isAdmin = currentUser.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_VT-01"));
+
         if (!isAdmin) {
             if (Boolean.FALSE.equals(isActive)) {
                 throw new AccessDeniedException("Bạn không có quyền xem danh mục loại nông sản bị ẩn");
             }
             filterActive = true;
         }
+
         return productCategoryRepository.search(name, group, filterActive).stream()
                 .map(this::toResponse)
                 .toList();
     }
+
     /** Tạo mới loại cây trồng. */
     @Override
     @Transactional
     @Auditable(action = "CREATE_PRODUCT_CATEGORY", entityType = "PRODUCT_CATEGORY", description = "'Thêm mới loại nông sản: ' + #request.name + ', thuộc nhóm hàng: ' + #request.group")
     public ProductCategoryResponse create(CreateProductCategoryRequest request) {
         log.info("Bắt đầu xử lý thêm mới loại nông sản: {}", request.getName());
+
         if (productCategoryRepository.existsByNameIgnoreCase(request.getName().trim())) {
             throw new DuplicateResourceException(
                     "Loại nông sản với tên '" + request.getName() + "' đã tồn tại trong danh mục");
         }
+
         ProductCategory category = new ProductCategory();
         category.setId(UUID.randomUUID());
         category.setName(request.getName().trim());
@@ -84,6 +90,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
         log.info("Thêm mới loại nông sản thành công, ID={}", saved.getId());
         return toResponse(saved);
     }
+
     /** Cập nhật thông tin loại cây trồng. */
     @Override
     @Transactional
@@ -93,10 +100,12 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 
         ProductCategory category = productCategoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại nông sản với ID: " + id));
+
         if (productCategoryRepository.existsByNameIgnoreCaseAndIdNot(request.getName().trim(), id)) {
             throw new DuplicateResourceException(
                     "Loại nông sản với tên '" + request.getName() + "' đã tồn tại trong danh mục");
         }
+
         category.setName(request.getName().trim());
         category.setNameEn(request.getNameEn() != null && !request.getNameEn().trim().isBlank() ? request.getNameEn().trim() : null);
         category.setGroup(request.getGroup().trim());
@@ -111,6 +120,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
         log.info("Cập nhật loại nông sản thành công, ID={}", updated.getId());
         return toResponse(updated);
     }
+
     /** Chuyển entity loại cây trồng sang DTO phản hồi. */
     private ProductCategoryResponse toResponse(ProductCategory category) {
         return ProductCategoryResponse.builder()

@@ -34,6 +34,7 @@ public class ProductFeedbackController {
     public ResponseEntity<ApiResult<PublicProductFeedbackCreatedResponse>> sendFeedback(
             @PathVariable UUID productionLotId,
             @Valid @RequestBody CreateProductFeedbackRequest request) {
+
         PublicProductFeedbackCreatedResponse response = productFeedbackService.createFeedback(productionLotId, request);
         return ResponseEntity.ok(ApiResult.success(response));
     }

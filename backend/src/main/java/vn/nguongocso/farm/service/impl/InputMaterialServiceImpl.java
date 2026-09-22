@@ -48,13 +48,16 @@ public class InputMaterialServiceImpl implements InputMaterialService {
     @Override
     public InputMaterialResponse createInputMaterial(CreateInputMaterialRequest request, UUID currentUserId) {
         validateQuarantineDays(request.getMaterialGroup(), request.getQuarantineDays());
+
         if (inputMaterialRepository.existsByNameAndActiveIngredient(request.getName(), request.getActiveIngredient())) {
             throw new DuplicateResourceException("Vật tư đã tồn tại với cùng tên và hoạt chất này");
         }
+
         Integer quarantineDays = request.getQuarantineDays();
         if (quarantineDays == null) {
             quarantineDays = 0;
         }
+
         Boolean applyToAllCrops = request.getApplyToAllCrops() != null ? request.getApplyToAllCrops() : true;
         Set<ProductCategory> cropCategories = resolveCropCategories(applyToAllCrops, request.getApplicableCropTypeIds());
 
@@ -79,6 +82,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
         InputMaterial saved = inputMaterialRepository.save(material);
         return mapToResponse(saved);
     }
+
     /** Cập nhật vật tư đầu vào. */
     @Override
     public InputMaterialResponse updateInputMaterial(UUID id, UpdateInputMaterialRequest request, UUID currentUserId) {
@@ -86,13 +90,16 @@ public class InputMaterialServiceImpl implements InputMaterialService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vật tư đầu vào với ID: " + id));
 
         validateQuarantineDays(request.getMaterialGroup(), request.getQuarantineDays());
+
         if (inputMaterialRepository.existsByNameAndActiveIngredientExcludingId(id, request.getName(), request.getActiveIngredient())) {
             throw new DuplicateResourceException("Vật tư đã tồn tại với cùng tên và hoạt chất này");
         }
+
         Integer quarantineDays = request.getQuarantineDays();
         if (quarantineDays == null) {
             quarantineDays = 0;
         }
+
         Boolean applyToAllCrops = request.getApplyToAllCrops() != null ? request.getApplyToAllCrops() : true;
         Set<ProductCategory> cropCategories = resolveCropCategories(applyToAllCrops, request.getApplicableCropTypeIds());
 
@@ -104,15 +111,19 @@ public class InputMaterialServiceImpl implements InputMaterialService {
         material.setApplyToAllCrops(applyToAllCrops);
         material.setApplicableCropTypes(cropCategories);
         material.setReferenceSource(request.getReferenceSource() != null ? request.getReferenceSource().trim() : null);
+
         if (request.getImageUrls() != null) {
             material.setImageUrls(request.getImageUrls().isEmpty() ? null : String.join(";;;", request.getImageUrls()));
         }
+
         if (request.getIsActive() != null) {
             material.setIsActive(request.getIsActive());
         }
+
         InputMaterial updated = inputMaterialRepository.save(material);
         return mapToResponse(updated);
     }
+
     /** Đổi trạng thái kích hoạt vật tư đầu vào. */
     @Override
     public InputMaterialResponse toggleActiveStatus(UUID id, Boolean isActive) {
@@ -123,16 +134,20 @@ public class InputMaterialServiceImpl implements InputMaterialService {
         InputMaterial updated = inputMaterialRepository.save(material);
         return mapToResponse(updated);
     }
+
     /** Xóa vật tư đầu vào. */
     @Override
     public void deleteInputMaterial(UUID id) {
         InputMaterial material = inputMaterialRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vật tư đầu vào với ID: " + id));
+
         if (farmLogRepository.existsByMaterialIgnoreCase(material.getName())) {
             throw new BusinessException("Vật tư đã được dùng trong nhật ký canh tác. Hệ thống chặn xóa và chỉ cho phép ngừng sử dụng.");
         }
+
         inputMaterialRepository.delete(material);
     }
+
     /** Lấy chi tiết vật tư đầu vào theo ID. */
     @Override
     @Transactional(readOnly = true)
@@ -141,6 +156,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vật tư đầu vào với ID: " + id));
         return mapToResponse(material);
     }
+
     /** Tìm kiếm vật tư đầu vào theo điều kiện lọc. */
     @Override
     @Transactional(readOnly = true)
@@ -155,9 +171,11 @@ public class InputMaterialServiceImpl implements InputMaterialService {
                 return Page.empty(pageable);
             }
         }
+
         return inputMaterialRepository.searchMaterials(cleanKeyword, group, groups, isActive, pageable)
                 .map(this::mapToResponse);
     }
+
     /** Lấy nhóm vật tư phù hợp với hoạt động canh tác. */
     public List<MaterialGroup> getMaterialGroupsForActivity(FarmActivityType activityType) {
         if (activityType == null) {
@@ -173,6 +191,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
             case OTHER -> Arrays.asList(MaterialGroup.values());
         };
     }
+
     /** Kiểm tra điều kiện bắt buộc của thời gian cách ly theo nhóm vật tư. */
     private void validateQuarantineDays(MaterialGroup group, Integer quarantineDays) {
         if (group == MaterialGroup.PESTICIDE) {
@@ -180,10 +199,12 @@ public class InputMaterialServiceImpl implements InputMaterialService {
                 throw new BusinessException("Nhóm thuốc bảo vệ thực vật bắt buộc phải có thời gian cách ly");
             }
         }
+
         if (quarantineDays != null && quarantineDays < 0) {
             throw new BusinessException("Thời gian cách ly phải là số nguyên không âm");
         }
     }
+
     /** Tra cứu danh mục loại nông sản từ danh sách ID. */
     private Set<ProductCategory> resolveCropCategories(Boolean applyToAllCrops, Set<UUID> cropTypeIds) {
         if (Boolean.TRUE.equals(applyToAllCrops) || cropTypeIds == null || cropTypeIds.isEmpty()) {
@@ -192,6 +213,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
         List<ProductCategory> categories = productCategoryRepository.findAllById(cropTypeIds);
         return new HashSet<>(categories);
     }
+
     /** Chuyển entity vật tư sang DTO phản hồi. */
     private InputMaterialResponse mapToResponse(InputMaterial entity) {
         Set<ProductCategoryResponse> cropResponses = entity.getApplicableCropTypes().stream()

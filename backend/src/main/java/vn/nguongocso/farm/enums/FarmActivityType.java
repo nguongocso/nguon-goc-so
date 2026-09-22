@@ -1,4 +1,5 @@
 package vn.nguongocso.farm.enums;
+
 /**
  * Loại hoạt động canh tác trong nhật ký.
 */

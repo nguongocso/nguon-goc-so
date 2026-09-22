@@ -62,6 +62,7 @@ public class PartnerApiKeyController {
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
     public ResponseEntity<ApiResult<PartnerApiKeyResponse>> createApiKey(
             @Valid @RequestBody CreateApiKeyRequest request) {
+
         log.info("Nhận yêu cầu cấp khóa truy cập đối tác '{}', limit={}/h",
                 request.getPartnerName(), request.getRateLimitPerHour());
 
@@ -69,6 +70,7 @@ public class PartnerApiKeyController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResult.success(201, response));
     }
+
     /**
      * Cấp mới khóa thử nghiệm cho đối tác bên thứ ba.
      */
@@ -76,6 +78,7 @@ public class PartnerApiKeyController {
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
     public ResponseEntity<ApiResult<PartnerApiKeyResponse>> createTestApiKey(
             @Valid @RequestBody CreateTestApiKeyRequest request) {
+
         log.info("Nhận yêu cầu cấp khóa thử nghiệm cho đối tác '{}', limit={}/h",
                 request.getPartnerName(), request.getRateLimitPerHour());
 
@@ -83,6 +86,7 @@ public class PartnerApiKeyController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResult.success(201, response));
     }
+
     /**
      * Lấy danh sách khóa truy cập thuộc Hợp tác xã hiện tại.
      */
@@ -92,10 +96,12 @@ public class PartnerApiKeyController {
             @RequestParam(required = false) PartnerApiKeyStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         PartnerApiKeyPageResponse responses = partnerApiKeyService.getOrganizationApiKeys(status, pageable);
         return ResponseEntity.ok(ApiResult.success(responses));
     }
+
     /**
      * Thu hồi khóa truy cập.
      */
@@ -103,10 +109,12 @@ public class PartnerApiKeyController {
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
     public ResponseEntity<ApiResult<PartnerApiKeyResponse>> revokeApiKey(
             @PathVariable UUID id) {
+
         log.info("Nhận yêu cầu thu hồi khóa truy cập id={}", id);
         PartnerApiKeyResponse response = partnerApiKeyService.revokeApiKey(id);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * Gia hạn khóa truy cập.
      */
@@ -118,6 +126,7 @@ public class PartnerApiKeyController {
         PartnerApiKeyResponse response = partnerApiKeyService.renewApiKey(id, request);
         return ResponseEntity.ok(ApiResult.success(200, response));
     }
+
     /**
      * Nâng hạn mức khóa truy cập.
      */
@@ -129,6 +138,7 @@ public class PartnerApiKeyController {
         PartnerApiKeyResponse response = partnerApiKeyService.updateApiKeyQuota(id, request);
         return ResponseEntity.ok(ApiResult.success(200, response));
     }
+
     /**
      * Lấy thông tin cấu hình Webhook của một khóa API.
      */
@@ -137,10 +147,12 @@ public class PartnerApiKeyController {
     public ResponseEntity<ApiResult<PartnerWebhookResponse>> getWebhookConfig(
             @PathVariable UUID id,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
+
         log.info("Lấy thông tin cấu hình webhook cho apiKeyId={}", id);
         var response = partnerWebhookService.getWebhookForOrganizationKey(id, currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * Đăng ký hoặc cập nhật địa chỉ nhận thông báo Webhook cho khóa API.
      */
@@ -150,10 +162,12 @@ public class PartnerApiKeyController {
             @PathVariable UUID id,
             @Valid @RequestBody PartnerWebhookRegistrationRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
+
         log.info("Cập nhật địa chỉ nhận thông báo webhook cho apiKeyId={}", id);
         var response = partnerWebhookService.registerWebhookForOrganizationKey(id, request, currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * Bắn thử nghiệm webhook kiểm tra kết nối tới máy chủ đối tác.
      */
@@ -162,10 +176,12 @@ public class PartnerApiKeyController {
     public ResponseEntity<ApiResult<WebhookTestPingResponse>> testPingWebhook(
             @PathVariable UUID id,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
+
         log.info("Bắn thử nghiệm webhook cho apiKeyId={}", id);
         var response = partnerWebhookService.sendTestPing(id, currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }
+
     /**
      * Xem lịch sử thông báo thu hồi đã gửi cho khóa API đối tác.
      */
@@ -177,6 +193,7 @@ public class PartnerApiKeyController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
+
         PageRequest pageable = PageRequest.of(page, size);
         var response = partnerWebhookService.getNotificationsForOrganizationKey(id, deliveryStatus, pageable,
                 currentUser);

@@ -37,6 +37,7 @@ public class CooperativeApiKeyController {
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
     public ResponseEntity<ApiResult<PartnerApiKeyResponse>> createTestApiKey(
             @Valid @RequestBody CreateTestApiKeyRequest request) {
+
         log.info("Nhận yêu cầu cấp khóa thử nghiệm qua /api/v1/cooperative/test-api-keys cho đối tác '{}', limit={}/h",
                 request.getPartnerName(), request.getRateLimitPerHour());
 
