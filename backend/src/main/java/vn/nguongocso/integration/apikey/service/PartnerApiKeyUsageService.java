@@ -31,6 +31,9 @@ public class PartnerApiKeyUsageService {
 
     private final PartnerApiKeyUsageWriter usageWriter;
 
+    /**
+     * Lấy ngày nghiệp vụ hiện tại dùng làm khóa đếm theo ngày.
+     */
     public LocalDate currentUsageDate() {
         return LocalDate.now();
     }
