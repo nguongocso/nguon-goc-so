@@ -7,38 +7,33 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import {
-  FileText,
-  Download,
-  Eye,
-  Loader2,
-  FileCode,
-  FileSpreadsheet,
-} from 'lucide-react';
+import { FileText, Download, Eye, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { exportDossier } from '@/api/dossierApi';
 import { exportShipmentWithTemplate } from '@/api/exportApi';
+import { toApiError } from '@/api/apiError';
 import { DossierPreviewDialog } from './DossierPreviewDialog';
+import { DossierFormatSelector, type DossierExportFormat } from './DossierFormatSelector';
 import { getLocalDateString } from '@/utils/dateTime';
 import { ProfileTemplateSelector } from './ProfileTemplateSelector';
 import type { ProfileTemplate } from '@/types/profileTemplate';
 
-interface ExportDossierDialogProps {
+/** Props truyền vào component ExportDossierDialog */
+export interface ExportDossierDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   shipmentId: string;
   shipmentName: string;
   shipmentCode?: string;
-  /**
-   * UUID của tổ chức HTX sở hữu lô hàng.
-   * Truyền vào khi VT-04 mở dialog — ProfileTemplateSelector sẽ dùng
-   * orgId này thay vì orgId của người dùng để lấy mẫu của HTX.
-   */
+  /** UUID của tổ chức HTX sở hữu lô hàng (dành cho VT-04) */
   cooperativeOrganizationId?: string;
 }
 
+/**
+ * Hộp thoại xuất hồ sơ truy xuất nguồn gốc cho lô hàng nông sản (PDF, JSON, CSV).
+ * Hỗ trợ chọn mẫu hồ sơ tùy chỉnh theo tổ chức hoặc mẫu mặc định hệ thống.
+ */
 export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
   open,
   onOpenChange,
@@ -49,17 +44,11 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
 }) => {
   const { user } = useAuth();
   const organizationId = user?.organizationId || '';
-
-  /**
-   * orgId dùng để lấy mẫu hồ sơ:
-   * - VT-02: dùng org của chính mình
-   * - VT-04: dùng cooperativeOrganizationId (org của HTX sở hữu lô)
-   */
   const templateOrgId = cooperativeOrganizationId ?? organizationId;
 
   const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>(undefined);
   const [activeTemplate, setActiveTemplate] = useState<ProfileTemplate | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'json' | 'csv'>('pdf');
+  const [selectedFormat, setSelectedFormat] = useState<DossierExportFormat>('pdf');
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
 
@@ -68,12 +57,12 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
     if (open) {
       setSelectedFormat('pdf');
       setIsExporting(false);
-      // Reset lựa chọn mẫu mỗi lần mở để tránh giữ state cũ giữa các lô
       setActiveTemplateId(undefined);
       setActiveTemplate(null);
     }
   }, [open]);
 
+  // Xử lý xuất và tải tệp hồ sơ về máy
   const handleExport = async () => {
     if (!shipmentId) return;
 
@@ -82,8 +71,7 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
 
     try {
       let blob: Blob;
-      let extension = selectedFormat;
-      let fileName = `Ho_so_truy_xuat_${shipmentName || shipmentCode || shipmentId}_${getLocalDateString()}.${extension}`;
+      let fileName = `Ho_so_truy_xuat_${shipmentName || shipmentCode || shipmentId}_${getLocalDateString()}.${selectedFormat}`;
 
       if (selectedFormat === 'pdf') {
         blob = await exportDossier(shipmentId, activeTemplateId);
@@ -91,10 +79,7 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
         blob = await exportShipmentWithTemplate(shipmentId, activeTemplateId, selectedFormat);
         fileName = `dossier_profile_${shipmentCode || shipmentId}_${getLocalDateString()}.${selectedFormat}`;
       }
-
       toast.dismiss(toastId);
-
-      // Kích hoạt tải tệp
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -103,19 +88,11 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-
       toast.success('Tải hồ sơ truy xuất thành công!');
       onOpenChange(false);
     } catch (err: unknown) {
       toast.dismiss(toastId);
-      const errObj = err as any;
-      let errorMsg =
-        errObj?.response?.data?.message ||
-        (err instanceof Error && err.message && !err.message.includes('status code')
-          ? err.message
-          : null) ||
-        errObj?.message ||
-        'Có lỗi xảy ra khi tạo hồ sơ xuất.';
+      const errorMsg = toApiError(err, 'Có lỗi xảy ra khi tạo hồ sơ xuất.').message;
       toast.error(errorMsg);
     } finally {
       setIsExporting(false);
@@ -132,13 +109,14 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
                 <FileText className="size-5" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-bold">Xuất hồ sơ truy xuất nguồn gốc</DialogTitle>
+                <DialogTitle className="text-lg font-bold">
+                  Xuất hồ sơ truy xuất nguồn gốc
+                </DialogTitle>
               </div>
             </div>
           </DialogHeader>
 
           <div className="space-y-5 py-3">
-                        {/* Lựa chọn Mẫu hồ sơ — hiển thị cho cả VT-02 (mẫu của tổ chức mình) và VT-04 (mẫu của HTX sở hữu lô) */}
             {templateOrgId && (
               <ProfileTemplateSelector
                 organizationId={templateOrgId}
@@ -152,59 +130,11 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
               />
             )}
 
-            {/* Lựa chọn Định dạng tệp */}
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Định dạng tệp xuất</Label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  disabled={isExporting}
-                  onClick={() => setSelectedFormat('pdf')}
-                  className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between ${selectedFormat === 'pdf'
-                    ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-1 ring-emerald-600'
-                    : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'
-                    }`}
-                >
-                  <FileText className={`size-5 mb-1.5 ${selectedFormat === 'pdf' ? 'text-emerald-600' : 'text-slate-500'}`} />
-                  <div>
-                    <div className="font-semibold text-xs text-foreground">Hồ sơ PDF</div>
-                    <div className="text-[10px] text-muted-foreground">In ấn & nộp đối tác</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={isExporting}
-                  onClick={() => setSelectedFormat('json')}
-                  className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between ${selectedFormat === 'json'
-                    ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-1 ring-emerald-600'
-                    : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'
-                    }`}
-                >
-                  <FileCode className={`size-5 mb-1.5 ${selectedFormat === 'json' ? 'text-emerald-600' : 'text-slate-500'}`} />
-                  <div>
-                    <div className="font-semibold text-xs text-foreground">Dữ liệu JSON</div>
-                    <div className="text-[10px] text-muted-foreground">Tích hợp phần mềm</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={isExporting}
-                  onClick={() => setSelectedFormat('csv')}
-                  className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between ${selectedFormat === 'csv'
-                    ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-1 ring-emerald-600'
-                    : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'
-                    }`}
-                >
-                  <FileSpreadsheet className={`size-5 mb-1.5 ${selectedFormat === 'csv' ? 'text-emerald-600' : 'text-slate-500'}`} />
-                  <div>
-                    <div className="font-semibold text-xs text-foreground">Bảng tính CSV</div>
-                    <div className="text-[10px] text-muted-foreground">Phân tích số liệu</div>
-                  </div>
-                </button>
-              </div>
-            </div>
+            <DossierFormatSelector
+              selectedFormat={selectedFormat}
+              onSelectFormat={setSelectedFormat}
+              disabled={isExporting}
+            />
           </div>
 
           <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t">
@@ -218,7 +148,6 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
             >
               Đóng
             </Button>
-
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button
                 type="button"
@@ -231,7 +160,6 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
                 <Eye className="size-3.5" />
                 Xem trước hồ sơ
               </Button>
-
               <Button
                 type="button"
                 size="sm"
@@ -255,8 +183,6 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Modal xem trước hồ sơ */}
       {showPreview && (
         <DossierPreviewDialog
           open={showPreview}

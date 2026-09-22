@@ -1,8 +1,13 @@
 import React from 'react';
 
-/** Tên hiển thị tiếng Việt của mẫu hồ sơ mặc định do hệ thống cung cấp */
+/**
+ * Tên hiển thị tiếng Việt của mẫu hồ sơ mặc định do hệ thống cung cấp.
+ */
 export const DEFAULT_TEMPLATE_DISPLAY_NAME = 'Mẫu tiêu chuẩn HTX (Mặc định hệ thống)';
 
+/**
+ * Thuộc tính của component TemplateOptionContent.
+ */
 interface TemplateOptionContentProps {
   name: string;
   partnerName?: string | null;
@@ -12,8 +17,10 @@ interface TemplateOptionContentProps {
 /**
  * Hiển thị nội dung của một mẫu hồ sơ gồm tên mẫu, đối tác và nhãn "Mặc định".
  * Dùng chung cho cả danh sách lựa chọn và giá trị đang được chọn tại dialog xuất
- * hồ sơ đơn lẻ và trang xuất bộ hồ sơ nhiều lô, để câu chữ hiển thị luôn thống
- * nhất và không hiển thị mã (id) của mẫu.
+ * hồ sơ đơn lẻ và trang xuất bộ hồ sơ nhiều lô.
+ *
+ * @param props Các thuộc tính tên mẫu, tên đối tác và cờ mặc định.
+ * @returns Khối JSX hiển thị thông tin mẫu hồ sơ.
  */
 export const TemplateOptionContent: React.FC<TemplateOptionContentProps> = ({
   name,

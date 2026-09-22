@@ -1,42 +1,20 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  FileText,
-  Save,
-  Eye,
-  Loader2,
-  Building,
-  AlertCircle,
-} from 'lucide-react';
+import { Save, Eye, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
 } from '@/components/ui/card';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { useAuth } from '@/hooks/useAuth';
-import { useProfileTemplates } from '@/hooks/useProfileTemplates';
-import {
-  getProfileTemplateById,
-  getAvailableFields,
-} from '@/api/profileTemplateApi';
 import { ProfileFieldSelector } from '@/components/export/ProfileFieldSelector';
 import { DossierPreviewDialog } from '@/components/export/DossierPreviewDialog';
-import type {
-  FieldGroupDefinition,
-  FieldSelectionItem,
-} from '@/types/profileTemplate';
-import { toast } from 'sonner';
+import { ProfileTemplateMetaCard, type ProfileTemplateFormData } from './ProfileTemplateMetaCard';
+import { buildProfileTemplateMockData } from './profileTemplateMockData';
+import { useProfileTemplateFormData } from './useProfileTemplateFormData';
 
 // Zod schema kiểm tra dữ liệu form
 const profileTemplateSchema = z.object({
@@ -48,12 +26,10 @@ const profileTemplateSchema = z.object({
   isDefault: z.boolean(),
 });
 
-type ProfileTemplateFormData = {
-  name: string;
-  partnerName?: string;
-  isDefault: boolean;
-};
-
+/**
+ * Trang tạo mới hoặc chỉnh sửa mẫu hồ sơ truy xuất nguồn gốc theo đối tác.
+ * Cho phép thiết lập tên, đối tác, trạng thái mặc định và lựa chọn các trường dữ liệu.
+ */
 export const ProfileTemplateFormPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -68,14 +44,7 @@ export const ProfileTemplateFormPage: React.FC = () => {
     { label: isEdit ? 'Chỉnh sửa mẫu hồ sơ' : 'Tạo mẫu hồ sơ mới' },
   ]);
 
-  const { createTemplate, updateTemplate } = useProfileTemplates(orgId);
-
-  const [availableGroups, setAvailableGroups] = useState<FieldGroupDefinition[]>([]);
-  const [selectedFields, setSelectedFields] = useState<FieldSelectionItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [mandatoryValidationErr, setMandatoryValidationErr] = useState<string | null>(null);
 
   const {
     control,
@@ -94,291 +63,28 @@ export const ProfileTemplateFormPage: React.FC = () => {
 
   const formName = watch('name');
 
-  // Tải danh mục trường khả dụng và chi tiết template nếu là edit
-  useEffect(() => {
-    const initData = async () => {
-      if (!orgId) {
-        console.warn('[ProfileTemplateFormPage] orgId chưa sẵn sàng');
-        return;
-      }
-      console.log('[ProfileTemplateFormPage] Bắt đầu tải dữ liệu form: orgId =', orgId, 'isEdit =', isEdit, 'id =', id);
-      setLoading(true);
-      try {
-        const rawGroups = await getAvailableFields(orgId);
-        const groups = Array.isArray(rawGroups) ? rawGroups : [];
-        console.log('[ProfileTemplateFormPage] Danh mục trường đã tải:', groups.length, 'nhóm');
-        setAvailableGroups(groups);
+  const {
+    availableGroups,
+    selectedFields,
+    setSelectedFields,
+    loading,
+    submitting,
+    mandatoryValidationErr,
+    setMandatoryValidationErr,
+    onSubmit,
+  } = useProfileTemplateFormData({
+    orgId,
+    id,
+    isEdit,
+    onSetFormValues: (data) => {
+      setValue('name', data.name);
+      setValue('partnerName', data.partnerName);
+      setValue('isDefault', data.isDefault);
+    },
+  });
 
-        // Mặc định nạp tất cả các trường bắt buộc QTN-11
-        const defaultMandatoryItems: FieldSelectionItem[] = [];
-        groups.forEach((g) => {
-          const gKey = g.fieldGroup || g.group || 'OTHER';
-          if (Array.isArray(g.fields)) {
-            g.fields.forEach((f) => {
-              const isMan = Boolean(f.mandatory ?? f.isMandatory);
-              const fKey = f.fieldKey || f.key || '';
-              if (isMan && fKey) {
-                defaultMandatoryItems.push({
-                  fieldKey: fKey,
-                  fieldGroup: gKey,
-                  isMandatory: true,
-                  sortOrder: defaultMandatoryItems.length + 1,
-                });
-              }
-            });
-          }
-        });
-
-        if (isEdit && id) {
-          console.log('[ProfileTemplateFormPage] Đang tải chi tiết mẫu hồ sơ:', id);
-          const tpl = await getProfileTemplateById(orgId, id);
-          console.log('[ProfileTemplateFormPage] Chi tiết mẫu hồ sơ đã tải:', tpl);
-          setValue('name', tpl.name || '');
-          setValue('partnerName', tpl.partnerName || '');
-          setValue('isDefault', Boolean(tpl.isDefault ?? tpl.default));
-
-          // Map trường đã lưu
-          const rawFields = Array.isArray(tpl.fields) ? tpl.fields : [];
-          const savedFields: FieldSelectionItem[] = rawFields.map((f, idx) => ({
-            fieldKey: f.fieldKey,
-            fieldGroup: f.fieldGroup || 'OTHER',
-            isMandatory: Boolean(f.isMandatory),
-            sortOrder: f.sortOrder || idx + 1,
-          }));
-
-          // Đảm bảo không bị thiếu trường bắt buộc
-          const savedKeySet = new Set(savedFields.map((s) => s.fieldKey));
-          defaultMandatoryItems.forEach((m) => {
-            if (!savedKeySet.has(m.fieldKey)) {
-              savedFields.push(m);
-            }
-          });
-
-          setSelectedFields(savedFields);
-        } else {
-          // Khi tạo mới: mặc định chọn tất cả các trường bắt buộc QTN-11
-          console.log('[ProfileTemplateFormPage] Tạo mới: nạp các trường bắt buộc:', defaultMandatoryItems.length);
-          setSelectedFields(defaultMandatoryItems);
-        }
-      } catch (err: unknown) {
-        console.error('[ProfileTemplateFormPage] Lỗi khi khởi tạo form:', err);
-        const msg =
-          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-          'Không thể khởi tạo thông tin mẫu hồ sơ';
-        toast.error(msg);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initData();
-  }, [orgId, id, isEdit, setValue]);
-
-  // Kiểm tra tính hợp lệ của trường bắt buộc theo QTN-11 (TC-02 UX)
-  const validateMandatoryFields = (): boolean => {
-    const selectedKeys = new Set(selectedFields.map((f) => f.fieldKey));
-    const missingKeys: string[] = [];
-
-    availableGroups.forEach((g) => {
-      if (Array.isArray(g.fields)) {
-        g.fields.forEach((f) => {
-          const isMan = Boolean(f.mandatory ?? f.isMandatory);
-          const fKey = f.fieldKey || f.key || '';
-          const fLabel = f.displayName || f.label || fKey;
-          if (isMan && fKey && !selectedKeys.has(fKey)) {
-            missingKeys.push(fLabel);
-          }
-        });
-      }
-    });
-
-    if (missingKeys.length > 0) {
-      setMandatoryValidationErr(
-        `Thiếu các trường bắt buộc theo quy định: ${missingKeys.join(', ')}`
-      );
-      return false;
-    }
-
-    setMandatoryValidationErr(null);
-    return true;
-  };
-
-  // Submit form
-  const onSubmit = async (data: ProfileTemplateFormData) => {
-    if (!validateMandatoryFields()) {
-      toast.error('Mẫu hồ sơ chưa đáp ứng đủ các trường bắt buộc theo quy định');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const payload = {
-        name: data.name.trim(),
-        partnerName: data.partnerName?.trim() || undefined,
-        isDefault: Boolean(data.isDefault),
-        selectedFields: selectedFields.map((f, idx) => ({
-          fieldKey: f.fieldKey,
-          fieldGroup: f.fieldGroup || 'OTHER',
-          isMandatory: Boolean(f.isMandatory),
-          sortOrder: f.sortOrder || idx + 1,
-        })),
-      };
-
-      console.log('[ProfileTemplateFormPage] Submit payload:', payload);
-
-      if (isEdit && id) {
-        await updateTemplate(id, payload);
-      } else {
-        await createTemplate(payload);
-      }
-
-      navigate('/export/profile-templates');
-    } catch (err: unknown) {
-      console.error('[ProfileTemplateFormPage] Submit thất bại:', err);
-      const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
-      if (resp?.status === 422) {
-        // Lỗi 422 từ server (TC-02)
-        setMandatoryValidationErr(resp.data?.message || 'Thiếu các trường bắt buộc');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Tạo mock data xem trước phản ánh đúng cấu trúc thực tế của backend
   const previewMockData = useMemo(() => {
-    const selectedKeySet = new Set(selectedFields.map((f) => f.fieldKey));
-
-    const mock: Record<string, unknown> = {
-      shipmentId: 'SHIP-MOCK-2026-DEMO',
-      appliedTemplate: {
-        templateName: formName || 'Mẫu đang tạo',
-        totalFields: selectedFields.length,
-        isDefault: Boolean(watch('isDefault')),
-      },
-    };
-
-    // 1. Organization
-    const orgData: Record<string, unknown> = {};
-    if (selectedKeySet.has('organization.name')) orgData.name = 'Hợp tác xã Nông nghiệp Xanh Lam Đồng';
-    if (selectedKeySet.has('organization.code')) orgData.code = 'HTX-LAMDONG-01';
-    if (selectedKeySet.has('organization.type')) orgData.type = 'Hợp tác xã';
-    if (selectedKeySet.has('organization.status')) orgData.status = 'Đang hoạt động';
-    if (selectedKeySet.has('organization.address')) orgData.address = 'Thôn 3, Xã Đạ Ròn, Huyện Đơn Dương, Tỉnh Lâm Đồng';
-    if (selectedKeySet.has('organization.province')) orgData.province = 'Tỉnh Lâm Đồng';
-    if (selectedKeySet.has('organization.phone')) orgData.phone = '0263.3888.999';
-    if (selectedKeySet.has('organization.email')) orgData.email = 'lienhe@htxxanh.vn';
-    if (Object.keys(orgData).length > 0) mock.organization = orgData;
-
-    // 2. FarmArea
-    const farmAreaData: Record<string, unknown> = {};
-    if (selectedKeySet.has('farmArea.name')) farmAreaData.name = 'Vùng chuyên canh Cà Rốt Đơn Dương';
-    if (selectedKeySet.has('farmArea.location')) farmAreaData.location = '11.8345, 108.4567';
-    if (selectedKeySet.has('farmArea.area')) farmAreaData.area = 5.2;
-    if (selectedKeySet.has('farmArea.areaUnit')) farmAreaData.areaUnit = 'ha';
-    if (selectedKeySet.has('farmArea.cropType')) farmAreaData.cropType = 'Cà rốt F1';
-    if (selectedKeySet.has('farmArea.isActive')) farmAreaData.isActive = 'Đang hoạt động';
-    if (Object.keys(farmAreaData).length > 0) mock.farmArea = farmAreaData;
-
-    // 3. ProductionLot
-    const lotData: Record<string, unknown> = {};
-    if (selectedKeySet.has('productionLot.name')) lotData.name = 'Lô Cà Rốt hữu cơ VietGAP 2026';
-    if (selectedKeySet.has('productionLot.productCategory')) lotData.productCategory = 'Rau củ quả tươi';
-    if (selectedKeySet.has('productionLot.plantingDate')) lotData.plantingDate = '2026-06-15';
-    if (selectedKeySet.has('productionLot.harvestDate')) lotData.harvestDate = '2026-09-10';
-    if (selectedKeySet.has('productionLot.expectedQuantity')) lotData.expectedQuantity = 12500;
-    if (selectedKeySet.has('productionLot.expectedQuantityUnit')) lotData.expectedQuantityUnit = 'kg';
-    if (selectedKeySet.has('productionLot.actualQuantity')) lotData.actualQuantity = 12800;
-    if (selectedKeySet.has('productionLot.status')) lotData.status = 'Đã đóng gói';
-    if (Object.keys(lotData).length > 0) mock.productionLot = lotData;
-
-    // 4. Shipment
-    const shipmentData: Record<string, unknown> = {};
-    if (selectedKeySet.has('shipment.name')) shipmentData.name = 'Chuyến hàng xuất siêu thị Go! - Đà Lạt';
-    if (selectedKeySet.has('shipment.totalQuantity')) shipmentData.totalQuantity = 2000;
-    if (selectedKeySet.has('shipment.packagingInfo')) shipmentData.packagingInfo = 'Thùng carton 10kg, dán tem QR GS1';
-    if (selectedKeySet.has('shipment.status')) shipmentData.status = 'Đã kích hoạt';
-    if (selectedKeySet.has('shipment.createdAt')) shipmentData.createdAt = '2026-09-12 08:00:00';
-    if (Object.keys(shipmentData).length > 0) mock.shipment = shipmentData;
-
-    // 5. FarmLogs
-    const hasFarmLogs = selectedFields.some((f) => f.fieldKey.startsWith('farmLog.'));
-    if (hasFarmLogs) {
-      mock.farmLogs = [
-        {
-          executedDate: selectedKeySet.has('farmLog.executedDate') ? '2026-06-15' : undefined,
-          activityType: selectedKeySet.has('farmLog.activityType') ? 'Gieo giống / Xuống giống' : undefined,
-          material: selectedKeySet.has('farmLog.material') ? 'Giống cà rốt F1 Kuroda' : undefined,
-          quantity: selectedKeySet.has('farmLog.quantity') ? 2.5 : undefined,
-          unit: selectedKeySet.has('farmLog.unit') ? 'gói' : undefined,
-          notes: selectedKeySet.has('farmLog.notes') ? 'Gieo hạt vụ thu đông, độ ẩm đất 75%' : undefined,
-          attachments: selectedKeySet.has('farmLog.attachments') ? ['BienBan_GieoGiong_2026.pdf'] : undefined,
-        },
-        {
-          executedDate: selectedKeySet.has('farmLog.executedDate') ? '2026-07-10' : undefined,
-          activityType: selectedKeySet.has('farmLog.activityType') ? 'Bón phân' : undefined,
-          material: selectedKeySet.has('farmLog.material') ? 'Phân trùn quế vi sinh' : undefined,
-          quantity: selectedKeySet.has('farmLog.quantity') ? 500 : undefined,
-          unit: selectedKeySet.has('farmLog.unit') ? 'kg' : undefined,
-          notes: selectedKeySet.has('farmLog.notes') ? 'Bón thúc lần 1 theo quy trình hữu cơ' : undefined,
-          attachments: selectedKeySet.has('farmLog.attachments') ? ['HoaDon_VatTu_TrunQue.pdf'] : undefined,
-        },
-      ];
-    }
-
-    // 6. Certifications
-    const hasCertifications = selectedFields.some((f) => f.fieldKey.startsWith('certification.'));
-    if (hasCertifications) {
-      mock.certifications = [
-        {
-          name: selectedKeySet.has('certification.name') ? 'Chứng nhận tiêu chuẩn VietGAP Trồng trọt' : undefined,
-          standardName: selectedKeySet.has('certification.standardName') ? 'VietGAP' : undefined,
-          certificationCode: selectedKeySet.has('certification.certificationCode') ? 'VG-2026-LD-0018' : undefined,
-          issueDate: selectedKeySet.has('certification.issueDate') ? '2026-01-10' : undefined,
-          expiryDate: selectedKeySet.has('certification.expiryDate') ? '2028-01-10' : undefined,
-          certifier: selectedKeySet.has('certification.certifier') ? 'Trung tâm Chứng nhận Phù hợp Quacert' : undefined,
-        },
-      ];
-    }
-
-    // 7. Inspections
-    const hasInspections = selectedFields.some((f) => f.fieldKey.startsWith('inspection.'));
-    if (hasInspections) {
-      mock.inspections = [
-        {
-          sampleSentDate: selectedKeySet.has('inspection.sampleSentDate') ? '2026-09-08' : undefined,
-          inspectionUnit: selectedKeySet.has('inspection.inspectionUnit') ? 'Trung tâm Phân tích Quatest 3' : undefined,
-          criterionName: selectedKeySet.has('inspection.criterionName') ? 'Dư lượng Nitrat (NO3-)' : undefined,
-          passed: selectedKeySet.has('inspection.passed') ? 'Đạt' : undefined,
-          status: selectedKeySet.has('inspection.passed') ? 'Đạt' : undefined,
-          resultDate: selectedKeySet.has('inspection.resultDate') ? '2026-09-09' : undefined,
-          expiryDate: selectedKeySet.has('inspection.expiryDate') ? '2027-03-09' : undefined,
-        },
-      ];
-    }
-
-    // 8. Timeline
-    const hasTimeline = selectedFields.some((f) => f.fieldKey.startsWith('chainEvent.'));
-    if (hasTimeline) {
-      mock.timelineEvents = [
-        {
-          recordedAt: selectedKeySet.has('chainEvent.recordedAt') ? '2026-09-10 08:30:00' : undefined,
-          eventType: selectedKeySet.has('chainEvent.eventType') ? 'Thu hoạch' : undefined,
-          location: selectedKeySet.has('chainEvent.location') ? '11.8345, 108.4567' : undefined,
-          eventData: selectedKeySet.has('chainEvent.eventData') ? 'Sản lượng: 2500 kg; Phương thức: Thu hoạch thủ công' : undefined,
-          recordedBy: selectedKeySet.has('chainEvent.recordedBy') ? 'Nguyễn Văn Quản Lý' : undefined,
-        },
-        {
-          recordedAt: selectedKeySet.has('chainEvent.recordedAt') ? '2026-09-12 14:00:00' : undefined,
-          eventType: selectedKeySet.has('chainEvent.eventType') ? 'Đóng gói' : undefined,
-          location: selectedKeySet.has('chainEvent.location') ? '11.8350, 108.4570' : undefined,
-          eventData: selectedKeySet.has('chainEvent.eventData') ? 'Số thùng: 200; Quy cách: Thùng carton 10kg' : undefined,
-          recordedBy: selectedKeySet.has('chainEvent.recordedBy') ? 'Trần Thị Đóng Gói' : undefined,
-        },
-      ];
-    }
-
-    return mock;
+    return buildProfileTemplateMockData(formName, Boolean(watch('isDefault')), selectedFields);
   }, [formName, selectedFields, watch]);
 
   if (loading) {
@@ -393,112 +99,16 @@ export const ProfileTemplateFormPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Card thông tin cơ bản của mẫu */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2 text-primary">
-              <FileText className="size-5" />
-              <CardTitle className="text-xl">
-                {isEdit ? 'Chỉnh sửa mẫu hồ sơ truy xuất' : 'Tạo mẫu hồ sơ truy xuất mới'}
-              </CardTitle>
-            </div>
-            <CardDescription>
-              Thiết lập tên mẫu, đối tác mục tiêu và các trường dữ liệu được phép kết xuất.
-            </CardDescription>
-          </CardHeader>
+        <ProfileTemplateMetaCard
+          control={control}
+          setValue={setValue}
+          watch={watch}
+          submitting={submitting}
+          isEdit={isEdit}
+          errors={errors}
+          mandatoryValidationErr={mandatoryValidationErr}
+        />
 
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Tên mẫu hồ sơ */}
-              <div className="space-y-2">
-                <Label htmlFor="name">
-                  Tên mẫu hồ sơ <span className="text-destructive">*</span>
-                </Label>
-                <Controller
-                  name="name"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      id="name"
-                      placeholder="VD: Mẫu xuất khẩu Châu Âu, Mẫu siêu thị AEON..."
-                      disabled={submitting}
-                      {...field}
-                    />
-                  )}
-                />
-                {errors.name && (
-                  <p className="text-xs text-destructive">{errors.name.message}</p>
-                )}
-              </div>
-
-              {/* Tên đối tác áp dụng */}
-              <div className="space-y-2">
-                <Label htmlFor="partnerName">
-                  Đối tác áp dụng <span className="text-xs text-muted-foreground">(tùy chọn)</span>
-                </Label>
-                <Controller
-                  name="partnerName"
-                  control={control}
-                  render={({ field }) => (
-                    <div className="relative">
-                      <Input
-                        id="partnerName"
-                        placeholder="VD: AEON Mall, Central Retail, WinCommerce..."
-                        disabled={submitting}
-                        {...field}
-                      />
-                      <Building className="absolute right-3 top-2.5 size-4 text-muted-foreground pointer-events-none" />
-                    </div>
-                  )}
-                />
-                {errors.partnerName && (
-                  <p className="text-xs text-destructive">{errors.partnerName.message}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Mặc định switch */}
-            <div
-              className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer select-none"
-              onClick={() => {
-                setValue('isDefault', !watch('isDefault'), { shouldValidate: true, shouldDirty: true });
-              }}
-            >
-              <div className="space-y-0.5 pointer-events-none">
-                <Label htmlFor="isDefault" className="text-sm font-medium cursor-pointer">
-                  Đặt làm mẫu hồ sơ mặc định của tổ chức
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Khi người xuất không chọn mẫu cụ thể, hệ thống sẽ tự động áp dụng mẫu mặc định này.
-                </p>
-              </div>
-              <div onClick={(e) => e.stopPropagation()}>
-                <Controller
-                  name="isDefault"
-                  control={control}
-                  render={({ field }) => (
-                    <Switch
-                      id="isDefault"
-                      checked={Boolean(field.value)}
-                      onCheckedChange={(checked) => field.onChange(Boolean(checked))}
-                      disabled={submitting}
-                    />
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Thông báo lỗi validation QTN-11 nếu có */}
-            {mandatoryValidationErr && (
-              <div className="flex items-start gap-2.5 p-3 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-sm">
-                <AlertCircle className="size-4 shrink-0 mt-0.5" />
-                <div className="flex-1">{mandatoryValidationErr}</div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Card chọn trường dữ liệu theo nhóm */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -573,7 +183,6 @@ export const ProfileTemplateFormPage: React.FC = () => {
         </Card>
       </form>
 
-      {/* Modal xem trước */}
       <DossierPreviewDialog
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}

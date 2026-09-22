@@ -1,3 +1,4 @@
+import React from 'react';
 import { AlertTriangle, FileX, CalendarX, X } from 'lucide-react';
 import {
   Dialog,
@@ -11,6 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
+/**
+ * Chi tiết lỗi thiếu sự kiện hoặc chứng từ theo quy định QTN-11 của từng lô hàng.
+ */
 export interface Qtn11ErrorDetail {
   id?: string;
   name?: string;
@@ -20,17 +24,27 @@ export interface Qtn11ErrorDetail {
   missingDocDetails?: string[];
 }
 
+/**
+ * Thuộc tính của modal thông báo lỗi không đủ điều kiện xuất dữ liệu (QTN-11).
+ */
 interface Qtn11ErrorModalProps {
   open: boolean;
   onClose: () => void;
   errors: Qtn11ErrorDetail[];
 }
 
-export const Qtn11ErrorModal = ({
+/**
+ * Hộp thoại hiển thị chi tiết các lô hàng vi phạm điều kiện xuất dữ liệu theo quy định QTN-11
+ * (thiếu sự kiện chuỗi cung ứng hoặc thiếu chứng từ / nhật ký nông hộ bắt buộc).
+ *
+ * @param props Các thuộc tính kiểm soát hiển thị và danh sách lỗi QTN-11.
+ * @returns Khối JSX của Dialog cảnh báo vi phạm điều kiện xuất.
+ */
+export const Qtn11ErrorModal: React.FC<Qtn11ErrorModalProps> = ({
   open,
   onClose,
   errors,
-}: Qtn11ErrorModalProps) => {
+}) => {
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
@@ -46,7 +60,7 @@ export const Qtn11ErrorModal = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Scrollable list */}
+        {/* Danh sách lỗi cuộn được */}
         <div className="flex-1 overflow-y-auto pr-1 my-3 space-y-3 max-h-[50vh]">
           {errors.map((item, index) => (
             <Card key={item.id || index} className="border-red-200 bg-red-50/40 dark:bg-red-950/10">
@@ -67,7 +81,7 @@ export const Qtn11ErrorModal = ({
                   </Badge>
                 </div>
 
-                {/* Missing Events */}
+                {/* Danh sách sự kiện chuỗi cung ứng còn thiếu */}
                 {item.missingEvents && item.missingEvents.length > 0 && (
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
@@ -88,7 +102,7 @@ export const Qtn11ErrorModal = ({
                   </div>
                 )}
 
-                {/* Missing Docs */}
+                {/* Danh sách chứng từ / nhật ký còn thiếu */}
                 {((item.missingDocDetails && item.missingDocDetails.length > 0) || item.missingDocs) && (
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5 text-xs font-medium text-red-700 dark:text-red-400">

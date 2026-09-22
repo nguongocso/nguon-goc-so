@@ -17,17 +17,9 @@ import type { ProfileTemplate } from '@/types/profileTemplate';
 export interface ProfileTemplateSelectorProps {
   /** ID tổ chức (lấy từ user.organizationId) */
   organizationId: string;
-  /**
-   * Trạng thái mở/đóng của dialog hoặc trang chứa selector.
-   * Khi `false`, selector không fetch mẫu cũng không tự động chọn mặc định.
-   * Mặc định: `true`.
-   */
+  /** Trạng thái mở/đóng của dialog. Khi false, selector không fetch mẫu. */
   open?: boolean;
-  /**
-   * Callback được gọi mỗi khi người dùng (hoặc tự động) chọn một mẫu.
-   * @param templateId  ID của mẫu được chọn; `'default'` nếu chọn mẫu hệ thống.
-   * @param template    Đối tượng mẫu được chọn; `null` nếu chọn mẫu mặc định hệ thống.
-   */
+  /** Callback được gọi mỗi khi người dùng (hoặc tự động) chọn một mẫu. */
   onTemplateChange?: (templateId: string, template: ProfileTemplate | null) => void;
   /** Vô hiệu hoá selector (ví dụ: đang xuất) */
   disabled?: boolean;
@@ -40,16 +32,8 @@ export interface ProfileTemplateSelectorProps {
 }
 
 /**
- * Component chọn mẫu hồ sơ áp dụng dùng chung cho cả hai chức năng:
- * 1. Xuất hồ sơ truy xuất nguồn gốc đơn lẻ (ExportDossierDialog)
- * 2. Xuất bộ hồ sơ truy xuất nguồn gốc nhiều lô (BatchDossierExportPage)
- *
- * Component tự quản lý state `selectedTemplateId`, tự động chọn mẫu mặc
- * định của tổ chức khi danh sách mẫu được tải, và thông báo kết quả qua
- * callback `onTemplateChange`.
- *
- * Luôn hiển thị tiếng Việt cho: nhãn, placeholder, tên mẫu, nhãn "Mặc định",
- * và tên mẫu mặc định hệ thống — không bao giờ hiển thị mã (id) của mẫu.
+ * Component chọn mẫu hồ sơ áp dụng dùng chung cho ExportDossierDialog và BatchDossierExportPage.
+ * Tự quản lý state, tự chọn mẫu mặc định và thông báo qua callback onTemplateChange.
  */
 export const ProfileTemplateSelector: React.FC<ProfileTemplateSelectorProps> = ({
   organizationId,
