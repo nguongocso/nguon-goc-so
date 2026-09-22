@@ -19,6 +19,9 @@ import vn.nguongocso.trace.dto.response.CancelTraceCodesResponse;
 import vn.nguongocso.trace.dto.response.LabelCancellationHistoryResponse;
 import vn.nguongocso.trace.service.LabelCancellationService;
 
+/**
+ * Controller xử lý hủy tem và xem lịch sử hủy tem.
+ */
 @RestController
 @RequestMapping("/api/v1/trace/shipments")
 @RequiredArgsConstructor
@@ -27,7 +30,7 @@ public class LabelCancellationController {
     private final LabelCancellationService labelCancellationService;
 
     /**
-     * API Hủy tem in hỏng và hoàn lại hạn mức dải mã cho Hợp tác xã.
+     * Hủy tem in hỏng và hoàn lại hạn mức dải mã.
      */
     @PostMapping("/{shipmentId}/cancel-labels")
     public ApiResult<CancelTraceCodesResponse> cancelLabels(
@@ -38,7 +41,7 @@ public class LabelCancellationController {
     }
 
     /**
-     * API Lấy danh sách nhật ký lịch sử các đợt hủy tem của lô hàng.
+     * Lấy danh sách lịch sử các đợt hủy tem của lô hàng.
      */
     @GetMapping("/{shipmentId}/cancellation-history")
     public ApiResult<List<LabelCancellationHistoryResponse>> getCancellationHistory(

@@ -9,15 +9,23 @@ import vn.nguongocso.event.enums.ChainEventType;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/** DTO response sự kiện trong chuỗi cung ứng khi truy xuất. */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChainEventTraceDto {
+
     private UUID id;
+
     private ChainEventType eventType;
+
     private String eventTypeName;
+
     private LocalDateTime recordedAt;
+
     private String location;
+
     private boolean isCorrection;
 }
+

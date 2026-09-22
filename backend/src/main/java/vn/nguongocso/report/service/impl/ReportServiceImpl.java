@@ -25,15 +25,7 @@ import vn.nguongocso.report.pdf.IndustryReportPdfGenerator;
 import vn.nguongocso.report.service.ReportService;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
-/**
- * Service xử lý báo cáo tổng hợp ngành (theo địa bàn và thời gian).
- *
- * <p>
- * Từ NCL-743: kết quả luôn giao trong phạm vi địa bàn đã gán khi caller là
- * VT-05. Cán bộ chưa được gán địa bàn nào nhận dữ liệu rỗng kèm thông báo —
- * không bao giờ fallback sang toàn bộ dữ liệu.
- * </p>
- */
+/** Triển khai dịch vụ quản lý các báo cáo ngành. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

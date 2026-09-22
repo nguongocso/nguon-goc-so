@@ -36,9 +36,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Triển khai nghiệp vụ kết xuất dữ liệu mở cho Cán bộ quản lý ngành.
- */
+/** Triển khai dịch vụ kết xuất dữ liệu mở. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

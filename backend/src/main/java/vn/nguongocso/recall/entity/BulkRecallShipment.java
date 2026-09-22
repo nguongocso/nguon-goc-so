@@ -21,16 +21,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.trace.entity.Shipment;
 
-/**
- * Thực thể đại diện cho chi tiết lô hàng trong yêu cầu thu hồi hàng loạt (NCL-08-CN-011).
- *
- * <p>
- * Mỗi bản ghi ghi nhận:
- * <ul>
- *   <li>Lô hàng thuộc yêu cầu thu hồi</li>
- *   <li>Có được bao gồm trong phạm vi thu hồi hay không</li>
- *   <li>Lý do loại bỏ (nếu có)</li>
- * </ul>
+/** 
+ * Chi tiết lô hàng trong yêu cầu thu hồi hàng loạt.
  */
 @Entity
 @Table(name = "bulk_recall_shipments")
@@ -38,7 +30,6 @@ import vn.nguongocso.trace.entity.Shipment;
 @Setter
 @NoArgsConstructor
 public class BulkRecallShipment {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -53,18 +44,9 @@ public class BulkRecallShipment {
     @JoinColumn(name = "shipment_id", nullable = false)
     private Shipment shipment;
 
-    /**
-     * Đánh dấu lô hàng có được bao gồm trong phạm vi thu hồi hay không.
-     * true = included (sẽ bị thu hồi khi yêu cầu được duyệt)
-     * false = excluded (bị loại khỏi phạm vi, phải có exclusionReason)
-     */
     @Column(name = "included", nullable = false)
     private boolean included;
 
-    /**
-     * Lý do loại bỏ lô hàng khỏi phạm vi thu hồi.
-     * Bắt buộc khi included = false.
-     */
     @Column(name = "exclusion_reason", columnDefinition = "TEXT")
     private String exclusionReason;
 

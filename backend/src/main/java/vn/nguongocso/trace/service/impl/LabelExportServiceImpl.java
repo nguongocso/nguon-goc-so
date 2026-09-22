@@ -49,16 +49,7 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.LabelExportService;
 
-/**
- * Service xuất tem QR cho lô hàng (NCL-04-CN-005).
- *
- * <p>
- * Sinh file PDF nhiều trang (khổ giấy A4) chứa lưới tem QR theo khổ tem đã
- * chọn. Mỗi tem gồm ảnh QR (mã hóa URL tra cứu công khai), mã truy xuất và các
- * trường tùy chọn. Mọi lượt xuất đều được ghi vào {@code label_export_history}
- * theo QTN-23.
- * </p>
- */
+/** Triển khai dịch vụ xuất tem QR cho lô hàng. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -187,11 +178,7 @@ public class LabelExportServiceImpl implements LabelExportService {
                 .build();
     }
 
-    // ==================== Sinh PDF ====================
-
-    /**
-     * Sinh file PDF nhiều trang với lưới tem QR trên giấy A4.
-     */
+    /** Sinh file PDF nhiều trang với lưới tem QR trên giấy A4. */
     private byte[] generatePdf(Shipment shipment, List<TraceCode> codes, String labelSize)
             throws com.lowagie.text.DocumentException {
         String[] dims = labelSize.split("x");

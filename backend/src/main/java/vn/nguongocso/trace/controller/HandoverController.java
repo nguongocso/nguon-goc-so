@@ -24,7 +24,7 @@ import vn.nguongocso.trace.dto.response.HandoverSummaryResponse;
 import vn.nguongocso.trace.service.ShipmentHandoverService;
 
 /**
- * Controller xử lý API danh sách và thao tác phiếu bàn giao cho tổ chức bàn giao (VT-02) và thu mua (VT-04).
+ * Controller xử lý phiếu bàn giao.
  */
 @RestController
 @RequestMapping("/api/v1/handovers")
@@ -35,9 +35,6 @@ public class HandoverController {
 
     /**
      * Lấy danh sách phiếu bàn giao của tổ chức hiện tại.
-     * Hỗ trợ tìm kiếm, lọc trạng thái và phân trang.
-     * - VT-04: Phiếu nhận (toOrganization = currentUser.organization)
-     * - VT-02: Phiếu đã gửi (fromOrganization = currentUser.organization)
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")

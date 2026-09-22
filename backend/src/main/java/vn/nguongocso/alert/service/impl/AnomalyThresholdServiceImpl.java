@@ -109,7 +109,8 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
         AnomalyThreshold saved = anomalyThresholdRepository.save(entity);
 
         publishActivityLog(currentUser, "UPDATE_GLOBAL_ANOMALY_THRESHOLD",
-                String.format("Cập nhật cấu hình ngưỡng toàn cục: maxScansPerHour=%d, maxScansPerDay=%d, maxDistanceKm=%s, minTimeMinutes=%d, activationAgeDays=%d",
+                String.format(
+                        "Cập nhật cấu hình ngưỡng toàn cục: maxScansPerHour=%d, maxScansPerDay=%d, maxDistanceKm=%s, minTimeMinutes=%d, activationAgeDays=%d",
                         request.getMaxScansPerHour(), request.getMaxScansPerDay(), request.getMaxDistanceKmPer30Min(),
                         request.getMinTimeBetweenScansMinutes(), request.getActivationAgeDays()),
                 "ANOMALY_THRESHOLD", saved.getId().toString());
@@ -133,7 +134,8 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
         User user = getUser(currentUser);
 
         ProductCategory category = productCategoryRepository.findById(request.getProductCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại nông sản với ID: " + request.getProductCategoryId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy loại nông sản với ID: " + request.getProductCategoryId()));
 
         AnomalyThreshold entity = anomalyThresholdRepository.findByProductCategoryId(request.getProductCategoryId())
                 .orElseGet(() -> AnomalyThreshold.builder()
@@ -157,12 +159,15 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
         AnomalyThreshold saved = anomalyThresholdRepository.save(entity);
 
         publishActivityLog(currentUser, "SAVE_CATEGORY_THRESHOLD_OVERRIDE",
-                String.format("Lưu cấu hình ghi đè ngưỡng cho danh mục [%s]: maxScansPerHour=%d, maxScansPerDay=%d, maxDistanceKm=%s, minTimeMinutes=%d, activationAgeDays=%d",
+                String.format(
+                        "Lưu cấu hình ghi đè ngưỡng cho danh mục [%s]: maxScansPerHour=%d, maxScansPerDay=%d, maxDistanceKm=%s, minTimeMinutes=%d, activationAgeDays=%d",
                         category.getName(), request.getMaxScansPerHour(), request.getMaxScansPerDay(),
-                        request.getMaxDistanceKmPer30Min(), request.getMinTimeBetweenScansMinutes(), request.getActivationAgeDays()),
+                        request.getMaxDistanceKmPer30Min(), request.getMinTimeBetweenScansMinutes(),
+                        request.getActivationAgeDays()),
                 "ANOMALY_THRESHOLD", saved.getId().toString());
 
-        log.info("Quản trị viên {} đã lưu cấu hình ghi đè ngưỡng cho danh mục {}", user.getUserName(), category.getName());
+        log.info("Quản trị viên {} đã lưu cấu hình ghi đè ngưỡng cho danh mục {}", user.getUserName(),
+                category.getName());
         return mapToResponse(saved);
     }
 
@@ -229,13 +234,16 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
             List<TraceCodeScanLog> scans = rawScans.stream()
                     .sorted(Comparator.comparing(TraceCodeScanLog::getScannedAt))
                     .collect(Collectors.toList());
-            if (scans.isEmpty()) continue;
+            if (scans.isEmpty())
+                continue;
 
             TraceCode tc = scans.get(0).getTraceCode();
 
-            // Áp dụng gate thời gian ân hạn: chỉ đánh giá các lượt quét sau thời gian ân hạn
+            // Áp dụng gate thời gian ân hạn: chỉ đánh giá các lượt quét sau thời gian ân
+            // hạn
             List<TraceCodeScanLog> evaluatedScans = scans.stream()
-                    .filter(s -> !ScanAnomalyUtils.isWithinGracePeriod(tc.getActivatedAt(), s.getScannedAt(), request.getActivationAgeDays()))
+                    .filter(s -> !ScanAnomalyUtils.isWithinGracePeriod(tc.getActivatedAt(), s.getScannedAt(),
+                            request.getActivationAgeDays()))
                     .collect(Collectors.toList());
 
             if (evaluatedScans.isEmpty()) {
@@ -243,14 +251,19 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
                 continue;
             }
 
-            boolean highFreq = checkHighFrequency(evaluatedScans, request.getMaxScansPerHour(), request.getMaxScansPerDay());
-            boolean impossibleTravel = checkImpossibleTravel(evaluatedScans, request.getMaxDistanceKmPer30Min().doubleValue(), request.getMinTimeBetweenScansMinutes());
+            boolean highFreq = checkHighFrequency(evaluatedScans, request.getMaxScansPerHour(),
+                    request.getMaxScansPerDay());
+            boolean impossibleTravel = checkImpossibleTravel(evaluatedScans,
+                    request.getMaxDistanceKmPer30Min().doubleValue(), request.getMinTimeBetweenScansMinutes());
             boolean hasScansAfterGrace = checkActivationAge(tc, scans, request.getActivationAgeDays());
 
-            if (highFreq) highFrequencyCount++;
-            if (impossibleTravel) impossibleTravelCount++;
+            if (highFreq)
+                highFrequencyCount++;
+            if (impossibleTravel)
+                impossibleTravelCount++;
 
-            // Chỉ gắn cờ bất thường khi vi phạm tần suất hoặc di chuyển phi lý trên các lượt quét sau ân hạn
+            // Chỉ gắn cờ bất thường khi vi phạm tần suất hoặc di chuyển phi lý trên các
+            // lượt quét sau ân hạn
             if (highFreq || impossibleTravel) {
                 estimatedAnomaliesCount++;
                 if (hasScansAfterGrace) {
@@ -311,7 +324,6 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
         return false;
     }
 
-
     private AnomalyThresholdResponse mapToResponse(AnomalyThreshold entity) {
         return AnomalyThresholdResponse.builder()
                 .id(entity.getId())
@@ -354,7 +366,8 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng hệ thống."));
         }
         return userRepository.findById(currentUser.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + currentUser.getUserId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Không tìm thấy người dùng với ID: " + currentUser.getUserId()));
     }
 
     private void publishActivityLog(CustomUserDetails currentUser, String action, String description,

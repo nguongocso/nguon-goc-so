@@ -44,7 +44,7 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.service.ShipmentRecallService;
 
 /**
- * Triển khai dịch vụ quản lý yêu cầu thu hồi lô sản xuất (NCL-08-CN-008).
+ * Triển khai dịch vụ quản lý yêu cầu thu hồi lô sản xuất.
  */
 @Service
 @Transactional
@@ -74,9 +74,12 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     private final ChainEventRepository chainEventRepository;
     private final NotificationService notificationService;
 
+    /** Tạo yêu cầu thu hồi lô sản xuất. */
     @Override
     @Auditable(action = "CREATE_RECALL_REQUEST", entityType = "RECALL_REQUEST", description = "'Tạo yêu cầu thu hồi lô hàng ID: ' + #request.shipmentId")
-    public RecallRequestResponse create(CreateRecallRequest request, CustomUserDetails currentUser) {
+    public RecallRequestResponse create(
+            CreateRecallRequest request,
+            CustomUserDetails currentUser) {
         Shipment shipment = shipmentRepository.findOwnedByIdForRecallUpdate(
                 request.getShipmentId(), currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(MSG_SHIPMENT_NOT_FOUND));
@@ -117,6 +120,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
         return toResponse(saved);
     }
 
+    /** Tạo yêu cầu thu hồi từ phản ánh chất lượng. */
     @Override
     @Auditable(action = "CREATE_RECALL_REQUEST", entityType = "RECALL_REQUEST", description = "'Tạo yêu cầu thu hồi từ phản ánh ID: ' + #feedback.id")
     public RecallRequestResponse createFromFeedback(
@@ -185,15 +189,21 @@ public class RecallRequestServiceImpl implements RecallRequestService {
         return toResponse(saved);
     }
 
+    /** Kiểm tra lô hàng có thể thu hồi hay không. */
     private void validateRecallableShipment(Shipment shipment) {
         if (shipment.getStatus() == ShipmentStatus.SPLIT) {
             throw new BusinessException(MSG_SPLIT_PARENT_NOT_RECALLABLE);
         }
     }
 
+    /** Lấy danh sách yêu cầu thu hồi có phân trang. */
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<RecallRequestResponse> list(String status, int page, int size, CustomUserDetails currentUser) {
+    public PageResponse<RecallRequestResponse> list(
+            String status,
+            int page,
+            int size,
+            CustomUserDetails currentUser) {
         if (page < 0) {
             page = 0;
         }
@@ -225,18 +235,25 @@ public class RecallRequestServiceImpl implements RecallRequestService {
         return PageResponse.from(result, items);
     }
 
+    /** Lấy chi tiết yêu cầu thu hồi theo ID. */
     @Override
     @Transactional(readOnly = true)
-    public RecallRequestResponse getById(UUID id, CustomUserDetails currentUser) {
+    public RecallRequestResponse getById(
+            UUID id,
+            CustomUserDetails currentUser) {
         RecallRequest recallRequest = recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
                 id, currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
         return toResponse(recallRequest);
     }
 
+    /** Phê duyệt một yêu cầu thu hồi. */
     @Override
     @Auditable(action = "APPROVE_RECALL_REQUEST", entityType = "RECALL_REQUEST", description = "'Duyệt yêu cầu thu hồi ID: ' + #id")
-    public RecallRequestResponse approve(UUID id, ApproveRecallRequest request, CustomUserDetails currentUser) {
+    public RecallRequestResponse approve(
+            UUID id,
+            ApproveRecallRequest request,
+            CustomUserDetails currentUser) {
         RecallRequest recallRequest = recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
                 id, currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
@@ -285,9 +302,13 @@ public class RecallRequestServiceImpl implements RecallRequestService {
         return response;
     }
 
+    /** Từ chối một yêu cầu thu hồi. */
     @Override
     @Auditable(action = "REJECT_RECALL_REQUEST", entityType = "RECALL_REQUEST", description = "'Từ chối yêu cầu thu hồi ID: ' + #id")
-    public RecallRequestResponse reject(UUID id, RejectRecallRequest request, CustomUserDetails currentUser) {
+    public RecallRequestResponse reject(
+            UUID id,
+            RejectRecallRequest request,
+            CustomUserDetails currentUser) {
         RecallRequest recallRequest = recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
                 id, currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
@@ -320,20 +341,10 @@ public class RecallRequestServiceImpl implements RecallRequestService {
         return toResponse(saved);
     }
 
-    /**
-     * Xác định các doanh nghiệp thu mua (người mua) có liên quan đến lô hàng
-     * và gửi thông báo thu hồi cho họ.
-     *
-     * <p>
-     * Các doanh nghiệp thu mua được xác định qua sự kiện PROCUREMENT
-     * (do người dùng VT-04 ghi) trên lô hàng.
-     * </p>
-     *
-     * @param shipment lô hàng bị thu hồi
-     * @param reason   lý do thu hồi
-     * @return số lượng người dùng đã nhận thông báo
-     */
-    private int sendBuyerNotifications(Shipment shipment, String reason) {
+    /** Gửi thông báo cho các doanh nghiệp thu mua liên quan đến lô hàng. */
+    private int sendBuyerNotifications(
+            Shipment shipment,
+            String reason) {
         // Lấy đúng tổ chức mà người mua đại diện tại thời điểm ghi sự kiện PROCUREMENT.
         List<UUID> buyerOrgIds = chainEventRepository
                 .findDistinctProcurementOrganizationIdsByShipmentIds(List.of(shipment.getId()));
@@ -363,9 +374,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
         return notificationService.sendRecallNotification(shipment.getName(), reason, recipientIds);
     }
 
-    /**
-     * Chuyển đổi entity sang response DTO.
-     */
+    /** Chuyển đổi thực thể RecallRequest sang DTO phản hồi. */
     private RecallRequestResponse toResponse(RecallRequest entity) {
         RecallRequestResponse.UserInfo requestedBy = entity.getRequestedBy() != null
                 ? RecallRequestResponse.UserInfo.builder()

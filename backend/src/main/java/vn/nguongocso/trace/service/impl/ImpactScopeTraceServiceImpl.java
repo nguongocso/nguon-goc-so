@@ -28,6 +28,7 @@ import vn.nguongocso.trace.service.ImpactScopeTraceService;
 import java.time.LocalDateTime;
 import java.util.*;
 
+/** Triển khai dịch vụ truy vết phạm vi ảnh hưởng hai chiều. */
 @Service
 @RequiredArgsConstructor
 public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {

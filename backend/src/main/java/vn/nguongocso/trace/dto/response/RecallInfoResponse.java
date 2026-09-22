@@ -7,9 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * DTO cung cấp thông tin tóm tắt về tình trạng thu hồi của một lô hàng.
- */
+/** DTO response thông tin tóm tắt tình trạng thu hồi. */
 @Getter
 @Setter
 @NoArgsConstructor

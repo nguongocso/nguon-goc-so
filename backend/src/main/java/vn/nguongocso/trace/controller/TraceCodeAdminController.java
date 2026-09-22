@@ -27,7 +27,7 @@ import vn.nguongocso.trace.dto.response.UnlockTraceCodeResponse;
 import vn.nguongocso.trace.service.SuspectDetectionService;
 
 /**
- * Controller quản lý mã tem nghi vấn và mở khóa dành cho Quản trị viên nền tảng (VT-01).
+ * Controller quản lý mã tem nghi vấn và mở khóa.
  */
 @RestController
 @RequestMapping("/api/v1/admin/trace-codes")
@@ -87,12 +87,7 @@ public class TraceCodeAdminController {
     }
 
     /**
-     * Mở khóa mã tem sau khi xác minh (NCL-08-CN-013).
-     *
-     * <p>
-     * Hỗ trợ nhận diện qua traceCodeId (UUID) hoặc codeValue (String).
-     * Bắt buộc có kết luận xác minh (conclusion).
-     * </p>
+     * Mở khóa mã tem sau khi xác minh.
      */
     @PostMapping("/{codeOrId}/unlock")
     @PreAuthorize("hasRole('VT-01')")

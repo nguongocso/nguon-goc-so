@@ -31,8 +31,6 @@ import java.util.UUID;
 
 /**
  * Controller quản lý hồ sơ truy xuất.
- *
- * @author Triệu Văn Đại
  */
 @RestController
 @RequestMapping("/api/v1/shipments")
@@ -44,9 +42,7 @@ public class DossierController {
     private final ProfileTemplateService profileTemplateService;
 
     /**
-     * API Kiểm tra điều kiện xuất hồ sơ truy xuất.
-     * Cho phép các bên kiểm tra trước xem hồ sơ của lô hàng đã đủ điều kiện hay
-     * chưa.
+     * Kiểm tra điều kiện xuất hồ sơ truy xuất.
      */
     @GetMapping("/{shipmentId}/dossier/check")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
@@ -60,7 +56,7 @@ public class DossierController {
     }
 
     /**
-     * API Xuất và tải hồ sơ truy xuất nguồn gốc dưới dạng file PDF.
+     * Xuất và tải hồ sơ truy xuất nguồn gốc dưới dạng file PDF.
      */
     @GetMapping("/{shipmentId}/dossier/export")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
@@ -90,12 +86,7 @@ public class DossierController {
     }
 
     /**
-     * API Xem trước hồ sơ truy xuất áp dụng mẫu cấu hình trường dữ liệu đối tác (NCL-07-CN-007).
-     *
-     * @param shipmentId  ID lô hàng
-     * @param templateId  ID mẫu hồ sơ (tùy chọn)
-     * @param currentUser Người dùng hiện tại
-     * @return Dữ liệu hồ sơ xem trước đã lọc theo trường của mẫu
+     * Xem trước hồ sơ truy xuất áp dụng mẫu cấu hình trường dữ liệu đối tác.
      */
     @GetMapping("/{shipmentId}/dossier/preview")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
@@ -110,21 +101,7 @@ public class DossierController {
     }
 
     /**
-     * API Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng.
-     *
-     * <p>
-     * Chỉ dành cho VT-02 (Quản lý HTX) và VT-04 (Doanh nghiệp thu mua). Hồ sơ
-     * được ánh xạ theo bốn chiều {@code who / when / where / why}. Hỗ trợ xuất
-     * dưới dạng {@code json} hoặc {@code xml}, kèm bảng ánh xạ schema (mặc định
-     * {@code includeMapping=true}).
-     * </p>
-     *
-     * @param shipmentId     ID lô hàng cần xuất hồ sơ
-     * @param format         định dạng xuất: {@code json} hoặc {@code xml}
-     * @param includeMapping có kèm bảng ánh xạ schema hay không
-     * @param currentUser    thông tin người dùng hiện tại
-     * @param request        HTTP request dùng để lấy IP client
-     * @return hồ sơ GS1 mô phỏng (JSON hoặc XML)
+     * Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng.
      */
     @GetMapping("/{shipmentId}/dossier/gs1")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
@@ -168,12 +145,8 @@ public class DossierController {
         return request.getRemoteAddr();
     }
 
-    // =========================================================================
-    // NCL-07-CN-005: Xuất hồ sơ truy xuất cho nhiều lô trong một lần
-    // =========================================================================
-
     /**
-     * API Kiểm tra điều kiện xuất hồ sơ hàng loạt (QTN-11 & QTN-01).
+     * Kiểm tra điều kiện xuất hồ sơ hàng loạt.
      */
     @PostMapping("/dossiers/batch-check")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
@@ -187,7 +160,7 @@ public class DossierController {
     }
 
     /**
-     * API Xuất và tải về duy nhất một tệp PDF bộ hồ sơ truy xuất hợp nhất.
+     * Xuất và tải về tệp PDF bộ hồ sơ truy xuất hợp nhất.
      */
     @PostMapping("/dossiers/batch-export")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
@@ -214,7 +187,7 @@ public class DossierController {
     }
 
     /**
-     * API Lấy lịch sử xuất bộ hồ sơ hàng loạt.
+     * Lấy lịch sử xuất bộ hồ sơ hàng loạt.
      */
     @GetMapping("/dossiers/batch-history")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")

@@ -11,9 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * DTO trả về dữ liệu phân trang.
- *
- * @param <T> Kiểu dữ liệu của từng phần tử trong danh sách.
+ * Dữ liệu phản hồi phân trang.
  */
 @Getter
 @Setter

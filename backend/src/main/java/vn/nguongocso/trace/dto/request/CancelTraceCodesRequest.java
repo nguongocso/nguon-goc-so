@@ -3,13 +3,13 @@ package vn.nguongocso.trace.dto.request;
 import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Yêu cầu hủy mã tem truy xuất. */
 @Getter
 @Setter
 @Builder

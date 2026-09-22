@@ -1,11 +1,16 @@
 package vn.nguongocso.report.dto.request;
 
-import jakarta.validation.constraints.NotEmpty;
-import lombok.*;
-
 import java.util.List;
 import java.util.UUID;
 
+import jakarta.validation.constraints.NotEmpty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/** Yêu cầu xuất bộ hồ sơ theo lô. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,6 +25,5 @@ public class BatchDossierExportRequest {
 
     private String note;
 
-    /** ID mẫu hồ sơ áp dụng (tùy chọn - NCL-07-CN-007). Bỏ trống sẽ dùng mẫu mặc định của tổ chức hoặc bộ trường chuẩn. */
     private UUID templateId;
 }

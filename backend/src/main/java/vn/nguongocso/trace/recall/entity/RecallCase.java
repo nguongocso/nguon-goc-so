@@ -12,8 +12,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Vụ việc thu hồi (NCL-08-CN-012) — gom nhiều lô hàng đã bị thu hồi của một
- * lô sản xuất để theo dõi quá trình xử lý và kết thúc.
+ * Vụ việc thu hồi lô sản xuất.
  */
 @Entity
 @Table(name = "recall_cases")
@@ -29,7 +28,6 @@ public class RecallCase {
     @JdbcTypeCode(SqlTypes.CHAR)
     private UUID id;
 
-    /** Mã định danh theo dõi vụ việc (VD: RC-20260910-XXXXXX). */
     @Column(name = "case_code", nullable = false, unique = true, length = 40)
     private String caseCode;
 
@@ -58,11 +56,9 @@ public class RecallCase {
     @Column(name = "closed_at")
     private LocalDateTime closedAt;
 
-    /** Biện pháp khắc phục / phòng ngừa (bắt buộc khi đóng vụ việc). */
     @Column(name = "corrective_measures", columnDefinition = "TEXT")
     private String remediationMeasures;
 
-    /** Danh sách ID tệp biên bản (evidence) lưu dạng chuỗi phân tách bởi dấu phẩy. */
     @Column(name = "attachments", columnDefinition = "TEXT")
     private String evidenceFileIds;
 

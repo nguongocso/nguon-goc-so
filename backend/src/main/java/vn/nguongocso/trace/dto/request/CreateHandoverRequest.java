@@ -8,9 +8,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Request DTO để tạo phiếu bàn giao mới.
- */
+/** Yêu cầu tạo mới phiếu bàn giao lô hàng. */
 @Getter
 @Setter
 public class CreateHandoverRequest {
@@ -33,10 +31,5 @@ public class CreateHandoverRequest {
 
     private String note;
 
-    /**
-     * Đường dẫn chứng từ giao hàng đính kèm (tùy chọn).
-     * Lưu vào cột {@code attachment_path} đã có sẵn của bảng
-     * {@code shipment_handovers}.
-     */
     private String attachmentPath;
 }

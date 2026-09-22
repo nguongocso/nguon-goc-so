@@ -32,22 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Service tổng hợp mức độ sử dụng nền tảng theo từng tổ chức (NCL-07-CN-008).
- *
- * <p>Nguồn số liệu của 6 chỉ số (xác minh từ entity/repository hiện có):</p>
- * <ul>
- *   <li>Lô sản xuất tạo mới: bảng {@code production_lot} theo {@code created_at}.</li>
- *   <li>Mục nhật ký: bảng {@code farm_logs} theo {@code created_at}, tổ chức suy ra qua lô sản xuất.</li>
- *   <li>Sự kiện chuỗi: bảng {@code chain_events} (loại trừ đính chính) theo {@code created_at},
- *       tổ chức sở hữu lô hàng, cộng thêm sự kiện chưa gắn lô hàng theo tổ chức đã ghi.</li>
- *   <li>Tem kích hoạt: bảng {@code trace_codes} theo {@code activated_at}
- *       (không lọc theo status hiện tại vì tem còn chuyển trạng thái sau kích hoạt).</li>
- *   <li>Lượt tra cứu công khai: bảng {@code trace_code_scan_logs} theo {@code scanned_at}.</li>
- *   <li>Người dùng hoạt động: userId phân biệt trong {@code activity_logs}
- *       (người dùng có hoạt động thật, không phải tổng số tài khoản).</li>
- * </ul>
- */
+/** Triển khai dịch vụ tổng hợp mức độ sử dụng nền tảng. */
 @Service
 @RequiredArgsConstructor
 public class OrganizationUsageServiceImpl implements OrganizationUsageService {

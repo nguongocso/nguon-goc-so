@@ -32,8 +32,6 @@ public class ShipmentRecallController {
 
     /**
      * Thu hồi một lô hàng.
-     *
-     * POST /api/v1/shipments/{shipmentId}/recall
      */
     @PostMapping("/{shipmentId}/recall")
     public ResponseEntity<ApiResult<RecallResponse>> recallShipment(
@@ -62,8 +60,6 @@ public class ShipmentRecallController {
 
     /**
      * Lấy thông tin thu hồi của lô hàng.
-     *
-     * GET /api/v1/shipments/{shipmentId}/recall
      */
     @GetMapping("/{shipmentId}/recall")
     public ResponseEntity<ApiResult<RecallInfoResponse>> getRecallInfo(

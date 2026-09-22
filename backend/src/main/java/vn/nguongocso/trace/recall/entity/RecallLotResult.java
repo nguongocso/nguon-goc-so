@@ -12,10 +12,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Kết quả xử lý thực tế của một lô hàng trong vụ việc thu hồi (NCL-08-CN-012).
- *
- * <p>Một bản ghi duy nhất cho (case, shipment) — không cho phép ghi đè lịch sử;
- * ràng buộc UNIQUE(recall_case_id, shipment_id) bảo vệ ở tầng DB.</p>
+ * Kết quả xử lý lô hàng trong vụ việc thu hồi.
  */
 @Entity
 @Table(name = "recall_lot_results")
@@ -43,7 +40,6 @@ public class RecallLotResult {
     @Column(nullable = false, length = 30)
     private LotResolution resolution;
 
-    /** Số lượng thực tế thu hồi được (số thực, đơn vị lấy từ lô sản xuất). */
     @Column(name = "recovered_quantity", precision = 18, scale = 3)
     private BigDecimal recoveredQuantity;
 

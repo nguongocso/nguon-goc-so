@@ -7,11 +7,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
-/**
- * Yêu cầu tạo lô hàng.
- */
+/** Yêu cầu tạo mới lô hàng. */
 @Data
 public class CreateShipmentRequest {
+
     @NotNull(message = "Vui lòng chọn lô sản xuất")
     private UUID productionLotId;
 

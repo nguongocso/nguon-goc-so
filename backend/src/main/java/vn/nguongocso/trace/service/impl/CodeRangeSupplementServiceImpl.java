@@ -57,13 +57,7 @@ import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.CodeRangeSupplementRepository;
 import vn.nguongocso.trace.service.CodeRangeSupplementService;
 
-/**
- * Triển khai dịch vụ yêu cầu cấp bổ sung dải mã truy xuất (NCL-04-CN-007).
- *
- * <p>
- * Bổ sung hạn mức = tăng {@code totalLimit} của dải mã hiện có của tổ chức
- * (không tạo dải mã mới vì {@code prefix} UNIQUE toàn hệ thống).
- */
+/** Triển khai dịch vụ yêu cầu cấp bổ sung dải mã truy xuất. */
 @Slf4j
 @Service
 @Transactional

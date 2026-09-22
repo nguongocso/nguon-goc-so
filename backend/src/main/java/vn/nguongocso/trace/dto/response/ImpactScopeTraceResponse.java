@@ -7,15 +7,23 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/** DTO response thông tin phạm vi ảnh hưởng khi truy xuất. */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ImpactScopeTraceResponse {
-    private String rootNodeType; // PRODUCTION_LOT, SHIPMENT, TRACE_CODE
+
+    private String rootNodeType;
+
     private String searchedCode;
+
     private FarmAreaTraceDto farmArea;
+
     private ProductionLotTraceDto productionLot;
+
     private List<ShipmentTraceDto> shipments;
+
     private ImpactScopeSummaryDto summary;
 }
+

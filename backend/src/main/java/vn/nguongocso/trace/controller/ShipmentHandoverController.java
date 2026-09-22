@@ -25,7 +25,7 @@ import vn.nguongocso.trace.dto.response.HandoverResponse;
 import vn.nguongocso.trace.service.ShipmentHandoverService;
 
 /**
- * Controller xử lý API cho phiếu bàn giao lô hàng.
+ * Controller xử lý phiếu bàn giao lô hàng.
  */
 @RestController
 @RequestMapping("/api/v1/shipment-handovers")
@@ -36,7 +36,6 @@ public class ShipmentHandoverController {
 
     /**
      * Tạo phiếu bàn giao lô hàng.
-     * Chỉ Quản lý hợp tác xã (VT-02) được phép tạo.
      */
     @PostMapping
     @PreAuthorize("hasRole('VT-02')")
@@ -47,12 +46,6 @@ public class ShipmentHandoverController {
 
     /**
      * Tải lên chứng từ giao hàng trước khi tạo phiếu bàn giao.
-     * Chỉ Quản lý hợp tác xã (VT-02) được phép tải lên.
-     *
-     * POST /api/v1/shipment-handovers/attachment
-     *
-     * @param file File chứng từ (JPG/PNG/PDF, tối đa 5MB)
-     * @return Đường dẫn file đã lưu để gửi kèm khi tạo phiếu (attachmentPath)
      */
     @PostMapping(value = "/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('VT-02')")
@@ -70,7 +63,6 @@ public class ShipmentHandoverController {
 
     /**
      * Hủy phiếu bàn giao đang chờ xác nhận.
-     * Chỉ Quản lý hợp tác xã (VT-02) bên giao được phép hủy.
      */
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasRole('VT-02')")
@@ -82,7 +74,6 @@ public class ShipmentHandoverController {
 
     /**
      * Xác nhận nhận bàn giao lô hàng.
-     * Quản lý hợp tác xã (VT-02) hoặc Doanh nghiệp thu mua (VT-04) bên nhận được phép xác nhận.
      */
     @PostMapping("/{id}/accept")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
@@ -92,7 +83,6 @@ public class ShipmentHandoverController {
 
     /**
      * Từ chối nhận bàn giao lô hàng.
-     * Quản lý hợp tác xã (VT-02) hoặc Doanh nghiệp thu mua (VT-04) bên nhận được phép từ chối.
      */
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
@@ -104,7 +94,6 @@ public class ShipmentHandoverController {
 
     /**
      * Lấy chi tiết phiếu bàn giao.
-     * Cả bên giao, bên nhận, admin và người ghi sự kiện đều được xem.
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03', 'VT-04')")
@@ -113,8 +102,7 @@ public class ShipmentHandoverController {
     }
 
     /**
-     * Lấy danh sách phiếu bàn giao đã gửi (bên giao).
-     * Chỉ Quản lý hợp tác xã (VT-02) được xem.
+     * Lấy danh sách phiếu bàn giao đã gửi.
      */
     @GetMapping("/sent")
     @PreAuthorize("hasRole('VT-02')")
@@ -123,8 +111,7 @@ public class ShipmentHandoverController {
     }
 
     /**
-     * Lấy danh sách phiếu bàn giao đã nhận (bên nhận).
-     * Quản lý hợp tác xã (VT-02) hoặc Doanh nghiệp thu mua (VT-04) được xem.
+     * Lấy danh sách phiếu bàn giao đã nhận.
      */
     @GetMapping("/received")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")

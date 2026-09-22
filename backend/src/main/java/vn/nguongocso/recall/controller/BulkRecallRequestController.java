@@ -29,7 +29,7 @@ import vn.nguongocso.recall.service.BulkRecallRequestService;
 import vn.nguongocso.trace.recall.dto.request.CloseRecallCaseRequest;
 
 /**
- * Controller quản lý yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011, NCL-08-CN-012).
+ * Controller quản lý yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng.
  */
 @RestController
 @RequestMapping("/api/v1/recall-requests/bulk")
@@ -42,8 +42,6 @@ public class BulkRecallRequestController {
 
     /**
      * Tạo yêu cầu thu hồi hàng loạt.
-     *
-     * POST /api/v1/recall-requests/bulk
      */
     @PostMapping
     public ResponseEntity<ApiResult<BulkRecallRequestResponse>> createBulkRecallRequest(
@@ -61,8 +59,6 @@ public class BulkRecallRequestController {
 
     /**
      * Lấy chi tiết yêu cầu thu hồi hàng loạt.
-     *
-     * GET /api/v1/recall-requests/bulk/{id}
      */
     @GetMapping("/{id}")
     public ResponseEntity<ApiResult<BulkRecallRequestResponse>> getBulkRecallRequest(
@@ -79,8 +75,6 @@ public class BulkRecallRequestController {
 
     /**
      * Lấy danh sách yêu cầu thu hồi hàng loạt với phân trang.
-     *
-     * GET /api/v1/recall-requests/bulk?status=PENDING&page=0&size=10
      */
     @GetMapping
     public ResponseEntity<ApiResult<PageResponse<BulkRecallRequestResponse>>> listBulkRecallRequests(
@@ -99,8 +93,6 @@ public class BulkRecallRequestController {
 
     /**
      * Phê duyệt yêu cầu thu hồi hàng loạt.
-     *
-     * PUT /api/v1/recall-requests/bulk/{id}/approve
      */
     @PutMapping("/{id}/approve")
     public ResponseEntity<ApiResult<BulkRecallRequestResponse>> approveBulkRecallRequest(
@@ -118,8 +110,6 @@ public class BulkRecallRequestController {
 
     /**
      * Từ chối yêu cầu thu hồi hàng loạt.
-     *
-     * PUT /api/v1/recall-requests/bulk/{id}/reject
      */
     @PutMapping("/{id}/reject")
     public ResponseEntity<ApiResult<BulkRecallRequestResponse>> rejectBulkRecallRequest(
@@ -136,9 +126,7 @@ public class BulkRecallRequestController {
     }
 
     /**
-     * Kết thúc vụ việc thu hồi gắn liền với yêu cầu thu hồi hàng loạt (NCL-08-CN-012).
-     *
-     * PUT /api/v1/recall-requests/bulk/{id}/close
+     * Kết thúc vụ việc thu hồi gắn liền với yêu cầu thu hồi hàng loạt.
      */
     @PutMapping("/{id}/close")
     public ResponseEntity<ApiResult<BulkRecallRequestResponse>> closeBulkRecallRequest(
@@ -155,10 +143,7 @@ public class BulkRecallRequestController {
     }
 
     /**
-     * Tải lên tệp biên bản đính kèm vụ việc thu hồi (NCL-08-CN-012).
-     * Hỗ trợ định dạng PDF (.pdf) hoặc Word (.docx, .doc).
-     *
-     * POST /api/v1/recall-requests/bulk/evidence
+     * Tải lên tệp biên bản đính kèm vụ việc thu hồi.
      */
     @PostMapping(value = "/evidence", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResult<vn.nguongocso.recall.dto.response.RecallEvidenceResponse>> uploadEvidence(
@@ -176,8 +161,6 @@ public class BulkRecallRequestController {
 
     /**
      * Tải xuống hoặc xem tệp biên bản thu hồi đã tải lên.
-     *
-     * GET /api/v1/recall-requests/bulk/evidence/{fileId}
      */
     @GetMapping("/evidence/{fileId}")
     public ResponseEntity<org.springframework.core.io.Resource> getEvidenceFile(

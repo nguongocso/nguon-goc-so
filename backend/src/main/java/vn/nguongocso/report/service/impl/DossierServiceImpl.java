@@ -87,11 +87,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * Service xử lý nghiệp vụ hồ sơ.
- *
- * @author Triệu Văn Đại
- */
+/** Triển khai dịch vụ xử lý nghiệp vụ hồ sơ truy xuất. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -1286,10 +1282,7 @@ public class DossierServiceImpl implements DossierService {
                 .build());
     }
 
-    // =========================================================================
     // NCL-07-CN-005: Xuất hồ sơ truy xuất cho nhiều lô trong một lần
-    // =========================================================================
-
     @Override
     @Transactional(readOnly = true)
     public vn.nguongocso.report.dto.response.BatchDossierCheckResponse checkBatchEligibility(
@@ -1506,9 +1499,7 @@ public class DossierServiceImpl implements DossierService {
             Font boldFont = loadFont("fonts/Roboto-Bold.ttf", 10, Font.BOLD);
             Font normalFont = loadFont("fonts/Roboto-Regular.ttf", 10, Font.NORMAL);
 
-            // =========================================================================
-            // PAGE 1: TRANG BÌA TỔNG HỢP BỘ HỒ SƠ CHUYẾN HÀNG
-            // =========================================================================
+            // Trang bìa tổng hợp bộ hồ sơ chuyến hàng
             String batchTitle = (request.getTitle() != null && !request.getTitle().trim().isEmpty())
                     ? request.getTitle().trim()
                     : "BỘ HỒ SƠ TRUY XUẤT NGUỒN GỐC NÔNG SẢN";
@@ -1578,9 +1569,7 @@ public class DossierServiceImpl implements DossierService {
             }
             document.add(summaryTable);
 
-            // =========================================================================
-            // CÁC TRANG TIẾP THEO: HỒ SƠ CHI TIẾT TỪNG LÔ (SAO CHÉP Y NGUYÊN DEATIL)
-            // =========================================================================
+            // Các trang tiếp theo: Hồ sơ chi tiết từng lô
             for (Shipment ship : eligibleShipments) {
                 document.newPage();
                 // NCL-07-CN-007: render hồ sơ từng lô theo bộ trường của mẫu hồ sơ được chọn

@@ -70,9 +70,7 @@ import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.event.service.EventHashService;
 
-/**
- * Service xử lý nghiệp vụ quản lý lô hàng và sinh mã truy xuất.
- */
+/** Triển khai dịch vụ quản lý lô hàng và sinh mã truy xuất. */
 @Service
 @Transactional
 @RequiredArgsConstructor

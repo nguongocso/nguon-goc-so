@@ -49,16 +49,7 @@ import vn.nguongocso.trace.service.SuspectDetectionService;
 import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
 import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 
-/**
- * Triển khai phát hiện nghi vấn và quản lý khóa mã tem (NCL-08-CN-007).
- *
- * <p>
- * Service này chỉ chịu trách nhiệm chấm điểm nghi vấn, cập nhật trạng thái
- * {@code SUSPECT}, gửi cảnh báo nghi vấn và cho phép VT-01 khóa/mở khóa thủ công.
- * Nó KHÔNG tạo cảnh báo quét bất thường (Alert) — trách nhiệm đó thuộc về
- * NCL-08-CN-001.
- * </p>
- */
+/** Triển khai phát hiện nghi vấn và quản lý khóa mã tem. */
 @Slf4j
 @Service
 public class SuspectDetectionServiceImpl implements SuspectDetectionService {

@@ -17,10 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Controller quản lý vụ việc thu hồi (NCL-08-CN-012).
- *
- * <p>Chỉ Quản lý hợp tác xã (VT-02) được phép. Dữ liệu luôn được giới hạn theo
- * tổ chức hiện tại (QTN-01).</p>
+ * Controller quản lý vụ việc thu hồi.
  */
 @RestController
 @RequestMapping("/api/v1/recall-cases")
@@ -29,7 +26,9 @@ public class RecallCaseController {
 
     private final RecallCaseService recallCaseService;
 
-    /** Danh sách vụ việc (lazy materialize các lô đã thu hồi chưa có case). */
+    /**
+     * Danh sách vụ việc thu hồi.
+     */
     @GetMapping
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<List<RecallCaseResponse>>> list(
@@ -38,7 +37,9 @@ public class RecallCaseController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /** Chi tiết vụ việc kèm kết quả xử lý từng lô. */
+    /**
+     * Chi tiết vụ việc thu hồi kèm kết quả xử lý từng lô.
+     */
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<RecallCaseResponse>> getById(
@@ -47,7 +48,9 @@ public class RecallCaseController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), recallCaseService.getById(id, currentUser)));
     }
 
-    /** Đóng vụ việc thu hồi. */
+    /**
+     * Đóng vụ việc thu hồi.
+     */
     @PutMapping("/{id}/close")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<RecallCaseResponse>> close(

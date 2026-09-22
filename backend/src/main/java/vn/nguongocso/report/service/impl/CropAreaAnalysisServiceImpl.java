@@ -20,16 +20,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Service phân tích diện tích canh tác.
- *
- * <p>
- * Từ NCL-743: dữ liệu luôn giao trong phạm vi địa bàn đã gán khi caller là
- * VT-05; cán bộ chưa được gán địa bàn nào nhận dữ liệu rỗng kèm thông báo.
- * </p>
- *
- * @author Triệu Văn Đại
- */
+/** Triển khai dịch vụ phân tích diện tích canh tác. */
 @Service
 @RequiredArgsConstructor
 public class CropAreaAnalysisServiceImpl implements CropAreaAnalysisService {
@@ -37,28 +28,17 @@ public class CropAreaAnalysisServiceImpl implements CropAreaAnalysisService {
         private final ReportAccessLogService reportAccessLogService;
         private final AreaScopeService areaScopeService;
 
-        /**
-         * Lấy dữ liệu phân tích diện tích canh tác theo năm, vùng trồng, loại sản phẩm
-         * và tổ chức.
-         *
-         * @param year              Năm để phân tích (có thể null)
-         * @param farmAreaId        ID của vùng trồng (có thể null)
-         * @param productCategoryId ID của loại sản phẩm (có thể null)
-         * @param organizationId    ID của tổ chức (có thể null)
-         * @param currentUser       Thông tin người dùng hiện tại
-         * @param ipAddress         Địa chỉ IP của người dùng
-         * @return CropAreaAnalysisResponse chứa dữ liệu phân tích
-         */
-        @Override
-        @Transactional(readOnly = true)
-        public CropAreaAnalysisResponse getAnalysis(
-                        Integer year,
-                        UUID farmAreaId,
-                        UUID productCategoryId,
-                        UUID organizationId,
-                        List<UUID> unitIds,
-                        CustomUserDetails currentUser,
-                        String ipAddress) {
+    /** Lấy dữ liệu phân tích diện tích canh tác theo năm, vùng trồng, loại sản phẩm và tổ chức. */
+    @Override
+    @Transactional(readOnly = true)
+    public CropAreaAnalysisResponse getAnalysis(
+            Integer year,
+            UUID farmAreaId,
+            UUID productCategoryId,
+            UUID organizationId,
+            List<UUID> unitIds,
+            CustomUserDetails currentUser,
+            String ipAddress) {
 
                 // 1. Phân quyền kiểm tra bảo mật: Chỉ cho phép VT-01 (Admin) và VT-05
                 // (Regulator)

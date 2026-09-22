@@ -34,9 +34,7 @@ import vn.nguongocso.integration.partner.service.PartnerRecallWebhookDispatcher;
 import vn.nguongocso.trace.service.ShipmentRecallService;
 import vn.nguongocso.alert.dto.request.ActivityLogRequest;
 
-/**
- * Triển khai dịch vụ thu hồi lô hàng.
- */
+/** Triển khai dịch vụ thu hồi lô hàng. */
 @Service
 @Transactional
 @RequiredArgsConstructor

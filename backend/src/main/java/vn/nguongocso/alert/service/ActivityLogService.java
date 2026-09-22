@@ -15,14 +15,14 @@ public interface ActivityLogService {
      * Lấy danh sách nhật ký hoạt động theo bộ lọc.
      */
     PageResponse<ActivityLogResponse> getActivityLogs(
-            int page,
-            int size,
-            String action,
-            String actorName,
-            LocalDate startDate,
-            LocalDate endDate,
-            String objectType,
-            CustomUserDetails currentUser
+        int page,
+        int size,
+        String action,
+        String actorName,
+        LocalDate startDate,
+        LocalDate endDate,
+        String objectType,
+        CustomUserDetails currentUser
     );
 
     /**

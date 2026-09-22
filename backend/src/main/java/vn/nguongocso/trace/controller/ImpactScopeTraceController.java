@@ -13,6 +13,9 @@ import vn.nguongocso.trace.dto.response.ImpactScopeTraceResponse;
 import vn.nguongocso.trace.service.ImpactScopeExportService;
 import vn.nguongocso.trace.service.ImpactScopeTraceService;
 
+/**
+ * Controller truy vết phạm vi ảnh hưởng hai chiều.
+ */
 @RestController
 @RequestMapping("/api/v1/trace")
 @RequiredArgsConstructor
@@ -22,9 +25,7 @@ public class ImpactScopeTraceController {
     private final ImpactScopeExportService impactScopeExportService;
 
     /**
-     * Truy vết phạm vi ảnh hưởng hai chiều (Upstream & Downstream) của một lô sản xuất, lô hàng hoặc mã tem.
-     *
-     * GET /api/v1/trace/impact-scope?code={code}
+     * Truy vết phạm vi ảnh hưởng hai chiều của một lô sản xuất, lô hàng hoặc mã tem.
      */
     @GetMapping("/impact-scope")
     public ResponseEntity<ApiResult<ImpactScopeTraceResponse>> getImpactScopeTrace(
@@ -37,9 +38,7 @@ public class ImpactScopeTraceController {
     }
 
     /**
-     * Xuất tệp báo cáo phạm vi ảnh hưởng (Excel/PDF).
-     *
-     * GET /api/v1/trace/impact-scope/export?code={code}&format={format}
+     * Xuất tệp báo cáo phạm vi ảnh hưởng.
      */
     @GetMapping("/impact-scope/export")
     public ResponseEntity<byte[]> exportImpactScopeReport(

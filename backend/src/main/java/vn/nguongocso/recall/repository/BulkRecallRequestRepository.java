@@ -15,12 +15,9 @@ import jakarta.persistence.LockModeType;
 import vn.nguongocso.recall.entity.BulkRecallRequest;
 import vn.nguongocso.recall.enums.BulkRecallRequestStatus;
 
-/**
- * Repository quản lý các yêu cầu thu hồi hàng loạt (NCL-08-CN-011).
- */
+/** Repository quản lý các yêu cầu thu hồi hàng loạt. */
 @Repository
 public interface BulkRecallRequestRepository extends JpaRepository<BulkRecallRequest, UUID> {
-
     /**
      * Tìm yêu cầu theo ID và tổ chức của lô sản xuất.
      */

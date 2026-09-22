@@ -36,7 +36,6 @@ import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 @AllArgsConstructor
 @Builder
 public class ShipmentHandover {
-
     @Id
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "id", nullable = false, updatable = false)

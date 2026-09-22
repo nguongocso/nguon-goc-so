@@ -22,9 +22,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.auth.entity.User;
 
-/**
- * Thực thể lưu trữ tệp biên bản đính kèm khi kết thúc vụ việc thu hồi (NCL-08-CN-012).
- * Hỗ trợ các định dạng tệp PDF và Word (.docx, .doc).
+/** 
+ * Tệp biên bản đính kèm khi kết thúc vụ việc thu hồi.
  */
 @Entity
 @Table(name = "recall_evidence_files")
@@ -34,7 +33,6 @@ import vn.nguongocso.auth.entity.User;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RecallEvidenceFile {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)

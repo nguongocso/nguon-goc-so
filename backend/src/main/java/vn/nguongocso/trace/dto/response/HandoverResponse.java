@@ -7,37 +7,60 @@ import lombok.Builder;
 import lombok.Getter;
 import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 
-/**
- * Response DTO cho phiếu bàn giao.
- */
+/** Thông tin chi tiết phiếu bàn giao lô hàng. */
 @Getter
 @Builder
 public class HandoverResponse {
 
     private UUID id;
+
     private UUID shipmentId;
+
     private String shipmentName;
+
     private UUID fromOrganizationId;
+
     private String fromOrganizationName;
+
     private UUID toOrganizationId;
+
     private String toOrganizationName;
+
     private Long quantity;
+
     private ShipmentHandoverStatus status;
+
     private LocalDateTime plannedAt;
+
     private String vehicleInfo;
+
     private String carrierName;
+
     private String note;
+
     private String attachmentPath;
+
     private LocalDateTime expiresAt;
+
     private LocalDateTime createdAt;
+
     private UUID confirmedBy;
+
     private String confirmedByName;
+
     private LocalDateTime confirmedAt;
+
     private UUID rejectedBy;
+
     private String rejectedByName;
+
     private LocalDateTime rejectedAt;
+
     private String cancelReason;
+
     private UUID cancelledBy;
+
     private String cancelledByName;
+
     private LocalDateTime cancelledAt;
 }

@@ -9,9 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Payload tạo yêu cầu thu hồi lô hàng (NCL-08-CN-008).
- */
+/** Yêu cầu tạo mới thu hồi lô hàng. */
 @Getter
 @Setter
 @NoArgsConstructor

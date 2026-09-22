@@ -7,9 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Yêu cầu mở khóa mã tem sau khi xác minh (NCL-08-CN-013).
- */
+/** Yêu cầu mở khóa mã tem truy xuất sau khi xác minh. */
 @Getter
 @Setter
 @NoArgsConstructor

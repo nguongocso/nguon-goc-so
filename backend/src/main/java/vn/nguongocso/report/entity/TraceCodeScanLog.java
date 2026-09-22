@@ -11,9 +11,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Entity log tra cứu mã truy xuất.
- *
- * @author Triệu Văn Đại
+ * Log tra cứu mã truy xuất.
  */
 @Table(name = "trace_code_scan_logs")
 @Entity

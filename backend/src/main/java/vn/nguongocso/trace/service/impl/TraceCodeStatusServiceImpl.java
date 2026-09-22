@@ -37,9 +37,7 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.TraceCodeStatusService;
 
-/**
- * Triển khai dịch vụ xem và tra cứu trạng thái từng mã tem trong lô hàng (NCL-04-CN-008).
- */
+/** Triển khai dịch vụ xem và tra cứu trạng thái từng mã tem trong lô hàng. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -190,8 +188,6 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
 
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
-
-    // ==================== CÁC PHƯƠNG THỨC HỖ TRỢ NỘI BỘ ====================
 
     private void validateUserRole(CustomUserDetails currentUser) {
         if (currentUser == null || !ROLE_COOPERATIVE_MANAGER.equals(currentUser.getRoleCode())) {

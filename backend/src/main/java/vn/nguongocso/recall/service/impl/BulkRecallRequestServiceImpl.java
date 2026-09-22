@@ -83,18 +83,13 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-/**
- * Triển khai dịch vụ quản lý yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011, NCL-08-CN-012).
- */
+/** Triển khai dịch vụ quản lý yêu cầu thu hồi hàng loạt. */
 @Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
 
-    // =========================================================
-    // Message constants
-    // =========================================================
     private static final String MSG_PRODUCTION_LOT_NOT_FOUND = "Không tìm thấy lô sản xuất.";
     private static final String MSG_SHIPMENT_NOT_FOUND = "Không tìm thấy lô hàng.";
     private static final String MSG_REQUEST_NOT_FOUND = "Không tìm thấy yêu cầu thu hồi.";
@@ -113,9 +108,6 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     private static final String MSG_SHIPMENT_RECALLED_BY_OTHER = "Lô hàng đã bị thu hồi bởi một yêu cầu khác.";
     private static final String MSG_ORG_MISMATCH = "Lô hàng thuộc tổ chức khác, không thể đưa vào phạm vi thu hồi.";
 
-    // =========================================================
-    // Dependencies
-    // =========================================================
     private final BulkRecallRequestRepository bulkRecallRequestRepository;
     private final BulkRecallShipmentRepository bulkRecallShipmentRepository;
     private final ProductionLotRepository productionLotRepository;
@@ -137,23 +129,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     @Value("${app.upload.base-dir}")
     private String baseDir;
 
-    // =========================================================
-    // Public methods
-    // =========================================================
-
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Quy trình tạo yêu cầu:
-     * <ol>
-     *   <li>Validate đầu vào</li>
-     *   <li>Kiểm tra quyền truy cập lô sản xuất</li>
-     *   <li>Validate các lô hàng thuộc phạm vi</li>
-     *   <li>Loại bỏ lô đã RECALLED</li>
-     *   <li>Lưu yêu cầu và chi tiết</li>
-     *   <li>Ghi ActivityLog</li>
-     * </ol>
-     */
+    /** Tạo yêu cầu thu hồi hàng loạt. */
     @Override
     public BulkRecallRequestResponse createBulkRecallRequest(
             CreateBulkRecallRequest request, CustomUserDetails currentUser) {
@@ -267,12 +243,12 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         return toResponse(savedRequest);
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** Lấy chi tiết yêu cầu thu hồi hàng loạt theo ID. */
     @Override
     @Transactional(readOnly = true)
-    public BulkRecallRequestResponse getBulkRecallRequest(UUID id, CustomUserDetails currentUser) {
+    public BulkRecallRequestResponse getBulkRecallRequest(
+            UUID id,
+            CustomUserDetails currentUser) {
         BulkRecallRequest request = bulkRecallRequestRepository
                 .findByIdAndProductionLot_Organization_OrganizationId(id, currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
@@ -280,13 +256,14 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         return toResponse(request);
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** Lấy danh sách yêu cầu thu hồi hàng loạt có phân trang. */
     @Override
     @Transactional(readOnly = true)
     public PageResponse<BulkRecallRequestResponse> listBulkRecallRequests(
-            String status, int page, int size, CustomUserDetails currentUser) {
+            String status,
+            int page,
+            int size,
+            CustomUserDetails currentUser) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<BulkRecallRequest> resultPage;
@@ -319,22 +296,12 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
                 .build();
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Quy trình phê duyệt (transaction boundary):
-     * <ol>
-     *   <li>Validate không tự phê duyệt</li>
-     *   <li>Kiểm tra trạng thái PENDING</li>
-     *   <li>Cập nhật trạng thái yêu cầu → APPROVED</li>
-     *   <li>Với mỗi lô included: gọi ShipmentRecallService để chuyển RECALLED</li>
-     *   <li>Gửi notification cho các bên liên quan</li>
-     *   <li>Ghi ActivityLog</li>
-     * </ol>
-     */
+    /** Phê duyệt yêu cầu thu hồi hàng loạt. */
     @Override
     public BulkRecallRequestResponse approveBulkRecallRequest(
-            UUID id, ApproveBulkRecallRequest request, CustomUserDetails currentUser) {
+            UUID id,
+            ApproveBulkRecallRequest request,
+            CustomUserDetails currentUser) {
 
         // 1. Lấy yêu cầu với pessimistic lock
         BulkRecallRequest bulkRequest = bulkRecallRequestRepository.findByIdWithLock(id)
@@ -399,7 +366,8 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
             collectBuyerUserIds(freshShipment, notifiedUserIds);
         }
 
-        // Đảm bảo mở/tạo vụ việc thu hồi (RecallCase) ở trạng thái OPEN nếu chưa tồn tại
+        // Đảm bảo mở/tạo vụ việc thu hồi (RecallCase) ở trạng thái OPEN nếu chưa tồn
+        // tại
         if (!recallCaseRepository.existsByProductionLotId(bulkRequest.getProductionLot().getId())) {
             RecallCase recallCase = RecallCase.builder()
                     .caseCode("RC-" + DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now())
@@ -421,7 +389,8 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         // 11. Gửi thông báo cho doanh nghiệp thu mua
         bulkRecallNotificationService.sendBulkRecallNotificationToPurchasingBusiness(bulkRequest);
 
-        // 11b. Gửi thông báo webhook tự động tới các bên thứ ba đủ điều kiện (NCL-12-CN-006)
+        // 11b. Gửi thông báo webhook tự động tới các bên thứ ba đủ điều kiện
+        // (NCL-12-CN-006)
         partnerRecallWebhookDispatcher.dispatchRecallNotifications(
                 recallingShipments,
                 "RECALLING",
@@ -438,9 +407,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         return toResponse(bulkRequest);
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** Từ chối yêu cầu thu hồi hàng loạt. */
     @Override
     public BulkRecallRequestResponse rejectBulkRecallRequest(
             UUID id, RejectBulkRecallRequest request, CustomUserDetails currentUser) {
@@ -485,13 +452,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         return toResponse(bulkRequest);
     }
 
-    // =========================================================
-    // Private helper methods
-    // =========================================================
-
-    /**
-     * Validate request tạo yêu cầu.
-     */
+    /** Validate request tạo yêu cầu. */
     private void validateCreateRequest(CreateBulkRecallRequest request) {
         if (request.getReason() == null || request.getReason().trim().isEmpty()) {
             throw new BusinessException(MSG_REASON_REQUIRED);
@@ -523,9 +484,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         }
     }
 
-    /**
-     * Thu thập ID user thuộc các tổ chức thu mua đã nhận lô hàng.
-     */
+    /** Thu thập ID user thuộc các tổ chức thu mua đã nhận lô hàng. */
     private void collectBuyerUserIds(Shipment shipment, Set<UUID> notifiedUserIds) {
         List<UUID> buyerOrgIds = chainEventRepository
                 .findDistinctProcurementOrganizationIdsByShipmentIds(List.of(shipment.getId()));
@@ -539,9 +498,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         }
     }
 
-    /**
-     * Gửi notification thu hồi cho các bên liên quan.
-     */
+    /** Gửi notification thu hồi cho các bên liên quan. */
     private void sendBulkRecallNotifications(BulkRecallRequest bulkRequest, Set<UUID> recipientIds) {
         if (recipientIds.isEmpty()) {
             return;
@@ -565,9 +522,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
                 new ArrayList<>(recipientIds));
     }
 
-    /**
-     * Ghi ActivityLog.
-     */
+    /** Ghi ActivityLog. */
     private void logActivity(User user, String action, String description, String entityType, UUID entityId) {
         // Lấy organization ID từ organization_users
         UUID orgId = organizationUserRepository
@@ -590,21 +545,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>Quy trình kết thúc vụ việc thu hồi gắn liền với yêu cầu thu hồi hàng loạt (NCL-08-CN-012):
-     * <ol>
-     *   <li>Kiểm tra vai trò VT-02 và cách ly tổ chức</li>
-     *   <li>Kiểm tra trạng thái yêu cầu phải là APPROVED</li>
-     *   <li>Validate biện pháp khắc phục phòng ngừa bắt buộc (QTN-27)</li>
-     *   <li>Validate danh sách kết quả xử lý phải phủ hết các lô included</li>
-     *   <li>Lưu kết quả xử lý từng lô vào RecallLotResult</li>
-     *   <li>Chuyển trạng thái các lô hàng sang RECALLED, hoàn trả mã tem</li>
-     *   <li>Cập nhật vụ việc thu hồi RecallCase sang CLOSED</li>
-     *   <li>Cập nhật yêu cầu thu hồi hàng loạt sang COMPLETED ("Đã xử lý")</li>
-     *   <li>Gửi thông báo tới các doanh nghiệp thu mua liên quan</li>
-     *   <li>Ghi lịch sử hoạt động ActivityLog</li>
-     * </ol>
+     * Kết thúc vụ việc thu hồi gắn liền với yêu cầu thu hồi hàng loạt.
      */
     @Override
     public BulkRecallRequestResponse closeBulkRecallRequest(
@@ -703,11 +644,13 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
             CloseRecallCaseRequest.LotResultItem item = itemByShipment.get(shipment.getId());
 
             if (item.getResolution() == null) {
-                throw new BusinessException(String.format("Kết quả xử lý của lô hàng %s là bắt buộc.", shipment.getName()));
+                throw new BusinessException(
+                        String.format("Kết quả xử lý của lô hàng %s là bắt buộc.", shipment.getName()));
             }
             BigDecimal quantity = item.getRecoveredQuantity();
             if (quantity == null) {
-                throw new BusinessException(String.format("Số lượng thu hồi được của lô hàng %s là bắt buộc.", shipment.getName()));
+                throw new BusinessException(
+                        String.format("Số lượng thu hồi được của lô hàng %s là bắt buộc.", shipment.getName()));
             }
             BigDecimal maxQuantity = BigDecimal.valueOf(shipment.getTotalQuantity());
             if (quantity.signum() < 0 || quantity.compareTo(maxQuantity) > 0) {
@@ -715,7 +658,8 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
                         "Số lượng thu hồi được của lô hàng %s phải nằm trong khoảng từ 0 đến %s.",
                         shipment.getName(), shipment.getTotalQuantity()));
             }
-            if (item.getResolution() == LotResolution.UNRECOVERABLE && (item.getNotes() == null || item.getNotes().isBlank())) {
+            if (item.getResolution() == LotResolution.UNRECOVERABLE
+                    && (item.getNotes() == null || item.getNotes().isBlank())) {
                 throw new BusinessException(String.format(
                         "Lô hàng %s: khi chọn kết quả \"Không thu hồi được\", bắt buộc nhập lý do và biện pháp xử lý rủi ro.",
                         shipment.getName()));
@@ -781,7 +725,8 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         // 13. Gửi thông báo kết thúc thu hồi tới doanh nghiệp thu mua liên quan
         notifyProcurementOrganizations(recallCase, shipments);
 
-        // 13b. Gửi thông báo webhook tự động tới các bên thứ ba khi kết thúc thu hồi RECALLED (NCL-12-CN-006)
+        // 13b. Gửi thông báo webhook tự động tới các bên thứ ba khi kết thúc thu hồi
+        // RECALLED (NCL-12-CN-006)
         partnerRecallWebhookDispatcher.dispatchRecallNotifications(
                 shipments,
                 "RECALLED",
@@ -797,12 +742,13 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         return toResponse(bulkRequest);
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** Tải lên tệp biên bản đính kèm vụ việc thu hồi. */
     @Override
     @Transactional
-    public RecallEvidenceResponse uploadEvidenceFile(MultipartFile file, CustomUserDetails currentUser) {
+    public RecallEvidenceResponse uploadEvidenceFile(
+            MultipartFile file,
+            CustomUserDetails currentUser) {
+
         // 1. Kiểm tra vai trò quản lý
         if (!"VT-02".equals(currentUser.getRoleCode())) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "Bạn không có quyền tải lên tệp biên bản thu hồi.");
@@ -868,12 +814,12 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** Tải xuống hoặc xem tệp biên bản thu hồi. */
     @Override
     @Transactional(readOnly = true)
-    public EvidenceFileContent getEvidenceFile(UUID fileId, CustomUserDetails currentUser) {
+    public EvidenceFileContent getEvidenceFile(
+            UUID fileId,
+            CustomUserDetails currentUser) {
         RecallEvidenceFile evidenceFile = recallEvidenceFileRepository.findById(fileId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Không tìm thấy tệp biên bản thu hồi."));
 
@@ -885,17 +831,14 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         return new EvidenceFileContent(
                 new FileSystemResource(filePath),
                 evidenceFile.getFileName(),
-                evidenceFile.getContentType()
-        );
+                evidenceFile.getContentType());
     }
 
-    /**
-     * Gửi thông báo kết thúc thu hồi tới doanh nghiệp thu mua liên quan.
-     */
+    /** Gửi thông báo kết thúc thu hồi tới doanh nghiệp thu mua liên quan. */
     private void notifyProcurementOrganizations(RecallCase recallCase, List<Shipment> shipments) {
         List<UUID> shipmentIds = shipments.stream().map(Shipment::getId).toList();
-        List<UUID> procurementOrgIds =
-                chainEventRepository.findDistinctProcurementOrganizationIdsByShipmentIds(shipmentIds);
+        List<UUID> procurementOrgIds = chainEventRepository
+                .findDistinctProcurementOrganizationIdsByShipmentIds(shipmentIds);
         if (procurementOrgIds.isEmpty()) {
             return;
         }
@@ -916,9 +859,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         }
     }
 
-    /**
-     * Chuỗi hóa danh sách ID tệp biên bản (phân tách bởi dấu phẩy) hoặc null.
-     */
+    /** Chuỗi hóa danh sách ID tệp biên bản (phân tách bởi dấu phẩy) hoặc null. */
     private String serializeEvidence(List<UUID> evidenceFileIds) {
         if (evidenceFileIds == null || evidenceFileIds.isEmpty()) {
             return null;
@@ -926,9 +867,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         return evidenceFileIds.stream().map(UUID::toString).collect(Collectors.joining(","));
     }
 
-    /**
-     * Phân giải chuỗi ID tệp biên bản đã lưu thành danh sách UUID hợp lệ.
-     */
+    /** Phân giải chuỗi ID tệp biên bản đã lưu thành danh sách UUID hợp lệ. */
     private List<UUID> parseEvidence(String stored) {
         if (stored == null || stored.isBlank()) {
             return List.of();
@@ -947,9 +886,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
                 .toList();
     }
 
-    /**
-     * Chuyển đổi entity sang response DTO.
-     */
+    /** Chuyển đổi entity sang response DTO. */
     private BulkRecallRequestResponse toResponse(BulkRecallRequest entity) {
         BulkRecallRequestResponse.UserInfo requestedBy = entity.getRequestedBy() != null
                 ? BulkRecallRequestResponse.UserInfo.builder()

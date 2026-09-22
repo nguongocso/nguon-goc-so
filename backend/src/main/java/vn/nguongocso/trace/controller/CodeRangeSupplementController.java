@@ -30,16 +30,7 @@ import vn.nguongocso.trace.dto.response.EvidenceEventResponse;
 import vn.nguongocso.trace.service.CodeRangeSupplementService;
 
 /**
- * Controller quản lý yêu cầu cấp bổ sung dải mã truy xuất (NCL-04-CN-007).
- *
- * <p>
- * Quy trình:
- * <ol>
- *   <li>Quản lý hợp tác xã (VT-02) tạo yêu cầu khi hạn mức còn lại
- *       dưới ngưỡng cảnh báo hoặc đã hết.</li>
- *   <li>Quản trị viên nền tảng (VT-01) duyệt toàn bộ / duyệt một phần
- *       hoặc từ chối kèm lý do.</li>
- * </ol>
+ * Controller quản lý yêu cầu cấp bổ sung dải mã truy xuất.
  */
 @RestController
 @RequestMapping("/api/v1/code-range-supplement-requests")
@@ -51,10 +42,6 @@ public class CodeRangeSupplementController {
 
     /**
      * Tạo yêu cầu cấp bổ sung dải mã.
-     *
-     * <p>Chỉ Quản lý hợp tác xã (VT-02) được phép.</p>
-     *
-     * POST /api/v1/code-range-supplement-requests
      */
     @PostMapping
     @PreAuthorize("hasRole('VT-02')")
@@ -69,13 +56,7 @@ public class CodeRangeSupplementController {
     }
 
     /**
-     * Lấy danh sách sự kiện bằng chứng sản lượng thực (thu hoạch / sơ chế)
-     * của tổ chức để chọn khi tạo yêu cầu cấp bổ sung.
-     *
-     * <p>Chỉ Quản lý hợp tác xã (VT-02) được phép. Danh sách phẳng, sắp xếp
-     * mới nhất trước, tối đa 200 sự kiện.</p>
-     *
-     * GET /api/v1/code-range-supplement-requests/evidence-events
+     * Lấy danh sách sự kiện bằng chứng sản lượng thực của tổ chức.
      */
     @GetMapping("/evidence-events")
     @PreAuthorize("hasRole('VT-02')")
@@ -89,10 +70,6 @@ public class CodeRangeSupplementController {
 
     /**
      * Lấy danh sách yêu cầu của tổ chức mình.
-     *
-     * <p>Chỉ Quản lý hợp tác xã (VT-02) được phép.</p>
-     *
-     * GET /api/v1/code-range-supplement-requests/my?status=PENDING&page=0&size=20
      */
     @GetMapping("/my")
     @PreAuthorize("hasRole('VT-02')")
@@ -110,10 +87,6 @@ public class CodeRangeSupplementController {
 
     /**
      * Lấy danh sách tất cả yêu cầu theo trạng thái, phân trang.
-     *
-     * <p>Chỉ Quản trị viên nền tảng (VT-01) được phép.</p>
-     *
-     * GET /api/v1/code-range-supplement-requests?status=PENDING&page=0&size=20
      */
     @GetMapping
     @PreAuthorize("hasRole('VT-01')")
@@ -131,10 +104,6 @@ public class CodeRangeSupplementController {
 
     /**
      * Lấy chi tiết một yêu cầu.
-     *
-     * <p>VT-01 xem tất cả; VT-02 chỉ xem yêu cầu của tổ chức mình.</p>
-     *
-     * GET /api/v1/code-range-supplement-requests/{id}
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
@@ -149,12 +118,6 @@ public class CodeRangeSupplementController {
 
     /**
      * Duyệt toàn bộ hoặc một phần một yêu cầu.
-     *
-     * <p>Chỉ Quản trị viên nền tảng (VT-01) được phép. Khi duyệt, hạn mức
-     * ({@code totalLimit}) của dải mã hiện có của tổ chức tăng ngay
-     * theo số lượng thực cấp.</p>
-     *
-     * PUT /api/v1/code-range-supplement-requests/{id}/approve
      */
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasRole('VT-01')")
@@ -170,10 +133,6 @@ public class CodeRangeSupplementController {
 
     /**
      * Từ chối một yêu cầu kèm lý do bắt buộc.
-     *
-     * <p>Chỉ Quản trị viên nền tảng (VT-01) được phép.</p>
-     *
-     * PUT /api/v1/code-range-supplement-requests/{id}/reject
      */
     @PutMapping("/{id}/reject")
     @PreAuthorize("hasRole('VT-01')")

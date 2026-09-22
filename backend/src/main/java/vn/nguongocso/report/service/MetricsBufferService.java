@@ -5,10 +5,7 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
 
-/**
- * Service lưu trữ và quản lý bộ đệm số liệu theo cửa sổ trượt 60 phút (Sliding Window).
- * Đảm bảo thread-safe, không sử dụng lock gây nghẽn hiệu năng.
- */
+/** Service lưu trữ và quản lý bộ đệm số liệu theo cửa sổ trượt. */
 @Service
 public class MetricsBufferService {
 

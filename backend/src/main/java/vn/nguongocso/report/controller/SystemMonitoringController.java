@@ -14,10 +14,7 @@ import vn.nguongocso.report.service.SystemMonitoringService;
 import java.util.List;
 
 /**
- * Controller cung cấp API Giám sát tình trạng hệ thống thời gian thực trước buổi trình diễn.
- *
- * <p><strong>Story ID:</strong> NCL-10-CN-010</p>
- * <p><strong>Role yêu cầu:</strong> VT-01 (Quản trị viên nền tảng)</p>
+ * Controller giám sát tình trạng hệ thống thời gian thực.
  */
 @RestController
 @RequestMapping("/api/v1/admin/monitoring")
@@ -28,9 +25,7 @@ public class SystemMonitoringController {
     private final SystemMonitoringService systemMonitoringService;
 
     /**
-     * API Lấy tình trạng sức khỏe tổng thể và 4 chỉ số giám sát hệ thống trong 1 giờ gần nhất.
-     *
-     * @return ApiResult chứa SystemStatusResponse
+     * Lấy tình trạng sức khỏe tổng thể và các chỉ số giám sát hệ thống trong 1 giờ gần nhất.
      */
     @GetMapping("/system-status")
     public ResponseEntity<ApiResult<SystemStatusResponse>> getSystemStatus() {
@@ -39,9 +34,7 @@ public class SystemMonitoringController {
     }
 
     /**
-     * API Lấy danh sách cấu hình các ngưỡng giám sát hệ thống.
-     *
-     * @return ApiResult chứa danh sách MetricThresholdDto
+     * Lấy danh sách cấu hình các ngưỡng giám sát hệ thống.
      */
     @GetMapping("/thresholds")
     public ResponseEntity<ApiResult<List<MetricThresholdDto>>> getThresholds() {

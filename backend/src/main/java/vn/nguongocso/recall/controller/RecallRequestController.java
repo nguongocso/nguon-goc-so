@@ -28,14 +28,7 @@ import vn.nguongocso.recall.dto.response.RecallRequestResponse;
 import vn.nguongocso.recall.service.RecallRequestService;
 
 /**
- * Controller quản lý yêu cầu thu hồi lô sản xuất (NCL-08-CN-008).
- *
- * <p>
- * Quy trình 2 bước:
- * <ol>
- *   <li>Người ghi sự kiện (VT-03) tạo yêu cầu.</li>
- *   <li>Quản lý hợp tác xã (VT-02) duyệt hoặc từ chối.</li>
- * </ol>
+ * Controller quản lý yêu cầu thu hồi lô sản xuất.
  */
 @RestController
 @RequestMapping("/api/v1/recall-requests")
@@ -47,10 +40,6 @@ public class RecallRequestController {
 
     /**
      * Tạo yêu cầu thu hồi lô sản xuất.
-     *
-     * <p>Chỉ người ghi sự kiện (VT-03) được phép.</p>
-     *
-     * POST /api/v1/recall-requests
      */
     @PostMapping
     @PreAuthorize("hasRole('VT-03')")
@@ -66,10 +55,6 @@ public class RecallRequestController {
 
     /**
      * Lấy danh sách yêu cầu thu hồi theo trạng thái, phân trang.
-     *
-     * <p>Chỉ quản lý hợp tác xã (VT-02) được phép.</p>
-     *
-     * GET /api/v1/recall-requests?status=PENDING&page=0&size=20
      */
     @GetMapping
     @PreAuthorize("hasRole('VT-02')")
@@ -87,10 +72,6 @@ public class RecallRequestController {
 
     /**
      * Lấy chi tiết một yêu cầu thu hồi.
-     *
-     * <p>Chỉ quản lý hợp tác xã (VT-02) được phép.</p>
-     *
-     * GET /api/v1/recall-requests/{id}
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('VT-02')")
@@ -105,13 +86,6 @@ public class RecallRequestController {
 
     /**
      * Duyệt một yêu cầu thu hồi.
-     *
-     * <p>
-     * Chỉ quản lý hợp tác xã (VT-02) được phép. Người duyệt phải khác người tạo
-     * (QTN-22).
-     * </p>
-     *
-     * PUT /api/v1/recall-requests/{id}/approve
      */
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasRole('VT-02')")
@@ -127,10 +101,6 @@ public class RecallRequestController {
 
     /**
      * Từ chối một yêu cầu thu hồi.
-     *
-     * <p>Chỉ quản lý hợp tác xã (VT-02) được phép.</p>
-     *
-     * PUT /api/v1/recall-requests/{id}/reject
      */
     @PutMapping("/{id}/reject")
     @PreAuthorize("hasRole('VT-02')")

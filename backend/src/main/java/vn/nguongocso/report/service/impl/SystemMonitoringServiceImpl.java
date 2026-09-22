@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/** Triển khai dịch vụ giám sát tình trạng hệ thống. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

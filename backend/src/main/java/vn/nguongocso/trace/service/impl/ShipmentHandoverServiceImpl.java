@@ -53,6 +53,7 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.HandoverExpiryService;
 import vn.nguongocso.trace.service.ShipmentHandoverService;
 
+/** Triển khai dịch vụ xử lý nghiệp vụ phiếu bàn giao lô hàng. */
 @Service
 @Transactional
 @RequiredArgsConstructor

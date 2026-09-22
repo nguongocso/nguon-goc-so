@@ -1,85 +1,91 @@
 package vn.nguongocso.trace.service;
 
+import java.util.List;
+import java.util.UUID;
+
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.trace.dto.request.CreateShipmentRequest;
 import vn.nguongocso.trace.dto.request.SplitShipmentRequest;
 import vn.nguongocso.trace.dto.response.PartnerOrganizationResponse;
+import vn.nguongocso.trace.dto.response.ProcurementShipmentResponse;
+import vn.nguongocso.trace.dto.response.ShipmentResponse;
+import vn.nguongocso.trace.dto.response.ShipmentSummaryResponse;
 import vn.nguongocso.trace.dto.response.SplitPreviewResponse;
 import vn.nguongocso.trace.dto.response.SplitShipmentResponse;
-import vn.nguongocso.trace.dto.response.ShipmentResponse;
-import vn.nguongocso.trace.dto.response.ProcurementShipmentResponse;
-import vn.nguongocso.trace.dto.response.ShipmentSummaryResponse;
 
-import java.util.List;
-import java.util.UUID;
-
-/**
- * Định nghĩa các nghiệp vụ quản lý lô hàng và sinh mã truy xuất.
- */
+/** Service quản lý lô hàng và sinh mã truy xuất. */
 public interface ShipmentService {
+
     /**
      * Tạo lô hàng từ lô sản xuất và sinh mã truy xuất tương ứng.
-     *
-     * @param request thông tin tạo lô hàng
-     * @return thông tin lô hàng sau khi tạo
      */
-    ShipmentResponse createShipment(CreateShipmentRequest request);
+    ShipmentResponse createShipment(
+        CreateShipmentRequest request
+    );
 
     /**
      * Kích hoạt các mã truy xuất của lô hàng.
-     *
-     * @param shipmentId ID của lô hàng
-     * @return thông tin lô hàng sau khi kích hoạt
      */
-    ShipmentResponse activateShipmentStamps(UUID shipmentId);
+    ShipmentResponse activateShipmentStamps(
+        UUID shipmentId
+    );
 
     /**
      * Lấy danh sách lô hàng theo ID của lô sản xuất.
-     *
-     * @param productionLotId ID của lô sản xuất
-     * @return danh sách lô hàng
      */
-    List<ShipmentResponse> getShipmentsByProductionLot(UUID productionLotId);
+    List<ShipmentResponse> getShipmentsByProductionLot(
+        UUID productionLotId
+    );
 
     /**
-     * Lấy danh sách lô hàng theo ID của lô sản xuất với phân trang.
-     *
-     * @param productionLotId ID của lô sản xuất
-     * @param page            số trang (bắt đầu từ 0)
-     * @param size            số bản ghi trên mỗi trang
-     * @return dữ liệu phân trang
+     * Lấy danh sách lô hàng theo ID lô sản xuất có phân trang.
      */
     PageResponse<ShipmentResponse> getShipmentsByProductionLotPaged(
-            UUID productionLotId, int page, int size);
+        UUID productionLotId,
+        int page,
+        int size
+    );
 
     /**
-     * Tra cứu lô hàng bằng mã truy xuất (codeValue in trên tem QR).
-     *
-     * @param code mã truy xuất
-     * @return thông tin tóm tắt của lô hàng
-     * @throws BusinessException nếu không tìm thấy mã truy xuất
+     * Tra cứu lô hàng bằng mã truy xuất in trên tem QR.
      */
-    ShipmentSummaryResponse getShipmentByCode(String code);
+    ShipmentSummaryResponse getShipmentByCode(
+        String code
+    );
 
     /**
-     * Lấy danh sách lô hàng đủ điều kiện thu mua (status = ACTIVATED).
-     * Dùng cho Doanh nghiệp thu mua (VT‑04).
-     *
-     * @return danh sách lô hàng sẵn sàng thu mua
+     * Lấy danh sách lô hàng đủ điều kiện thu mua.
      */
     List<ProcurementShipmentResponse> getEligibleShipments();
 
     /**
      * Lấy chi tiết lô hàng theo ID.
-     *
-     * @param id ID của lô hàng
-     * @return thông tin chi tiết lô hàng
      */
-    ShipmentResponse getShipmentById(UUID id);
+    ShipmentResponse getShipmentById(
+        UUID id
+    );
 
-    PageResponse<PartnerOrganizationResponse> getPartnerOrganizations(String keyword, int page, int size);
+    /**
+     * Lấy danh sách tổ chức đối tác có tìm kiếm và phân trang.
+     */
+    PageResponse<PartnerOrganizationResponse> getPartnerOrganizations(
+        String keyword,
+        int page,
+        int size
+    );
 
-    SplitPreviewResponse getSplitPreview(UUID shipmentId);
+    /**
+     * Lấy thông tin xem trước khi tách lô hàng.
+     */
+    SplitPreviewResponse getSplitPreview(
+        UUID shipmentId
+    );
 
-    SplitShipmentResponse splitShipment(UUID shipmentId, SplitShipmentRequest request);
+    /**
+     * Thực hiện tách lô hàng thành các lô con.
+     */
+    SplitShipmentResponse splitShipment(
+        UUID shipmentId,
+        SplitShipmentRequest request
+    );
 }

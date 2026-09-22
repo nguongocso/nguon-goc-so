@@ -15,11 +15,7 @@ import vn.nguongocso.exception.BusinessException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Service ghi log truy cập báo cáo.
- *
- * @author Triệu Văn Đại
- */
+/** Triển khai dịch vụ ghi log truy cập báo cáo. */
 @Service
 @RequiredArgsConstructor
 public class ReportAccessLogServiceImpl implements ReportAccessLogService {

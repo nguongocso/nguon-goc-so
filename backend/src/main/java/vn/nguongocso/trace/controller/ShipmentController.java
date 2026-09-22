@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * API quản lý lô hàng.
+ * Controller quản lý lô hàng.
  */
 @RestController
 @RequestMapping("/api/v1/shipments")
@@ -35,9 +35,6 @@ public class ShipmentController {
 
 	/**
 	 * Tạo lô hàng và sinh mã truy xuất.
-	 *
-	 * @param request thông tin tạo lô hàng
-	 * @return thông tin lô hàng
 	 */
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
@@ -48,9 +45,6 @@ public class ShipmentController {
 
 	/**
 	 * Kích hoạt lô hàng và các mã truy xuất.
-	 *
-	 * @param id ID của lô hàng
-	 * @return thông tin lô hàng đã kích hoạt
 	 */
 	@PostMapping("/{id}/activate")
 	public ApiResult<ShipmentResponse> activateStamps(@PathVariable UUID id) {
@@ -60,9 +54,6 @@ public class ShipmentController {
 
 	/**
 	 * Lấy danh sách lô hàng theo ID lô sản xuất.
-	 *
-	 * @param productionLotId ID của lô sản xuất
-	 * @return danh sách lô hàng
 	 */
 	@GetMapping("/production-lots/{productionLotId}")
 	@PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
@@ -73,11 +64,6 @@ public class ShipmentController {
 
 	/**
 	 * Lấy danh sách lô hàng theo ID lô sản xuất với phân trang.
-	 *
-	 * @param productionLotId ID của lô sản xuất
-	 * @param page            số trang (mặc định 0)
-	 * @param size            số bản ghi trên mỗi trang (mặc định 10)
-	 * @return danh sách lô hàng phân trang
 	 */
 	@GetMapping("/production-lots/{productionLotId}/paged")
 	@PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
@@ -91,11 +77,7 @@ public class ShipmentController {
 	}
 
 	/**
-	 * Tra cứu lô hàng bằng mã truy xuất (codeValue in trên tem QR).
-	 * Dùng bởi VT-04 để xác nhận lô hàng trước khi ghi sự kiện thu mua.
-	 *
-	 * @param code mã truy xuất
-	 * @return thông tin tóm tắt của lô hàng
+	 * Tra cứu lô hàng bằng mã truy xuất.
 	 */
 	@GetMapping("/by-code")
 	public ApiResult<ShipmentSummaryResponse> getShipmentByCode(@RequestParam String code) {
@@ -104,8 +86,7 @@ public class ShipmentController {
 	}
 
 	/**
-	 * Lấy danh sách lô hàng liên quan tới Doanh nghiệp thu mua (lô đã thu mua,
-	 * được bàn giao hoặc đã nhập kho). Chỉ VT‑04 được sử dụng.
+	 * Lấy danh sách lô hàng liên quan tới Doanh nghiệp thu mua.
 	 */
 	@GetMapping("/eligible")
 	@PreAuthorize("hasRole('VT-04')")
@@ -114,11 +95,17 @@ public class ShipmentController {
 		return ApiResult.success(shipmentService.getEligibleShipments());
 	}
 
+	/**
+	 * Xem trước thông tin tách lô hàng.
+	 */
 	@GetMapping("/{shipmentId}/split-preview")
 	public ApiResult<SplitPreviewResponse> getSplitPreview(@PathVariable UUID shipmentId) {
 		return ApiResult.success(shipmentService.getSplitPreview(shipmentId));
 	}
 
+	/**
+	 * Tách lô hàng thành các lô nhỏ hơn.
+	 */
 	@PostMapping("/{shipmentId}/split")
 	@ResponseStatus(HttpStatus.CREATED)
 	public ApiResult<SplitShipmentResponse> splitShipment(@PathVariable UUID shipmentId,
@@ -128,9 +115,6 @@ public class ShipmentController {
 
 	/**
 	 * Lấy chi tiết lô hàng theo ID.
-	 *
-	 * @param id ID của lô hàng
-	 * @return chi tiết lô hàng
 	 */
 	@GetMapping("/{id}")
 	@PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03', 'VT-04', 'VT-05')")
@@ -139,6 +123,9 @@ public class ShipmentController {
 		return ApiResult.success(shipmentService.getShipmentById(id));
 	}
 
+	/**
+	 * Lấy số lượng sản phẩm chưa bàn giao còn lại của lô hàng.
+	 */
 	@GetMapping("/{id}/remaining-handover-quantity")
 	public ApiResult<Long> getRemainingHandoverQuantity(@PathVariable UUID id) {
 		return ApiResult.success(handoverService.getRemainingQuantity(id));
@@ -146,12 +133,6 @@ public class ShipmentController {
 
 	/**
 	 * Kiểm tra lô hàng có phiếu bàn giao đang chờ xác nhận hay không.
-	 * Frontend dùng để hiển thị nhãn "Đang bàn giao" trong thời gian chờ
-	 * (NCL-05-CN-008). Trạng thái derived từ phiếu PENDING_CONFIRMATION,
-	 * không phải cột mới trên lô hàng.
-	 *
-	 * @param id ID của lô hàng
-	 * @return true khi tồn tại phiếu đang chờ xác nhận
 	 */
 	@GetMapping("/{id}/has-pending-handover")
 	public ApiResult<Boolean> hasPendingHandover(@PathVariable UUID id) {

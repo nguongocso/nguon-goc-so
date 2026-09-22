@@ -46,15 +46,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-/**
- * Triển khai dịch vụ quản lý vụ việc thu hồi (NCL-08-CN-012).
- *
- * <p>Vụ việc thu hồi gom toàn bộ lô hàng (Shipment) ở trạng thái {@code RECALLING}
- * của một lô sản xuất. Khi gọi danh sách, hệ thống tự tạo vụ việc (lazy
- * materialize) cho các lô sản xuất có lô hàng đang thu hồi nhưng chưa có vụ
- * việc. Vụ việc chỉ được đóng khi mọi lô hàng đã có kết quả xử lý và đã nhập
- * biện pháp khắc phục phòng ngừa (QTN-27), sau đó chuyển lô hàng sang {@code RECALLED}.</p>
- */
+/** Triển khai dịch vụ quản lý vụ việc thu hồi. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -92,12 +84,7 @@ public class RecallCaseServiceImpl implements RecallCaseService {
     private final CodeRangeRepository codeRangeRepository;
     private final PartnerRecallWebhookDispatcher partnerRecallWebhookDispatcher;
 
-    /**
-     * Danh sách vụ việc thu hồi của tổ chức hiện tại.
-     *
-     * <p>Trước khi trả kết quả, tự tạo vụ việc (lazy materialize) cho các lô
-     * sản xuất đã có lô hàng bị thu hồi nhưng chưa có vụ việc.</p>
-     */
+    /** Danh sách vụ việc thu hồi của tổ chức hiện tại. */
     @Override
     @Transactional
     public List<RecallCaseResponse> list(CustomUserDetails currentUser) {
@@ -130,7 +117,9 @@ public class RecallCaseServiceImpl implements RecallCaseService {
     /** Chi tiết một vụ việc thuộc tổ chức hiện tại, kèm kết quả xử lý từng lô. */
     @Override
     @Transactional(readOnly = true)
-    public RecallCaseResponse getById(UUID id, CustomUserDetails currentUser) {
+    public RecallCaseResponse getById(
+            UUID id,
+            CustomUserDetails currentUser) {
         RecallCase recallCase = recallCaseRepository
                 .findByIdAndOrganizationId(id, currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(MSG_CASE_NOT_FOUND));
@@ -150,17 +139,13 @@ public class RecallCaseServiceImpl implements RecallCaseService {
         return toResponse(recallCase, shipments);
     }
 
-    /**
-     * Đóng vụ việc thu hồi (chỉ VT-02 cùng tổ chức sở hữu — QTN-01).
-     *
-     * <p>Trong cùng một transaction: kiểm tra điều kiện đóng theo QTN-27, lưu
-     * kết quả xử lý từng lô, đóng vụ việc, gửi thông báo tới doanh nghiệp thu
-     * mua liên quan và ghi lịch sử hoạt động (QTN-08).</p>
-     */
+    /** Đóng vụ việc thu hồi và lưu kết quả xử lý. */
     @Override
     @Transactional
-    public RecallCaseResponse close(UUID id, CloseRecallCaseRequest request,
-                                    CustomUserDetails currentUser) {
+    public RecallCaseResponse close(
+            UUID id,
+            CloseRecallCaseRequest request,
+            CustomUserDetails currentUser) {
         // 1. Kiểm tra vai trò và cách ly tổ chức (QTN-01)
         if (!ORG_MANAGER_ROLE.equals(currentUser.getRoleCode())) {
             throw new BusinessException(MSG_NO_PERMISSION);
@@ -312,10 +297,7 @@ public class RecallCaseServiceImpl implements RecallCaseService {
                 : request.getLotResults();
     }
 
-    /**
-     * Tự tạo vụ việc thu hồi (lazy materialize) cho các lô sản xuất đã có lô
-     * hàng bị thu hồi nhưng chưa có vụ việc. Idempotent theo lô sản xuất.
-     */
+    /** Tự tạo vụ việc thu hồi cho các lô sản xuất có lô hàng bị thu hồi. */
     private void materializeOpenCases(UUID organizationId) {
         List<Shipment> recalling = shipmentRepository
                 .findByOrganization_OrganizationIdAndStatus(
@@ -346,12 +328,10 @@ public class RecallCaseServiceImpl implements RecallCaseService {
                 + "-" + String.format("%04X", ThreadLocalRandom.current().nextInt(0x10000));
     }
 
-    /**
-     * Gửi thông báo kết thúc thu hồi tới doanh nghiệp thu mua liên quan
-     * (các tổ chức ghi nhận sự kiện thu mua trên các lô hàng trong vụ việc).
-     */
-    private void notifyProcurementOrganizations(RecallCase recallCase,
-                                                List<Shipment> shipments) {
+    /** Gửi thông báo kết thúc thu hồi tới doanh nghiệp thu mua liên quan. */
+    private void notifyProcurementOrganizations(
+            RecallCase recallCase,
+            List<Shipment> shipments) {
         List<UUID> shipmentIds = shipments.stream().map(Shipment::getId).toList();
         List<UUID> procurementOrgIds =
                 chainEventRepository.findDistinctProcurementOrganizationIdsByShipmentIds(shipmentIds);
@@ -383,10 +363,11 @@ public class RecallCaseServiceImpl implements RecallCaseService {
                 count, recallCase.getCaseCode(), recallCase.getId());
     }
 
-    /** Ghi lịch sử hoạt động cho thao tác đóng vụ việc (QTN-08). */
-    private void logCloseActivity(CustomUserDetails currentUser,
-                                  RecallCase recallCase,
-                                  int shipmentCount) {
+    /** Ghi lịch sử hoạt động cho thao tác đóng vụ việc. */
+    private void logCloseActivity(
+            CustomUserDetails currentUser,
+            RecallCase recallCase,
+            int shipmentCount) {
         activityLogService.logActivity(ActivityLogRequest.builder()
                 .userId(currentUser.getUserId())
                 .username(currentUser.getUsername())
@@ -401,13 +382,7 @@ public class RecallCaseServiceImpl implements RecallCaseService {
                 .build());
     }
 
-    /**
-     * Dựng response của một vụ việc kèm toàn bộ lô hàng trong phạm vi.
-     *
-     * <p>Mọi lô hàng {@code RECALLED} của lô sản xuất đều xuất hiện trong
-     * {@code lotResults}; lô chưa nhập kết quả có {@code resolution = null}
-     * để màn hình hiển thị trạng thái "Chưa nhập" và cho phép nhập bổ sung.</p>
-     */
+    /** Dựng DTO phản hồi vụ việc thu hồi kèm danh sách kết quả từng lô. */
     private RecallCaseResponse toResponse(RecallCase recallCase, List<Shipment> shipments) {
         Map<UUID, RecallLotResult> resultByShipment = recallLotResultRepository
                 .findByRecallCaseId(recallCase.getId())

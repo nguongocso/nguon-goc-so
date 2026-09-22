@@ -79,9 +79,7 @@ import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
-/**
- * Triển khai dịch vụ quản lý danh sách và chi tiết lô có cảnh báo theo địa bàn (NCL-07-CN-006).
- */
+/** Triển khai dịch vụ quản lý danh sách và chi tiết lô có cảnh báo theo địa bàn. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

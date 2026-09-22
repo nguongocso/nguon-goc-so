@@ -8,12 +8,9 @@ import org.springframework.stereotype.Repository;
 
 import vn.nguongocso.recall.entity.BulkRecallShipment;
 
-/**
- * Repository quản lý chi tiết lô hàng trong yêu cầu thu hồi hàng loạt (NCL-08-CN-011).
- */
+/** Repository quản lý chi tiết lô hàng trong yêu cầu thu hồi hàng loạt. */
 @Repository
 public interface BulkRecallShipmentRepository extends JpaRepository<BulkRecallShipment, UUID> {
-
     /**
      * Lấy danh sách chi tiết theo yêu cầu thu hồi.
      */

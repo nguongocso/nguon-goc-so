@@ -34,7 +34,7 @@ import vn.nguongocso.report.enums.LotAlertType;
 import vn.nguongocso.report.service.TerritoryLotAlertService;
 
 /**
- * Controller quản lý danh sách và chi tiết các lô có cảnh báo theo địa bàn cho Cán bộ quản lý ngành (NCL-07-CN-006).
+ * Controller quản lý danh sách và chi tiết các lô có cảnh báo theo địa bàn.
  */
 @RestController
 @RequestMapping("/api/v1/reports/alert-lots")

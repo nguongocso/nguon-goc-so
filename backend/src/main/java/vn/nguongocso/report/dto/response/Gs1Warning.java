@@ -11,16 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Cảnh báo dữ liệu thiếu/không đầy đủ khi xuất hồ sơ GS1 mô phỏng.
- *
- * <p>
- * Warning không làm request thất bại (HTTP vẫn 200). Mỗi warning gắn với một
- * sự kiện và một trường dữ liệu cụ thể.
- * </p>
- *
- * @author Triệu Văn Đại
- */
+/** Cảnh báo dữ liệu khi xuất hồ sơ GS1. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,15 +20,12 @@ import lombok.Setter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Gs1Warning {
 
-    /** ID sự kiện liên quan (có thể null nếu warning ở cấp Shipment). */
     @JacksonXmlProperty(localName = "eventId")
     private UUID eventId;
 
-    /** Tên trường dữ liệu thiếu (vd: {@code location}, {@code address}). */
     @JacksonXmlProperty(localName = "field")
     private String field;
 
-    /** Mô tả chi tiết về cảnh báo. */
     @JacksonXmlProperty(localName = "message")
     private String message;
 }

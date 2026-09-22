@@ -12,12 +12,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Payload tạo yêu cầu cấp bổ sung dải mã truy xuất (NCL-04-CN-007).
- *
- * <p>Chỉ Quản lý hợp tác xã (VT-02) được phép. Tổ chức lấy từ người dùng
- * đang đăng nhập (QTN-01).</p>
- */
+/** Yêu cầu tạo mới cấp bổ sung dải mã truy xuất. */
 @Getter
 @Setter
 @NoArgsConstructor

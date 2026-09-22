@@ -11,9 +11,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Entity ghi log truy cập báo cáo.
- *
- * @author Triệu Văn Đại
+ * Lịch sử truy cập báo cáo.
  */
 @Table(name = "report_access_log")
 @Entity

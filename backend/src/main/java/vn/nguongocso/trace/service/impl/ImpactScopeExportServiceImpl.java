@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+/** Triển khai dịch vụ xuất báo cáo phạm vi ảnh hưởng. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

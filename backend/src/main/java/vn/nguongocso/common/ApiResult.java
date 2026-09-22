@@ -8,11 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * ApiResult là một lớp đại diện cho kết quả trả về từ API.
- * Nó chứa thông tin về trạng thái thành công, mã trạng thái HTTP,
- * thông điệp, dữ liệu trả về, lỗi (nếu có), đường dẫn và thời gian tạo.
- *
- * @param <T> Kiểu dữ liệu của dữ liệu trả về.
+ * Kết quả trả về từ API.
  */
 @Getter
 @Builder
