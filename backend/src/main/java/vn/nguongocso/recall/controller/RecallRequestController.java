@@ -27,20 +27,15 @@ import vn.nguongocso.recall.dto.request.RejectRecallRequest;
 import vn.nguongocso.recall.dto.response.RecallRequestResponse;
 import vn.nguongocso.recall.service.RecallRequestService;
 
-/**
- * Controller quản lý yêu cầu thu hồi lô sản xuất.
- */
+/** Controller quản lý yêu cầu thu hồi lô sản xuất. */
 @RestController
 @RequestMapping("/api/v1/recall-requests")
 @RequiredArgsConstructor
 @Validated
 public class RecallRequestController {
-
     private final RecallRequestService recallRequestService;
 
-    /**
-     * Tạo yêu cầu thu hồi lô sản xuất.
-     */
+    /** Tạo yêu cầu thu hồi lô sản xuất. */
     @PostMapping
     @PreAuthorize("hasRole('VT-03')")
     public ResponseEntity<ApiResult<RecallRequestResponse>> create(
@@ -53,9 +48,7 @@ public class RecallRequestController {
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * Lấy danh sách yêu cầu thu hồi theo trạng thái, phân trang.
-     */
+    /** Lấy danh sách yêu cầu thu hồi theo trạng thái, phân trang. */
     @GetMapping
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<PageResponse<RecallRequestResponse>>> list(
@@ -70,9 +63,7 @@ public class RecallRequestController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Lấy chi tiết một yêu cầu thu hồi.
-     */
+    /** Lấy chi tiết một yêu cầu thu hồi. */
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<RecallRequestResponse>> getById(
@@ -84,9 +75,7 @@ public class RecallRequestController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Duyệt một yêu cầu thu hồi.
-     */
+    /** Duyệt một yêu cầu thu hồi. */
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<RecallRequestResponse>> approve(
@@ -99,9 +88,7 @@ public class RecallRequestController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Từ chối một yêu cầu thu hồi.
-     */
+    /** Từ chối một yêu cầu thu hồi. */
     @PutMapping("/{id}/reject")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<RecallRequestResponse>> reject(

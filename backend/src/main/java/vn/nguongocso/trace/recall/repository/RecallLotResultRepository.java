@@ -10,7 +10,6 @@ import java.util.UUID;
 /** Repository quản lý kết quả xử lý lô trong vụ việc thu hồi. */
 @Repository
 public interface RecallLotResultRepository extends JpaRepository<RecallLotResult, UUID> {
-
     /** Lấy danh sách kết quả xử lý lô theo ID vụ việc thu hồi. */
     List<RecallLotResult> findByRecallCaseId(UUID recallCaseId);
 

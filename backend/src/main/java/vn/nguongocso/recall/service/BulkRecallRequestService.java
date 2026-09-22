@@ -16,25 +16,19 @@ import vn.nguongocso.trace.recall.dto.request.CloseRecallCaseRequest;
 
 /** Service quản lý yêu cầu thu hồi hàng loạt. */
 public interface BulkRecallRequestService {
-    /**
-     * Tạo yêu cầu thu hồi hàng loạt.
-     */
+    /** Tạo yêu cầu thu hồi hàng loạt. */
     BulkRecallRequestResponse createBulkRecallRequest(
         CreateBulkRecallRequest request,
         CustomUserDetails currentUser
     );
 
-    /**
-     * Lấy chi tiết yêu cầu thu hồi.
-     */
+    /** Lấy chi tiết yêu cầu thu hồi. */
     BulkRecallRequestResponse getBulkRecallRequest(
         UUID id,
         CustomUserDetails currentUser
     );
 
-    /**
-     * Lấy danh sách yêu cầu thu hồi có phân trang.
-     */
+    /** Lấy danh sách yêu cầu thu hồi có phân trang. */
     PageResponse<BulkRecallRequestResponse> listBulkRecallRequests(
         String status,
         int page,
@@ -42,53 +36,41 @@ public interface BulkRecallRequestService {
         CustomUserDetails currentUser
     );
 
-    /**
-     * Phê duyệt yêu cầu thu hồi hàng loạt.
-     */
+    /** Phê duyệt yêu cầu thu hồi hàng loạt. */
     BulkRecallRequestResponse approveBulkRecallRequest(
         UUID id,
         ApproveBulkRecallRequest request,
         CustomUserDetails currentUser
     );
 
-    /**
-     * Từ chối yêu cầu thu hồi hàng loạt.
-     */
+    /** Từ chối yêu cầu thu hồi hàng loạt. */
     BulkRecallRequestResponse rejectBulkRecallRequest(
         UUID id,
         RejectBulkRecallRequest request,
         CustomUserDetails currentUser
     );
 
-    /**
-     * Kết thúc vụ việc thu hồi gắn liền với yêu cầu thu hồi đã duyệt.
-     */
+    /** Kết thúc vụ việc thu hồi gắn liền với yêu cầu thu hồi đã duyệt. */
     BulkRecallRequestResponse closeBulkRecallRequest(
         UUID id,
         CloseRecallCaseRequest request,
         CustomUserDetails currentUser
     );
 
-    /**
-     * Tải lên tệp biên bản đính kèm vụ việc thu hồi.
-     */
+    /** Tải lên tệp biên bản đính kèm vụ việc thu hồi. */
     RecallEvidenceResponse uploadEvidenceFile(
         MultipartFile file,
         CustomUserDetails currentUser
     );
 
-    /**
-     * Dữ liệu tệp biên bản gồm Resource, tên tệp gốc và MIME type.
-     */
+    /** Dữ liệu tệp biên bản gồm Resource, tên tệp gốc và MIME type. */
     record EvidenceFileContent(
         Resource resource,
         String fileName,
         String contentType
     ) {}
 
-    /**
-     * Lấy tài nguyên tệp biên bản để tải về hoặc xem trực tiếp.
-     */
+    /** Lấy tài nguyên tệp biên bản để tải về hoặc xem trực tiếp. */
     EvidenceFileContent getEvidenceFile(
         UUID fileId,
         CustomUserDetails currentUser

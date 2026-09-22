@@ -22,7 +22,6 @@ import vn.nguongocso.recall.entity.BulkRecallRequest;
 @RequiredArgsConstructor
 @Transactional
 public class BulkRecallNotificationService {
-
     /** Mã vai trò Quản lý HTX. */
     private static final String ORG_MANAGER_ROLE = "VT-02";
 

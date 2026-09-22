@@ -9,9 +9,7 @@ import vn.nguongocso.organization.entity.Organization;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Thực thể đại diện cho một dải mã truy xuất.
- */
+/** Thực thể đại diện cho một dải mã truy xuất. */
 @Entity
 @Table(name = "code_ranges")
 @Getter

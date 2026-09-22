@@ -53,8 +53,6 @@ import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 @Slf4j
 @Service
 public class SuspectDetectionServiceImpl implements SuspectDetectionService {
-
-    // --- Thresholds per API doc (P1.3 chuẩn hóa thang điểm 100) ---
     private static final int HIGH_FREQUENCY_THRESHOLD = 10; // ≥ 10 scans in 24h → +35 points
     private static final int HIGH_FREQUENCY_SCORE = 35;
     private static final double IMPOSSIBLE_TRAVEL_DISTANCE_KM = 50.0; // > 50km
@@ -586,23 +584,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         }
     }
 
-    /**
-     * Trung tâm tính điểm nghi vấn NCL-08-CN-007.
-     *
-     * <p>
-     * Cả {@code evaluateSuspicion} lẫn {@code getSuspectDetail} đều dùng duy nhất
-     * phương thức này, đảm bảo điểm được lưu và bảng phân tích hiển thị luôn khớp.
-     * Quy tắc không thay đổi:
-     * </p>
-     * <ul>
-     * <li>Số lượt quét ≥ 10 trong 24h → +30.</li>
-     * <li>Di chuyển bất hợp lý (> 50km, < 30 phút) → tối đa +40 (không cộng dồn).</li>
-     * <li>Số địa điểm khác nhau ≥ 5 → +15.</li>
-     * </ul>
-     *
-     * @param sortedScans các lượt quét đã sắp xếp tăng dần theo thời gian
-     * @return kết quả đánh giá (từng hạng mục + tổng điểm)
-     */
+    /** Trung tâm tính điểm nghi vấn NCL-08-CN-007. <p> Cả {@code evaluateSuspicion} lẫn {@code getSuspectDetail} đều dùng duy nhất phương thức này, đảm bảo điểm được lưu và bảng phân tích hiển thị luôn khớp. Quy tắc không thay đổi: </p> <ul> <li>Số lượt quét ≥ 10 trong 24h → +30.</li> <li>Di chuyển bất hợp lý (> 50km, < 30 phút) → tối đa +40 (không cộng dồn).</li> <li>Số địa điểm khác nhau ≥ 5 → +15.</li> </ul> */
     private SuspicionEvaluation evaluate(List<TraceCodeScanLog> sortedScans, AnomalyThresholdResponse threshold, TraceCode traceCode) {
         // Gate: Nếu mã tem còn trong thời gian ân hạn, trả về điểm 0
         if (traceCode != null && traceCode.getActivatedAt() != null) {
@@ -627,7 +609,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         Long firstImpossibleMinutes = null;
         java.util.Set<UUID> violatingIds = new java.util.LinkedHashSet<>();
 
-        // 1. High frequency: cửa sổ trượt chuẩn qua ScanAnomalyUtils
+        // High frequency: cửa sổ trượt chuẩn qua ScanAnomalyUtils
         if (ScanAnomalyUtils.isHighFrequency(sortedScans, maxPerHour, maxPerDay)) {
             highFreqScore = HIGH_FREQUENCY_SCORE;
             for (TraceCodeScanLog s : sortedScans) {
@@ -635,7 +617,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
             }
         }
 
-        // 2. Impossible travel: > maxDistanceKm within < minTimeMinutes between consecutive scans with coordinates
+        // Impossible travel: > maxDistanceKm within < minTimeMinutes between consecutive scans with coordinates
         for (int i = 0; i < sortedScans.size() - 1; i++) {
             TraceCodeScanLog scan1 = sortedScans.get(i);
             TraceCodeScanLog scan2 = sortedScans.get(i + 1);
@@ -667,7 +649,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         // Rule contributes at most +45 for the category, regardless of how many pairs match.
         impossibleTravelScore = impossibleTravelCount > 0 ? IMPOSSIBLE_TRAVEL_SCORE : 0;
 
-        // 3. Multiple locations: count unique locations (by distance epsilon)
+        // Multiple locations: count unique locations (by distance epsilon)
         int uniqueLocations = countUniqueLocations(sortedScans);
         if (uniqueLocations >= MULTIPLE_LOCATIONS_THRESHOLD) {
             multipleLocationsScore = MULTIPLE_LOCATIONS_SCORE;
@@ -704,10 +686,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         return anomalyThresholdService.getEffectiveThreshold(categoryId);
     }
 
-    /**
-     * Đếm số địa điểm duy nhất trong danh sách quét.
-     * Sử dụng ngưỡng khoảng cách LOCATION_EPSILON_KM để xác định "cùng vị trí".
-     */
+    /** Đếm số địa điểm duy nhất trong danh sách quét. Sử dụng ngưỡng khoảng cách LOCATION_EPSILON_KM để xác định "cùng vị trí". */
     private int countUniqueLocations(List<TraceCodeScanLog> scanLogs) {
         List<TraceCodeScanLog> distinct = new ArrayList<>();
 
@@ -734,9 +713,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         return distinct.size();
     }
 
-    /**
-     * Chuyển TraceCode entity sang SuspectTraceCodeResponse.
-     */
+    /** Chuyển TraceCode entity sang SuspectTraceCodeResponse. */
     private SuspectTraceCodeResponse toSuspectResponse(TraceCode tc) {
         LocalDateTime twentyFourHoursAgo = LocalDateTime.now().minusHours(24);
         List<TraceCodeScanLog> recentScans = scanLogRepository
@@ -774,10 +751,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .build();
     }
 
-    /**
-     * Suy diễn điểm thành phần cho các bản ghi nghi vấn cũ chưa có snapshot
-     * và lưu lại snapshot vào DB để đảm bảo tính toàn vẹn dữ liệu hiển thị.
-     */
+    /** Suy diễn điểm thành phần cho các bản ghi nghi vấn cũ chưa có snapshot và lưu lại snapshot vào DB để đảm bảo tính toàn vẹn dữ liệu hiển thị. */
     private ScoreBreakdown inferAndPersistLegacyBreakdown(TraceCode traceCode) {
         int score = traceCode.getSuspicionScore() != null ? traceCode.getSuspicionScore() : 0;
         int highFreq = 0;
@@ -818,9 +792,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .build();
     }
 
-    /**
-     * Kết quả đánh giá nghi vấn bất biến (không được sửa đổi bởi người gọi).
-     */
+    /** Kết quả đánh giá nghi vấn bất biến (không được sửa đổi bởi người gọi). */
     private record SuspicionEvaluation(
             int highFreqScore,
             int impossibleTravelScore,

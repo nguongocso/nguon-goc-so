@@ -26,16 +26,13 @@ import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.enums.CodeRangeSupplementStatus;
 
-/**
- * Yêu cầu cấp bổ sung dải mã truy xuất.
- */
+/** Yêu cầu cấp bổ sung dải mã truy xuất. */
 @Entity
 @Table(name = "code_range_supplement_requests")
 @Getter
 @Setter
 @NoArgsConstructor
 public class CodeRangeSupplementRequest {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)

@@ -54,7 +54,6 @@ import vn.nguongocso.trace.service.LabelExportService;
 @Service
 @RequiredArgsConstructor
 public class LabelExportServiceImpl implements LabelExportService {
-
     private final ShipmentRepository shipmentRepository;
     private final TraceCodeRepository traceCodeRepository;
     private final LabelExportHistoryRepository labelExportHistoryRepository;
@@ -85,47 +84,45 @@ public class LabelExportServiceImpl implements LabelExportService {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public LabelExportResponse exportLabels(UUID shipmentId, ExportLabelsRequest request) {
         CustomUserDetails currentUser = getCurrentUser();
 
-        // 1. Lô hàng phải tồn tại
+        // Lô hàng phải tồn tại
         Shipment shipment = shipmentRepository.findById(shipmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lô hàng."));
 
-        // 2. Chỉ VT-02 được xuất tem
+        // Chỉ VT-02 được xuất tem
         if (!ORG_MANAGER_ROLE.equals(currentUser.getRoleCode())) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "Chỉ Quản lý hợp tác xã (VT-02) mới được xuất tem.");
         }
 
-        // 3. Cô lập dữ liệu theo tổ chức (QTN-01)
+        // Cô lập dữ liệu theo tổ chức (QTN-01)
         if (!currentUser.getOrganizationId().equals(shipment.getOrganization().getOrganizationId())) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "Bạn không có quyền xuất tem lô hàng của tổ chức khác.");
         }
 
-        // 4. Lô hàng đang hoặc đã thu hồi thì không được xuất tem
+        // Lô hàng đang hoặc đã thu hồi thì không được xuất tem
         if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
             throw new BusinessException("Lô hàng đã bị thu hồi hoặc đang trong quá trình thu hồi, không thể xuất tem.");
         }
 
-        // 5. Khổ tem phải nằm trong danh sách đã cấu hình
+        // Khổ tem phải nằm trong danh sách đã cấu hình
         String labelSize = request.getLabelSize() == null ? "" : request.getLabelSize().trim().toLowerCase();
         if (!SUPPORTED_LABEL_SIZES.contains(labelSize)) {
             throw new BusinessException("Khổ tem không hợp lệ. Các khổ hỗ trợ: 40x30, 50x40, 70x50.");
         }
 
-        // 6. Lô hàng phải đã sinh mã truy xuất
+        // Lô hàng phải đã sinh mã truy xuất
         List<TraceCode> traceCodes = traceCodeRepository.findByShipmentId(shipmentId);
         if (traceCodes.isEmpty()) {
             throw new BusinessException("Lô hàng chưa có mã truy xuất nào để xuất tem.");
         }
         traceCodes.sort(Comparator.comparing(TraceCode::getCodeValue));
 
-        // 7. Tổng số tem xuất không vượt số mã đã sinh cho lô hàng (QTN-23)
+        // Tổng số tem xuất không vượt số mã đã sinh cho lô hàng (QTN-23)
         int totalCodes = traceCodes.size();
         int startIndex = request.getStartIndex();
         int count = request.getCount();
@@ -137,10 +134,10 @@ public class LabelExportServiceImpl implements LabelExportService {
 
         List<TraceCode> selectedCodes = traceCodes.subList(startIndex, startIndex + count);
 
-        // 8. Sinh PDF
+        // Sinh PDF
         byte[] pdfBytes = generatePdf(shipment, selectedCodes, labelSize);
 
-        // 9. Ghi lịch sử xuất (QTN-23) và cập nhật thời điểm in cho từng mã tem (NCL-04-CN-008)
+        // Ghi lịch sử xuất (QTN-23) và cập nhật thời điểm in cho từng mã tem (NCL-04-CN-008)
         LocalDateTime now = LocalDateTime.now();
         selectedCodes.forEach(code -> {
             if (code.getPrintedAt() == null) {
@@ -250,15 +247,7 @@ public class LabelExportServiceImpl implements LabelExportService {
         }
     }
 
-    /**
-     * Vẽ một tem: ảnh QR bên trái, thông tin chữ bên phải.
-     *
-     * <p>
-     * Mã truy xuất không bao giờ bị cắt bằng "..." — cỡ chữ được co lại để vừa
-     * bề rộng tem. Các trường thông tin phụ được ngắt dòng theo từ khi cần và
-     * chỉ dùng "..." làm phương án cuối cùng.
-     * </p>
-     */
+    /** Vẽ một tem: ảnh QR bên trái, thông tin chữ bên phải. <p> Mã truy xuất không bao giờ bị cắt bằng "..." — cỡ chữ được co lại để vừa bề rộng tem. Các trường thông tin phụ được ngắt dòng theo từ khi cần và chỉ dùng "..." làm phương án cuối cùng. </p> */
     private void drawLabel(PdfContentByte cb, TraceCode traceCode, Shipment shipment,
             ExportLabelsRequest.IncludeFields fields,
             float x, float yBottom, float labelWidth, float labelHeight,
@@ -344,9 +333,7 @@ public class LabelExportServiceImpl implements LabelExportService {
         }
     }
 
-    /**
-     * Xây dựng URL tra cứu công khai từ FRONTEND_URL.
-     */
+    /** Xây dựng URL tra cứu công khai từ FRONTEND_URL. */
     private String buildTraceUrl(String codeValue) {
         String base = frontendUrl == null ? "" : frontendUrl.trim();
         if (base.endsWith("/")) {
@@ -358,9 +345,7 @@ public class LabelExportServiceImpl implements LabelExportService {
         return base + "/public/trace/" + codeValue;
     }
 
-    /**
-     * Sinh ảnh QR (PNG bytes) bằng ZXing.
-     */
+    /** Sinh ảnh QR (PNG bytes) bằng ZXing. */
     private byte[] createQrPng(String content, int size) throws WriterException, java.io.IOException {
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
         BitMatrix bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, size, size);
@@ -369,9 +354,7 @@ public class LabelExportServiceImpl implements LabelExportService {
         return out.toByteArray();
     }
 
-    /**
-     * Tìm cỡ chữ lớn nhất (bước giảm 0.25pt) để văn bản vừa bề rộng cho phép.
-     */
+    /** Tìm cỡ chữ lớn nhất (bước giảm 0.25pt) để văn bản vừa bề rộng cho phép. */
     private float fitFontSize(String text, BaseFont bf, float maxWidth,
             float preferredSize, float minSize) {
         float size = preferredSize;
@@ -381,10 +364,7 @@ public class LabelExportServiceImpl implements LabelExportService {
         return Math.max(size, minSize);
     }
 
-    /**
-     * Ngắt dòng văn bản theo từ để vừa bề rộng cho phép tại cỡ chữ cho trước.
-     * Văn bản không chứa khoảng trắng (ví dụ mã truy xuất) được giữ nguyên.
-     */
+    /** Ngắt dòng văn bản theo từ để vừa bề rộng cho phép tại cỡ chữ cho trước. Văn bản không chứa khoảng trắng (ví dụ mã truy xuất) được giữ nguyên. */
     private List<String> wrapText(String text, BaseFont bf, float size, float maxWidth) {
         List<String> result = new ArrayList<>();
         if (bf.getWidthPoint(text, size) <= maxWidth || !text.contains(" ")) {
@@ -411,10 +391,7 @@ public class LabelExportServiceImpl implements LabelExportService {
         return result;
     }
 
-    /**
-     * Cắt văn bản với dấu "..." — chỉ dùng làm phương án cuối cùng cho các
-     * trường thông tin phụ, không áp dụng cho mã truy xuất.
-     */
+    /** Cắt văn bản với dấu "..." — chỉ dùng làm phương án cuối cùng cho các trường thông tin phụ, không áp dụng cho mã truy xuất. */
     private String ellipsize(String text, BaseFont bf, float size, float maxWidth) {
         if (text == null || text.isEmpty() || maxWidth <= 0) {
             return "";
@@ -426,9 +403,7 @@ public class LabelExportServiceImpl implements LabelExportService {
         return result + "...";
     }
 
-    /**
-     * Chuẩn hóa văn bản tiếng Việt về ASCII để hiển thị an toàn với font mặc định của PDF.
-     */
+    /** Chuẩn hóa văn bản tiếng Việt về ASCII để hiển thị an toàn với font mặc định của PDF. */
     private String ascii(String input) {
         if (input == null) {
             return "";
@@ -443,9 +418,7 @@ public class LabelExportServiceImpl implements LabelExportService {
         return Math.max(min, Math.min(max, value));
     }
 
-    /**
-     * Lấy thông tin người dùng hiện tại từ SecurityContext.
-     */
+    /** Lấy thông tin người dùng hiện tại từ SecurityContext. */
     private CustomUserDetails getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails userDetails) {

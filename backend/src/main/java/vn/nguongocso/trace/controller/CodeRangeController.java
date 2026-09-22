@@ -18,9 +18,7 @@ import vn.nguongocso.trace.service.CodeRangeService;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Controller quản lý cấp dải mã truy xuất.
- */
+/** Controller quản lý cấp dải mã truy xuất. */
 @RestController
 @RequestMapping("/api/v1/admin/code-ranges")
 @RequiredArgsConstructor

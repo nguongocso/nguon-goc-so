@@ -12,17 +12,13 @@ import vn.nguongocso.recall.dto.response.RecallRequestResponse;
 
 /** Service quản lý yêu cầu thu hồi lô sản xuất. */
 public interface RecallRequestService {
-    /**
-     * Tạo yêu cầu thu hồi.
-     */
+    /** Tạo yêu cầu thu hồi. */
     RecallRequestResponse create(
         CreateRecallRequest request,
         CustomUserDetails currentUser
     );
 
-    /**
-     * Tạo yêu cầu thu hồi từ phản hồi của người tiêu dùng.
-     */
+    /** Tạo yêu cầu thu hồi từ phản hồi của người tiêu dùng. */
     RecallRequestResponse createFromFeedback(
         ProductFeedback feedback,
         UUID shipmentId,
@@ -31,9 +27,7 @@ public interface RecallRequestService {
         CustomUserDetails currentUser
     );
 
-    /**
-     * Lấy danh sách yêu cầu thu hồi có phân trang.
-     */
+    /** Lấy danh sách yêu cầu thu hồi có phân trang. */
     PageResponse<RecallRequestResponse> list(
         String status,
         int page,
@@ -41,26 +35,20 @@ public interface RecallRequestService {
         CustomUserDetails currentUser
     );
 
-    /**
-     * Lấy chi tiết một yêu cầu thu hồi.
-     */
+    /** Lấy chi tiết một yêu cầu thu hồi. */
     RecallRequestResponse getById(
         UUID id,
         CustomUserDetails currentUser
     );
 
-    /**
-     * Duyệt một yêu cầu thu hồi.
-     */
+    /** Duyệt một yêu cầu thu hồi. */
     RecallRequestResponse approve(
         UUID id,
         ApproveRecallRequest request,
         CustomUserDetails currentUser
     );
 
-    /**
-     * Từ chối một yêu cầu thu hồi.
-     */
+    /** Từ chối một yêu cầu thu hồi. */
     RecallRequestResponse reject(
         UUID id,
         RejectRecallRequest request,

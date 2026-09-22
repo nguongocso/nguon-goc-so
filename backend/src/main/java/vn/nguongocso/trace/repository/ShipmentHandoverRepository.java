@@ -18,7 +18,6 @@ import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 /** Repository quản lý biên bản bàn giao lô hàng. */
 @Repository
 public interface ShipmentHandoverRepository extends JpaRepository<ShipmentHandover, UUID> {
-
     /** Lấy danh sách bàn giao theo ID lô hàng. */
     List<ShipmentHandover> findByShipmentId(UUID shipmentId);
 

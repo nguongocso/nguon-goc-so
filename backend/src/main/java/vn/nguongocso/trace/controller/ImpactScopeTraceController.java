@@ -13,20 +13,15 @@ import vn.nguongocso.trace.dto.response.ImpactScopeTraceResponse;
 import vn.nguongocso.trace.service.ImpactScopeExportService;
 import vn.nguongocso.trace.service.ImpactScopeTraceService;
 
-/**
- * Controller truy vết phạm vi ảnh hưởng hai chiều.
- */
+/** Controller truy vết phạm vi ảnh hưởng hai chiều. */
 @RestController
 @RequestMapping("/api/v1/trace")
 @RequiredArgsConstructor
 public class ImpactScopeTraceController {
-
     private final ImpactScopeTraceService impactScopeTraceService;
     private final ImpactScopeExportService impactScopeExportService;
 
-    /**
-     * Truy vết phạm vi ảnh hưởng hai chiều của một lô sản xuất, lô hàng hoặc mã tem.
-     */
+    /** Truy vết phạm vi ảnh hưởng hai chiều của một lô sản xuất, lô hàng hoặc mã tem. */
     @GetMapping("/impact-scope")
     public ResponseEntity<ApiResult<ImpactScopeTraceResponse>> getImpactScopeTrace(
             @RequestParam("code") String code,
@@ -37,9 +32,7 @@ public class ImpactScopeTraceController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Xuất tệp báo cáo phạm vi ảnh hưởng.
-     */
+    /** Xuất tệp báo cáo phạm vi ảnh hưởng. */
     @GetMapping("/impact-scope/export")
     public ResponseEntity<byte[]> exportImpactScopeReport(
             @RequestParam("code") String code,

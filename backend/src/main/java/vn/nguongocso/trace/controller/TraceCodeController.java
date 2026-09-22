@@ -31,19 +31,14 @@ import vn.nguongocso.trace.dto.response.TraceCodeHistoryResponse;
 import vn.nguongocso.trace.dto.response.TraceCodeSummaryResponse;
 import vn.nguongocso.trace.service.TraceCodeStatusService;
 
-/**
- * Controller xem và tra cứu trạng thái từng mã tem trong lô hàng.
- */
+/** Controller xem và tra cứu trạng thái từng mã tem trong lô hàng. */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class TraceCodeController {
-
     private final TraceCodeStatusService traceCodeStatusService;
 
-    /**
-     * Lấy danh sách mã tem của lô hàng.
-     */
+    /** Lấy danh sách mã tem của lô hàng. */
     @GetMapping("/shipments/{shipmentId}/trace-codes")
     @PreAuthorize("hasRole('VT-02')")
     public ApiResult<PageResponse<TraceCodeSummaryResponse>> getShipmentTraceCodes(
@@ -59,9 +54,7 @@ public class TraceCodeController {
         return ApiResult.success(response);
     }
 
-    /**
-     * Tra cứu dòng thời gian lịch sử chi tiết của một mã tem.
-     */
+    /** Tra cứu dòng thời gian lịch sử chi tiết của một mã tem. */
     @GetMapping("/trace-codes/{codeValue}/history")
     @PreAuthorize("hasRole('VT-02')")
     public ApiResult<TraceCodeHistoryResponse> getTraceCodeHistory(
@@ -74,9 +67,7 @@ public class TraceCodeController {
         return ApiResult.success(response);
     }
 
-    /**
-     * Xuất danh sách mã tem theo lô hàng ra file CSV phục vụ kiểm kê, đối soát.
-     */
+    /** Xuất danh sách mã tem theo lô hàng ra file CSV phục vụ kiểm kê, đối soát. */
     @PostMapping("/shipments/{shipmentId}/trace-codes/export")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<byte[]> exportTraceCodes(

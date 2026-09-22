@@ -15,14 +15,11 @@ import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.service.HandoverExpiryService;
 
-/**
- * Triển khai xử lý phiếu bàn giao hết hạn.
- */
+/** Triển khai xử lý phiếu bàn giao hết hạn. */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class HandoverExpiryServiceImpl implements HandoverExpiryService {
-
     private final ShipmentHandoverRepository handoverRepository;
     private final NotificationService notificationService;
 
@@ -44,10 +41,7 @@ public class HandoverExpiryServiceImpl implements HandoverExpiryService {
         return expired.size();
     }
 
-    /**
-     * Thông báo phiếu hết hạn tới cả hai tổ chức (AC NCL-05-CN-009 TC-03:
-     * "quá hạn → EXPIRED, cả 2 bên nhận notification").
-     */
+    /** Thông báo phiếu hết hạn tới cả hai tổ chức (AC NCL-05-CN-009 TC-03: "quá hạn → EXPIRED, cả 2 bên nhận notification"). */
     private void notifyExpired(ShipmentHandover handover) {
         String content = String.format(
                 "Phiếu bàn giao %s kg lô hàng \"%s\" từ %s đã hết hạn chờ xác nhận.",

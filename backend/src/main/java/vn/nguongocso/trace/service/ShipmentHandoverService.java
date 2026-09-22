@@ -14,57 +14,40 @@ import vn.nguongocso.trace.dto.response.HandoverSummaryResponse;
 
 /** Service xử lý nghiệp vụ phiếu bàn giao lô hàng. */
 public interface ShipmentHandoverService {
-
-    /**
-     * Tạo phiếu bàn giao mới.
-     */
+    /** Tạo phiếu bàn giao mới. */
     HandoverResponse create(
         CreateHandoverRequest request
     );
 
-    /**
-     * Hủy phiếu bàn giao.
-     */
+    /** Hủy phiếu bàn giao. */
     HandoverResponse cancel(
         UUID id,
         CancelHandoverRequest request
     );
 
-    /**
-     * Xác nhận nhận bàn giao.
-     */
+    /** Xác nhận nhận bàn giao. */
     HandoverResponse accept(
         UUID id
     );
 
-    /**
-     * Từ chối nhận bàn giao.
-     */
+    /** Từ chối nhận bàn giao. */
     HandoverResponse reject(
         UUID id,
         CancelHandoverRequest request
     );
 
-    /**
-     * Lấy chi tiết phiếu bàn giao theo ID.
-     */
+    /** Lấy chi tiết phiếu bàn giao theo ID. */
     HandoverResponse getById(
         UUID id
     );
 
-    /**
-     * Lấy danh sách phiếu bàn giao đã gửi.
-     */
+    /** Lấy danh sách phiếu bàn giao đã gửi. */
     List<HandoverResponse> getSentHandovers();
 
-    /**
-     * Lấy danh sách phiếu bàn giao đã nhận.
-     */
+    /** Lấy danh sách phiếu bàn giao đã nhận. */
     List<HandoverResponse> getReceivedHandovers();
 
-    /**
-     * Lấy danh sách phiếu bàn giao nhận của tổ chức hiện tại có phân trang.
-     */
+    /** Lấy danh sách phiếu bàn giao nhận của tổ chức hiện tại có phân trang. */
     PageResponse<HandoverSummaryResponse> listForCurrentOrganization(
         String status,
         String search,
@@ -72,9 +55,7 @@ public interface ShipmentHandoverService {
         int size
     );
 
-    /**
-     * Lấy danh sách phiếu bàn giao của tổ chức hiện tại theo vai trò.
-     */
+    /** Lấy danh sách phiếu bàn giao của tổ chức hiện tại theo vai trò. */
     PageResponse<HandoverSummaryResponse> listForCurrentOrganization(
         String status,
         String search,
@@ -83,23 +64,17 @@ public interface ShipmentHandoverService {
         CustomUserDetails currentUser
     );
 
-    /**
-     * Lấy số lượng còn lại có thể bàn giao của lô hàng.
-     */
+    /** Lấy số lượng còn lại có thể bàn giao của lô hàng. */
     Long getRemainingQuantity(
         UUID shipmentId
     );
 
-    /**
-     * Kiểm tra lô hàng có phiếu bàn giao đang chờ không.
-     */
+    /** Kiểm tra lô hàng có phiếu bàn giao đang chờ không. */
     boolean hasPendingHandover(
         UUID shipmentId
     );
 
-    /**
-     * Lưu file chứng từ giao hàng trước khi tạo phiếu bàn giao.
-     */
+    /** Lưu file chứng từ giao hàng trước khi tạo phiếu bàn giao. */
     String uploadAttachment(
         MultipartFile file
     );

@@ -21,9 +21,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.trace.entity.Shipment;
 
-/** 
- * Chi tiết lô hàng trong yêu cầu thu hồi hàng loạt.
- */
+/** Chi tiết lô hàng trong yêu cầu thu hồi hàng loạt. */
 @Entity
 @Table(name = "bulk_recall_shipments")
 @Getter

@@ -23,19 +23,14 @@ import vn.nguongocso.trace.dto.response.HandoverResponse;
 import vn.nguongocso.trace.dto.response.HandoverSummaryResponse;
 import vn.nguongocso.trace.service.ShipmentHandoverService;
 
-/**
- * Controller xử lý phiếu bàn giao.
- */
+/** Controller xử lý phiếu bàn giao. */
 @RestController
 @RequestMapping("/api/v1/handovers")
 @RequiredArgsConstructor
 public class HandoverController {
-
     private final ShipmentHandoverService handoverService;
 
-    /**
-     * Lấy danh sách phiếu bàn giao của tổ chức hiện tại.
-     */
+    /** Lấy danh sách phiếu bàn giao của tổ chức hiện tại. */
     @GetMapping
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<PageResponse<HandoverSummaryResponse>>> list(
@@ -48,27 +43,21 @@ public class HandoverController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * Lấy chi tiết phiếu bàn giao theo ID.
-     */
+    /** Lấy chi tiết phiếu bàn giao theo ID. */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03', 'VT-04')")
     public ResponseEntity<ApiResult<HandoverResponse>> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResult.success(handoverService.getById(id)));
     }
 
-    /**
-     * Xác nhận nhận bàn giao lô hàng.
-     */
+    /** Xác nhận nhận bàn giao lô hàng. */
     @PostMapping("/{id}/accept")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<HandoverResponse>> accept(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResult.success(handoverService.accept(id)));
     }
 
-    /**
-     * Từ chối nhận bàn giao lô hàng.
-     */
+    /** Từ chối nhận bàn giao lô hàng. */
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<HandoverResponse>> reject(

@@ -1,19 +1,34 @@
 package vn.nguongocso.trace.recall.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-import vn.nguongocso.trace.entity.Shipment;
-import vn.nguongocso.trace.recall.enums.LotResolution;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Kết quả xử lý lô hàng trong vụ việc thu hồi.
- */
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.recall.enums.LotResolution;
+
+/** Kết quả xử lý lô hàng trong vụ việc thu hồi. */
 @Entity
 @Table(name = "recall_lot_results")
 @Getter
@@ -22,7 +37,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class RecallLotResult {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)

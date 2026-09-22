@@ -22,9 +22,7 @@ import vn.nguongocso.trace.service.ShipmentService;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Controller quản lý lô hàng.
- */
+/** Controller quản lý lô hàng. */
 @RestController
 @RequestMapping("/api/v1/shipments")
 @RequiredArgsConstructor
@@ -33,9 +31,7 @@ public class ShipmentController {
 	private final PermissionChecker permissionChecker;
 	private final ShipmentHandoverService handoverService;
 
-	/**
-	 * Tạo lô hàng và sinh mã truy xuất.
-	 */
+	/** Tạo lô hàng và sinh mã truy xuất. */
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public ApiResult<ShipmentResponse> createShipment(@Valid @RequestBody CreateShipmentRequest request) {
@@ -43,18 +39,14 @@ public class ShipmentController {
 		return ApiResult.success(shipmentService.createShipment(request));
 	}
 
-	/**
-	 * Kích hoạt lô hàng và các mã truy xuất.
-	 */
+	/** Kích hoạt lô hàng và các mã truy xuất. */
 	@PostMapping("/{id}/activate")
 	public ApiResult<ShipmentResponse> activateStamps(@PathVariable UUID id) {
 
 		return ApiResult.success(shipmentService.activateShipmentStamps(id));
 	}
 
-	/**
-	 * Lấy danh sách lô hàng theo ID lô sản xuất.
-	 */
+	/** Lấy danh sách lô hàng theo ID lô sản xuất. */
 	@GetMapping("/production-lots/{productionLotId}")
 	@PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
 	public ApiResult<List<ShipmentResponse>> getShipmentsByProductionLot(@PathVariable UUID productionLotId) {
@@ -62,9 +54,7 @@ public class ShipmentController {
 		return ApiResult.success(shipmentService.getShipmentsByProductionLot(productionLotId));
 	}
 
-	/**
-	 * Lấy danh sách lô hàng theo ID lô sản xuất với phân trang.
-	 */
+	/** Lấy danh sách lô hàng theo ID lô sản xuất với phân trang. */
 	@GetMapping("/production-lots/{productionLotId}/paged")
 	@PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
 	public ApiResult<PageResponse<ShipmentResponse>> getShipmentsByProductionLotPaged(
@@ -76,18 +66,14 @@ public class ShipmentController {
 				shipmentService.getShipmentsByProductionLotPaged(productionLotId, page, size));
 	}
 
-	/**
-	 * Tra cứu lô hàng bằng mã truy xuất.
-	 */
+	/** Tra cứu lô hàng bằng mã truy xuất. */
 	@GetMapping("/by-code")
 	public ApiResult<ShipmentSummaryResponse> getShipmentByCode(@RequestParam String code) {
 
 		return ApiResult.success(shipmentService.getShipmentByCode(code));
 	}
 
-	/**
-	 * Lấy danh sách lô hàng liên quan tới Doanh nghiệp thu mua.
-	 */
+	/** Lấy danh sách lô hàng liên quan tới Doanh nghiệp thu mua. */
 	@GetMapping("/eligible")
 	@PreAuthorize("hasRole('VT-04')")
 	public ApiResult<List<ProcurementShipmentResponse>> getEligibleShipments() {
@@ -95,17 +81,13 @@ public class ShipmentController {
 		return ApiResult.success(shipmentService.getEligibleShipments());
 	}
 
-	/**
-	 * Xem trước thông tin tách lô hàng.
-	 */
+	/** Xem trước thông tin tách lô hàng. */
 	@GetMapping("/{shipmentId}/split-preview")
 	public ApiResult<SplitPreviewResponse> getSplitPreview(@PathVariable UUID shipmentId) {
 		return ApiResult.success(shipmentService.getSplitPreview(shipmentId));
 	}
 
-	/**
-	 * Tách lô hàng thành các lô nhỏ hơn.
-	 */
+	/** Tách lô hàng thành các lô nhỏ hơn. */
 	@PostMapping("/{shipmentId}/split")
 	@ResponseStatus(HttpStatus.CREATED)
 	public ApiResult<SplitShipmentResponse> splitShipment(@PathVariable UUID shipmentId,
@@ -113,9 +95,7 @@ public class ShipmentController {
 		return ApiResult.success(HttpStatus.CREATED.value(), shipmentService.splitShipment(shipmentId, request));
 	}
 
-	/**
-	 * Lấy chi tiết lô hàng theo ID.
-	 */
+	/** Lấy chi tiết lô hàng theo ID. */
 	@GetMapping("/{id}")
 	@PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03', 'VT-04', 'VT-05')")
 	public ApiResult<ShipmentResponse> getShipmentById(@PathVariable UUID id) {
@@ -123,17 +103,13 @@ public class ShipmentController {
 		return ApiResult.success(shipmentService.getShipmentById(id));
 	}
 
-	/**
-	 * Lấy số lượng sản phẩm chưa bàn giao còn lại của lô hàng.
-	 */
+	/** Lấy số lượng sản phẩm chưa bàn giao còn lại của lô hàng. */
 	@GetMapping("/{id}/remaining-handover-quantity")
 	public ApiResult<Long> getRemainingHandoverQuantity(@PathVariable UUID id) {
 		return ApiResult.success(handoverService.getRemainingQuantity(id));
 	}
 
-	/**
-	 * Kiểm tra lô hàng có phiếu bàn giao đang chờ xác nhận hay không.
-	 */
+	/** Kiểm tra lô hàng có phiếu bàn giao đang chờ xác nhận hay không. */
 	@GetMapping("/{id}/has-pending-handover")
 	public ApiResult<Boolean> hasPendingHandover(@PathVariable UUID id) {
 		return ApiResult.success(handoverService.hasPendingHandover(id));

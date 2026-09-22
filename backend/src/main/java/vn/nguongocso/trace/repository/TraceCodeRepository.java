@@ -23,7 +23,6 @@ import vn.nguongocso.trace.enums.TraceCodeStatus;
 /** Repository quản lý mã truy xuất. */
 @Repository
 public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
-
     /** Kiểm tra mã truy xuất đã tồn tại theo giá trị hay chưa. */
     boolean existsByCodeValue(String codeValue);
 

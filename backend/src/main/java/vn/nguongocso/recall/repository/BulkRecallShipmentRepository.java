@@ -11,24 +11,16 @@ import vn.nguongocso.recall.entity.BulkRecallShipment;
 /** Repository quản lý chi tiết lô hàng trong yêu cầu thu hồi hàng loạt. */
 @Repository
 public interface BulkRecallShipmentRepository extends JpaRepository<BulkRecallShipment, UUID> {
-    /**
-     * Lấy danh sách chi tiết theo yêu cầu thu hồi.
-     */
+    /** Lấy danh sách chi tiết theo yêu cầu thu hồi. */
     List<BulkRecallShipment> findByBulkRecallRequestId(UUID bulkRecallRequestId);
 
-    /**
-     * Lấy danh sách chi tiết theo yêu cầu thu hồi và trạng thái included.
-     */
+    /** Lấy danh sách chi tiết theo yêu cầu thu hồi và trạng thái included. */
     List<BulkRecallShipment> findByBulkRecallRequestIdAndIncluded(UUID bulkRecallRequestId, boolean included);
 
-    /**
-     * Xóa tất cả chi tiết theo yêu cầu thu hồi.
-     */
+    /** Xóa tất cả chi tiết theo yêu cầu thu hồi. */
     void deleteByBulkRecallRequestId(UUID bulkRecallRequestId);
 
-    /**
-     * Tìm yêu cầu thu hồi mới nhất của lô hàng theo trạng thái yêu cầu.
-     */
+    /** Tìm yêu cầu thu hồi mới nhất của lô hàng theo trạng thái yêu cầu. */
     java.util.Optional<BulkRecallShipment> findTopByShipment_IdAndIncludedAndBulkRecallRequest_StatusOrderByCreatedAtDesc(
             UUID shipmentId, boolean included, vn.nguongocso.recall.enums.BulkRecallRequestStatus status);
 }

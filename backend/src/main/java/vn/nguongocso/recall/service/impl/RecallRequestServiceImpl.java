@@ -43,14 +43,11 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.service.ShipmentRecallService;
 
-/**
- * Triển khai dịch vụ quản lý yêu cầu thu hồi lô sản xuất.
- */
+/** Triển khai dịch vụ quản lý yêu cầu thu hồi lô sản xuất. */
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class RecallRequestServiceImpl implements RecallRequestService {
-
     private static final String MSG_SHIPMENT_NOT_FOUND = "Không tìm thấy lô hàng.";
     private static final String MSG_REQUEST_NOT_FOUND = "Không tìm thấy yêu cầu thu hồi.";
     private static final String MSG_SHIPMENT_ALREADY_RECALLED = "Lô hàng đã bị thu hồi trước đó.";
@@ -370,7 +367,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
             return 0;
         }
 
-        // 4. Gửi thông báo
+        // Gửi thông báo
         return notificationService.sendRecallNotification(shipment.getName(), reason, recipientIds);
     }
 

@@ -4,10 +4,7 @@ import java.util.UUID;
 
 /** Service sinh và lưu ảnh QR cho mã truy xuất. */
 public interface QRCodeService {
-
-    /**
-     * Tạo ảnh QR và trả về đường dẫn lưu trữ.
-     */
+    /** Tạo ảnh QR và trả về đường dẫn lưu trữ. */
     String generateQRCode(
         String codeValue,
         UUID organizationId,

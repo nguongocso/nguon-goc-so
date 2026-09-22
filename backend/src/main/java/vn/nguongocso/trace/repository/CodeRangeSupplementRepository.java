@@ -13,7 +13,6 @@ import vn.nguongocso.trace.enums.CodeRangeSupplementStatus;
 /** Repository quản lý yêu cầu cấp bổ sung dải mã truy xuất. */
 @Repository
 public interface CodeRangeSupplementRepository extends JpaRepository<CodeRangeSupplementRequest, UUID> {
-
     /** Lấy danh sách yêu cầu theo trạng thái có phân trang. */
     Page<CodeRangeSupplementRequest> findByStatus(CodeRangeSupplementStatus status, Pageable pageable);
 

@@ -12,17 +12,12 @@ import vn.nguongocso.trace.dto.response.UnlockTraceCodeResponse;
 
 /** Service phát hiện và quản lý mã tem nghi vấn. */
 public interface SuspectDetectionService {
-
-    /**
-     * Đánh giá mức nghi vấn cho một mã tem sau khi có lượt quét mới.
-     */
+    /** Đánh giá mức nghi vấn cho một mã tem sau khi có lượt quét mới. */
     void evaluateSuspicion(
         UUID traceCodeId
     );
 
-    /**
-     * Lấy danh sách mã tem nghi vấn có phân trang.
-     */
+    /** Lấy danh sách mã tem nghi vấn có phân trang. */
     PageResponse<SuspectTraceCodeResponse> getSuspectTraceCodes(
         Integer minScore,
         String status,
@@ -30,16 +25,12 @@ public interface SuspectDetectionService {
         int size
     );
 
-    /**
-     * Lấy chi tiết mã tem nghi vấn.
-     */
+    /** Lấy chi tiết mã tem nghi vấn. */
     SuspectTraceCodeDetailResponse getSuspectDetail(
         UUID traceCodeId
     );
 
-    /**
-     * Khóa mã tem nghi vấn.
-     */
+    /** Khóa mã tem nghi vấn. */
     LockTraceCodeResponse lockTraceCode(
         UUID traceCodeId,
         LockTraceCodeRequest request,
@@ -47,9 +38,7 @@ public interface SuspectDetectionService {
         String userName
     );
 
-    /**
-     * Mở khóa mã tem.
-     */
+    /** Mở khóa mã tem. */
     LockTraceCodeResponse unlockTraceCode(
         UUID traceCodeId,
         String reason,
@@ -57,9 +46,7 @@ public interface SuspectDetectionService {
         String userName
     );
 
-    /**
-     * Mở khóa mã tem sau khi xác minh theo ID hoặc mã code.
-     */
+    /** Mở khóa mã tem sau khi xác minh theo ID hoặc mã code. */
     UnlockTraceCodeResponse unlockTraceCodeWithVerification(
         String codeOrId,
         UnlockTraceCodeRequest request,

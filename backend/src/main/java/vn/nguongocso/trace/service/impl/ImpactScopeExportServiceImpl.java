@@ -30,7 +30,6 @@ import java.io.InputStream;
 @Service
 @RequiredArgsConstructor
 public class ImpactScopeExportServiceImpl implements ImpactScopeExportService {
-
     private final ImpactScopeTraceService impactScopeTraceService;
 
     @Override

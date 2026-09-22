@@ -28,9 +28,7 @@ import vn.nguongocso.farm.entity.ProductFeedback;
 import vn.nguongocso.recall.enums.RecallRequestStatus;
 import vn.nguongocso.trace.entity.Shipment;
 
-/** 
- * Yêu cầu thu hồi lô sản xuất.
- */
+/** Yêu cầu thu hồi lô sản xuất. */
 @Entity
 @Table(name = "recall_requests")
 @Getter

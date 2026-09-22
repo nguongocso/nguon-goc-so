@@ -18,21 +18,16 @@ import vn.nguongocso.trace.dto.response.RecallInfoResponse;
 import vn.nguongocso.trace.dto.response.RecallResponse;
 import vn.nguongocso.trace.service.ShipmentRecallService;
 
-/**
- * Controller quản lý thu hồi lô hàng.
- */
+/** Controller quản lý thu hồi lô hàng. */
 @RestController
 @RequestMapping("/api/v1/shipments")
 @RequiredArgsConstructor
 @Validated
 public class ShipmentRecallController {
-
     private final ShipmentRecallService shipmentRecallService;
     private final PermissionChecker permissionChecker;
 
-    /**
-     * Thu hồi một lô hàng.
-     */
+    /** Thu hồi một lô hàng. */
     @PostMapping("/{shipmentId}/recall")
     public ResponseEntity<ApiResult<RecallResponse>> recallShipment(
             @PathVariable UUID shipmentId,
@@ -58,9 +53,7 @@ public class ShipmentRecallController {
                         response));
     }
 
-    /**
-     * Lấy thông tin thu hồi của lô hàng.
-     */
+    /** Lấy thông tin thu hồi của lô hàng. */
     @GetMapping("/{shipmentId}/recall")
     public ResponseEntity<ApiResult<RecallInfoResponse>> getRecallInfo(
             @PathVariable UUID shipmentId) {
@@ -76,14 +69,7 @@ public class ShipmentRecallController {
                         response));
     }
 
-    /**
-     * Lấy địa chỉ IP thực tế của client.
-     *
-     * Ưu tiên:
-     * 1. X-Forwarded-For
-     * 2. X-Real-IP
-     * 3. request.getRemoteAddr()
-     */
+    /** Lấy địa chỉ IP thực tế của client. Ưu tiên: 1. X-Forwarded-For 2. X-Real-IP 3. request.getRemoteAddr() */
     private String getClientIpAddress(HttpServletRequest request) {
 
         String xForwardedFor =

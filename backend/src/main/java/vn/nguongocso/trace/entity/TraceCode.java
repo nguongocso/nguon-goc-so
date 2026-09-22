@@ -21,9 +21,7 @@ import lombok.Setter;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 
-/**
- * Thực thể đại diện cho một mã truy xuất.
- */
+/** Thực thể đại diện cho một mã truy xuất. */
 @Getter
 @Setter
 @Entity

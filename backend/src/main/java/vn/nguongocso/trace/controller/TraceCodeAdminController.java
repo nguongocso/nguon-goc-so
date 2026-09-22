@@ -26,19 +26,14 @@ import vn.nguongocso.trace.dto.response.SuspectTraceCodeResponse;
 import vn.nguongocso.trace.dto.response.UnlockTraceCodeResponse;
 import vn.nguongocso.trace.service.SuspectDetectionService;
 
-/**
- * Controller quản lý mã tem nghi vấn và mở khóa.
- */
+/** Controller quản lý mã tem nghi vấn và mở khóa. */
 @RestController
 @RequestMapping("/api/v1/admin/trace-codes")
 @RequiredArgsConstructor
 public class TraceCodeAdminController {
-
     private final SuspectDetectionService suspectDetectionService;
 
-    /**
-     * Lấy danh sách mã tem nghi vấn.
-     */
+    /** Lấy danh sách mã tem nghi vấn. */
     @GetMapping("/suspect")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<PageResponse<SuspectTraceCodeResponse>>> getSuspectTraceCodes(
@@ -53,9 +48,7 @@ public class TraceCodeAdminController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * Lấy chi tiết mã tem nghi vấn.
-     */
+    /** Lấy chi tiết mã tem nghi vấn. */
     @GetMapping("/{traceCodeId}/suspect-detail")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<SuspectTraceCodeDetailResponse>> getSuspectDetail(
@@ -67,9 +60,7 @@ public class TraceCodeAdminController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * Khóa mã tem nghi vấn.
-     */
+    /** Khóa mã tem nghi vấn. */
     @PostMapping("/{traceCodeId}/lock")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<LockTraceCodeResponse>> lockTraceCode(
@@ -86,9 +77,7 @@ public class TraceCodeAdminController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * Mở khóa mã tem sau khi xác minh.
-     */
+    /** Mở khóa mã tem sau khi xác minh. */
     @PostMapping("/{codeOrId}/unlock")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<UnlockTraceCodeResponse>> unlockTraceCode(

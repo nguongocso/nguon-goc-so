@@ -103,13 +103,7 @@ public class ShipmentServiceImpl implements ShipmentService {
 
     private static final String PRODUCTION_LOT_NOT_FOUND_MESSAGE = "Không tìm thấy lô sản xuất.";
 
-    /**
-     * Tạo lô hàng và sinh mã truy xuất cho lô sản xuất.
-     *
-     * @param request thông tin tạo lô hàng
-     * @return thông tin lô hàng sau khi tạo
-     * @throws BusinessException nếu không đủ điều kiện tạo lô hàng
-     */
+    /** Tạo lô hàng và sinh mã truy xuất cho lô sản xuất. */
     @Override
     public ShipmentResponse createShipment(CreateShipmentRequest request) {
 
@@ -170,13 +164,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         return buildShipmentResponse(shipment, traceCodes, currentUser.getFullName());
     }
 
-    /**
-     * Kích hoạt tem cho lô hàng và cập nhật trạng thái tem liên kết.
-     *
-     * @param shipmentId id lô hàng cần kích hoạt
-     * @return thông tin lô hàng sau khi kích hoạt
-     * @throws BusinessException nếu không đủ điều kiện kích hoạt tem
-     */
+    /** Kích hoạt tem cho lô hàng và cập nhật trạng thái tem liên kết. */
     @Override
     public ShipmentResponse activateShipmentStamps(UUID shipmentId) {
         CustomUserDetails currentUser = getCurrentUser();
@@ -242,14 +230,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         return buildShipmentResponse(shipment, traceCodes, createdByName);
     }
 
-    /**
-     * Lấy danh sách lô hàng theo ID của lô sản xuất.
-     *
-     * @param productionLotId ID của lô sản xuất
-     * @return danh sách ShipmentResponse
-     * @throws BusinessException nếu không tìm thấy lô sản xuất hoặc không thuộc tổ
-     *                           chức
-     */
+    /** Lấy danh sách lô hàng theo ID của lô sản xuất. chức */
     @Override
     public List<ShipmentResponse> getShipmentsByProductionLot(UUID productionLotId) {
         CustomUserDetails currentUser = getCurrentUser();
@@ -276,14 +257,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         return shipmentResponses;
     }
 
-    /**
-     * Lấy danh sách lô hàng theo ID của lô sản xuất với phân trang.
-     *
-     * @param productionLotId ID của lô sản xuất
-     * @param page            số trang (bắt đầu từ 0)
-     * @param size            số bản ghi trên mỗi trang
-     * @return dữ liệu phân trang
-     */
+    /** Lấy danh sách lô hàng theo ID của lô sản xuất với phân trang. */
     @Override
     public PageResponse<ShipmentResponse> getShipmentsByProductionLotPaged(
             UUID productionLotId, int page, int size) {
@@ -319,11 +293,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         return PageResponse.from(shipmentsPage, responses);
     }
 
-    /**
-     * Lấy thông tin người dùng đang đăng nhập từ SecurityContext.
-     *
-     * @return thông tin người dùng hiện tại
-     */
+    /** Lấy thông tin người dùng đang đăng nhập từ SecurityContext. */
     private CustomUserDetails getCurrentUser() {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -347,14 +317,7 @@ public class ShipmentServiceImpl implements ShipmentService {
                 .build());
     }
 
-    /**
-     * Kiểm tra người dùng có đúng vai trò được phép thực hiện nghiệp vụ.
-     *
-     * @param currentUser  người dùng hiện tại
-     * @param expectedRole mã vai trò yêu cầu
-     * @param message      thông báo lỗi nếu không đủ quyền
-     * @throws BusinessException nếu người dùng không có quyền
-     */
+    /** Kiểm tra người dùng có đúng vai trò được phép thực hiện nghiệp vụ. */
     private void validateRole(CustomUserDetails currentUser, String expectedRole, String message) {
 
         if (!expectedRole.equals(currentUser.getRoleCode())) {
@@ -362,27 +325,14 @@ public class ShipmentServiceImpl implements ShipmentService {
         }
     }
 
-    /**
-     * Tìm lô sản xuất theo id.
-     *
-     * @param productionLotId id lô sản xuất
-     * @return lô sản xuất
-     * @throws BusinessException nếu không tìm thấy lô sản xuất
-     */
+    /** Tìm lô sản xuất theo id. */
     private ProductionLot findProductionLot(UUID productionLotId) {
 
         return productionLotRepository.findById(productionLotId)
                 .orElseThrow(() -> new BusinessException(PRODUCTION_LOT_NOT_FOUND_MESSAGE));
     }
 
-    /**
-     * Kiểm tra người dùng có quyền thao tác trên lô sản xuất
-     * thuộc tổ chức của mình.
-     *
-     * @param currentUser   người dùng hiện tại
-     * @param productionLot lô sản xuất cần kiểm tra
-     * @throws BusinessException nếu khác tổ chức
-     */
+    /** Kiểm tra người dùng có quyền thao tác trên lô sản xuất thuộc tổ chức của mình. */
     private void validateOrganization(CustomUserDetails currentUser, ProductionLot productionLot) {
 
         if (!productionLot.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
@@ -391,13 +341,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         }
     }
 
-    /**
-     * Kiểm tra lô sản xuất đã ở trạng thái đóng gói
-     * trước khi tạo lô hàng.
-     *
-     * @param productionLot lô sản xuất
-     * @throws BusinessException nếu trạng thái không hợp lệ
-     */
+    /** Kiểm tra lô sản xuất đã ở trạng thái đóng gói trước khi tạo lô hàng. */
     private void validateProductionLotStatus(ProductionLot productionLot) {
 
         if (productionLot.getStatus() != ProductionLotStatus.PACKAGED) {
@@ -406,21 +350,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         }
     }
 
-    /**
-     * Gate QTN-30 (NCL-11-CN-005): lô chưa đạt kiểm nghiệm không được
-     * tạo lô hàng / kích hoạt tem.
-     *
-     * <p>
-     * Đánh giá qua {@link InspectionEligibilityService} — nguồn sự thật
-     * dùng chung với pre-check {@code can-activate-seal}. Khi không đủ
-     * điều kiện, trả {@code 409 CONFLICT} kèm {@code errors} chứa
-     * {@code reasonCode} và thống kê chỉ tiêu; không persist bất kỳ dữ
-     * liệu nào (Shipment / TraceCode / hạn mức dải mã giữ nguyên).
-     * </p>
-     *
-     * @param productionLot lô sản xuất cần đánh giá
-     * @throws BusinessException 409 CONFLICT nếu lô chưa đạt điều kiện
-     */
+    /** Gate QTN-30 (NCL-11-CN-005): lô chưa đạt kiểm nghiệm không được tạo lô hàng / kích hoạt tem. <p> Đánh giá qua {@link InspectionEligibilityService} — nguồn sự thật dùng chung với pre-check {@code can-activate-seal}. Khi không đủ điều kiện, trả {@code 409 CONFLICT} kèm {@code errors} chứa {@code reasonCode} và thống kê chỉ tiêu; không persist bất kỳ dữ liệu nào (Shipment / TraceCode / hạn mức dải mã giữ nguyên). </p> */
     private void validateInspectionEligibility(ProductionLot productionLot) {
 
         InspectionEligibilityResult eligibility =
@@ -438,11 +368,7 @@ public class ShipmentServiceImpl implements ShipmentService {
                 buildInspectionBlockDetails(eligibility, reasonCode));
     }
 
-    /**
-     * Dựng {@code errors} cho response lỗi 409 — shape thống kê của
-     * {@code CanActivateSealCheckResponse} + {@code reasonCode}
-     * (tài liệu QTN-30 §5.1).
-     */
+    /** Dựng {@code errors} cho response lỗi 409 — shape thống kê của {@code CanActivateSealCheckResponse} + {@code reasonCode} (tài liệu QTN-30 §5.1). */
     private Map<String, Object> buildInspectionBlockDetails(
             InspectionEligibilityResult eligibility,
             InspectionBlockReasonCode reasonCode) {
@@ -457,13 +383,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         return details;
     }
 
-    /**
-     * Lấy dải mã truy xuất còn hiệu lực của tổ chức.
-     *
-     * @param currentUser người dùng hiện tại
-     * @return dải mã truy xuất
-     * @throws BusinessException nếu tổ chức chưa được cấp dải mã
-     */
+    /** Lấy dải mã truy xuất còn hiệu lực của tổ chức. */
     private CodeRange findAvailableCodeRange(CustomUserDetails currentUser) {
 
         return codeRangeRepository
@@ -471,14 +391,7 @@ public class ShipmentServiceImpl implements ShipmentService {
                 .orElseThrow(() -> new BusinessException(CODE_RANGE_NOT_FOUND_MESSAGE));
     }
 
-    /**
-     * Kiểm tra số lượng tem cần sinh có vượt quá
-     * số lượng mã còn lại trong dải mã hay không.
-     *
-     * @param codeRange        dải mã truy xuất
-     * @param requiredQuantity số lượng tem cần sinh
-     * @throws BusinessException nếu vượt quá hạn mức
-     */
+    /** Kiểm tra số lượng tem cần sinh có vượt quá số lượng mã còn lại trong dải mã hay không. */
     private void validateCodeRangeLimit(CodeRange codeRange, long requiredQuantity) {
 
         long remaining = Math.max(0, codeRange.getTotalLimit() - codeRange.getUsedCount());
@@ -489,14 +402,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         }
     }
 
-    /**
-     * Khởi tạo đối tượng lô hàng từ yêu cầu tạo lô hàng.
-     *
-     * @param request       thông tin tạo lô hàng
-     * @param productionLot lô sản xuất
-     * @param currentUser   người dùng tạo
-     * @return đối tượng lô hàng
-     */
+    /** Khởi tạo đối tượng lô hàng từ yêu cầu tạo lô hàng. */
     private Shipment createShipmentEntity(CreateShipmentRequest request, ProductionLot productionLot,
             CustomUserDetails currentUser, CodeRange codeRange) {
 
@@ -520,14 +426,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         return shipment;
     }
 
-    /**
-     * Sinh danh sách mã truy xuất cho lô hàng.
-     *
-     * @param shipment  lô hàng
-     * @param codeRange dải mã truy xuất
-     * @param quantity  số lượng mã cần sinh
-     * @return danh sách mã truy xuất
-     */
+    /** Sinh danh sách mã truy xuất cho lô hàng. */
     private List<TraceCode> generateTraceCodes(Shipment shipment, CodeRange codeRange, long quantity) {
 
         List<TraceCode> traceCodes = new ArrayList<>();
@@ -560,14 +459,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         return traceCodes;
     }
 
-    /**
-     * Sinh giá trị mã truy xuất duy nhất từ tiền tố
-     * và số thứ tự trong dải mã.
-     *
-     * @param prefix   tiền tố mã
-     * @param sequence số thứ tự
-     * @return mã truy xuất
-     */
+    /** Sinh giá trị mã truy xuất duy nhất từ tiền tố và số thứ tự trong dải mã. */
     private String generateUniqueCode(String prefix, long sequence) {
 
         return prefix + String.format("%08d", sequence);
@@ -578,15 +470,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         codeRange.setUsedCount(codeRange.getUsedCount() + quantity);
     }
 
-    /**
-     * Xây dựng dữ liệu phản hồi sau khi tạo lô hàng
-     * và sinh mã truy xuất thành công.
-     *
-     * @param shipment      lô hàng
-     * @param traceCodes    danh sách mã truy xuất
-     * @param createdByName tên người tạo
-     * @return thông tin phản hồiF
-     */
+    /** Xây dựng dữ liệu phản hồi sau khi tạo lô hàng và sinh mã truy xuất thành công. */
     private ShipmentResponse buildShipmentResponse(Shipment shipment, List<TraceCode> traceCodes,
             String createdByName) {
 
@@ -619,14 +503,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         }
     }
 
-    /**
-     * Tra cứu lô hàng bằng mã truy xuất (codeValue in trên tem QR).
-     * Dùng bởi VT-04 để xác nhận lô hàng trước khi ghi sự kiện thu mua.
-     *
-     * @param code mã truy xuất quét từ QR
-     * @return thông tin tóm tắt lô hàng
-     * @throws BusinessException nếu không tìm thấy mã hoặc lô hàng không hợp lệ
-     */
+    /** Tra cứu lô hàng bằng mã truy xuất (codeValue in trên tem QR). Dùng bởi VT-04 để xác nhận lô hàng trước khi ghi sự kiện thu mua. */
     @Override
     public ShipmentSummaryResponse getShipmentByCode(String code) {
         TraceCode traceCode = traceCodeRepository.findByCodeValue(code)
@@ -656,12 +533,7 @@ public class ShipmentServiceImpl implements ShipmentService {
                 .build();
     }
 
-    /**
-     * Lấy danh sách lô hàng liên quan đến Doanh nghiệp thu mua (VT‑04) hiện tại:
-     * chỉ lô đã thu mua/nhập kho hoặc đã xác nhận bàn giao cho tổ chức.
-     *
-     * @return danh sách lô hàng đủ điều kiện
-     */
+    /** Lấy danh sách lô hàng liên quan đến Doanh nghiệp thu mua (VT‑04) hiện tại: chỉ lô đã thu mua/nhập kho hoặc đã xác nhận bàn giao cho tổ chức. */
     @Override
     public List<ProcurementShipmentResponse> getEligibleShipments() {
         CustomUserDetails currentUser = getCurrentUser();
@@ -730,13 +602,7 @@ public class ShipmentServiceImpl implements ShipmentService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lấy thông tin chi tiết lô hàng theo ID.
-     *
-     * @param id ID của lô hàng
-     * @return thông tin chi tiết lô hàng
-     * @throws BusinessException nếu không tìm thấy hoặc bị chặn quyền
-     */
+    /** Lấy thông tin chi tiết lô hàng theo ID. */
     @Override
     public ShipmentResponse getShipmentById(UUID id) {
         Shipment shipment = shipmentRepository.findById(id)

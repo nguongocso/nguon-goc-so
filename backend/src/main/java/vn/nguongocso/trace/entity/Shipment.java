@@ -24,9 +24,7 @@ import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 
-/**
- * Thực thể đại diện cho một lô hàng.
- */
+/** Thực thể đại diện cho một lô hàng. */
 @Getter
 @Setter
 @Entity

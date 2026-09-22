@@ -22,9 +22,7 @@ import lombok.Setter;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.organization.entity.Organization;
 
-/**
- * Thực thể đại diện cho một đợt hủy tem truy xuất.
- */
+/** Thực thể đại diện cho một đợt hủy tem truy xuất. */
 @Getter
 @Setter
 @Entity

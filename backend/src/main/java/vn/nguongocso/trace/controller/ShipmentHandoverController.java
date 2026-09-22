@@ -24,19 +24,14 @@ import vn.nguongocso.trace.dto.response.HandoverAttachmentUploadResponse;
 import vn.nguongocso.trace.dto.response.HandoverResponse;
 import vn.nguongocso.trace.service.ShipmentHandoverService;
 
-/**
- * Controller xử lý phiếu bàn giao lô hàng.
- */
+/** Controller xử lý phiếu bàn giao lô hàng. */
 @RestController
 @RequestMapping("/api/v1/shipment-handovers")
 @RequiredArgsConstructor
 public class ShipmentHandoverController {
-
     private final ShipmentHandoverService handoverService;
 
-    /**
-     * Tạo phiếu bàn giao lô hàng.
-     */
+    /** Tạo phiếu bàn giao lô hàng. */
     @PostMapping
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<HandoverResponse>> create(
@@ -44,9 +39,7 @@ public class ShipmentHandoverController {
         return ResponseEntity.ok(ApiResult.success(handoverService.create(request)));
     }
 
-    /**
-     * Tải lên chứng từ giao hàng trước khi tạo phiếu bàn giao.
-     */
+    /** Tải lên chứng từ giao hàng trước khi tạo phiếu bàn giao. */
     @PostMapping(value = "/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<HandoverAttachmentUploadResponse>> uploadAttachment(
@@ -61,9 +54,7 @@ public class ShipmentHandoverController {
                                 .build()));
     }
 
-    /**
-     * Hủy phiếu bàn giao đang chờ xác nhận.
-     */
+    /** Hủy phiếu bàn giao đang chờ xác nhận. */
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<HandoverResponse>> cancel(
@@ -72,18 +63,14 @@ public class ShipmentHandoverController {
         return ResponseEntity.ok(ApiResult.success(handoverService.cancel(id, request)));
     }
 
-    /**
-     * Xác nhận nhận bàn giao lô hàng.
-     */
+    /** Xác nhận nhận bàn giao lô hàng. */
     @PostMapping("/{id}/accept")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<HandoverResponse>> accept(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResult.success(handoverService.accept(id)));
     }
 
-    /**
-     * Từ chối nhận bàn giao lô hàng.
-     */
+    /** Từ chối nhận bàn giao lô hàng. */
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<HandoverResponse>> reject(
@@ -92,27 +79,21 @@ public class ShipmentHandoverController {
         return ResponseEntity.ok(ApiResult.success(handoverService.reject(id, request)));
     }
 
-    /**
-     * Lấy chi tiết phiếu bàn giao.
-     */
+    /** Lấy chi tiết phiếu bàn giao. */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03', 'VT-04')")
     public ResponseEntity<ApiResult<HandoverResponse>> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResult.success(handoverService.getById(id)));
     }
 
-    /**
-     * Lấy danh sách phiếu bàn giao đã gửi.
-     */
+    /** Lấy danh sách phiếu bàn giao đã gửi. */
     @GetMapping("/sent")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<List<HandoverResponse>>> getSent() {
         return ResponseEntity.ok(ApiResult.success(handoverService.getSentHandovers()));
     }
 
-    /**
-     * Lấy danh sách phiếu bàn giao đã nhận.
-     */
+    /** Lấy danh sách phiếu bàn giao đã nhận. */
     @GetMapping("/received")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<List<HandoverResponse>>> getReceived() {

@@ -29,20 +29,15 @@ import vn.nguongocso.trace.dto.response.CodeRangeSupplementResponse;
 import vn.nguongocso.trace.dto.response.EvidenceEventResponse;
 import vn.nguongocso.trace.service.CodeRangeSupplementService;
 
-/**
- * Controller quản lý yêu cầu cấp bổ sung dải mã truy xuất.
- */
+/** Controller quản lý yêu cầu cấp bổ sung dải mã truy xuất. */
 @RestController
 @RequestMapping("/api/v1/code-range-supplement-requests")
 @RequiredArgsConstructor
 @Validated
 public class CodeRangeSupplementController {
-
     private final CodeRangeSupplementService supplementService;
 
-    /**
-     * Tạo yêu cầu cấp bổ sung dải mã.
-     */
+    /** Tạo yêu cầu cấp bổ sung dải mã. */
     @PostMapping
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<CodeRangeSupplementResponse>> create(
@@ -55,9 +50,7 @@ public class CodeRangeSupplementController {
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * Lấy danh sách sự kiện bằng chứng sản lượng thực của tổ chức.
-     */
+    /** Lấy danh sách sự kiện bằng chứng sản lượng thực của tổ chức. */
     @GetMapping("/evidence-events")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<List<EvidenceEventResponse>>> listEvidenceEvents(
@@ -68,9 +61,7 @@ public class CodeRangeSupplementController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Lấy danh sách yêu cầu của tổ chức mình.
-     */
+    /** Lấy danh sách yêu cầu của tổ chức mình. */
     @GetMapping("/my")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<PageResponse<CodeRangeSupplementResponse>>> listMine(
@@ -85,9 +76,7 @@ public class CodeRangeSupplementController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Lấy danh sách tất cả yêu cầu theo trạng thái, phân trang.
-     */
+    /** Lấy danh sách tất cả yêu cầu theo trạng thái, phân trang. */
     @GetMapping
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<PageResponse<CodeRangeSupplementResponse>>> list(
@@ -102,9 +91,7 @@ public class CodeRangeSupplementController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Lấy chi tiết một yêu cầu.
-     */
+    /** Lấy chi tiết một yêu cầu. */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
     public ResponseEntity<ApiResult<CodeRangeSupplementResponse>> getById(
@@ -116,9 +103,7 @@ public class CodeRangeSupplementController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Duyệt toàn bộ hoặc một phần một yêu cầu.
-     */
+    /** Duyệt toàn bộ hoặc một phần một yêu cầu. */
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<CodeRangeSupplementResponse>> approve(
@@ -131,9 +116,7 @@ public class CodeRangeSupplementController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Từ chối một yêu cầu kèm lý do bắt buộc.
-     */
+    /** Từ chối một yêu cầu kèm lý do bắt buộc. */
     @PutMapping("/{id}/reject")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<CodeRangeSupplementResponse>> reject(

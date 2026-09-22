@@ -14,7 +14,6 @@ import java.util.UUID;
 /** Repository quản lý vụ việc thu hồi. */
 @Repository
 public interface RecallCaseRepository extends JpaRepository<RecallCase, UUID> {
-
     /** Lấy danh sách vụ việc thu hồi của một tổ chức theo thời gian tạo giảm dần. */
     List<RecallCase> findByOrganizationIdOrderByCreatedAtDesc(UUID organizationId);
 

@@ -51,7 +51,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class RecallCaseServiceImpl implements RecallCaseService {
-
     /** Vai trò Quản lý hợp tác xã — tác nhân chính của story. */
     private static final String ORG_MANAGER_ROLE = "VT-02";
 
@@ -146,7 +145,7 @@ public class RecallCaseServiceImpl implements RecallCaseService {
             UUID id,
             CloseRecallCaseRequest request,
             CustomUserDetails currentUser) {
-        // 1. Kiểm tra vai trò và cách ly tổ chức (QTN-01)
+        // Kiểm tra vai trò và cách ly tổ chức (QTN-01)
         if (!ORG_MANAGER_ROLE.equals(currentUser.getRoleCode())) {
             throw new BusinessException(MSG_NO_PERMISSION);
         }
@@ -154,12 +153,12 @@ public class RecallCaseServiceImpl implements RecallCaseService {
                 .findByIdAndOrganizationId(id, currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(MSG_CASE_NOT_FOUND));
 
-        // 2. Vụ việc phải đang mở — không cho đóng lại vụ việc đã đóng
+        // Vụ việc phải đang mở — không cho đóng lại vụ việc đã đóng
         if (recallCase.getStatus() != RecallCaseStatus.OPEN) {
             throw new BusinessException(MSG_CASE_ALREADY_CLOSED);
         }
 
-        // 3. Biện pháp khắc phục phòng ngừa bắt buộc (QTN-27)
+        // Biện pháp khắc phục phòng ngừa bắt buộc (QTN-27)
         String remediation = request.getRemediationMeasures() == null
                 ? ""
                 : request.getRemediationMeasures().trim();
@@ -172,11 +171,11 @@ public class RecallCaseServiceImpl implements RecallCaseService {
             throw new BusinessException("Chỉ được đính kèm tối đa 5 tệp biên bản thu hồi.");
         }
 
-        // 4. Phạm vi vụ việc = mọi lô hàng RECALLING của lô sản xuất (QTN-24)
+        // Phạm vi vụ việc = mọi lô hàng RECALLING của lô sản xuất (QTN-24)
         List<Shipment> shipments = shipmentRepository.findByProductionLotIdAndStatus(
                 recallCase.getProductionLot().getId(), ShipmentStatus.RECALLING);
 
-        // 5. Mọi lô phải có kết quả xử lý — chặn đóng và liệt kê lô còn thiếu (TC-02)
+        // Mọi lô phải có kết quả xử lý — chặn đóng và liệt kê lô còn thiếu (TC-02)
         Map<UUID, CloseRecallCaseRequest.LotResultItem> itemByShipment = new HashMap<>();
         for (CloseRecallCaseRequest.LotResultItem item : safeItems(request)) {
             if (item.getShipmentId() == null) {
@@ -199,7 +198,7 @@ public class RecallCaseServiceImpl implements RecallCaseService {
                     String.format(MSG_MISSING_RESULTS, missing.size(), missingNames));
         }
 
-        // 6. Kiểm tra và lưu kết quả xử lý từng lô
+        // Kiểm tra và lưu kết quả xử lý từng lô
         Map<UUID, RecallLotResult> existingResults = recallLotResultRepository
                 .findByRecallCaseId(recallCase.getId())
                 .stream()
@@ -238,7 +237,7 @@ public class RecallCaseServiceImpl implements RecallCaseService {
         }
         recallLotResultRepository.saveAll(results);
 
-        // 6b. Cập nhật trạng thái các lô hàng sang RECALLED và hoàn tất mã tem
+        // Cập nhật trạng thái các lô hàng sang RECALLED và hoàn tất mã tem
         for (Shipment shipment : shipments) {
             shipment.setStatus(ShipmentStatus.RECALLED);
             shipmentRepository.save(shipment);
@@ -263,7 +262,7 @@ public class RecallCaseServiceImpl implements RecallCaseService {
             }
         }
 
-        // 7. Đóng vụ việc — một chiều, không cho sửa kết quả sau khi đóng
+        // Đóng vụ việc — một chiều, không cho sửa kết quả sau khi đóng
         recallCase.setStatus(RecallCaseStatus.CLOSED);
         recallCase.setRemediationMeasures(remediation);
         recallCase.setEvidenceFileIds(serializeEvidence(request.getEvidenceFileIds()));
@@ -271,17 +270,17 @@ public class RecallCaseServiceImpl implements RecallCaseService {
         recallCase.setClosedAt(LocalDateTime.now());
         recallCaseRepository.save(recallCase);
 
-        // 8. Gửi thông báo kết thúc thu hồi tới doanh nghiệp thu mua liên quan (TC-04)
+        // Gửi thông báo kết thúc thu hồi tới doanh nghiệp thu mua liên quan (TC-04)
         notifyProcurementOrganizations(recallCase, shipments);
 
-        // 8b. Gửi thông báo webhook tự động tới các bên thứ ba khi kết thúc thu hồi RECALLED (NCL-12-CN-006)
+        // Gửi thông báo webhook tự động tới các bên thứ ba khi kết thúc thu hồi RECALLED (NCL-12-CN-006)
         partnerRecallWebhookDispatcher.dispatchRecallNotifications(
                 shipments,
                 "RECALLED",
                 "Thu hồi theo quyết định xử lý vụ việc của hợp tác xã: " + recallCase.getCaseCode(),
                 remediation);
 
-        // 9. Ghi lịch sử hoạt động (QTN-08)
+        // Ghi lịch sử hoạt động (QTN-08)
         logCloseActivity(currentUser, recallCase, shipments.size());
 
         log.info("Đã đóng vụ việc thu hồi {}. caseId={}",

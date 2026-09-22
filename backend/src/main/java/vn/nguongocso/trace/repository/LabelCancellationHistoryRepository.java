@@ -13,7 +13,6 @@ import vn.nguongocso.trace.entity.LabelCancellationHistory;
 /** Repository quản lý lịch sử hủy tem. */
 @Repository
 public interface LabelCancellationHistoryRepository extends JpaRepository<LabelCancellationHistory, UUID> {
-
     /** Lấy lịch sử hủy tem theo lô hàng và tổ chức. */
     @Query("SELECT h FROM LabelCancellationHistory h WHERE h.shipment.id = :shipmentId AND h.organization.id = :organizationId ORDER BY h.cancelledAt DESC")
     List<LabelCancellationHistory> findByShipmentIdAndOrganizationIdOrderByCancelledAtDesc(

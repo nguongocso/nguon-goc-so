@@ -16,7 +16,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RecallCaseResponse {
-
     private UUID id;
 
     private String caseCode;
@@ -45,4 +44,3 @@ public class RecallCaseResponse {
 
     private int shipmentCount;
 }
-

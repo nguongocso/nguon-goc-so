@@ -23,7 +23,6 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 /** Repository quản lý lô hàng. */
 @Repository
 public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
-
     /** Lấy danh sách lô hàng theo ID của lô sản xuất. */
     List<Shipment> findByProductionLotId(UUID productionLotId);
 

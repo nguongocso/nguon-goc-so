@@ -32,7 +32,6 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
-
     private final ProductionLotRepository productionLotRepository;
     private final ShipmentRepository shipmentRepository;
     private final TraceCodeRepository traceCodeRepository;
@@ -53,7 +52,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
         String rootNodeType = null;
         ProductionLot productionLot = null;
 
-        // 1. Tìm theo TraceCode
+        // Tìm theo TraceCode
         Optional<TraceCode> traceCodeOpt = traceCodeRepository.findByCodeValue(searchCode);
         if (!traceCodeOpt.isPresent() && uuidCode != null) {
             traceCodeOpt = traceCodeRepository.findById(uuidCode);
@@ -67,7 +66,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
             }
         }
 
-        // 2. Nếu chưa thấy, tìm theo Shipment
+        // Nếu chưa thấy, tìm theo Shipment
         if (productionLot == null) {
             Optional<Shipment> shipmentOpt = Optional.empty();
             if (uuidCode != null) {
@@ -86,7 +85,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
             }
         }
 
-        // 3. Nếu chưa thấy, tìm theo ProductionLot
+        // Nếu chưa thấy, tìm theo ProductionLot
         if (productionLot == null) {
             Optional<ProductionLot> lotOpt = Optional.empty();
             if (uuidCode != null) {

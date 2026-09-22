@@ -28,9 +28,7 @@ import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.recall.enums.BulkRecallRequestStatus;
 
-/** 
- * Yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng.
- */
+/** Yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng. */
 @Entity
 @Table(name = "bulk_recall_requests")
 @Getter

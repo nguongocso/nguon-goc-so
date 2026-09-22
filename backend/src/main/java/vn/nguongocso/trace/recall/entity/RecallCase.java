@@ -1,19 +1,34 @@
 package vn.nguongocso.trace.recall.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-import vn.nguongocso.farm.entity.ProductionLot;
-import vn.nguongocso.trace.recall.enums.RecallCaseStatus;
-import vn.nguongocso.auth.entity.User;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Vụ việc thu hồi lô sản xuất.
- */
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.trace.recall.enums.RecallCaseStatus;
+
+/** Vụ việc thu hồi lô sản xuất. */
 @Entity
 @Table(name = "recall_cases")
 @Getter
@@ -22,7 +37,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class RecallCase {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)

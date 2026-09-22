@@ -58,7 +58,6 @@ import vn.nguongocso.trace.service.ShipmentHandoverService;
 @Transactional
 @RequiredArgsConstructor
 public class ShipmentHandoverServiceImpl implements ShipmentHandoverService {
-
     private final ShipmentHandoverRepository handoverRepository;
     private final ShipmentRepository shipmentRepository;
     private final OrganizationRepository organizationRepository;
@@ -402,9 +401,7 @@ public class ShipmentHandoverServiceImpl implements ShipmentHandoverService {
         return totalQuantity - (committedSum != null ? committedSum : 0L);
     }
 
-    /**
-     * Kiểm tra phiếu PENDING đã quá thời hạn xác nhận (dù scheduler chưa kịp chạy).
-     */
+    /** Kiểm tra phiếu PENDING đã quá thời hạn xác nhận (dù scheduler chưa kịp chạy). */
     private boolean isExpired(ShipmentHandover handover) {
         return handover.getExpiresAt() != null
                 && handover.getStatus() == ShipmentHandoverStatus.PENDING_CONFIRMATION
@@ -463,10 +460,7 @@ public class ShipmentHandoverServiceImpl implements ShipmentHandoverService {
         }
     }
 
-    /**
-     * Thông báo phiếu mới tới tổ chức nhận (AC NCL-05-CN-008: tổ chức nhận
-     * đã nhận thông báo ngay khi phiếu được tạo).
-     */
+    /** Thông báo phiếu mới tới tổ chức nhận (AC NCL-05-CN-008: tổ chức nhận đã nhận thông báo ngay khi phiếu được tạo). */
     private void notifyReceiverOrganization(ShipmentHandover handover) {
         notificationService.sendHandoverNotification(
                 "Phiếu bàn giao mới cần xác nhận",
@@ -478,9 +472,7 @@ public class ShipmentHandoverServiceImpl implements ShipmentHandoverService {
                 handover.getToOrganization().getOrganizationId());
     }
 
-    /**
-     * Thông báo hủy phiếu tới tổ chức nhận.
-     */
+    /** Thông báo hủy phiếu tới tổ chức nhận. */
     private void notifyCancellation(ShipmentHandover handover) {
         notificationService.sendHandoverNotification(
                 "Phiếu bàn giao đã bị hủy",
@@ -492,9 +484,7 @@ public class ShipmentHandoverServiceImpl implements ShipmentHandoverService {
                 handover.getToOrganization().getOrganizationId());
     }
 
-    /**
-     * Thông báo xác nhận tới tổ chức giao.
-     */
+    /** Thông báo xác nhận tới tổ chức giao. */
     private void notifySenderAccepted(ShipmentHandover handover) {
         notificationService.sendHandoverNotification(
                 "Phiếu bàn giao đã được xác nhận",
@@ -506,9 +496,7 @@ public class ShipmentHandoverServiceImpl implements ShipmentHandoverService {
                 handover.getFromOrganization().getOrganizationId());
     }
 
-    /**
-     * Thông báo từ chối tới tổ chức giao.
-     */
+    /** Thông báo từ chối tới tổ chức giao. */
     private void notifySenderRejected(ShipmentHandover handover, String reason) {
         notificationService.sendHandoverNotification(
                 "Phiếu bàn giao đã bị từ chối",

@@ -15,7 +15,6 @@ import vn.nguongocso.trace.recall.enums.LotResolution;
 /** Yêu cầu kết thúc vụ việc thu hồi. */
 @Data
 public class CloseRecallCaseRequest {
-
     @NotBlank(message = "Biện pháp khắc phục phòng ngừa không được để trống.")
     private String remediationMeasures;
 

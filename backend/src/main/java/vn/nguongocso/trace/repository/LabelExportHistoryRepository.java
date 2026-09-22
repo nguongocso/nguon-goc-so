@@ -11,7 +11,6 @@ import vn.nguongocso.trace.entity.LabelExportHistory;
 /** Repository quản lý lịch sử xuất tem QR. */
 @Repository
 public interface LabelExportHistoryRepository extends JpaRepository<LabelExportHistory, UUID> {
-
     /** Lấy lịch sử xuất tem của một lô hàng. */
     List<LabelExportHistory> findByShipment_IdOrderByExportedAtDesc(UUID shipmentId);
 

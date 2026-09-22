@@ -10,7 +10,6 @@ import java.util.UUID;
 /** DTO response kết quả xử lý lô hàng trong vụ việc thu hồi. */
 @Data
 public class RecallLotResultResponse {
-
     private UUID id;
 
     private UUID shipmentId;
@@ -27,4 +26,3 @@ public class RecallLotResultResponse {
 
     private LocalDateTime createdAt;
 }
-

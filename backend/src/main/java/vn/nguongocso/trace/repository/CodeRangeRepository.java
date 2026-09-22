@@ -15,7 +15,6 @@ import java.util.UUID;
 
 /** Repository quản lý dải mã truy xuất. */
 public interface CodeRangeRepository extends JpaRepository<CodeRange, UUID> {
-
     /** Tìm dải mã truy xuất theo prefix. */
     Optional<CodeRange> findByPrefix(String prefix);
 

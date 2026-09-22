@@ -23,9 +23,7 @@ import lombok.Setter;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.organization.entity.Organization;
 
-/**
- * Lịch sử xuất tem QR cho lô hàng.
- */
+/** Lịch sử xuất tem QR cho lô hàng. */
 @Table(name = "label_export_history")
 @Entity
 @Getter

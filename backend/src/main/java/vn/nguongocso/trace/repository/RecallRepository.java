@@ -12,7 +12,6 @@ import vn.nguongocso.trace.entity.Shipment;
 /** Repository quản lý các đợt thu hồi. */
 @Repository
 public interface RecallRepository extends JpaRepository<Recall, UUID> {
-
     /** Lấy bản ghi thu hồi mới nhất của một lô hàng. */
     Optional<Recall> findTopByShipmentOrderByRecalledAtDesc(Shipment shipment);
 

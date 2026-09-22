@@ -22,9 +22,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.auth.entity.User;
 
-/** 
- * Tệp biên bản đính kèm khi kết thúc vụ việc thu hồi.
- */
+/** Tệp biên bản đính kèm khi kết thúc vụ việc thu hồi. */
 @Entity
 @Table(name = "recall_evidence_files")
 @Getter
