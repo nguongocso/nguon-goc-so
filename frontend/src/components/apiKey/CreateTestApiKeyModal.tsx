@@ -126,7 +126,6 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 py-2">
-          {/* Hộp thông tin chế độ thử nghiệm */}
           <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/60 border border-border text-xs text-muted-foreground">
             <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <div className="space-y-1">
@@ -139,7 +138,6 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
             </div>
           </div>
 
-          {/* Tên đối tác */}
           <div className="space-y-1.5">
             <Label htmlFor="test-partner-name" className="text-xs font-medium">
               Tên đối tác / Kỹ thuật viên kết nối <span className="text-destructive">*</span>
@@ -159,7 +157,6 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
             )}
           </div>
 
-          {/* Thời hạn (ngày) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="test-expire-days" className="text-xs font-medium">
@@ -172,11 +169,10 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
                     key={days}
                     type="button"
                     onClick={() => setValue('expireDays', days, { shouldValidate: true })}
-                    className={`px-1.5 py-0.5 rounded border text-[11px] font-medium transition-colors ${
-                      currentExpireDays === days
+                    className={`px-1.5 py-0.5 rounded border text-[11px] font-medium transition-colors ${currentExpireDays === days
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-muted hover:bg-muted/80 border-border text-foreground'
-                    }`}
+                      }`}
                   >
                     {days} ngày
                   </button>
@@ -203,7 +199,6 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
             )}
           </div>
 
-          {/* Hạn mức số lượt gọi */}
           <div className="space-y-1.5">
             <Label htmlFor="test-rate-limit" className="text-xs font-medium">
               Hạn mức gọi API (lượt/giờ) <span className="text-destructive">*</span>

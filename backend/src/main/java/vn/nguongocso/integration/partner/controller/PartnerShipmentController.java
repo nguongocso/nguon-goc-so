@@ -27,14 +27,11 @@ import vn.nguongocso.report.dto.response.Gs1DossierExportResponse;
 
 /**
  * Controller xuất hồ sơ theo lược đồ GS1 mô phỏng dành cho Bên thứ ba (NCL-12-CN-004, NCL-12-CN-003).
- * <p>
- * Yêu cầu đối tác gửi Header {@code X-API-KEY}. Đã qua xác thực từ {@code ApiKeyAuthenticationFilter}.
  */
 @RestController
 @RequestMapping("/api/v1/partner/shipments")
 @RequiredArgsConstructor
 public class PartnerShipmentController {
-
     private static final Logger log = LoggerFactory.getLogger(PartnerShipmentController.class);
 
     private final vn.nguongocso.integration.partner.service.PartnerLotAccessService partnerLotAccessService;
@@ -59,9 +56,9 @@ public class PartnerShipmentController {
 
         if (isTestKey) {
             String trimmedId = shipmentId.trim();
-            // Cho phép cả sample-lot-001 và sample-shipment-001
             if ("sample-lot-001".equalsIgnoreCase(trimmedId) || "sample-shipment-001".equalsIgnoreCase(trimmedId)) {
-                log.info("Bên thứ ba '{}' gọi xuất hồ sơ GS1 bằng khóa thử nghiệm (shipmentId={}) -> Trả dữ liệu mẫu Sandbox (NCL-12-CN-004)",
+                log.info(
+                        "Bên thứ ba '{}' gọi xuất hồ sơ GS1 bằng khóa thử nghiệm (shipmentId={}) -> Trả dữ liệu mẫu Sandbox (NCL-12-CN-004)",
                         partnerApiKey.getPartnerName(), shipmentId);
 
                 Gs1DossierExportResponse sampleResponse = PartnerSampleDataProvider.getSampleGs1DossierResponse();

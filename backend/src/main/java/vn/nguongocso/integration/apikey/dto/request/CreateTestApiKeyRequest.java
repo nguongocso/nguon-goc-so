@@ -5,8 +5,6 @@ import java.time.LocalDateTime;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,9 +14,6 @@ import lombok.Setter;
 
 /**
  * Yêu cầu cấp mới khóa thử nghiệm (Sandbox/Test Key) dành cho đối tác bên thứ ba.
- * <p>
- * Khóa thử nghiệm có các ràng buộc nghiêm ngặt: hạn mức thấp (tối đa 50 lượt/giờ)
- * và thời hạn ngắn (tối đa 15 ngày) để đối tác kiểm thử tích hợp mà không chạm vào dữ liệu thật (NCL-12-CN-004).
  */
 @Getter
 @Setter
@@ -26,7 +21,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateTestApiKeyRequest {
-
     @Size(max = 255, message = "Tên đối tác không vượt quá 255 ký tự")
     private String partnerName;
 

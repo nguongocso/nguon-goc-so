@@ -21,16 +21,18 @@ import lombok.Setter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PartnerLotDossierResponse {
     private PartnerLotInfoResponse lotInfo;
+
     private PartnerOrgInfoResponse organizationInfo;
+
     private PartnerFarmAreaResponse farmAreaInfo;
+
     private List<PartnerCertificationResponse> certifications;
+
     private PartnerFarmLogSummaryResponse farmLogSummary;
 
-    /** Đánh dấu dữ liệu thử nghiệm (Sandbox). */
     @com.fasterxml.jackson.annotation.JsonProperty("is_test")
     private Boolean isTest;
 
-    /** Thông điệp thông báo dữ liệu thử nghiệm. */
     @com.fasterxml.jackson.annotation.JsonProperty("test_notice")
     private String testNotice;
 }
