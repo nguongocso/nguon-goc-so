@@ -185,7 +185,7 @@ public class PartnerWebhookDeliveryService {
         PartnerApiKey apiKey = notification.getPartnerApiKey();
         if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
             notification.setDeliveryStatus(WebhookDeliveryStatus.CANCELLED);
-            notification.setLastErrorMessage("Đã hủy gửi thông báo: Khóa truy cập đối tác đã bị thu hồi.");
+            notification.setLastErrorMessage("Đã hủy gửi thông báo: Khóa truy cập đối tác đã bị thu hồi (TC-04).");
             notification.setCompletedAt(LocalDateTime.now());
             partnerWebhookNotificationRepository.save(notification);
             log.info("Đã hủy lượt gửi webhook deliveryId={} do khóa apiKeyId={} đã bị thu hồi.",
