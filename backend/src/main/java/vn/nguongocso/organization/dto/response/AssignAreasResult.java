@@ -7,18 +7,15 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * Kết quả gán hàng loạt địa bàn.
- */
+/** Kết quả gán hàng loạt địa bàn. */
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssignAreasResult {
+    private long assignedCount;
 
-	private long assignedCount;
+    private List<AssignedAreaResponse> assigned;
 
-	private List<AssignedAreaResponse> assigned;
-
-	private String message;
+    private String message;
 }

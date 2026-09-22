@@ -1,14 +1,21 @@
 package vn.nguongocso.organization.service;
 
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.dto.request.AddMemberRequest;
 import vn.nguongocso.auth.dto.request.AssignRoleRequest;
@@ -32,32 +39,25 @@ import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.permission.repository.OrganizationRolePermissionRepository;
 
-import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-/**
- * Service quản lý thành viên của tổ chức.
- */
+/** Service quản lý thành viên của tổ chức. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrganizationMemberService {
-
     private final OrganizationUserRepository orgUserRepository;
+
     private final UserRepository userRepository;
+
     private final RoleRepository roleRepository;
+
     private final OrganizationRepository organizationRepository;
+
     private final PasswordEncoder passwordEncoder;
+
     private final OrganizationRolePermissionRepository orgRolePermissionRepository;
 
     private final ApplicationEventPublisher eventPublisher;
 
-    // helper
     private UUID getCurrentOrganizationId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
@@ -79,28 +79,15 @@ public class OrganizationMemberService {
                 .orElseThrow(() -> new BusinessException("Tổ chức không tồn tại"));
     }
 
-    /**
-     * VT-02 chỉ được cấp vai trò Người ghi sự kiện cho thành viên.
-     * VT-01 vẫn được giữ nguyên quyền quản trị hiện tại.
-     */
+    /** Kiểm tra vai trò hợp lệ có thể gán. */
     private void validateAssignableRole(String currentRoleCode, Role targetRole) {
         if (RoleCode.ORG_MANAGER.equals(currentRoleCode)
                 && !RoleCode.EVENT_RECORDER.equals(targetRole.getCode())) {
-            throw new BusinessException(
-                    "Quản lý hợp tác xã chỉ được cấp vai trò Người ghi sự kiện");
+            throw new BusinessException("Quản lý hợp tác xã chỉ được cấp vai trò Người ghi sự kiện");
         }
     }
 
-    // business methods
-    /**
-     * Lấy danh sách thành viên của tổ chức hiện tại theo trạng thái membership.
-     *
-     * <p>
-     * {@code status} nhận {@code ACTIVE}/{@code INACTIVE}; bỏ qua tham số
-     * thì mặc định trả về {@code ACTIVE} (giữ hành vi cũ), truyền giá trị
-     * rỗng thì trả về tất cả phục vụ màn hình kích hoạt lại thành viên.
-     * </p>
-     */
+    /** Lấy danh sách thành viên của tổ chức hiện tại theo trạng thái membership. */
     public List<OrganizationUserResponse> getMembersOfCurrentOrganization(String status) {
         UUID orgId = getCurrentOrganizationId();
         List<OrganizationUser> orgUsers;
@@ -128,9 +115,7 @@ public class OrganizationMemberService {
         }
     }
 
-    /**
-     * Gán vai trò mới cho một thành viên trong tổ chức hiện tại
-     */
+    /** Gán vai trò mới cho một thành viên trong tổ chức hiện tại. */
     @Transactional
     public OrganizationUserResponse assignRole(AssignRoleRequest request) {
         UUID orgId = getCurrentOrganizationId();
@@ -141,24 +126,20 @@ public class OrganizationMemberService {
                 .orElseThrow(() -> new BusinessException("Thành viên không thuộc tổ chức này"));
 
         Role newRole = roleRepository.findById(request.getRoleId())
-        .orElseThrow(() -> new ResourceNotFoundException("Vai trò không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Vai trò không tồn tại"));
 
-        // Không cho cấp hoặc đổi vai trò khi thành viên đang bị vô hiệu hóa
         if (orgUser.getStatus() != OrganizationUserStatus.ACTIVE) {
-            throw new BusinessException(
-                    "Thành viên đã bị vô hiệu hóa. Vui lòng kích hoạt lại trước khi cấp quyền");
+            throw new BusinessException("Thành viên đã bị vô hiệu hóa. Vui lòng kích hoạt lại trước khi cấp quyền");
         }
 
-        // VT-02 chỉ được cấp vai trò VT-03
         validateAssignableRole(currentRoleCode, newRole);
 
         if (RoleCode.ADMIN.equals(newRole.getCode())
                 && !RoleCode.ADMIN.equals(currentRoleCode)) {
-            throw new BusinessException(
-                    "Quản lý HTX không thể gán vai trò Quản trị viên nền tảng");
+            throw new BusinessException("Quản lý HTX không thể gán vai trò Quản trị viên nền tảng");
         }
 
-        // Nếu role mới là VT-02, kiểm tra và chuyển quyền quản lý cũ
+        // Chuyển quyền quản lý cũ nếu role mới là VT-02
         if (RoleCode.ORG_MANAGER.equals(newRole.getCode())) {
             OrganizationUser currentManager = orgUserRepository
                     .findByOrganization_OrganizationIdAndRole_Code(orgId, RoleCode.ORG_MANAGER)
@@ -174,7 +155,6 @@ public class OrganizationMemberService {
             }
         }
 
-        // Gán role mới cho thành viên được chọn
         orgUser.setRole(newRole);
         orgUser = orgUserRepository.save(orgUser);
 
@@ -191,9 +171,7 @@ public class OrganizationMemberService {
         return toResponse(orgUser);
     }
 
-    /**
-     * Thêm thành viên mới vào tổ chức hiện tại
-     */
+    /** Thêm thành viên mới vào tổ chức hiện tại. */
     @Transactional
     public OrganizationUserResponse addMember(AddMemberRequest request) {
         UUID orgId = getCurrentOrganizationId();
@@ -203,30 +181,25 @@ public class OrganizationMemberService {
             throw new BusinessException("Tên đăng nhập đã tồn tại");
         }
 
-        // Kiểm tra trùng email
         if (request.getEmail() != null && !request.getEmail().isBlank()
                 && userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException("Email đã tồn tại");
         }
 
-        // Kiểm tra trùng số điện thoại
         if (request.getPhone() != null && !request.getPhone().isBlank()
                 && userRepository.existsByPhone(request.getPhone())) {
             throw new BusinessException("Số điện thoại đã tồn tại");
         }
 
         Role role = roleRepository.findById(request.getRoleId())
-        .orElseThrow(() -> new ResourceNotFoundException("Vai trò không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Vai trò không tồn tại"));
 
         String currentRoleCode = getCurrentRoleCode();
-
-        // VT-02 chỉ được tạo thành viên với vai trò VT-03
         validateAssignableRole(currentRoleCode, role);
 
         if (RoleCode.ADMIN.equals(role.getCode())
                 && !RoleCode.ADMIN.equals(currentRoleCode)) {
-            throw new BusinessException(
-                    "Quản lý HTX không thể tạo tài khoản admin");
+            throw new BusinessException("Quản lý HTX không thể tạo tài khoản admin");
         }
 
         User newUser = new User();
@@ -264,19 +237,7 @@ public class OrganizationMemberService {
         return toResponse(orgUser);
     }
 
-    /**
-     * Vô hiệu hóa thành viên của tổ chức hiện tại: thu hồi toàn bộ quyền
-     * ngay lập tức, chuyển giao lô chưa hoàn thành cho người thay thế
-     * (nếu có), chấm dứt phiên đang mở và ghi audit log (QTN-32).
-     *
-     * <p>
-     * Toàn bộ thao tác ghi (chuyển giao phân công + đổi trạng thái
-     * membership) chạy trong cùng transaction. Phiên đăng nhập đang mở bị
-     * chấm dứt tức thời nhờ kiểm tra trạng thái membership ở luồng xác
-     * thực từng request
-     * ({@code CustomUserDetailsService.loadUserByUserIdAndOrganizationId}).
-     * </p>
-     */
+    /** Vô hiệu hóa thành viên của tổ chức hiện tại. */
     @Transactional
     public OrganizationUserResponse deactivateMember(UUID userId, DeactivateMemberRequest request) {
         UUID orgId = getCurrentOrganizationId();
@@ -298,11 +259,6 @@ public class OrganizationMemberService {
         validateDeactivationScope(getCurrentRoleCode(), membership);
         validateNotLastActiveManager(orgId, membership);
 
-        // Vô hiệu hóa trực tiếp. Lưu ý: nếu thành viên còn lô chưa hoàn
-        // thành thì các lô đó sẽ mất người ghi sự kiện — FE hiện thông báo
-        // cảnh báo để quản lý rà soát trước khi thực hiện. Hiện tại hệ thống
-        // chưa có phân quyền ghi sự kiện theo lô nên KHÔNG thực hiện chuyển
-        // giao lô (transferActiveAssignments được tạm gỡ bỏ — D-4/TC-02).
         membership.setStatus(OrganizationUserStatus.INACTIVE);
         membership = orgUserRepository.save(membership);
 
@@ -318,11 +274,7 @@ public class OrganizationMemberService {
         return toResponse(membership);
     }
 
-    /**
-     * Kích hoạt lại thành viên đã ngừng hoạt động, bắt buộc nhập lý do.
-     * Vai trò cũ lưu trong {@code organization_users.role_id} được giữ
-     * nguyên (không tự cấp lại quyền); phân công lô cũ không được hồi tố.
-     */
+    /** Kích hoạt lại thành viên đã ngừng hoạt động. */
     @Transactional
     public OrganizationUserResponse reactivateMember(UUID userId, ReactivateMemberRequest request) {
         UUID orgId = getCurrentOrganizationId();
@@ -354,21 +306,14 @@ public class OrganizationMemberService {
         return toResponse(membership);
     }
 
-    // ==================== deactivate/reactivate helpers ====================
-
-    /** BR-9: không cho phép vô hiệu hóa chính mình. */
+    /** Không cho phép tự vô hiệu hóa chính mình. */
     private void validateNotSelfDeactivation(UUID currentUserId, UUID targetUserId) {
         if (currentUserId.equals(targetUserId)) {
             throw new BusinessException("Không thể tự vô hiệu hóa tài khoản của chính mình");
         }
     }
 
-    /**
-     * Phạm vi vai trò khi vô hiệu hóa: người thao tác phải là VT-01/VT-02
-     * (tầng 2 phòng thủ, tầng 1 là {@code @PreAuthorize} trên controller);
-     * VT-02 chỉ được vô hiệu hóa thành viên vai trò Người ghi sự kiện
-     * (khớp {@code validateAssignableRole}).
-     */
+    /** Kiểm tra quyền hạn khi vô hiệu hóa thành viên. */
     private void validateDeactivationScope(String currentRoleCode, OrganizationUser targetMembership) {
         if (!RoleCode.ADMIN.equals(currentRoleCode) && !RoleCode.ORG_MANAGER.equals(currentRoleCode)) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "Bạn không có quyền thực hiện chức năng này");
@@ -390,20 +335,6 @@ public class OrganizationMemberService {
             throw new BusinessException(HttpStatus.CONFLICT,
                     "Không thể vô hiệu hóa quản lý duy nhất còn lại của tổ chức");
         }
-    }
-
-    /**
-     * Load membership của một thành viên trong tổ chức hiện tại (scope
-     * theo JWT). User không tồn tại → 404; không thuộc tổ chức hiện tại
-     * → 400 (không lộ thông tin membership chéo tổ chức).
-     */
-    private OrganizationUser loadMembershipInCurrentOrganization(UUID userId) {
-        UUID orgId = getCurrentOrganizationId();
-        userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Thành viên không tồn tại"));
-        return orgUserRepository
-                .findByOrganization_OrganizationIdAndUser_UserId(orgId, userId)
-                .orElseThrow(() -> new BusinessException("Thành viên không thuộc tổ chức này"));
     }
 
     private CustomUserDetails getCurrentUser() {
