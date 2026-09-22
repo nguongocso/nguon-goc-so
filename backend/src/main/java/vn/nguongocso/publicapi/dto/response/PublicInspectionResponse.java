@@ -9,69 +9,40 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Response danh sách kết quả kiểm nghiệm của lô sản xuất trên trang tra cứu công khai.
- */
+/** Response danh sách kết quả kiểm nghiệm của lô sản xuất trên trang tra cứu công khai. */
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class PublicInspectionResponse {
-
-    /**
-     * ID lô sản xuất.
-     */
+    /** ID lô sản xuất. */
     private UUID productionLotId;
 
-    /**
-     * Tên lô sản xuất.
-     */
+    /** Tên lô sản xuất. */
     private String lotName;
 
-    /**
-     * Đánh dấu lô có kết quả kiểm nghiệm hay chưa.
-     */
+    /** Đánh dấu lô có kết quả kiểm nghiệm hay chưa. */
     private boolean hasInspection;
 
-    /**
-     * Tổng số chỉ tiêu kiểm nghiệm đã công bố của lô.
-     */
+    /** Tổng số chỉ tiêu kiểm nghiệm. */
     private int totalCriteria;
 
-    /**
-     * Số chỉ tiêu đạt (passed = true).
-     */
+    /** Số chỉ tiêu đạt. */
     private int passedCriteria;
 
-    /**
-     * Số chỉ tiêu không đạt (passed = false).
-     * Kết quả hết hạn nhưng passed = true không được tính là không đạt.
-     */
+    /** Số chỉ tiêu không đạt. */
     private int failedCriteriaCount;
 
-    /**
-     * Tỷ lệ chỉ tiêu không đạt trên tổng số chỉ tiêu (%),
-     * làm tròn 1 chữ số thập phân. Bằng 0.0 khi không có chỉ tiêu.
-     */
+    /** Tỷ lệ chỉ tiêu không đạt (%). */
     private double failedRatio;
 
-    /**
-     * Danh sách kết quả kiểm nghiệm các chỉ tiêu
-     * (kết quả MỚI NHẤT của từng chỉ tiêu — trạng thái hiện tại).
-     */
+    /** Danh sách kết quả kiểm nghiệm mới nhất của từng chỉ tiêu. */
     private List<PublicInspectionCriterionResultDto> inspections;
 
-    /**
-     * Tổng số lần kiểm nghiệm đã thực hiện trên lô
-     * (bao gồm cả kiểm nghiệm lần đầu và kiểm nghiệm lại).
-     */
+    /** Tổng số lần kiểm nghiệm đã thực hiện trên lô. */
     private int roundCount;
 
-    /**
-     * Lịch sử kiểm nghiệm theo từng lần gửi mẫu, sắp xếp từ cũ đến mới.
-     * Mỗi phần tử là một lần kiểm nghiệm kèm toàn bộ kết quả của lần đó —
-     * các kết quả không đạt của lần trước vẫn được giữ nguyên.
-     */
+    /** Lịch sử kiểm nghiệm theo từng lần gửi mẫu. */
     private List<PublicInspectionRoundDto> history;
 }
