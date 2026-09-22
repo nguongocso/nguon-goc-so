@@ -1,3 +1,6 @@
+/**
+ * Payload yêu cầu ghi nhận sự kiện thu hoạch nông sản từ vùng trồng.
+ */
 export interface HarvestEventPayload {
   productionLotId: string;
   harvestDate: string;
@@ -8,6 +11,9 @@ export interface HarvestEventPayload {
   earlyHarvestReason?: string;
 }
 
+/**
+ * Phản hồi chi tiết sau khi ghi nhận sự kiện thu hoạch.
+ */
 export interface HarvestEventResponse {
   success: boolean;
   status: number;

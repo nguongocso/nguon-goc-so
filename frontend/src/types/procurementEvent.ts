@@ -1,3 +1,6 @@
+/**
+ * Payload yêu cầu ghi nhận sự kiện thu mua nông sản từ HTX/Nông dân.
+ */
 export interface RecordProcurementEventRequest {
   shipmentId: string;
   receivedQuantity: number;
@@ -6,6 +9,9 @@ export interface RecordProcurementEventRequest {
   longitude?: number;
 }
 
+/**
+ * Cấu trúc dữ liệu chi tiết của sự kiện thu mua nông sản.
+ */
 export interface ProcurementEventData {
   shipmentId: string;
   shipmentName: string;
@@ -13,6 +19,9 @@ export interface ProcurementEventData {
   notes?: string;
 }
 
+/**
+ * Dữ liệu phản hồi sự kiện thu mua trong chuỗi cung ứng.
+ */
 export interface ChainEventResponse {
   id: string;
   shipmentId: string;

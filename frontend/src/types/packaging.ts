@@ -1,5 +1,8 @@
 import type { ChainEventType } from '@/enums/chainEventType';
 
+/**
+ * Payload yêu cầu ghi nhận sự kiện đóng gói nông sản.
+ */
 export interface RecordPackagingRequest {
   productionLotId: string;
   packagingSpecification: string;
@@ -8,6 +11,9 @@ export interface RecordPackagingRequest {
   longitude?: number;
 }
 
+/**
+ * Payload yêu cầu đính chính thông tin sự kiện đóng gói đã ghi nhận.
+ */
 export interface CorrectPackagingRequest {
   packagingSpecification: string;
   packagingDate: string;
@@ -16,6 +22,9 @@ export interface CorrectPackagingRequest {
   correctionReason: string;
 }
 
+/**
+ * Dữ liệu phản hồi chi tiết của sự kiện đóng gói trong chuỗi cung ứng.
+ */
 export interface ChainEventResponse {
   id: string;
   shipmentId: string | null;

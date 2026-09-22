@@ -1,9 +1,8 @@
 import type { ChainEventType } from '@/enums/chainEventType';
 
-// ─────────────────────────────────────────────
-// Event Type Labels (Vietnamese & English)
-// ─────────────────────────────────────────────
-
+/**
+ * Bản đồ nhãn tiếng Việt cho các loại sự kiện chuỗi cung ứng
+ */
 export const EVENT_TYPE_VN_LABELS: Record<ChainEventType, string> = {
   HARVEST: 'Thu hoạch',
   PREPROCESSING: 'Sơ chế và phân loại',
@@ -20,6 +19,9 @@ export const EVENT_TYPE_VN_LABELS: Record<ChainEventType, string> = {
   FARM_LOG: 'Nhật ký canh tác',
 };
 
+/**
+ * Bản đồ nhãn tiếng Anh cho các loại sự kiện chuỗi cung ứng
+ */
 export const EVENT_TYPE_EN_LABELS: Record<ChainEventType, string> = {
   HARVEST: 'Harvest',
   PREPROCESSING: 'Preprocessing and Grading',
@@ -36,6 +38,11 @@ export const EVENT_TYPE_EN_LABELS: Record<ChainEventType, string> = {
   FARM_LOG: 'Farm Log',
 };
 
+/**
+ * Lấy nhãn hiển thị của loại sự kiện theo ngôn ngữ ('vi' hoặc 'en')
+ * @param eventType Mã loại sự kiện
+ * @param lang Ngôn ngữ hiển thị (mặc định 'vi')
+ */
 export function getEventTypeLabel(eventType: string, lang: 'vi' | 'en' = 'vi'): string {
   if (lang === 'en') {
     return EVENT_TYPE_EN_LABELS[eventType as ChainEventType] || eventType;
@@ -240,7 +247,9 @@ const SPLIT_FIELD_ORDER = [
 ];
 
 /**
- * Converts a camelCase backend field name into a human-readable label.
+ * Chuyển đổi tên trường camelCase của backend thành nhãn thân thiện người dùng
+ * @param key Tên trường nghiệp vụ dạng camelCase
+ * @param lang Ngôn ngữ hiển thị (mặc định 'vi')
  */
 export function formatFieldLabel(key: string, lang: 'vi' | 'en' = 'vi'): string {
   if (lang === 'en') {
@@ -273,6 +282,11 @@ const HANDOVER_ACTION_TRANSLATIONS: Record<string, { vi: string; en: string }> =
   PENDING: { vi: 'Chờ xác nhận', en: 'Pending' },
 };
 
+/**
+ * Định dạng giá trị sự kiện để hiển thị trên giao diện theo ngôn ngữ
+ * @param value Giá trị sự kiện (chuỗi, số, boolean, ngày ISO hoặc mảng)
+ * @param lang Ngôn ngữ hiển thị (mặc định 'vi')
+ */
 export function formatEventValue(value: unknown, lang: 'vi' | 'en' = 'vi'): string {
   if (value === null || value === undefined) {
     return '';
@@ -314,10 +328,18 @@ export function formatEventValue(value: unknown, lang: 'vi' | 'en' = 'vi'): stri
   return String(value);
 }
 
+/**
+ * Kiểm tra xem giá trị sự kiện có rỗng hay không (null, undefined, hoặc chuỗi rỗng)
+ */
 export function isEventValueEmpty(value: unknown): boolean {
   return value === null || value === undefined || value === '';
 }
 
+/**
+ * Lọc và sắp xếp danh sách các trường dữ liệu sự kiện cần hiển thị
+ * @param eventType Loại sự kiện
+ * @param data Dữ liệu sự kiện dạng key-value
+ */
 export function getDisplayEventDataEntries(
   eventType: string,
   data: Record<string, unknown>,
@@ -343,6 +365,9 @@ export function getDisplayEventDataEntries(
 // Date / DateTime formatting
 // ─────────────────────────────────────────────
 
+/**
+ * Định dạng chuỗi ngày giờ ISO thành chuỗi ngày giờ dễ đọc (DD/MM/YYYY HH:mm)
+ */
 export function formatDisplayDateTime(iso: string, lang: 'vi' | 'en' = 'vi'): string {
   try {
     const date = new Date(iso);
@@ -366,6 +391,9 @@ export function formatDisplayDateTime(iso: string, lang: 'vi' | 'en' = 'vi'): st
   }
 }
 
+/**
+ * Định dạng chuỗi ngày ISO thành chuỗi ngày dễ đọc (DD/MM/YYYY)
+ */
 export function formatDisplayDate(iso: string, lang: 'vi' | 'en' = 'vi'): string {
   try {
     return new Date(iso).toLocaleDateString(lang === 'en' ? 'en-US' : 'vi-VN', {
@@ -384,7 +412,10 @@ export function formatDisplayDate(iso: string, lang: 'vi' | 'en' = 'vi'): string
 // ─────────────────────────────────────────────
 
 /**
- * Translates a raw eventData map into { Label: formattedValue }.
+ * Chuyển đổi dữ liệu sự kiện thô thành bản đồ nhãn hiển thị và giá trị đã định dạng
+ * @param eventType Loại sự kiện
+ * @param data Dữ liệu sự kiện
+ * @param lang Ngôn ngữ hiển thị (mặc định 'vi')
  */
 export function getTranslatedEventData(
   eventType: string,

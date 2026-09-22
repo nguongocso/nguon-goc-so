@@ -1,3 +1,6 @@
+/**
+ * Payload yêu cầu ghi nhận sự kiện sơ chế và phân loại nông sản.
+ */
 export interface RecordPreprocessingRequest {
   productionLotId: string;
   inputQuantity: number;
@@ -8,9 +11,12 @@ export interface RecordPreprocessingRequest {
   images?: string[];
   latitude?: number;
   longitude?: number;
-  deviceSource?: "WEB" | "MOBILE";
+  deviceSource?: 'WEB' | 'MOBILE';
 }
 
+/**
+ * Payload yêu cầu đính chính sự kiện sơ chế đã ghi nhận.
+ */
 export interface CorrectPreprocessingRequest {
   inputQuantity: number;
   outputQuantity: number;
@@ -22,6 +28,9 @@ export interface CorrectPreprocessingRequest {
   longitude?: number;
 }
 
+/**
+ * Cấu trúc dữ liệu chi tiết của sự kiện sơ chế.
+ */
 export interface PreprocessingEventData {
   productionLotId: string;
   productionLotName: string;
@@ -37,10 +46,13 @@ export interface PreprocessingEventData {
   parentEventId?: string;
 }
 
+/**
+ * Phản hồi chi tiết sau khi ghi nhận sự kiện sơ chế.
+ */
 export interface PreprocessingEventResponse {
   id: string;
   shipmentId: string | null;
-  eventType: "PREPROCESSING";
+  eventType: 'PREPROCESSING';
   eventData: PreprocessingEventData;
   latitude: number | null;
   longitude: number | null;

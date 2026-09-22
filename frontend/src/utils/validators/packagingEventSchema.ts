@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { getLocalDateString } from '@/utils/dateTime';
 
+/**
+ * Schema xác thực dữ liệu sự kiện đóng gói
+ */
 export const recordPackagingSchema = z.object({
   productionLotId: z.string().uuid('Vui lòng chọn lô sản xuất'),
   packagingSpecification: z
@@ -18,6 +21,9 @@ export const recordPackagingSchema = z.object({
   longitude: z.number().min(-180).max(180).optional(),
 });
 
+/**
+ * Schema xác thực dữ liệu đính chính sự kiện đóng gói
+ */
 export const correctPackagingSchema = recordPackagingSchema
   .omit({ productionLotId: true })
   .extend({
@@ -27,5 +33,12 @@ export const correctPackagingSchema = recordPackagingSchema
       .max(500, 'Lý do không được vượt quá 500 ký tự'),
   });
 
+/**
+ * Kiểu dữ liệu form ghi nhận đóng gói
+ */
 export type RecordPackagingFormValues = z.infer<typeof recordPackagingSchema>;
-export type CorrectPackagingFormValues = z.infer<typeof correctPackagingSchema>;
+
+/**
+ * Kiểu dữ liệu form đính chính đóng gói
+ */
+export type CorrectPackagingFormValues = z.infer<typeof correctPackagingSchema>;
