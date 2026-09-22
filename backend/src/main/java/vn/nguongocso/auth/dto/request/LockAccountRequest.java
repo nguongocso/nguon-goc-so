@@ -18,36 +18,16 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class LockAccountRequest {
-    
-    /**
-     * ID bản ghi bất thường dẫn tới khoá (optional).
-     * Nếu có, hệ thống liên kết khoá này với anomaly.
-     */
     private UUID anomalyId;
-    
-    /**
-     * Ghi chú/lý do khoá tạm từ người quản lý (tối đa 500 ký tự).
-     */
+
     @Size(max = 500, message = "Lý do khoá không được vượt quá 500 ký tự")
     private String reason;
 
-    /**
-     * Có phải khóa vĩnh viễn hay không.
-     */
     private boolean permanent;
 
-    /**
-     * Số ngày khóa.
-     */
     private Integer days;
 
-    /**
-     * Số giờ khóa.
-     */
     private Integer hours;
 
-    /**
-     * Số phút khóa.
-     */
     private Integer minutes;
 }

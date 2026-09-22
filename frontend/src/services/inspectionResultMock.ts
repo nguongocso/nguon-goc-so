@@ -1,29 +1,10 @@
 import type { PublicInspectionResponse } from "@/types/publicInspection";
 
-/**
- * Mock cho endpoint công khai của NCL-11-CN-003 (CV-04):
- *
- *   - GET /api/v1/public/trace/{codeValue}/inspections
- *
- * Mock chỉ bật khi được yêu cầu rõ ràng bằng:
- *
- *   VITE_USE_MOCK_INSPECTION_RESULT=true
- *
- * Mặc định (không khai báo biến) là OFF: frontend gọi API thật
- * (xem src/api/publicApi.ts). Khi backend chưa trả dữ liệu thì UI
- * hiển thị trạng thái "Chưa có kết quả kiểm nghiệm" — không fake dữ liệu.
- *
- * Các endpoint ghi nhận kết quả kiểm nghiệm đã có trên backend
- * (POST /inspection-criteria/{criterionId}/results,
- * PUT /inspection-requests/{requestId}/results...) nên không còn mock ở đây.
- */
-
 export const USE_MOCK_INSPECTION_RESULT =
   import.meta.env.VITE_USE_MOCK_INSPECTION_RESULT === "true";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Băm chuỗi sang số ổn định để dữ liệu mock deterministic theo codeValue. */
 const hashCode = (value: string): number => {
   let hash = 0;
   for (let i = 0; i < value.length; i += 1) {
@@ -33,10 +14,6 @@ const hashCode = (value: string): number => {
   return Math.abs(hash);
 };
 
-/**
- * GET /api/v1/public/trace/{codeValue}/inspections (mock, CV-04).
- * Trả kết quả kiểm nghiệm mẫu theo mã tra cứu.
- */
 export const mockFetchPublicInspections = async (
   codeValue: string
 ): Promise<PublicInspectionResponse> => {

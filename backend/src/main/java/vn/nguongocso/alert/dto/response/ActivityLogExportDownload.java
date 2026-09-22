@@ -10,6 +10,8 @@ import lombok.Getter;
 @Builder
 public class ActivityLogExportDownload {
     private Path path;
+
     private String fileName;
+
     private long fileSize;
 }

@@ -1,22 +1,34 @@
 package vn.nguongocso.trace.recall.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-import vn.nguongocso.trace.entity.Shipment;
-import vn.nguongocso.trace.recall.enums.LotResolution;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Kết quả xử lý thực tế của một lô hàng trong vụ việc thu hồi (NCL-08-CN-012).
- *
- * <p>Một bản ghi duy nhất cho (case, shipment) — không cho phép ghi đè lịch sử;
- * ràng buộc UNIQUE(recall_case_id, shipment_id) bảo vệ ở tầng DB.</p>
- */
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.recall.enums.LotResolution;
+
+/** Kết quả xử lý lô hàng trong vụ việc thu hồi. */
 @Entity
 @Table(name = "recall_lot_results")
 @Getter
@@ -25,7 +37,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class RecallLotResult {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -43,7 +54,6 @@ public class RecallLotResult {
     @Column(nullable = false, length = 30)
     private LotResolution resolution;
 
-    /** Số lượng thực tế thu hồi được (số thực, đơn vị lấy từ lô sản xuất). */
     @Column(name = "recovered_quantity", precision = 18, scale = 3)
     private BigDecimal recoveredQuantity;
 

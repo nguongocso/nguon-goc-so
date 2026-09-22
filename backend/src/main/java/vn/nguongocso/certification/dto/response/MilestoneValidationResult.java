@@ -9,14 +9,12 @@ import java.util.List;
 
 /**
  * Kết quả kiểm tra mốc canh tác trước khi đóng gói.
- * Kế thừa ArrayList<String> để tương thích ngược với các lời gọi trả về List<String>
- * chứa danh sách tên mốc canh tác còn thiếu.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class MilestoneValidationResult extends ArrayList<String> {
-
     private boolean eligible;
+
     private String message;
 
     public MilestoneValidationResult() {

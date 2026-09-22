@@ -1,31 +1,36 @@
 package vn.nguongocso.certification.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Master catalog of inspection criteria.
- * Story: NCL-09-CN-009
+ * Danh mục chỉ tiêu kiểm nghiệm dùng chung.
  */
 @Entity
-@Table(
-    name = "inspection_criterion_catalog",
-    uniqueConstraints = {
-        @UniqueConstraint(
-            name = "uk_criterion_name_standard",
-            columnNames = {"name", "reference_standard"}
-        )
-    }
-)
+@Table(name = "inspection_criterion_catalog", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_criterion_name_standard", columnNames = { "name", "reference_standard" })
+})
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class InspectionCriterionCatalog {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

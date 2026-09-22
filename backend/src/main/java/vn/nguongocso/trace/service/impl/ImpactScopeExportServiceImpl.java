@@ -1,35 +1,54 @@
 package vn.nguongocso.trace.service.impl;
 
-import com.lowagie.text.*;
-import com.lowagie.text.pdf.BaseFont;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.stereotype.Service;
-import vn.nguongocso.auth.service.CustomUserDetails;
-import vn.nguongocso.exception.BusinessException;
-import vn.nguongocso.trace.dto.response.*;
-import vn.nguongocso.trace.service.ImpactScopeExportService;
-import vn.nguongocso.trace.service.ImpactScopeTraceService;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Service;
+
+import com.lowagie.text.Document;
+import com.lowagie.text.Element;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.Rectangle;
+import com.lowagie.text.pdf.BaseFont;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.trace.dto.response.ChainEventTraceDto;
+import vn.nguongocso.trace.dto.response.FarmAreaTraceDto;
+import vn.nguongocso.trace.dto.response.ImpactScopeSummaryDto;
+import vn.nguongocso.trace.dto.response.ImpactScopeTraceResponse;
+import vn.nguongocso.trace.dto.response.ProductionLotTraceDto;
+import vn.nguongocso.trace.dto.response.ReceivingOrganizationTraceDto;
+import vn.nguongocso.trace.dto.response.ScanStatsTraceDto;
+import vn.nguongocso.trace.dto.response.ShipmentTraceDto;
+import vn.nguongocso.trace.service.ImpactScopeExportService;
+import vn.nguongocso.trace.service.ImpactScopeTraceService;
+
+/** Triển khai dịch vụ xuất báo cáo phạm vi ảnh hưởng. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ImpactScopeExportServiceImpl implements ImpactScopeExportService {
-
     private final ImpactScopeTraceService impactScopeTraceService;
 
     @Override

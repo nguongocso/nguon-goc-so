@@ -28,13 +28,11 @@ import vn.nguongocso.common.PageResponse;
 @RequestMapping("/api/v1/inspection-criteria")
 @RequiredArgsConstructor
 public class InspectionCriterionCatalogController {
-
     private final InspectionCriterionCatalogService inspectionCriterionCatalogService;
     private final InspectionExpiryConfigService inspectionExpiryConfigService;
 
     /**
      * Danh sách chỉ tiêu kiểm nghiệm (phân trang, lọc theo keyword/status).
-     * §4.1
      */
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -46,13 +44,13 @@ public class InspectionCriterionCatalogController {
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<InspectionCriterionCatalogResponse> result =
-                inspectionCriterionCatalogService.searchCriteria(keyword, status, pageable, currentUser);
+        Page<InspectionCriterionCatalogResponse> result = inspectionCriterionCatalogService.searchCriteria(keyword,
+                status, pageable, currentUser);
         return ApiResult.success(PageResponse.from(result, result.getContent()));
     }
 
     /**
-     * Chi tiết chỉ tiêu kiểm nghiệm. §4.3
+     * Chi tiết chỉ tiêu kiểm nghiệm.
      */
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
@@ -63,21 +61,21 @@ public class InspectionCriterionCatalogController {
     }
 
     /**
-     * Tạo chỉ tiêu kiểm nghiệm. §4.2 — chỉ PLATFORM_ADMIN.
+     * Tạo chỉ tiêu kiểm nghiệm.
      */
     @PostMapping
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<InspectionCriterionCatalogResponse>> create(
             @Valid @RequestBody InspectionCriterionCatalogRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-        InspectionCriterionCatalogResponse response =
-                inspectionCriterionCatalogService.createCriterion(request, currentUser);
+        InspectionCriterionCatalogResponse response = inspectionCriterionCatalogService.createCriterion(request,
+                currentUser);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
     /**
-     * Cập nhật chỉ tiêu kiểm nghiệm. §4.4 — chỉ PLATFORM_ADMIN.
+     * Cập nhật chỉ tiêu kiểm nghiệm.
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('VT-01')")
@@ -89,7 +87,7 @@ public class InspectionCriterionCatalogController {
     }
 
     /**
-     * Ngừng sử dụng chỉ tiêu kiểm nghiệm. §4.5 — chỉ PLATFORM_ADMIN.
+     * Ngừng sử dụng chỉ tiêu kiểm nghiệm.
      */
     @PutMapping("/{id}/disable")
     @PreAuthorize("hasRole('VT-01')")
@@ -101,7 +99,7 @@ public class InspectionCriterionCatalogController {
     }
 
     /**
-     * Kích hoạt lại chỉ tiêu kiểm nghiệm. §4.5 — chỉ PLATFORM_ADMIN.
+     * Kích hoạt lại chỉ tiêu kiểm nghiệm.
      */
     @PutMapping("/{id}/enable")
     @PreAuthorize("hasRole('VT-01')")
@@ -112,7 +110,7 @@ public class InspectionCriterionCatalogController {
     }
 
     /**
-     * Xóa chỉ tiêu kiểm nghiệm (chưa tham chiếu). §4.6 — chỉ PLATFORM_ADMIN.
+     * Xóa chỉ tiêu kiểm nghiệm (chưa tham chiếu).
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('VT-01')")
@@ -124,7 +122,7 @@ public class InspectionCriterionCatalogController {
     }
 
     /**
-     * Lấy cấu hình ngưỡng cảnh báo hết hiệu lực kiểm nghiệm (NCL-11-CN-004).
+     * Lấy cấu hình ngưỡng cảnh báo hết hiệu lực kiểm nghiệm .
      * Chỉ PLATFORM_ADMIN (VT-01).
      */
     @GetMapping("/expiry-threshold")
@@ -134,7 +132,7 @@ public class InspectionCriterionCatalogController {
     }
 
     /**
-     * Cập nhật cấu hình ngưỡng cảnh báo hết hiệu lực kiểm nghiệm (NCL-11-CN-004).
+     * Cập nhật cấu hình ngưỡng cảnh báo hết hiệu lực kiểm nghiệm .
      * Chỉ PLATFORM_ADMIN (VT-01).
      */
     @PutMapping("/expiry-threshold")

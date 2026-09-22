@@ -24,20 +24,14 @@ import vn.nguongocso.trace.dto.response.HandoverAttachmentUploadResponse;
 import vn.nguongocso.trace.dto.response.HandoverResponse;
 import vn.nguongocso.trace.service.ShipmentHandoverService;
 
-/**
- * Controller xử lý API cho phiếu bàn giao lô hàng.
- */
+/** Controller xử lý phiếu bàn giao lô hàng. */
 @RestController
 @RequestMapping("/api/v1/shipment-handovers")
 @RequiredArgsConstructor
 public class ShipmentHandoverController {
-
     private final ShipmentHandoverService handoverService;
 
-    /**
-     * Tạo phiếu bàn giao lô hàng.
-     * Chỉ Quản lý hợp tác xã (VT-02) được phép tạo.
-     */
+    /** Tạo phiếu bàn giao lô hàng. */
     @PostMapping
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<HandoverResponse>> create(
@@ -45,15 +39,7 @@ public class ShipmentHandoverController {
         return ResponseEntity.ok(ApiResult.success(handoverService.create(request)));
     }
 
-    /**
-     * Tải lên chứng từ giao hàng trước khi tạo phiếu bàn giao.
-     * Chỉ Quản lý hợp tác xã (VT-02) được phép tải lên.
-     *
-     * POST /api/v1/shipment-handovers/attachment
-     *
-     * @param file File chứng từ (JPG/PNG/PDF, tối đa 5MB)
-     * @return Đường dẫn file đã lưu để gửi kèm khi tạo phiếu (attachmentPath)
-     */
+    /** Tải lên chứng từ giao hàng trước khi tạo phiếu bàn giao. */
     @PostMapping(value = "/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<HandoverAttachmentUploadResponse>> uploadAttachment(
@@ -68,10 +54,7 @@ public class ShipmentHandoverController {
                                 .build()));
     }
 
-    /**
-     * Hủy phiếu bàn giao đang chờ xác nhận.
-     * Chỉ Quản lý hợp tác xã (VT-02) bên giao được phép hủy.
-     */
+    /** Hủy phiếu bàn giao đang chờ xác nhận. */
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<HandoverResponse>> cancel(
@@ -80,20 +63,14 @@ public class ShipmentHandoverController {
         return ResponseEntity.ok(ApiResult.success(handoverService.cancel(id, request)));
     }
 
-    /**
-     * Xác nhận nhận bàn giao lô hàng.
-     * Quản lý hợp tác xã (VT-02) hoặc Doanh nghiệp thu mua (VT-04) bên nhận được phép xác nhận.
-     */
+    /** Xác nhận nhận bàn giao lô hàng. */
     @PostMapping("/{id}/accept")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<HandoverResponse>> accept(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResult.success(handoverService.accept(id)));
     }
 
-    /**
-     * Từ chối nhận bàn giao lô hàng.
-     * Quản lý hợp tác xã (VT-02) hoặc Doanh nghiệp thu mua (VT-04) bên nhận được phép từ chối.
-     */
+    /** Từ chối nhận bàn giao lô hàng. */
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<HandoverResponse>> reject(
@@ -102,30 +79,21 @@ public class ShipmentHandoverController {
         return ResponseEntity.ok(ApiResult.success(handoverService.reject(id, request)));
     }
 
-    /**
-     * Lấy chi tiết phiếu bàn giao.
-     * Cả bên giao, bên nhận, admin và người ghi sự kiện đều được xem.
-     */
+    /** Lấy chi tiết phiếu bàn giao. */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03', 'VT-04')")
     public ResponseEntity<ApiResult<HandoverResponse>> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResult.success(handoverService.getById(id)));
     }
 
-    /**
-     * Lấy danh sách phiếu bàn giao đã gửi (bên giao).
-     * Chỉ Quản lý hợp tác xã (VT-02) được xem.
-     */
+    /** Lấy danh sách phiếu bàn giao đã gửi. */
     @GetMapping("/sent")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<List<HandoverResponse>>> getSent() {
         return ResponseEntity.ok(ApiResult.success(handoverService.getSentHandovers()));
     }
 
-    /**
-     * Lấy danh sách phiếu bàn giao đã nhận (bên nhận).
-     * Quản lý hợp tác xã (VT-02) hoặc Doanh nghiệp thu mua (VT-04) được xem.
-     */
+    /** Lấy danh sách phiếu bàn giao đã nhận. */
     @GetMapping("/received")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<List<HandoverResponse>>> getReceived() {

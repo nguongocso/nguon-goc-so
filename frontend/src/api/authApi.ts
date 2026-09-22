@@ -17,12 +17,6 @@ import type { OrganizationSelection } from "@/types/organization";
 
 import apiClient from "./axiosConfig";
 
-/**
- * Bước 1:
- * Xác thực username/password.
- *
- * Backend trả về Selection JWT.
- */
 export const login = async (
   data: LoginRequest
 ): Promise<ApiResult<LoginResponse>> => {
@@ -34,29 +28,12 @@ export const login = async (
   return response.data;
 };
 
-/**
- * Bước 2:
- * Lấy danh sách organization mà user được phép truy cập.
- *
- * API này sử dụng Selection JWT.
- */
-/**
- * Chuỗi thông báo do backend trả khi thành viên không còn
- * membership ACTIVE ở tổ chức nào (trạng thái tài khoản đã bị
- * Vô hiệu hóa — NCL-01-CN-009). FE dùng để hiển thị message rõ nghĩa
- * thay vì thông báo chung "chưa được gán tổ chức".
- */
 export const MEMBERSHIP_INACTIVE_MESSAGE =
   'Người dùng chưa được gán vào tổ chức nào';
 
 export const DEACTIVATED_ACCOUNT_MESSAGE =
   'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ với Quản lý hợp tác xã của bạn để được kích hoạt lại.';
 
-/**
- * Nếu lỗi axios trả message trùng {@link MEMBERSHIP_INACTIVE_MESSAGE}
- * (nghĩa vụ FE bởi backend chưa tạo status code riêng),
- * thay bằng message rõ nghĩa cho người dùng bị Vô hiệu hóa.
- */
 function withDeactivatedMessage<T>(error: unknown): ApiResult<T> {
   if (isAxiosError(error)) {
     const status = error.response?.status ?? 0;
@@ -105,14 +82,6 @@ export const getOrganizations = async (
   }
 };
 
-/**
- * Bước 3:
- * User chọn organization.
- *
- * Backend kiểm tra Selection JWT,
- * organizationId và membership,
- * sau đó cấp Access JWT.
- */
 export const selectOrganization = async (
   data: SelectOrganizationRequest,
   selectionToken?: string
@@ -148,11 +117,6 @@ export const switchOrganization = async (
   return response.data;
 };
 
-/**
- * Lấy thông tin user hiện tại.
- *
- * API này yêu cầu Access JWT.
- */
 export const getCurrent = async (): Promise<
   ApiResult<SelectOrganizationResponse["user"]>
 > => {
@@ -163,9 +127,6 @@ export const getCurrent = async (): Promise<
   return response.data;
 };
 
-/**
- * Gửi yêu cầu đặt lại mật khẩu khi quên (NCL-01-CN-008).
- */
 export const forgotPassword = async (
   data: ForgotPasswordRequest
 ): Promise<ApiResult<void>> => {
@@ -177,9 +138,6 @@ export const forgotPassword = async (
   return response.data;
 };
 
-/**
- * Kiểm tra token đặt lại mật khẩu hợp lệ (NCL-01-CN-008).
- */
 export const validateResetToken = async (
   token: string
 ): Promise<ApiResult<ValidateResetTokenResponse>> => {
@@ -190,9 +148,6 @@ export const validateResetToken = async (
   return response.data;
 };
 
-/**
- * Đặt lại mật khẩu mới (NCL-01-CN-008).
- */
 export const resetPassword = async (
   data: ResetPasswordRequest
 ): Promise<ApiResult<void>> => {
@@ -204,9 +159,6 @@ export const resetPassword = async (
   return response.data;
 };
 
-/**
- * Cập nhật thông tin hồ sơ cá nhân (SĐT, Email).
- */
 export const updateUserProfile = async (
   data: UpdateUserProfileRequest
 ): Promise<ApiResult<AuthUserInfo>> => {

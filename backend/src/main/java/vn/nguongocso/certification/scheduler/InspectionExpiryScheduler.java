@@ -7,16 +7,13 @@ import org.springframework.stereotype.Component;
 import vn.nguongocso.certification.service.InspectionExpiryService;
 
 /**
- * Lớp InspectionExpiryScheduler chịu trách nhiệm quét định kỳ thời hạn kết quả kiểm nghiệm
- * của các lô sản xuất và kích hoạt tạo cảnh báo/thông báo.
- * (NCL-11-CN-004)
- * Mặc định chạy vào lúc 00:00 (nửa đêm) hàng ngày.
+ * Lớp InspectionExpiryScheduler chịu trách nhiệm quét định kỳ thời hạn kết quả kiểm nghiệm của các lô sản xuất và kích hoạt tạo cảnh báo/thông báo.
+ * (NCL-11-CN-004) Mặc định chạy vào lúc 00:00 (nửa đêm) hàng ngày.
  */
 @Component
 @Slf4j
 @RequiredArgsConstructor
 public class InspectionExpiryScheduler {
-
     private final InspectionExpiryService inspectionExpiryService;
 
     /**

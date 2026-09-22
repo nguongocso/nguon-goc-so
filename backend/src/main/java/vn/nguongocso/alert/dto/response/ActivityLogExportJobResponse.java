@@ -11,12 +11,20 @@ import lombok.Getter;
 @Builder
 public class ActivityLogExportJobResponse {
     private UUID exportId;
+
     private String mode;
+
     private String status;
+
     private long recordCount;
+
     private String fileName;
+
     private Long fileSize;
+
     private LocalDateTime createdAt;
+
     private LocalDateTime completedAt;
+
     private String downloadUrl;
 }

@@ -17,7 +17,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class AllThresholdsResponse {
-
     private AnomalyThresholdResponse global;
 
     private List<AnomalyThresholdResponse> categoryOverrides;

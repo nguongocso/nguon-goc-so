@@ -46,8 +46,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByPhone(String phone);
 
     /**
-     * Trang danh sách tài khoản đang có ít nhất một membership ACTIVE với vai
-     * trò {@code roleCode} (NCL-743: liệt kê cán bộ quản lý ngành VT-05).
+     * Trang danh sách tài khoản đang có ít nhất một membership ACTIVE với vai trò {@code roleCode} (NCL-743: liệt kê
+     * cán bộ quản lý ngành VT-05).
      *
      * @param roleCode mã vai trò (VD: VT-05)
      * @param keyword  từ khoá khớp fullName/username; truyền chuỗi rỗng để bỏ lọc

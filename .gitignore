@@ -113,4 +113,7 @@ backend/src/main/resources/db/migration/data/V66__seed_cultivation_milestones.sq
 
 docs/postman/
 .agent-work/
-output/
+output/
+
+docs/agent/CODING_CONVENTION_BACKEND.md
+docs/agent/CODING_CONVENTION_FRONTEND.md

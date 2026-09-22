@@ -17,14 +17,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class CertificateReviewerResponse {
-
-    /**
-     * ID người dùng.
-     */
     private UUID userId;
 
-    /**
-     * Họ và tên người dùng.
-     */
     private String fullName;
 }

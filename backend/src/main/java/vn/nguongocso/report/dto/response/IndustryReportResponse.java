@@ -4,15 +4,15 @@ import java.time.LocalDate;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Response chứa dữ liệu báo cáo tổng hợp theo địa bàn và khoảng thời gian.
- */
+/** Báo cáo tổng hợp ngành theo địa bàn. */
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class IndustryReportResponse {

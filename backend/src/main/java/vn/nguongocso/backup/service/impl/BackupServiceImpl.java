@@ -35,7 +35,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
-// commnet bằng tiếng việt
 /*
 * Lớp triển khai sao lưu dữ liệu
  */
@@ -50,8 +49,7 @@ public class BackupServiceImpl implements BackupService {
     private BackupService self;
 
     /*
-     * Thiết lập tự tham chiếu để gọi các phương thức @Transactional trong cùng một
-     * bean.
+     * Thiết lập tự tham chiếu để gọi các phương thức @Transactional trong cùng một bean.
      */
     @org.springframework.beans.factory.annotation.Autowired
     public void setSelf(@org.springframework.context.annotation.Lazy BackupService self) {
@@ -72,7 +70,6 @@ public class BackupServiceImpl implements BackupService {
         this.taskExecutor = taskExecutor;
     }
 
-    // Database Connection Parameters
     @Value("${DB_HOST:localhost}")
     private String dbHost;
 
@@ -88,7 +85,6 @@ public class BackupServiceImpl implements BackupService {
     @Value("${DB_PASSWORD:}")
     private String dbPassword;
 
-    // Backup Configurations
     @Value("${app.backup.local-dir:./backups}")
     private String backupDir;
 
@@ -100,20 +96,13 @@ public class BackupServiceImpl implements BackupService {
 
     /**
      * Cấu hình lịch trình sao lưu dựa trên yêu cầu từ người dùng.
-     * Phương thức này sẽ lưu cấu hình vào cơ sở dữ liệu và phát ra sự kiện để cập
-     * nhật lịch trình động.
-     *
-     * @param request Yêu cầu cấu hình lịch trình sao lưu
-     * @param updater Người dùng thực hiện thay đổi
-     * @return Phản hồi chứa thông tin lịch trình đã được lưu
+     * Phương thức này sẽ lưu cấu hình vào cơ sở dữ liệu và phát ra sự kiện để cập nhật lịch trình động.
      */
     @Override
     @Transactional
     public BackupScheduleResponse configureSchedule(BackupScheduleRequest request, User updater) {
         log.info("Configuring backup schedule. Cron: {}, Active: {}", request.getCronExpression(),
                 request.getIsActive());
-
-        // Validate Cron expression
         if (!CronExpression.isValidExpression(request.getCronExpression())) {
             throw new BusinessException("Định dạng biểu thức cron không hợp lệ");
         }
@@ -128,7 +117,6 @@ public class BackupServiceImpl implements BackupService {
 
         BackupSchedule saved = backupScheduleRepository.save(schedule);
 
-        // Publish event to dynamically reload the scheduler
         eventPublisher.publishEvent(new BackupScheduleChangedEvent(this, saved));
 
         return BackupScheduleResponse.fromEntity(saved);
@@ -136,9 +124,6 @@ public class BackupServiceImpl implements BackupService {
 
     /**
      * Lấy thông tin lịch trình sao lưu hiện tại.
-     *
-     * @return Phản hồi chứa thông tin lịch trình hiện tại hoặc null nếu không có
-     *         lịch trình nào được kích hoạt
      */
     @Override
     @Transactional(readOnly = true)
@@ -149,27 +134,19 @@ public class BackupServiceImpl implements BackupService {
     }
 
     /**
-     * Kích hoạt sao lưu thủ công. Phương thức này sẽ kiểm tra xem có tiến trình sao
-     * lưu hoặc phục hồi nào đang diễn ra hay không.
-     * Nếu không, nó sẽ tạo một bản ghi lịch sử với trạng thái IN_PROGRESS và thực
-     * hiện sao lưu trong nền.
-     *
-     * @param creator Người dùng kích hoạt sao lưu
-     * @return Phản hồi chứa thông tin lịch sử sao lưu vừa được tạo
+     * Kích hoạt sao lưu thủ công. Phương thức này sẽ kiểm tra xem có tiến trình sao lưu hoặc phục hồi nào đang diễn ra
+     * hay không.
+     * Nếu không, nó sẽ tạo một bản ghi lịch sử với trạng thái IN_PROGRESS và thực hiện sao lưu trong nền.
      */
     @Override
     @Transactional
     public BackupHistoryResponse triggerManualBackup(User creator) {
         log.info("Triggering manual backup by user: {}", creator.getFullName());
 
-        // Check if there is any pending BACKUP or RESTORE operation in progress
-        // (Resource locking)
         if (backupRestoreHistoryRepository.existsByStatus(BackupStatus.IN_PROGRESS)) {
             throw new BusinessException(
                     "Hệ thống đang có một tiến trình sao lưu hoặc khôi phục khác đang diễn ra. Vui lòng thử lại sau.");
         }
-
-        // Create log record with IN_PROGRESS status
         BackupRestoreHistory history = BackupRestoreHistory.builder()
                 .operationType(BackupOperationType.BACKUP)
                 .backupType(BackupType.MANUAL)
@@ -178,9 +155,6 @@ public class BackupServiceImpl implements BackupService {
                 .build();
 
         BackupRestoreHistory saved = backupRestoreHistoryRepository.save(history);
-
-        // Execute backup asynchronously in the background using TaskExecutor to avoid
-        // thread blocking
         CompletableFuture.runAsync(() -> runBackupProcess(saved), taskExecutor);
 
         return BackupHistoryResponse.fromEntity(saved);
@@ -188,10 +162,6 @@ public class BackupServiceImpl implements BackupService {
 
     /**
      * Thực hiện sao lưu cơ sở dữ liệu.
-     *
-     * @param backupType Loại sao lưu
-     * @param creator    Người dùng thực hiện sao lưu
-     * @return Lịch sử sao lưu vừa được tạo
      */
     @Override
     @Transactional
@@ -206,12 +176,8 @@ public class BackupServiceImpl implements BackupService {
     }
 
     /**
-     * Thực hiện sao lưu cơ sở dữ liệu mà không kiểm tra khóa. Phương thức này được
-     * sử dụng nội bộ khi đã đảm bảo rằng không có tiến trình nào đang diễn ra.
-     *
-     * @param backupType Loại sao lưu
-     * @param creator    Người dùng thực hiện sao lưu
-     * @return Lịch sử sao lưu vừa được tạo
+     * Thực hiện sao lưu cơ sở dữ liệu mà không kiểm tra khóa. Phương thức này được sử dụng nội bộ khi đã đảm bảo rằng
+     * không có tiến trình nào đang diễn ra.
      */
     @Override
     @Transactional
@@ -231,13 +197,6 @@ public class BackupServiceImpl implements BackupService {
 
     /**
      * Cập nhật trạng thái của bản ghi lịch sử sao lưu/phục hồi.
-     *
-     * @param id           ID của bản ghi lịch sử
-     * @param status       Trạng thái mới
-     * @param fileName     Tên tập tin sao lưu (nếu có)
-     * @param filePath     Đường dẫn tập tin sao lưu (nếu có)
-     * @param fileSize     Kích thước tập tin sao lưu (nếu có)
-     * @param errorMessage Thông báo lỗi (nếu có)
      */
     @Override
     @Transactional
@@ -255,11 +214,6 @@ public class BackupServiceImpl implements BackupService {
 
     /**
      * Lấy danh sách lịch sử sao lưu/phục hồi với các bộ lọc và phân trang.
-     *
-     * @param operationType Loại thao tác (sao lưu hoặc phục hồi)
-     * @param status        Trạng thái của thao tác
-     * @param pageable      Thông tin phân trang
-     * @return Trang chứa danh sách lịch sử sao lưu/phục hồi
      */
     @Override
     @Transactional(readOnly = true)
@@ -270,9 +224,8 @@ public class BackupServiceImpl implements BackupService {
     }
 
     /*
-     * Lấy tập tin sao lưu dựa trên ID lịch sử. Phương thức này sẽ kiểm tra xem bản
-     * ghi có phải là một bản sao lưu thành công hay không và trả về tập tin vật lý
-     * nếu tồn tại.
+     * Lấy tập tin sao lưu dựa trên ID lịch sử. Phương thức này sẽ kiểm tra xem bản ghi có phải là một bản sao lưu thành
+     * công hay không và trả về tập tin vật lý nếu tồn tại.
      */
     @Override
     @Transactional(readOnly = true)
@@ -295,8 +248,6 @@ public class BackupServiceImpl implements BackupService {
 
     /**
      * Xóa bản ghi lịch sử sao lưu và tập tin vật lý liên quan.
-     *
-     * @param historyId ID của bản ghi lịch sử cần xóa
      */
     @Override
     @Transactional
@@ -320,12 +271,11 @@ public class BackupServiceImpl implements BackupService {
     }
 
     /**
-     * Executes the actual mysqldump command line process.
+     * Thực hiện sao lưu cơ sở dữ liệu.
      */
     private BackupRestoreHistory runBackupProcess(BackupRestoreHistory history) {
         log.info("Starting mysqldump database dump for history ID: {}", history.getId());
 
-        // Ensure local directory exists
         File dir = new File(backupDir);
         if (!dir.exists()) {
             dir.mkdirs();
@@ -351,7 +301,6 @@ public class BackupServiceImpl implements BackupService {
             return backupRestoreHistoryRepository.findById(history.getId()).orElse(history);
         }
 
-        // Build mysqldump command
         StringBuilder cmdBuilder = new StringBuilder();
         cmdBuilder.append(resolvedExecutable).append(" ");
         cmdBuilder.append("-h ").append(dbHost).append(" ");
@@ -365,20 +314,17 @@ public class BackupServiceImpl implements BackupService {
         cmdBuilder.append("--ignore-table=").append(dbName).append(".backup_schedules ");
         cmdBuilder.append(dbName);
 
-        // Use shell to resolve binary path properly
         List<String> command = new ArrayList<>();
         command.add("/bin/sh");
         command.add("-c");
         command.add(cmdBuilder.toString());
 
         ProcessBuilder pb = new ProcessBuilder(command);
-        // Securely pass MySQL password via environment variable
+
         if (dbPassword != null && !dbPassword.isEmpty()) {
             pb.environment().put("MYSQL_PWD", dbPassword);
         }
 
-        // Chuyển hướng stderr ra file log tạm để tránh nghẹt buffer OS làm treo tiến
-        // trình
         pb.redirectError(errFile);
 
         try {
@@ -408,11 +354,10 @@ public class BackupServiceImpl implements BackupService {
                         "mysqldump timeout: quá trình dump vượt quá thời gian cho phép, có thể do bị khóa (lock) bởi tiến trình khác.");
             }
 
-            readerThread.join(5000); // đợi thread đọc ghi nốt phần còn lại (nếu process đã thoát nhanh)
+            readerThread.join(5000);
 
             int exitCode = process.exitValue();
             if (exitCode != 0) {
-                // Đọc lỗi từ file log tạm
                 StringBuilder errorMsg = new StringBuilder();
                 if (errFile.exists()) {
                     try (BufferedReader reader = new BufferedReader(new FileReader(errFile))) {
@@ -427,21 +372,13 @@ public class BackupServiceImpl implements BackupService {
                         "mysqldump CLI exited with code: " + exitCode + ". Error: " + errorMsg.toString().trim());
             }
 
-            // Xóa file log tạm khi chạy thành công
             if (errFile.exists()) {
                 errFile.delete();
             }
-
-            // Successfully backed up database
             self.updateStatus(history.getId(), BackupStatus.SUCCESS, fileName, file.getAbsolutePath(), file.length(),
                     null);
             log.info("Database backup finished successfully. File: {}", file.getAbsolutePath());
-
-            // Save status (fetch updated from DB to return)
             BackupRestoreHistory saved = backupRestoreHistoryRepository.findById(history.getId()).orElse(history);
-
-            // Execute cleanup of old files in a separate block to ensure it doesn't fail
-            // the backup
             try {
                 cleanOldBackups();
             } catch (Exception e) {
@@ -452,8 +389,6 @@ public class BackupServiceImpl implements BackupService {
 
         } catch (Exception e) {
             log.error("Backup execution failed for history ID: {}", history.getId(), e);
-
-            // Delete corrupt file if created
             if (file.exists()) {
                 file.delete();
             }
@@ -464,7 +399,7 @@ public class BackupServiceImpl implements BackupService {
     }
 
     /**
-     * Deletes old backups exceeding the retention threshold to free disk space.
+     * Xóa bản sao lưu cũ.
      */
     private void cleanOldBackups() {
         log.info("Checking for old backups exceeding retention limit of {}", retentionCount);
@@ -488,7 +423,8 @@ public class BackupServiceImpl implements BackupService {
 
     /**
      * Tự động giải quyết đường dẫn công cụ mysqldump.
-     * Thứ tự ưu tiên: Cấu hình app.backup.mysql-dump-path -> System PATH via `where`/`which` -> Thư mục mặc định -> Gọi trực tiếp mysqldump -> Báo lỗi.
+     * Thứ tự ưu tiên: Cấu hình app.backup.mysql-dump-path -> System PATH via `where`/`which` -> Thư mục mặc định -> Gọi
+     * trực tiếp mysqldump -> Báo lỗi.
      */
     public String resolveMysqldumpPath() throws IOException {
         String configured = mysqlDumpPath != null ? mysqlDumpPath.trim() : "";
@@ -553,7 +489,6 @@ public class BackupServiceImpl implements BackupService {
             }
             process.waitFor();
         } catch (Exception ignored) {
-            // Ignored
         }
         return null;
     }

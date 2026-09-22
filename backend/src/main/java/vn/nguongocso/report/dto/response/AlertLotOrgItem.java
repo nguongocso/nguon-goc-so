@@ -8,9 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Thông tin tổ chức sở hữu lô sản xuất dùng trong chi tiết lô cảnh báo.
- */
+/** Thông tin tổ chức sở hữu lô sản xuất trong chi tiết lô cảnh báo. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,11 +16,18 @@ import lombok.Setter;
 @Builder
 public class AlertLotOrgItem {
     private UUID organizationId;
+
     private String organizationName;
+
     private String taxCode;
+
     private String address;
+
     private String communeName;
+
     private String provinceName;
+
     private String representativeName;
+
     private String contactPhone;
 }

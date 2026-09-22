@@ -17,64 +17,67 @@ import vn.nguongocso.auth.enums.LoginResult;
  */
 @Repository
 public interface LoginAttemptRepository extends JpaRepository<LoginAttempt, UUID> {
-    
     /**
      * Lấy lịch sử đăng nhập của một người dùng, sắp xếp theo thời gian mới nhất trước.
      */
     Page<LoginAttempt> findByUser_UserIdOrderByCreatedAtDesc(
-        UUID userId,
-        Pageable pageable
-    );
-    
+            UUID userId,
+            Pageable pageable);
+
     /**
      * Lấy top 5 lần đăng nhập gần nhất có kết quả cho trước, sắp xếp mới nhất trước.
      * Dùng để kiểm tra bất thường (ví dụ: 5 lần FAILED gần nhất).
      */
     List<LoginAttempt> findTop5ByUser_UserIdAndResultOrderByCreatedAtDesc(
-        UUID userId,
-        LoginResult result
-    );
-    
+            UUID userId,
+            LoginResult result);
+
     /**
      * Kiểm tra xem một tài khoản đã từng đăng nhập thành công từ quốc gia nào đó không.
      */
     boolean existsByUser_UserIdAndResultAndCountryCode(
-        UUID userId,
-        LoginResult result,
-        String countryCode
-    );
+            UUID userId,
+            LoginResult result,
+            String countryCode);
 
+    /**
+     * Kiểm tra xem một tài khoản đã từng đăng nhập từ quốc gia nào đó không.
+     */
     boolean existsByUser_UserIdAndResultAndIpAddress(
-        UUID userId,
-        LoginResult result,
-        String ipAddress
-    );
+            UUID userId,
+            LoginResult result,
+            String ipAddress);
 
+    /**
+     * Kiểm tra xem một tài khoản đã từng đăng nhập từ quốc gia nào đó không.
+     */
     boolean existsByUser_UserIdAndResultAndIpAddressAndCreatedAtBefore(
-        UUID userId,
-        LoginResult result,
-        String ipAddress,
-        OffsetDateTime createdAt
-    );
+            UUID userId,
+            LoginResult result,
+            String ipAddress,
+            OffsetDateTime createdAt);
 
+    /**
+     * Kiểm tra xem một tài khoản đã từng đăng nhập từ quốc gia nào đó không.
+     */
     boolean existsByUser_UserIdAndResultAndCountryCodeAndCreatedAtBefore(
-        UUID userId,
-        LoginResult result,
-        String countryCode,
-        OffsetDateTime createdAt
-    );
+            UUID userId,
+            LoginResult result,
+            String countryCode,
+            OffsetDateTime createdAt);
 
+    /**
+     * Đếm số lượng lần đăng nhập của một tài khoản.
+     */
     long countByUser_UserIdAndResult(
-        UUID userId,
-        LoginResult result
-    );
-    
+            UUID userId,
+            LoginResult result);
+
     /**
      * Lấy các lần đăng nhập FAILED của người dùng trong khoảng thời gian (dùng để phát hiện repeated failed login).
      */
     List<LoginAttempt> findByUser_UserIdAndResultAndCreatedAtAfterOrderByCreatedAtDesc(
-        UUID userId,
-        LoginResult result,
-        OffsetDateTime startTime
-    );
+            UUID userId,
+            LoginResult result,
+            OffsetDateTime startTime);
 }

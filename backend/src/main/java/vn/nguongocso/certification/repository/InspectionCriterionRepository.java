@@ -9,25 +9,26 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Repository cho thực thể InspectionCriterion.
+ * Repository cho thực thể chỉ tiêu kiểm nghiệm (InspectionCriterion).
  */
 public interface InspectionCriterionRepository
-        extends JpaRepository<InspectionCriterion, UUID> {
+                extends JpaRepository<InspectionCriterion, UUID> {
+        /**
+         * Kiểm tra xem chỉ tiêu danh mục có đang được tham chiếu bởi chỉ tiêu kiểm nghiệm nào không (BR-5).
+         */
+        @Query("""
+                        SELECT COUNT(ic) > 0 FROM InspectionCriterion ic
+                        WHERE ic.criterionId = :criterionId
+                        """)
+        boolean existsByCriterionId(@Param("criterionId") Long criterionId);
 
-    /**
-     * Check if any inspection criterion references a given catalog criterion.
-     * Used for the "referenced" flag in BR-5.
-     */
-    @Query("SELECT COUNT(ic) > 0 FROM InspectionCriterion ic " +
-           "WHERE ic.criterionId = :criterionId")
-    boolean existsByCriterionId(@Param("criterionId") Long criterionId);
-
-    /**
-     * Return all catalog criterion ids that are referenced by at least one
-     * inspection criterion. Used to compute the "referenced" flag without
-     * N+1 queries when mapping lists.
-     */
-    @Query("SELECT DISTINCT ic.criterionId FROM InspectionCriterion ic " +
-           "WHERE ic.criterionId IS NOT NULL")
-    List<Long> findReferencedCriterionIds();
+        /**
+         * Lấy danh sách ID chỉ tiêu danh mục đang được tham chiếu bởi ít nhất một chỉ tiêu kiểm nghiệm.
+         * Dùng để tính cờ tham chiếu tránh lỗi N+1 truy vấn khi ánh xạ danh sách.
+         */
+        @Query("""
+                        SELECT DISTINCT ic.criterionId FROM InspectionCriterion ic
+                        WHERE ic.criterionId IS NOT NULL
+                        """)
+        List<Long> findReferencedCriterionIds();
 }

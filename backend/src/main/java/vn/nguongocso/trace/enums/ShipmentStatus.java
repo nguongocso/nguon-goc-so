@@ -1,8 +1,6 @@
 package vn.nguongocso.trace.enums;
 
-/**
- * Trạng thái của một lô hàng.
- */
+/** Trạng thái của một lô hàng. */
 public enum ShipmentStatus {
     DRAFT, // Mới tạo
 

@@ -23,11 +23,6 @@ import vn.nguongocso.auth.enums.LoginResult;
 
 /**
  * Ghi nhận mỗi lần đăng nhập của người dùng (thành công hoặc thất bại).
- * 
- * <p>
- * Bản ghi này được tạo cho mỗi request đăng nhập, bất kể vai trò của người dùng.
- * Dùng để phát hiện bất thường đăng nhập và xây dựng lịch sử đăng nhập.
- * </p>
  */
 @Entity
 @Table(name = "login_attempts")
@@ -37,58 +32,34 @@ import vn.nguongocso.auth.enums.LoginResult;
 @AllArgsConstructor
 @Builder
 public class LoginAttempt {
-    
     @Id
     @Column(name = "id")
     @JdbcTypeCode(SqlTypes.CHAR)
     private UUID id;
-    
-    /**
-     * Người dùng thực hiện đăng nhập. Null nếu username không khớp tài khoản nào.
-     */
+
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = true)
     private User user;
-    
-    /**
-     * Username được nhập vào, giữ lại kể cả khi sai.
-     */
+
     @Column(nullable = false, length = 255)
     private String usernameInput;
-    
-    /**
-     * Kết quả đăng nhập: SUCCESS hoặc FAILED.
-     */
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LoginResult result;
-    
-    /**
-     * Địa chỉ IP nguồn của request đăng nhập.
-     */
+
     @Column(nullable = false, length = 45)
     private String ipAddress;
-    
-    /**
-     * Mã quốc gia suy ra từ IP qua GeoIP (mã country code 2 chữ).
-     * Nullable vì không phải request nào cũng có GeoIP match.
-     */
+
     @Column(nullable = true, length = 2)
     private String countryCode;
-    
-    /**
-     * Đánh dấu nếu đây là quốc gia chưa từng ghi nhận SUCCESS cho tài khoản.
-     * Chỉ có ý nghĩa khi result = SUCCESS.
-     */
+
     @Column(nullable = false)
     private Boolean isNewCountry = false;
-    
-    /**
-     * Thời điểm xảy ra lần đăng nhập, lấy từ server.
-     */
+
     @Column(nullable = false)
     private OffsetDateTime createdAt;
-    
+
     @PrePersist
     public void prePersist() {
         if (id == null) {

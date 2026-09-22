@@ -32,14 +32,12 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Triển khai dịch vụ quét và cảnh báo kết quả kiểm nghiệm sắp hết hạn hoặc đã hết hạn.
- * (NCL-11-CN-004)
+ * Triển khai dịch vụ quét và cảnh báo kết quả kiểm nghiệm sắp hết hạn hoặc đã hết hạn (NCL-11-CN-004).
  */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class InspectionExpiryServiceImpl implements InspectionExpiryService {
-
     private final ProductionLotRepository productionLotRepository;
     private final InspectionValidityService inspectionValidityService;
     private final AlertRepository alertRepository;
@@ -54,15 +52,20 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
             ProductionLotStatus.CANCELLED,
             ProductionLotStatus.DISPOSED,
             ProductionLotStatus.CLOSED,
-            ProductionLotStatus.RECALLED
-    );
+            ProductionLotStatus.RECALLED);
 
+    /**
+     * Quét và gửi cảnh báo hết hạn hoặc sắp hết hạn cho ngày hiện tại.
+     */
     @Override
     @Transactional
     public InspectionScanResult scanAndAlertExpiringInspections() {
         return scanAndAlertExpiringInspections(LocalDate.now());
     }
 
+    /**
+     * Quét và gửi cảnh báo hết hạn hoặc sắp hết hạn cho một ngày cụ thể.
+     */
     @Override
     @Transactional
     public InspectionScanResult scanAndAlertExpiringInspections(LocalDate today) {
@@ -81,7 +84,6 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
         int notificationsSent = 0;
 
         for (ProductionLot lot : allLots) {
-            // 1. Kiểm tra trạng thái lô bị loại trừ (CANCELLED, DISPOSED, CLOSED, RECALLED) -> bỏ qua (TC-04)
             if (lot.getStatus() != null && EXCLUDED_LOT_STATUSES.contains(lot.getStatus())) {
                 log.debug("Bỏ qua lô {} do trạng thái {}", lot.getId(), lot.getStatus());
                 skippedCount++;
@@ -90,7 +92,6 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
 
             totalScanned++;
 
-            // 2. Tính toán trạng thái hiệu lực kiểm nghiệm của lô theo ngày mốc 'today'
             InspectionValidityResponse validity = inspectionValidityService.calculateValidity(lot, today);
 
             InspectionValidityStatus status = validity.getStatus();
@@ -101,7 +102,6 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
             }
 
             if (status != InspectionValidityStatus.EXPIRING && status != InspectionValidityStatus.EXPIRED) {
-                // NOT_REQUIRED hoặc NO_VALID_RESULT -> không thuộc diện cảnh báo hết hạn
                 continue;
             }
 
@@ -111,9 +111,6 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
                 expiredCount++;
             }
 
-            // 3. Kiểm tra điều kiện tem:
-            // Nếu tất cả tem đã kích hoạt (totalStamps > 0 && inactiveStampCount == 0) -> bỏ qua (TC-05)
-            // Lô đã xuất xưởng hết không còn tem lưu hành chịu ảnh hưởng của kết quả hết hạn
             boolean allStampsActivated = validity.getTotalStamps() != null
                     && validity.getTotalStamps() > 0
                     && (validity.getInactiveStampCount() == null || validity.getInactiveStampCount() == 0);
@@ -125,7 +122,6 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
                 continue;
             }
 
-            // 4. Kiểm tra idempotency: 1 lô + 1 loại cảnh báo + 1 ngày = tối đa 1 notification (TC-03)
             AlertType alertType = (status == InspectionValidityStatus.EXPIRED)
                     ? AlertType.INSPECTION_EXPIRED
                     : AlertType.INSPECTION_EXPIRING;
@@ -141,12 +137,10 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
                 continue;
             }
 
-            // 5. Nếu là EXPIRED, tự động chuyển các cảnh báo EXPIRING trước đó của lô về RESOLVED
             if (alertType == AlertType.INSPECTION_EXPIRED) {
                 autoResolveExpiringAlert(lot.getId());
             }
 
-            // 6. Tạo Alert bản ghi
             Alert alert = new Alert();
             alert.setId(UUID.randomUUID());
             alert.setType(alertType);
@@ -160,7 +154,8 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
             String message = (alertType == AlertType.INSPECTION_EXPIRED)
                     ? String.format("Kết quả kiểm nghiệm của lô \"%s\" đã hết hiệu lực vào ngày %s.",
                             lot.getName(), validity.getExpiryDate() != null ? validity.getExpiryDate() : "N/A")
-                    : String.format("Kết quả kiểm nghiệm của lô \"%s\" sắp hết hiệu lực sau %d ngày (ngày hết hạn: %s).",
+                    : String.format(
+                            "Kết quả kiểm nghiệm của lô \"%s\" sắp hết hiệu lực sau %d ngày (ngày hết hạn: %s).",
                             lot.getName(),
                             validity.getDaysUntilExpiry() != null ? validity.getDaysUntilExpiry() : 0,
                             validity.getExpiryDate() != null ? validity.getExpiryDate() : "N/A");
@@ -187,7 +182,6 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
             alertRepository.save(alert);
             alertsCreated++;
 
-            // 7. Gửi thông báo đến Quản lý HTX thuộc tổ chức của lô có quyền notification:READ (TC-08)
             try {
                 notificationService.sendInspectionExpiryNotification(alert, lot, validity);
                 notificationsSent++;
@@ -196,7 +190,8 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
             }
         }
 
-        log.info("🏁 Hoàn thành quét kết quả kiểm nghiệm. Tổng quét: {}, Sắp hết hạn: {}, Đã hết hạn: {}, Đã tạo Alert: {}, Bỏ qua: {}",
+        log.info(
+                "🏁 Hoàn thành quét kết quả kiểm nghiệm. Tổng quét: {}, Sắp hết hạn: {}, Đã hết hạn: {}, Đã tạo Alert: {}, Bỏ qua: {}",
                 totalScanned, expiringCount, expiredCount, alertsCreated, skippedCount);
 
         return InspectionScanResult.builder()
@@ -211,6 +206,9 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
                 .build();
     }
 
+    /**
+     * Kiểm tra và gửi cảnh báo hết hạn hoặc sắp hết hạn cho một lô sản xuất cụ thể.
+     */
     @Override
     @Transactional
     public boolean checkAndAlertLotExpiry(ProductionLot lot, LocalDate today) {
@@ -218,13 +216,11 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
             return false;
         }
 
-        // 1. Kiểm tra trạng thái lô bị loại trừ (CANCELLED, DISPOSED, CLOSED, RECALLED) -> bỏ qua
         if (lot.getStatus() != null && EXCLUDED_LOT_STATUSES.contains(lot.getStatus())) {
             log.debug("Bỏ qua kiểm tra hạn kiểm nghiệm lô {} do trạng thái {}", lot.getId(), lot.getStatus());
             return false;
         }
 
-        // 2. Tính toán trạng thái hiệu lực kiểm nghiệm của lô theo ngày mốc 'today'
         InspectionValidityResponse validity = inspectionValidityService.calculateValidity(lot, today);
         if (validity == null) {
             return false;
@@ -237,11 +233,9 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
         }
 
         if (status != InspectionValidityStatus.EXPIRING && status != InspectionValidityStatus.EXPIRED) {
-            // NOT_REQUIRED hoặc NO_VALID_RESULT -> không thuộc diện cảnh báo hết hạn
             return false;
         }
 
-        // 3. Kiểm tra điều kiện tem: nếu tất cả tem đã kích hoạt -> bỏ qua
         boolean allStampsActivated = validity.getTotalStamps() != null
                 && validity.getTotalStamps() > 0
                 && (validity.getInactiveStampCount() == null || validity.getInactiveStampCount() == 0);
@@ -252,7 +246,6 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
             return false;
         }
 
-        // 4. Kiểm tra idempotency: 1 lô + 1 loại cảnh báo + 1 ngày = tối đa 1 notification
         AlertType alertType = (status == InspectionValidityStatus.EXPIRED)
                 ? AlertType.INSPECTION_EXPIRED
                 : AlertType.INSPECTION_EXPIRING;
@@ -267,12 +260,10 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
             return false;
         }
 
-        // 5. Nếu là EXPIRED, tự động chuyển các cảnh báo EXPIRING trước đó của lô về RESOLVED
         if (alertType == AlertType.INSPECTION_EXPIRED) {
             autoResolveExpiringAlert(lot.getId());
         }
 
-        // 6. Tạo Alert bản ghi
         Alert alert = new Alert();
         alert.setId(UUID.randomUUID());
         alert.setType(alertType);
@@ -312,7 +303,6 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
 
         alertRepository.save(alert);
 
-        // 7. Gửi thông báo đến Quản lý HTX thuộc tổ chức của lô có quyền notification:READ
         try {
             notificationService.sendInspectionExpiryNotification(alert, lot, validity);
         } catch (Exception e) {
@@ -322,6 +312,9 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
         return true;
     }
 
+    /**
+     * Tự động giải quyết tất cả cảnh báo kiểm nghiệm đang chờ xử lý của lô sản xuất.
+     */
     private void autoResolveAllPendingInspectionAlerts(UUID lotId) {
         if (lotId == null) {
             return;
@@ -340,6 +333,9 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
         }
     }
 
+    /**
+     * Tự động giải quyết cảnh báo sắp hết hiệu lực của lô sản xuất khi đã có cảnh báo hết hạn.
+     */
     private void autoResolveExpiringAlert(UUID lotId) {
         if (lotId == null) {
             return;
@@ -358,7 +354,7 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
     }
 
     /**
-     * Lấy số ngày cảnh báo hiệu lực kiểm nghiệm thực tế (ưu tiên cấu hình động từ DB).
+     * Lấy số ngày cảnh báo hiệu lực kiểm nghiệm thực tế từ cấu hình hệ thống.
      */
     private int getEffectiveWarningThresholdDays() {
         if (inspectionExpiryConfigService != null) {
@@ -375,4 +371,3 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
         return warningThresholdDays > 0 ? warningThresholdDays : 15;
     }
 }
-

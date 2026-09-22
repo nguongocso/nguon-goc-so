@@ -30,13 +30,10 @@ import vn.nguongocso.report.dto.response.AlertBadgeSummary;
 import vn.nguongocso.report.dto.response.AlertLotSummaryResponse;
 import vn.nguongocso.report.enums.LotAlertType;
 
-/**
- * Triển khai sinh file PDF báo cáo danh sách lô có cảnh báo theo địa bàn (NCL-07-CN-006).
- */
+/** Triển khai sinh file PDF báo cáo danh sách lô có cảnh báo theo địa bàn (NCL-07-CN-006). */
 @Slf4j
 @Component
 public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGenerator {
-
     private static final String EXPORT_ERROR = "Không thể xuất báo cáo PDF danh sách lô cảnh báo.";
     private static final String REGULAR_FONT = "fonts/Roboto-Regular.ttf";
     private static final String BOLD_FONT = "fonts/Roboto-Bold.ttf";
@@ -44,14 +41,13 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    private static final Color HEADER_BG_COLOR = new Color(46, 125, 50); // Màu xanh lá chủ đạo (#2E7D32)
-    private static final Color ALT_ROW_BG_COLOR = new Color(248, 250, 252); // Màu nền dòng chẵn (#F8FAFC)
-    private static final Color BORDER_COLOR = new Color(226, 232, 240); // Màu viền nhẹ (#E2E8F0)
+    private static final Color HEADER_BG_COLOR = new Color(46, 125, 50);
+    private static final Color ALT_ROW_BG_COLOR = new Color(248, 250, 252);
+    private static final Color BORDER_COLOR = new Color(226, 232, 240);
 
     @Override
     public byte[] generate(List<AlertLotSummaryResponse> alertLots, String officerName, LocalDate fromDate, LocalDate toDate) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            // Khổ giấy A4 xoay ngang để hiển thị đầy đủ thông tin các cột
             Document document = new Document(PageSize.A4.rotate(), 24F, 24F, 24F, 24F);
             PdfWriter.getInstance(document, outputStream);
 
@@ -68,13 +64,9 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
             Font dataFont = loadFont(REGULAR_FONT, 9F, Font.NORMAL, new Color(30, 41, 59));
             Font footerFont = loadFont(REGULAR_FONT, 8.5F, Font.ITALIC, new Color(148, 163, 184));
 
-            // 1. Tiêu đề và thông tin chung
             addHeaderInformation(document, alertLots.size(), officerName, fromDate, toDate, titleFont, subTitleFont);
-
-            // 2. Bảng dữ liệu lô có cảnh báo
             document.add(buildAlertLotsTable(alertLots, headerFont, dataFont));
 
-            // 3. Chân trang ghi chú
             Paragraph footer = new Paragraph("Báo cáo được trích xuất từ Hệ thống Quản lý và Truy xuất Nguồn gốc Nông sản Nguồn Gốc Số", footerFont);
             footer.setAlignment(Element.ALIGN_RIGHT);
             footer.setSpacingBefore(12F);
@@ -89,9 +81,7 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
         }
     }
 
-    /**
-     * Thêm tiêu đề và siêu dữ liệu báo cáo vào đầu trang.
-     */
+    /** Thêm tiêu đề và siêu dữ liệu báo cáo vào đầu trang. */
     private void addHeaderInformation(
             Document document,
             int totalLots,
@@ -114,9 +104,9 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
 
         Paragraph meta = new Paragraph(
                 "Thời gian lọc: " + dateRangeText +
-                "  |  Cán bộ phụ trách: " + officerText +
-                "  |  Thời điểm xuất: " + exportTime +
-                "  |  Tổng số lô: " + totalLots,
+                        "  |  Cán bộ phụ trách: " + officerText +
+                        "  |  Thời điểm xuất: " + exportTime +
+                        "  |  Tổng số lô: " + totalLots,
                 subTitleFont
         );
         meta.setAlignment(Element.ALIGN_CENTER);
@@ -124,31 +114,15 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
         document.add(meta);
     }
 
-    /**
-     * Khởi tạo và điền dữ liệu bảng danh sách lô có cảnh báo.
-     */
-    private PdfPTable buildAlertLotsTable(
-            List<AlertLotSummaryResponse> alertLots,
-            Font headerFont,
-            Font dataFont
-    ) throws DocumentException {
-        // Bảng gồm 8 cột: STT, Lô sản xuất, Vùng trồng, Loại nông sản, Tổ chức HTX, Loại cảnh báo, Thời điểm cảnh báo, Trạng thái
+    /** Khởi tạo và điền dữ liệu bảng danh sách lô có cảnh báo. */
+    private PdfPTable buildAlertLotsTable(List<AlertLotSummaryResponse> alertLots, Font headerFont, Font dataFont)
+            throws DocumentException {
         PdfPTable table = new PdfPTable(8);
         table.setWidthPercentage(100);
-        table.setWidths(new float[] {
-                4F,   // STT
-                18F,  // Lô sản xuất
-                13F,  // Vùng trồng
-                13F,  // Loại nông sản
-                18F,  // Tổ chức HTX
-                16F,  // Loại cảnh báo
-                10F,  // Thời điểm cảnh báo
-                8F    // Trạng thái
-        });
+        table.setWidths(new float[] {4F, 18F, 13F, 13F, 18F, 16F, 10F, 8F});
         table.setSpacingBefore(4F);
         table.setSpacingAfter(8F);
 
-        // Header
         addTableHeaderCell(table, "STT", headerFont, Element.ALIGN_CENTER);
         addTableHeaderCell(table, "Lô sản xuất", headerFont, Element.ALIGN_LEFT);
         addTableHeaderCell(table, "Vùng trồng", headerFont, Element.ALIGN_LEFT);
@@ -173,36 +147,28 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
         for (AlertLotSummaryResponse lot : alertLots) {
             Color rowBg = (stt % 2 == 0) ? ALT_ROW_BG_COLOR : Color.WHITE;
 
-            // STT
             addDataCell(table, String.valueOf(stt++), dataFont, Element.ALIGN_CENTER, rowBg);
 
-            // Lô sản xuất
             String lotDisplay = lot.getLotName() != null ? lot.getLotName() : (lot.getLotCode() != null ? lot.getLotCode() : "—");
             addDataCell(table, lotDisplay, dataFont, Element.ALIGN_LEFT, rowBg);
 
-            // Vùng trồng
             String farmArea = lot.getFarmAreaName() != null ? lot.getFarmAreaName() : "—";
             addDataCell(table, farmArea, dataFont, Element.ALIGN_LEFT, rowBg);
 
-            // Loại nông sản
             String productCategory = lot.getProductCategoryName() != null ? lot.getProductCategoryName() : "—";
             addDataCell(table, productCategory, dataFont, Element.ALIGN_LEFT, rowBg);
 
-            // Tổ chức / HTX sở hữu
             String organization = lot.getOrganizationName() != null ? lot.getOrganizationName() : "—";
             addDataCell(table, organization, dataFont, Element.ALIGN_LEFT, rowBg);
 
-            // Loại cảnh báo (Việt hóa)
             String alertTypeText = formatAlertTypes(lot);
             addDataCell(table, alertTypeText, dataFont, Element.ALIGN_LEFT, rowBg);
 
-            // Thời gian cảnh báo
             String triggeredAt = lot.getLatestAlertTriggeredAt() != null
                     ? lot.getLatestAlertTriggeredAt().format(DATETIME_FORMAT)
                     : "—";
             addDataCell(table, triggeredAt, dataFont, Element.ALIGN_CENTER, rowBg);
 
-            // Trạng thái lô
             String status = formatLotStatus(lot.getLotStatus());
             addDataCell(table, status, dataFont, Element.ALIGN_CENTER, rowBg);
         }
@@ -210,9 +176,7 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
         return table;
     }
 
-    /**
-     * Tạo ô tiêu đề bảng với phong cách hiện đại.
-     */
+    /** Tạo ô tiêu đề bảng. */
     private void addTableHeaderCell(PdfPTable table, String text, Font font, int alignment) {
         PdfPCell cell = new PdfPCell(new Phrase(text, font));
         cell.setHorizontalAlignment(alignment);
@@ -226,9 +190,7 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
         table.addCell(cell);
     }
 
-    /**
-     * Tạo ô dữ liệu trong bảng với màu nền và đường kẻ viền nhẹ.
-     */
+    /** Tạo ô dữ liệu trong bảng với màu nền và đường kẻ viền nhẹ. */
     private void addDataCell(PdfPTable table, String text, Font font, int alignment, Color bgColor) {
         PdfPCell cell = new PdfPCell(new Phrase(text != null ? text : "—", font));
         cell.setHorizontalAlignment(alignment);
@@ -243,9 +205,7 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
         table.addCell(cell);
     }
 
-    /**
-     * Chuyển đổi danh sách loại cảnh báo sang chuỗi tiếng Việt dễ hiểu.
-     */
+    /** Chuyển đổi danh sách loại cảnh báo sang chuỗi tiếng Việt dễ hiểu. */
     private String formatAlertTypes(AlertLotSummaryResponse lot) {
         if (lot.getAlertSummaries() != null && !lot.getAlertSummaries().isEmpty()) {
             return lot.getAlertSummaries().stream()
@@ -259,9 +219,7 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
         return "—";
     }
 
-    /**
-     * Dịch mã loại cảnh báo sang tiếng Việt.
-     */
+    /** Dịch mã loại cảnh báo sang tiếng Việt. */
     private String translateLotAlertType(LotAlertType alertType) {
         if (alertType == null) {
             return "—";
@@ -284,9 +242,7 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
         }
     }
 
-    /**
-     * Định dạng trạng thái lô sản xuất sang tiếng Việt.
-     */
+    /** Định dạng trạng thái lô sản xuất sang tiếng Việt. */
     private String formatLotStatus(String status) {
         if (status == null || status.isBlank()) {
             return "—";
@@ -321,9 +277,7 @@ public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGe
         }
     }
 
-    /**
-     * Tải phông chữ Roboto Unicode hỗ trợ đầy đủ tiếng Việt có dấu.
-     */
+    /** Tải phông chữ Roboto Unicode hỗ trợ đầy đủ tiếng Việt có dấu. */
     private Font loadFont(String resource, float size, int style, Color color) {
         String resourcePath = resource.startsWith("/") ? resource : "/" + resource;
         try (InputStream inputStream = getClass().getResourceAsStream(resourcePath)) {
