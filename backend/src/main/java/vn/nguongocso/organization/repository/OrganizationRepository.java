@@ -5,108 +5,56 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import jakarta.validation.constraints.Email;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import jakarta.validation.constraints.Email;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
 
-/**
- * Repository cho thực thể Organization.
- */
+/** Repository cho thực thể Organization. */
 public interface OrganizationRepository extends JpaRepository<Organization, UUID> {
-
-    /**
-     * Tìm các tổ chức được map vào một trong các đơn vị hành chính (khớp cột
-     * {@code province_id} hoặc {@code commune_id}) — phục vụ lọc báo cáo theo
-     * địa bàn của VT-05 / bộ lọc unitIds.
-     *
-     * @param provinceIds danh sách ID đơn vị cấp tỉnh
-     * @param communeIds  danh sách ID đơn vị cấp xã
-     * @return danh sách tổ chức thuộc các địa bàn trên
-     */
+    /** Tìm các tổ chức theo địa bàn cấp tỉnh hoặc cấp xã. */
     List<Organization> findByProvince_IdInOrCommune_IdIn(Collection<UUID> provinceIds, Collection<UUID> communeIds);
 
-    /**
-     * Kiểm tra xem tổ chức có tồn tại theo mã hay không.
-     *
-     * @param code mã của tổ chức
-     * @return true nếu tổ chức tồn tại, false nếu không
-     */
+    /** Kiểm tra xem tổ chức có tồn tại theo mã hay không. */
     boolean existsByCode(String code);
 
-    /**
-     * Kiểm tra xem tổ chức có tồn tại theo tên hay không.
-     *
-     * @param name tên của tổ chức
-     * @return true nếu tổ chức tồn tại, false nếu không
-     */
+    /** Kiểm tra xem tổ chức có tồn tại theo tên hay không. */
     boolean existsByName(String name);
 
-    /**
-     * Tìm tổ chức theo mã.
-     *
-     * @param code mã của tổ chức
-     * @return Optional chứa tổ chức nếu tìm thấy, hoặc rỗng nếu không tìm thấy
-     */
+    /** Tìm tổ chức theo mã. */
     Optional<Organization> findByCode(String code);
 
-    /**
-     * Kiểm tra xem tổ chức có tồn tại theo email hay không.
-     *
-     * @param email email của tổ chức
-     * @return true nếu tổ chức tồn tại, false nếu không
-     */
+    /** Kiểm tra xem tổ chức có tồn tại theo email hay không. */
     boolean existsByEmail(@Email(message = "Email tổ chức không đúng định dạng") String email);
 
-    /**
-     * Tìm các tổ chức theo địa bàn.
-     */
+    /** Tìm các tổ chức theo địa chỉ địa bàn. */
     List<Organization> findByAddressContainingIgnoreCase(String region);
 
-    /**
-     * Tìm tổ chức theo email.
-     *
-     * @param email email của tổ chức
-     * @return Optional chứa tổ chức nếu tìm thấy, hoặc rỗng nếu không tìm thấy
-     */
+    /** Tìm tổ chức theo email. */
     Optional<Organization> findByEmail(String email);
 
-    /**
-     * Tìm tổ chức theo số điện thoại.
-     *
-     * @param phone số điện thoại của tổ chức
-     * @return Optional chứa tổ chức nếu tìm thấy, hoặc rỗng nếu không tìm thấy
-     */
+    /** Tìm tổ chức theo số điện thoại. */
     Optional<Organization> findByPhone(String phone);
 
-    /**
-     * Tìm tất cả các tổ chức theo loại, ngoại trừ tổ chức có ID được chỉ định.
-     *
-     * @param type           loại của tổ chức
-     * @param organizationId ID của tổ chức cần loại trừ
-     * @return danh sách các tổ chức phù hợp
-     */
+    /** Tìm tất cả các tổ chức theo loại, ngoại trừ tổ chức chỉ định. */
     List<Organization> findByTypeAndOrganizationIdNot(OrganizationType type, UUID organizationId);
 
-    @org.springframework.data.jpa.repository.Query("SELECT o FROM Organization o WHERE o.type = :type AND o.status = :status "
+    @Query("SELECT o FROM Organization o WHERE o.type = :type AND o.status = :status "
             + "AND o.organizationId <> :organizationId AND (LOWER(o.name) LIKE LOWER(CONCAT('%', :keyword, '%')) "
             + "OR LOWER(o.code) LIKE LOWER(CONCAT('%', :keyword, '%')))")
-    Page<Organization> searchActiveEnterprisePartners(@org.springframework.data.repository.query.Param("type") OrganizationType type,
-            @org.springframework.data.repository.query.Param("status") vn.nguongocso.organization.enums.OrganizationStatus status,
-            @org.springframework.data.repository.query.Param("organizationId") UUID organizationId,
-            @org.springframework.data.repository.query.Param("keyword") String keyword, Pageable pageable);
+    Page<Organization> searchActiveEnterprisePartners(
+            @Param("type") OrganizationType type,
+            @Param("status") OrganizationStatus status,
+            @Param("organizationId") UUID organizationId,
+            @Param("keyword") String keyword,
+            Pageable pageable);
 
-    /**
-     * Tìm các tổ chức theo trạng thái, loại trừ một tổ chức cụ thể.
-     * Phục vụ dropdown tổ chức nhận trong phiếu bàn giao.
-     *
-     * @param status trạng thái cần lọc (thường là ACTIVE)
-     * @param organizationId ID tổ chức hiện tại cần loại trừ
-     * @return danh sách tổ chức phù hợp
-     */
+    /** Tìm các tổ chức theo trạng thái, loại trừ một tổ chức cụ thể. */
     List<Organization> findByStatusAndOrganizationIdNot(OrganizationStatus status, UUID organizationId);
 }

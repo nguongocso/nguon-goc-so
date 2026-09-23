@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Info,
   ShieldCheck,
@@ -9,33 +9,33 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
-} from "lucide-react";
+} from 'lucide-react';
 
 const guideSections = [
   {
     icon: Building2,
-    title: "Mã tổ chức",
-    content: "Chỉ dùng A-Z, 0-9, gạch ngang & gạch dưới.",
+    title: 'Mã tổ chức',
+    content: 'Chỉ dùng A-Z, 0-9, gạch ngang & gạch dưới.',
   },
   {
     icon: ShieldCheck,
-    title: "Mật khẩu",
-    content: "Ít nhất 8 ký tự, có chữ hoa, thường, số, ký tự đặc biệt.",
+    title: 'Mật khẩu',
+    content: 'Ít nhất 8 ký tự, có chữ hoa, thường, số, ký tự đặc biệt.',
   },
   {
     icon: UserRound,
-    title: "Quản trị viên",
-    content: "Tài khoản quản trị đầu tiên được tạo cùng tổ chức.",
+    title: 'Quản trị viên',
+    content: 'Tài khoản quản trị đầu tiên được tạo cùng tổ chức.',
   },
   {
     icon: PenLine,
-    title: "Sau khi tạo",
-    content: "Có thể cập nhật địa chỉ, SĐT, email trong Hồ sơ tổ chức.",
+    title: 'Sau khi tạo',
+    content: 'Có thể cập nhật địa chỉ, SĐT, email trong Hồ sơ tổ chức.',
   },
   {
     icon: AlertTriangle,
-    title: "Lưu ý",
-    content: "Mã tổ chức và tên đăng nhập không thể thay đổi.",
+    title: 'Lưu ý',
+    content: 'Mã tổ chức và tên đăng nhập không thể thay đổi.',
   },
 ];
 
@@ -44,7 +44,6 @@ export function CreateOrganizationGuide() {
 
   return (
     <>
-      {/* Desktop (xl trở lên): sticky card */}
       <Card className="hidden xl:block shadow-sm border-muted/60 bg-muted/30 sticky top-1/2 -translate-y-1/2">
         <CardHeader className="pb-2 pt-4 px-4">
           <div className="flex items-center gap-2">
@@ -67,7 +66,6 @@ export function CreateOrganizationGuide() {
         </CardContent>
       </Card>
 
-      {/* Mobile/Tablet/Laptop (<xl): accordion */}
       <div className="xl:hidden border rounded-xl bg-muted/30">
         <button
           type="button"

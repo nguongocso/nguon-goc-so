@@ -19,10 +19,8 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
   status,
 }) => {
   const { lang, t } = useLanguage();
-
   const isEn = lang === 'en';
 
-  // TC-04 Fallback: nếu productNameEn không có thì dùng productName
   const displayName = isEn ? (productNameEn || productName || t('not_updated')) : (productName || t('not_updated'));
 
   const statusLabelMap: Record<string, string> = {
