@@ -42,7 +42,6 @@ import vn.nguongocso.recall.dto.response.RecallRequestResponse;
 @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
 public class ProductFeedbackManagementController {
     private final ProductFeedbackService productFeedbackService;
-
     private final PermissionChecker permissionChecker;
 
     /**

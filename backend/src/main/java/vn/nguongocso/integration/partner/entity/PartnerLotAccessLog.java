@@ -38,7 +38,6 @@ import vn.nguongocso.trace.entity.Shipment;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PartnerLotAccessLog {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)

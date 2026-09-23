@@ -30,18 +30,13 @@ import vn.nguongocso.farm.enums.FarmActivityType;
 */
 @Component
 public class ProductionLotImportExcelGenerator {
-    private static final String SHEET_NAME = "Nhap_lo_san_xuat";
-
-    private static final String ACTIVITY_SHEET_NAME = "DanhMuc";
-
-    private static final String ACTIVITY_NAME_RANGE = "FarmActivityTypes";
-
     private static final int DATA_START_ROW = 1;
-
     private static final int DATA_END_ROW = 999;
 
+    private static final String SHEET_NAME = "Nhap_lo_san_xuat";
+    private static final String ACTIVITY_SHEET_NAME = "DanhMuc";
+    private static final String ACTIVITY_NAME_RANGE = "FarmActivityTypes";
     private static final String DATE_FORMAT = "dd/MM/yyyy";
-
     private static final String[] HEADERS = {
             "ten_lo",
             "ma_loai_nong_san",

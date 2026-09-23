@@ -33,7 +33,6 @@ public class PartnerLotController {
     private static final Logger log = LoggerFactory.getLogger(PartnerLotController.class);
 
     private final PartnerLotService partnerLotService;
-
     private final PartnerLotAccessService partnerLotAccessService;
 
     /**

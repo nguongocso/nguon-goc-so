@@ -39,9 +39,7 @@ import vn.nguongocso.farm.service.InputMaterialService;
 @Transactional
 public class InputMaterialServiceImpl implements InputMaterialService {
     private final InputMaterialRepository inputMaterialRepository;
-
     private final ProductCategoryRepository productCategoryRepository;
-
     private final FarmLogRepository farmLogRepository;
 
     /** Tạo vật tư đầu vào mới. */

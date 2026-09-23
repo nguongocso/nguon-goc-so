@@ -46,9 +46,7 @@ public class PartnerWebhookService {
     private static final Logger log = LoggerFactory.getLogger(PartnerWebhookService.class);
 
     private final PartnerApiKeyRepository partnerApiKeyRepository;
-
     private final PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
-
     private final ObjectMapper objectMapper;
 
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()

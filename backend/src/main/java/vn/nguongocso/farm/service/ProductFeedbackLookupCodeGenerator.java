@@ -15,11 +15,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProductFeedbackLookupCodeGenerator {
     private static final String ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-
     private static final int RANDOM_CHARACTER_COUNT = 16;
-
     private static final int GROUP_SIZE = 4;
-
     private static final String PREFIX = "PA";
 
     private final SecureRandom secureRandom = new SecureRandom();

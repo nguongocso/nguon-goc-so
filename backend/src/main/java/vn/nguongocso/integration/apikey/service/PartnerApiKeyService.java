@@ -51,31 +51,20 @@ import vn.nguongocso.organization.repository.OrganizationRepository;
 @RequiredArgsConstructor
 public class PartnerApiKeyService {
     private static final Logger log = LoggerFactory.getLogger(PartnerApiKeyService.class);
-
     private static final String KEY_PREFIX_CONSTANT = "nks_live_";
-
     private static final String TEST_KEY_PREFIX_CONSTANT = "nks_test_";
-
     private static final int MAX_TEST_RATE_LIMIT = 100;
-
     private static final int MAX_TEST_EXPIRE_DAYS = 30;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final PartnerApiKeyRepository partnerApiKeyRepository;
-
     private final OrganizationRepository organizationRepository;
-
     private final UserRepository userRepository;
-
     private final ApplicationEventPublisher eventPublisher;
-
     private final PartnerApiKeyUsageService partnerApiKeyUsageService;
-
     private final ApiKeyQuotaPolicy apiKeyQuotaPolicy;
-
     private final PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
-
     private final Map<String, AtomicInteger> hourlyRateLimitMap = new ConcurrentHashMap<>();
 
     /**

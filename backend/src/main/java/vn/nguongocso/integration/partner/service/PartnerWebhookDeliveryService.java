@@ -43,19 +43,14 @@ import vn.nguongocso.trace.entity.Shipment;
 @RequiredArgsConstructor
 public class PartnerWebhookDeliveryService {
     private static final Logger log = LoggerFactory.getLogger(PartnerWebhookDeliveryService.class);
-
     private static final int[] RETRY_INTERVAL_MINUTES = {1, 5, 15, 30, 60};
-
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
     private final PartnerLotAccessLogRepository partnerLotAccessLogRepository;
-
     private final PartnerApiKeyRepository partnerApiKeyRepository;
-
     private final PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
-
     private final ObjectMapper objectMapper;
 
     /**

@@ -26,17 +26,12 @@ import vn.nguongocso.trace.entity.Shipment;
 @RequiredArgsConstructor
 public class PartnerRecallWebhookDispatcher {
     private static final Logger log = LoggerFactory.getLogger(PartnerRecallWebhookDispatcher.class);
-
     private static final String CONFIG_WINDOW_DAYS = "PARTNER_RECALL_NOTIFICATION_WINDOW_DAYS";
-
     private static final int DEFAULT_WINDOW_DAYS = 30;
-
     private static final int[] RETRY_INTERVAL_MINUTES = {1, 5, 15, 30, 60};
 
     private final PartnerWebhookDeliveryService webhookDeliveryService;
-
     private final PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
-
     private final SystemConfigurationRepository systemConfigurationRepository;
 
     /**

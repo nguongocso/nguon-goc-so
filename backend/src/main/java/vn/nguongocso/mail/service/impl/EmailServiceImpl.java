@@ -23,17 +23,12 @@ import vn.nguongocso.mail.service.EmailService;
 @Service
 public class EmailServiceImpl implements EmailService {
     private static final String DEFAULT_CHARSET = "UTF-8";
-
     private static final String SYSTEM_SENDER_NAME = "Nguồn Gốc Số - Hệ Thống Truy Xuất Nguồn Gốc";
-
     private static final String RESET_PASSWORD_SUBJECT = "Yêu cầu đặt lại mật khẩu - Nguồn Gốc Số";
-
     private static final String INVITATION_SUBJECT_TEMPLATE = "Lời mời tham gia tổ chức %s - Nguồn Gốc Số";
-
+    private final JavaMailSender mailSender;
     private static final String INSPECTION_SUBJECT_TEMPLATE =
         "Liên kết nhập kết quả kiểm nghiệm lô %s - Nguồn Gốc Số";
-
-    private final JavaMailSender mailSender;
 
     @Value("${spring.mail.username:}")
     private String fromEmail;

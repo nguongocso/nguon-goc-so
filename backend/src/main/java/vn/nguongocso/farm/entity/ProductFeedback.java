@@ -42,7 +42,6 @@ import vn.nguongocso.trace.entity.TraceCode;
 @AllArgsConstructor
 @Builder
 public class ProductFeedback {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)

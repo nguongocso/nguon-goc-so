@@ -51,27 +51,18 @@ import vn.nguongocso.farm.service.FarmAreaBoundaryService;
 @RequiredArgsConstructor
 public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
     private static final String MANAGER_ROLE = "VT-02";
-
     private static final Set<String> READ_ROLES = Set.of("VT-01", MANAGER_ROLE, "VT-03");
 
     private static final int SRID_WGS84 = 4326;
-
     private static final int AREA_SCALE = 4;
-
     private static final int DEVIATION_CALCULATION_SCALE = 10;
-
     private static final int DEVIATION_RESPONSE_SCALE = 2;
-
     private static final int MAX_BOUNDARY_POINTS = 500;
 
     private final FarmAreaRepository farmAreaRepository;
-
     private final GeometryFactory geometryFactory;
-
     private final FarmAreaBoundaryProperties properties;
-
     private final ObjectMapper objectMapper;
-
     private final ActivityLogService activityLogService;
 
     /** Lấy ranh giới vùng trồng theo ID. */

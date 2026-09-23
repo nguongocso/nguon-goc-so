@@ -33,9 +33,7 @@ import vn.nguongocso.farm.service.HarvestEligibilityService;
 @Transactional(readOnly = true)
 public class HarvestEligibilityServiceImpl implements HarvestEligibilityService {
     private final ProductionLotRepository productionLotRepository;
-
     private final FarmLogRepository farmLogRepository;
-
     private final InputMaterialRepository inputMaterialRepository;
 
     /** Tính toán ngày thu hoạch sớm nhất theo thời gian cách ly của từng loại vật tư. */

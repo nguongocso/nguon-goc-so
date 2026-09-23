@@ -30,7 +30,6 @@ import vn.nguongocso.report.dto.response.Gs1ShipmentInfo;
 */
 public final class PartnerSampleDataProvider {
     public static final String TEST_NOTICE = "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế";
-
     public static final String SAMPLE_LOT_ID = "sample-lot-001";
 
     /**

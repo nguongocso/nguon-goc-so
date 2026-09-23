@@ -60,13 +60,9 @@ import vn.nguongocso.report.dto.response.ProductionLotDashboardResponse;
 @RequiredArgsConstructor
 public class ProductionLotController {
     private final ProductionLotService productionLotService;
-
     private final PermissionChecker permissionChecker;
-
     private final ProductionLotImportService productionLotImportService;
-
     private final ProductionLotImportHistoryRepository importHistoryRepository;
-
     private final InspectionExpiryService inspectionExpiryService;
 
     /**

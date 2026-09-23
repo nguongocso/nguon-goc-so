@@ -33,9 +33,7 @@ import vn.nguongocso.permission.service.PermissionChecker;
 @RequiredArgsConstructor
 public class FarmLogController {
     private final FarmLogService farmLogService;
-
     private final HarvestEligibilityService harvestEligibilityService;
-
     private final PermissionChecker permissionChecker;
 
     /**

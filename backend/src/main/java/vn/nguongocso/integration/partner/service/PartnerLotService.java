@@ -37,7 +37,6 @@ public class PartnerLotService {
     private static final Logger log = LoggerFactory.getLogger(PartnerLotService.class);
 
     private final ProductionLotRepository productionLotRepository;
-
     private final FarmLogRepository farmLogRepository;
 
     /**

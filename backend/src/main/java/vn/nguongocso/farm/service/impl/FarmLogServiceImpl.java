@@ -49,17 +49,11 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 @Transactional
 public class FarmLogServiceImpl implements FarmLogService {
     private final FarmLogRepository farmLogRepository;
-
     private final ProductionLotRepository productionLotRepository;
-
     private final FarmLogAttachmentRepository attachmentRepository;
-
     private final TraceCodeRepository traceCodeRepository;
-
     private final ApplicationEventPublisher eventPublisher;
-
     private final Clock clock;
-
     private final MilestoneReminderService milestoneReminderService;
 
     /** Khởi tạo service nhật ký canh tác. */
@@ -94,34 +88,20 @@ public class FarmLogServiceImpl implements FarmLogService {
     }
 
     private static final String EVENT_RECORDER_ROLE = "VT-03";
-
     private static final String ORG_MANAGER_ROLE = "VT-02";
-
     private static final String CREATE_PERMISSION_MESSAGE = "Bạn không có quyền ghi nhật ký canh tác.";
-
     private static final String VIEW_PERMISSION_MESSAGE = "Bạn không có quyền xem lịch sử nhật ký canh tác.";
-
     private static final String CORRECT_PERMISSION_MESSAGE = "Bạn không có quyền đính chính nhật ký canh tác.";
-
     private static final String CORRECT_NOT_OWNER_MESSAGE = "Bạn chỉ được đính chính nhật ký do bạn ghi.";
-
     private static final String FARM_LOG_NOT_FOUND_MESSAGE = "Không tìm thấy nhật ký canh tác";
-
     private static final String NO_CHANGED_FIELD_MESSAGE = "Phải có ít nhất một trường được đính chính so với bản gốc.";
-
     private static final String REASON_REQUIRED_MESSAGE = "Lý do đính chính không được để trống";
-
     private static final String ACTIVATED_TRACE_CODE_MESSAGE =
             "Lô sản xuất đã kích hoạt mã truy xuất. Bạn không thể đính chính nhật ký này.";
-
     private static final String ORGANIZATION_ACCESS_MESSAGE = "Bạn không thuộc tổ chức của lô sản xuất.";
-
     private static final String PRODUCTION_LOT_NOT_FOUND_MESSAGE = "Không tìm thấy lô sản xuất";
-
     private static final String INVALID_LOT_STATUS_MESSAGE = "Chỉ được ghi nhật ký cho lô đã duyệt hoặc đang thu hoạch.";
-
     private static final String CANCELLED_LOT_MESSAGE = "Lô sản xuất đã bị hủy, không thể thao tác nhật ký canh tác.";
-
     private static final Sort FARM_LOG_SORT = Sort.by(
             Sort.Order.desc("executedDate"),
             Sort.Order.desc("createdAt"));
@@ -129,22 +109,15 @@ public class FarmLogServiceImpl implements FarmLogService {
     /** Tạo mới nhật ký canh tác cho lô sản xuất. */
     @Override
     public FarmLogResponse create(CreateFarmLogRequest request) {
-
         CustomUserDetails currentUser = getCurrentUser();
-
         String roleCode = currentUser.getRoleCode();
         if (!ORG_MANAGER_ROLE.equals(roleCode) && !EVENT_RECORDER_ROLE.equals(roleCode)) {
             throw new BusinessException(CREATE_PERMISSION_MESSAGE);
         }
-
         ProductionLot productionLot = getProductionLot(request.getProductionLotId());
-
         validateProductionLotStatus(productionLot);
-
         validateOrganizationAccess(currentUser, productionLot);
-
         FarmLog farmLog = buildFarmLog(request, productionLot, currentUser.getUser());
-
         FarmLog saved = farmLogRepository.save(farmLog);
 
         publishActivityLog(
@@ -153,7 +126,6 @@ public class FarmLogServiceImpl implements FarmLogService {
                 "Ghi nhật ký canh tác cho lô " + saved.getProductionLotId().getName(),
                 "FarmLog",
                 saved.getId().toString());
-
         if (milestoneReminderService != null) {
             try {
                 if (request.getMilestoneId() != null) {
@@ -176,7 +148,6 @@ public class FarmLogServiceImpl implements FarmLogService {
     /** Đính chính nhật ký canh tác, tạo bản ghi mới và giữ nguyên bản gốc. */
     @Override
     public FarmLogResponse correctFarmLog(UUID id, CorrectFarmLogRequest request) {
-
         CustomUserDetails currentUser = getCurrentUser();
 
         String roleCode = currentUser.getRoleCode();

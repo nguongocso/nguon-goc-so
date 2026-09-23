@@ -36,23 +36,16 @@ public class ApiKeyWarningService {
     private static final Logger log = LoggerFactory.getLogger(ApiKeyWarningService.class);
 
     static final String EXPIRY_SOON_TITLE = "Khóa truy cập sắp hết hạn";
-
     static final String EXPIRED_TITLE = "Khóa truy cập đã hết hạn";
-
     static final String QUOTA_TITLE = "Khóa truy cập sắp chạm hạn mức";
 
     private static final DateTimeFormatter VI_DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final PartnerApiKeyRepository partnerApiKeyRepository;
-
     private final NotificationRepository notificationRepository;
-
     private final NotificationService notificationService;
-
     private final PartnerApiKeyUsageService partnerApiKeyUsageService;
-
     private final ApiKeyQuotaPolicy apiKeyQuotaPolicy;
-
     private final PartnerApiKeyService partnerApiKeyService;
 
     @Value("${app.apikey.expiry-warning-days:7}")

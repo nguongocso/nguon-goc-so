@@ -30,7 +30,6 @@ public class HelpServiceImpl implements HelpService {
     private static final String GENERAL_ROLE_CODE = "GENERAL";
 
     private final HelpContentRepository helpContentRepository;
-
     private final ObjectMapper objectMapper;
 
     /**

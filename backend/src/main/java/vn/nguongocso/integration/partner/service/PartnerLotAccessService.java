@@ -29,9 +29,7 @@ public class PartnerLotAccessService {
     private static final Logger log = LoggerFactory.getLogger(PartnerLotAccessService.class);
 
     private final PartnerLotAccessLogRepository partnerLotAccessLogRepository;
-
     private final ShipmentRepository shipmentRepository;
-
     private final ProductionLotRepository productionLotRepository;
 
     /**

@@ -43,9 +43,8 @@ import vn.nguongocso.permission.service.PermissionChecker;
 @RequiredArgsConstructor
 public class InputMaterialController {
     private final InputMaterialService inputMaterialService;
-
     private final PermissionChecker permissionChecker;
-
+    
     /**
      * Tìm kiếm và phân trang danh mục vật tư đầu vào.
      */

@@ -55,17 +55,11 @@ import vn.nguongocso.organization.repository.OrganizationUserRepository;
 @Transactional
 public class MilestoneReminderServiceImpl implements MilestoneReminderService {
     private final ProductionLotRepository productionLotRepository;
-
     private final MilestoneReminderRepository milestoneReminderRepository;
-
     private final MilestoneValidationService milestoneValidationService;
-
     private final LotAssignmentRepository lotAssignmentRepository;
-
     private final NotificationRepository notificationRepository;
-
     private final OrganizationUserRepository organizationUserRepository;
-
     private static final List<ProductionLotStatus> SCAN_STATUSES = List.of(
             ProductionLotStatus.APPROVED,
             ProductionLotStatus.HARVESTED

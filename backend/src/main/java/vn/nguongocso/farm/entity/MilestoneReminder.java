@@ -50,7 +50,6 @@ import vn.nguongocso.notification.entity.Notification;
 @AllArgsConstructor
 @Builder
 public class MilestoneReminder {
-
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.CHAR)

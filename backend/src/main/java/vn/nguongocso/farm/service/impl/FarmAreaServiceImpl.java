@@ -45,15 +45,10 @@ import vn.nguongocso.farm.repository.ProductionLotRepository;
 @RequiredArgsConstructor
 public class FarmAreaServiceImpl implements FarmAreaService {
     private final FarmAreaRepository farmAreaRepository;
-
     private final ProductCategoryRepository productCategoryRepository;
-
     private final OrganizationRepository organizationRepository;
-
     private final ProductionLotRepository productionLotRepository;
-
     private final GeometryFactory geometryFactory;
-
     private final ApplicationEventPublisher eventPublisher;
 
     /** Lấy toàn bộ vùng trồng của tổ chức hiện tại. */
@@ -285,20 +280,13 @@ public class FarmAreaServiceImpl implements FarmAreaService {
         long associatedLotsCount = productionLotRepository.countByFarmAreaId(farmArea.getId());
 
         return FarmAreaResponse.builder().id(farmArea.getId()).name(farmArea.getName())
-
                 .organizationId(farmArea.getOrganization().getOrganizationId())
                 .organizationName(farmArea.getOrganization().getName())
-
                 .cropTypeId(farmArea.getCropType().getId()).cropTypeName(farmArea.getCropType().getName())
-
                 .latitude(point != null ? point.getY() : null).longitude(point != null ? point.getX() : null)
-
                 .area(farmArea.getArea()).areaUnit(farmArea.getAreaUnit())
-
                 .isActive(farmArea.getIsActive() != null ? farmArea.getIsActive() : true)
-
                 .associatedLotsCount(associatedLotsCount)
-
                 .createdAt(farmArea.getCreatedAt()).updatedAt(farmArea.getUpdatedAt()).build();
     }
 }

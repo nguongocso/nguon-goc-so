@@ -49,13 +49,9 @@ import vn.nguongocso.farm.repository.FarmLogRepository;
 @RequiredArgsConstructor
 public class AttachmentService {
     private final FarmLogRepository farmLogRepository;
-
     private final FarmLogAttachmentRepository attachmentRepository;
-
     private final UserRepository userRepository;
-
     private final ApplicationEventPublisher eventPublisher;
-
     private final Clock clock;
 
     @Value("${app.upload.base-dir}")

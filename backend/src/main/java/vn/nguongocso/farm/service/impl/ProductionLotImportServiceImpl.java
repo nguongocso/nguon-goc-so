@@ -49,29 +49,18 @@ import vn.nguongocso.permission.service.PermissionChecker;
 @Transactional
 public class ProductionLotImportServiceImpl implements ProductionLotImportService {
     private static final String RESOURCE = "production_lot";
-
     private static final String ACTION_CREATE = "CREATE";
 
     private final PermissionChecker permissionChecker;
-
     private final ProductionLotImportFileParser fileParser;
-
     private final ProductionLotRepository productionLotRepository;
-
     private final ProductionLotImportHistoryRepository importHistoryRepository;
-
     private final ProductCategoryRepository productCategoryRepository;
-
     private final FarmAreaRepository farmAreaRepository;
-
     private final FarmLogRepository farmLogRepository;
-
     private final OrganizationRepository organizationRepository;
-
     private final ActivityLogService activityLogService;
-
     private final ProductionLotImportExcelGenerator excelGenerator;
-
     private final Clock clock;
 
     /** Nhập dữ liệu lô sản xuất từ tệp Excel. */

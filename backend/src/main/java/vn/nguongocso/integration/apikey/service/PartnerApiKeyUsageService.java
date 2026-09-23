@@ -28,7 +28,6 @@ public class PartnerApiKeyUsageService {
     private static final Logger log = LoggerFactory.getLogger(PartnerApiKeyUsageService.class);
 
     private final PartnerApiKeyDailyUsageRepository usageRepository;
-
     private final PartnerApiKeyUsageWriter usageWriter;
 
     /**

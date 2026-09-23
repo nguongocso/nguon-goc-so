@@ -92,35 +92,20 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     private static final Logger log = LoggerFactory.getLogger(ProductionLotServiceImpl.class);
 
     private final ProductionLotRepository productionLotRepository;
-
     private final FarmAreaRepository farmAreaRepository;
-
     private final ProductCategoryRepository productCategoryRepository;
-
     private final UserRepository userRepository;
-
     private final OrganizationRepository organizationRepository;
-
     private final ReportAccessLogService reportAccessLogService;
-
     private final ShipmentRepository shipmentRepository;
-
     private final InspectionEligibilityService inspectionEligibilityService;
-
     private final InspectionRequestRepository inspectionRequestRepository;
-
     private final ChainEventRepository chainEventRepository;
-
     private final HarvestEligibilityService harvestEligibilityService;
-
     private final CodeRangeRepository codeRangeRepository;
-
     private final ProductionLotCertificationRepository productionLotCertificationRepository;
-
     private final InspectionValidityService inspectionValidityService;
-
     private final AreaScopeService areaScopeService;
-
     private final ApplicationEventPublisher eventPublisher;
 
     /** Tạo lô sản xuất mới. */
@@ -1111,4 +1096,4 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .stages(stageGroups)
                 .build();
     }
-}
+}

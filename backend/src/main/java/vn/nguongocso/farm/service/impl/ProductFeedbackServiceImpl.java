@@ -64,33 +64,20 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 @RequiredArgsConstructor
 public class ProductFeedbackServiceImpl implements ProductFeedbackService {
     private static final Logger log = LoggerFactory.getLogger(ProductFeedbackServiceImpl.class);
-
     private static final String ADMIN_ROLE = "VT-01";
-
     private static final String EVENT_RECORDER_ROLE = "VT-03";
-
     private static final String NOT_FOUND = "Không tìm thấy phản ánh";
-
     private static final int LOOKUP_CODE_GENERATION_ATTEMPTS = 5;
 
     private final ProductFeedbackRepository productFeedbackRepository;
-
     private final ProductionLotRepository productionLotRepository;
-
     private final TraceCodeRepository traceCodeRepository;
-
     private final RecallRequestRepository recallRequestRepository;
-
     private final RecallRequestService recallRequestService;
-
     private final OrganizationUserRepository organizationUserRepository;
-
     private final UserRepository userRepository;
-
     private final ApplicationEventPublisher eventPublisher;
-
     private final NotificationService notificationService;
-
     private final ProductFeedbackLookupCodeGenerator lookupCodeGenerator;
 
     /** Tạo phản ánh mới từ phản hồi của người tiêu dùng. */

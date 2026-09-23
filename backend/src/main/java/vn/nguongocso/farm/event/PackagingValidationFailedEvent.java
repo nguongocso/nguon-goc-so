@@ -9,9 +9,7 @@ import org.springframework.context.ApplicationEvent;
 */
 public class PackagingValidationFailedEvent extends ApplicationEvent {
     private final UUID productionLotId;
-
     private final UUID organizationId;
-
     private final String lotName;
 
     /** Tạo sự kiện xác thực đóng gói thất bại. */

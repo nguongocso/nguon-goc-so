@@ -52,7 +52,6 @@ public class PartnerApiKeyController {
     private static final Logger log = LoggerFactory.getLogger(PartnerApiKeyController.class);
 
     private final PartnerApiKeyService partnerApiKeyService;
-
     private final PartnerWebhookService partnerWebhookService;
 
     /**
