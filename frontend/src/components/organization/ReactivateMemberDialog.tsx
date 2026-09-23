@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { LoaderCircle, RotateCcw } from 'lucide-react';
-
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -21,17 +20,12 @@ const MAX_REASON_LENGTH = 500;
 
 interface ReactivateMemberDialogProps {
   member: OrganizationMember | null;
-  /** Đúng khi hook đang gọi API kích hoạt lại. */
   reactivating: boolean;
   onClose: () => void;
   onConfirm: (userId: string, reason: string) => Promise<ReactivateOutcome>;
 }
 
-/**
- * Dialog kích hoạt lại thành viên đã ngừng hoạt động (NCL-01-CN-009,
- * QTN-32 mục 9): bắt buộc nhập lý do. Vai trò cũ được giữ nguyên theo
- * backend — UI không tự suy đoán quyền mới.
- */
+/** Dialog kích hoạt lại thành viên đã ngừng hoạt động. */
 export const ReactivateMemberDialog = ({
   member,
   reactivating,
@@ -73,8 +67,6 @@ export const ReactivateMemberDialog = ({
     const outcome = await onConfirm(member.userId, trimmed);
 
     if (outcome.ok || outcome.fatal) {
-      // Thành công hoặc lỗi không thể xử lý tại chỗ (403/404/409):
-      // toast đã hiển thị, đóng dialog và refresh danh sách từ backend.
       handleClose();
     }
   };

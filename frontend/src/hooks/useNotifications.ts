@@ -12,10 +12,10 @@ import type {
 interface UseNotificationsOptions {
   size?: number;
   isRead?: boolean;
-  // false: không tự tải khi mount (dùng cho dropdown, chỉ tải lúc mở)
   autoLoad?: boolean;
 }
 
+/** Hook quản lý danh sách và trạng thái đọc của thông báo. */
 export const useNotifications = ({
   size = 20,
   isRead,
@@ -56,7 +56,6 @@ export const useNotifications = ({
   }, [isRead]);
 
   const markAsRead = useCallback(async (notificationId: string) => {
-    // Cập nhật lạc quan trước, đồng bộ lại nếu API thất bại
     setItems((current) =>
       current.map((item) =>
         item.id === notificationId
@@ -72,7 +71,6 @@ export const useNotifications = ({
         error.response?.data?.message ||
         'Không thể đánh dấu thông báo đã đọc.';
       toast.error(message);
-      // Rollback nếu thất bại
       void load(page);
     }
   }, [load, page]);

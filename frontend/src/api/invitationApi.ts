@@ -8,10 +8,7 @@ import type {
   AcceptInvitationResponse,
 } from '@/types/invitation';
 
-/**
- * Tạo thư mời mới (VT-02)
- * POST /api/v1/organization/invitations
- */
+/** Tạo thư mời mới (VT-02). */
 export const createInvitation = async (
   data: CreateInvitationRequest,
 ): Promise<InvitationResponse> => {
@@ -22,10 +19,7 @@ export const createInvitation = async (
   return response.data.data;
 };
 
-/**
- * Lấy thông tin thư mời từ token (public)
- * GET /api/v1/public/organization/invitations/{token}
- */
+/** Lấy thông tin thư mời từ token (public). */
 export const getInvitationDetails = async (
   token: string,
 ): Promise<InvitationPublicResponse> => {
@@ -35,10 +29,7 @@ export const getInvitationDetails = async (
   return response.data.data;
 };
 
-/**
- * Chấp nhận thư mời và đăng ký tài khoản (public)
- * POST /api/v1/public/organization/invitations/{token}/accept
- */
+/** Chấp nhận thư mời và đăng ký tài khoản (public). */
 export const acceptInvitation = async (
   token: string,
   data: AcceptInvitationRequest,

@@ -60,7 +60,7 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
   if (!events || events.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        <p>{isEn ? "No events recorded for this shipment." : "Chưa có sự kiện nào được ghi nhận cho lô hàng này."}</p>
+        <p>{isEn ? 'No events recorded for this shipment.' : 'Chưa có sự kiện nào được ghi nhận cho lô hàng này.'}</p>
       </div>
     );
   }
@@ -86,7 +86,6 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
 
         return (
           <div key={index} className="relative pl-6">
-            {/* Dot trên timeline */}
             <div className="absolute left-[-9px] top-1 w-4 h-4 rounded-full bg-primary border-2 border-white shadow-sm" />
 
             <div className="bg-card rounded-lg border border-border p-4 shadow-card transition-shadow">
@@ -101,7 +100,7 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
                       {isEarlyHarvest && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-600 border border-amber-500/20">
                           <AlertTriangle className="h-3 w-3 text-amber-500" />
-                          {isEn ? "Early Harvest" : "Thu hoạch sớm"}
+                          {isEn ? 'Early Harvest' : 'Thu hoạch sớm'}
                         </span>
                       )}
                     </div>
@@ -114,7 +113,7 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
                     <div className="mt-1 text-sm text-muted-foreground space-y-1">
                       {entries.map(([fieldLabel, value]) => {
                         const rawKeys = Object.keys(event.eventData || {});
-                        const matchingKey = rawKeys.find(k => USER_TEXT_FIELDS.has(k));
+                        const matchingKey = rawKeys.find((k) => USER_TEXT_FIELDS.has(k));
                         const isUserText = Boolean(matchingKey);
 
                         return (

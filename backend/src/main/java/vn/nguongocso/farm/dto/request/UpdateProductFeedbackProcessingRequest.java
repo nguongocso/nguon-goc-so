@@ -4,14 +4,18 @@ import java.util.UUID;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
 import lombok.Getter;
 import lombok.Setter;
+
 import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
 
+/**
+ * Yêu cầu cập nhật nội dung xử lý phản hồi sản phẩm.
+*/
 @Getter
 @Setter
 public class UpdateProductFeedbackProcessingRequest {
-
     @NotNull(message = "Mức độ phản ánh không được để trống")
     private ProductFeedbackSeverity severity;
 

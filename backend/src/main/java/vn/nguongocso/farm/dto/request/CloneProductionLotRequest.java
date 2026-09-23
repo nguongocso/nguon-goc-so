@@ -1,22 +1,17 @@
 package vn.nguongocso.farm.dto.request;
 
+import java.time.LocalDate;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDate;
-
 /**
- * DTO yêu cầu tạo lô sản xuất mới từ mẫu vụ trước (NCL-02-CN-007).
- *
- * <p>
- * Chỉ nhận các trường người dùng được phép chỉnh sửa của vụ mới. Vùng trồng
- * và loại nông sản được kế thừa từ lô mẫu nên không nhận từ client; tổ chức
- * và người tạo luôn lấy từ tài khoản đăng nhập.
- * </p>
- */
+ * Yêu cầu tạo lô sản xuất mới từ mẫu vụ trước.
+*/
 @Getter
 @Setter
 public class CloneProductionLotRequest {

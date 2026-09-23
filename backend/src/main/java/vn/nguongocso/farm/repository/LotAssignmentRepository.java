@@ -9,31 +9,13 @@ import vn.nguongocso.farm.entity.LotAssignment;
 
 /**
  * Repository thao tác dữ liệu phân công thành viên vào lô sản xuất.
- *
- * <p>
- * Ghi chú (D-4): luồng chuyển giao phân công lô khi vô hiệu hóa thành viên
- * đã tạm gỡ bỏ vì hệ thống chưa có phân quyền ghi sự kiện theo lô.
- * Repository chỉ giữ các truy vấn phục vụ tra cứu/báo cáo phân công.
- * </p>
- */
+*/
 public interface LotAssignmentRepository extends JpaRepository<LotAssignment, UUID> {
-
-    /**
-     * Lấy toàn bộ phân công còn hiệu lực của một thành viên trong tổ chức.
-     *
-     * @param userId ID của thành viên được phân công
-     * @param orgId  ID của tổ chức
-     * @return danh sách phân công còn hiệu lực
-     */
+    /** Lấy phân công còn hiệu lực của thành viên trong tổ chức. */
     List<LotAssignment> findByUser_UserIdAndOrganization_OrganizationIdAndActiveTrue(
             UUID userId,
             UUID orgId);
 
-    /**
-     * Lấy toàn bộ phân công còn hiệu lực của một lô sản xuất.
-     *
-     * @param lotId ID của lô sản xuất
-     * @return danh sách phân công còn hiệu lực
-     */
+    /** Lấy phân công còn hiệu lực của lô sản xuất. */
     List<LotAssignment> findByProductionLot_IdAndActiveTrue(UUID lotId);
 }

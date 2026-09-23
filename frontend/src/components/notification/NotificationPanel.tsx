@@ -82,7 +82,6 @@ export const NotificationPanel = ({
       </div>
 
       <div className="max-h-96 overflow-y-auto">
-        {/* Cảnh báo bổ sung email cho tài khoản */}
         {isMissingEmail && (
           <div className="border-b border-amber-100 bg-amber-50/75 transition-colors hover:bg-amber-100/70">
             <button
@@ -113,7 +112,6 @@ export const NotificationPanel = ({
           </div>
         )}
 
-        {/* Cảnh báo thiết lập địa bàn hành chính cho HTX */}
         {isMissingTerritory && (
           <div className="border-b border-amber-100 bg-amber-50/75 transition-colors hover:bg-amber-100/70">
             <button

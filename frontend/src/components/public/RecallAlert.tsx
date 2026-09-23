@@ -10,7 +10,7 @@ interface RecallAlertProps {
 export const RecallAlert = ({ message, messageEn }: RecallAlertProps) => {
   const { lang, t } = useLanguage();
 
-  const displayMessage = (lang === 'en' && messageEn) ? messageEn : message;
+  const displayMessage = lang === 'en' && messageEn ? messageEn : message;
 
   return (
     <Alert variant="destructive" className="p-4 border-red-300 bg-red-50 text-red-900">

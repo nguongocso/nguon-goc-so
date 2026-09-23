@@ -6,8 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * DTO yêu cầu tạo phản ánh sản phẩm.
- */
+ * Yêu cầu tạo phản ánh sản phẩm.
+*/
 @Getter
 @Setter
 public class CreateProductFeedbackRequest {
