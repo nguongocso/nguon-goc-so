@@ -90,7 +90,11 @@ export default function EventChainVerificationPage() {
       </Card>
 
       {result && (
-        <Card className={`rounded-xl shadow-sm bg-white ${result.isIntegrityVerified ? 'border-emerald-200' : 'border-red-200'}`}>
+        <Card
+          className={`rounded-xl bg-white shadow-sm ${
+            result.isIntegrityVerified ? 'border-emerald-200' : 'border-red-200'
+          }`}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               {result.isIntegrityVerified ? (

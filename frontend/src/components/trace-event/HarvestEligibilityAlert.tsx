@@ -44,8 +44,10 @@ export const HarvestEligibilityAlert = ({
                 Lô có thời gian cách ly đến ngày <strong>{eligibility.eligibleHarvestDate}</strong>.
                 Bạn đang chọn ngày thu hoạch <strong>{selectedHarvestDate}</strong> (thu hoạch sớm).
               </p>
-              <p className="text-xs text-red-700 font-medium pt-1">
-                Chỉ Quản lý hợp tác xã (VT-02) mới có quyền ghi đè thu hoạch sớm kèm lý do bắt buộc. Vui lòng liên hệ Quản lý HTX hoặc chọn ngày thu hoạch sau thời hạn cách ly.
+              <p className="pt-1 text-xs font-medium text-red-700">
+                Chỉ Quản lý hợp tác xã (VT-02) mới có quyền ghi đè thu hoạch
+                sớm kèm lý do bắt buộc. Vui lòng liên hệ Quản lý HTX hoặc
+                chọn ngày thu hoạch sau thời hạn cách ly.
               </p>
             </AlertDescription>
           </Alert>
@@ -61,8 +63,10 @@ export const HarvestEligibilityAlert = ({
               Lô sản xuất có thời gian cách ly thuốc BVTV đến ngày <strong>{eligibility.eligibleHarvestDate}</strong>.
               Bạn đang chọn ngày thu hoạch sớm: <strong>{selectedHarvestDate}</strong>.
             </p>
-            <p className="text-xs text-amber-800 pt-1">
-              Quản lý có thể ghi đè nhưng <strong>bắt buộc phải nhập lý do</strong>. Dữ liệu này sẽ được lưu vết vào lịch sử audit và hồ sơ truy xuất nguồn gốc.
+            <p className="pt-1 text-xs text-amber-800">
+              Quản lý có thể ghi đè nhưng{' '}
+              <strong>bắt buộc phải nhập lý do</strong>. Dữ liệu này sẽ được
+              lưu vết vào lịch sử audit và hồ sơ truy xuất nguồn gốc.
             </p>
           </AlertDescription>
         </Alert>
@@ -70,10 +74,16 @@ export const HarvestEligibilityAlert = ({
     }
 
     return (
-      <div className="flex items-center gap-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg">
+      <div
+        className={
+          'flex items-center gap-2 rounded-lg border border-emerald-200 ' +
+          'bg-emerald-50 p-2.5 text-xs text-emerald-800'
+        }
+      >
         <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
         <span>
-          Đã đảm bảo thời gian cách ly thuốc BVTV (Đủ điều kiện thu hoạch từ ngày <strong>{eligibility.eligibleHarvestDate}</strong>).
+          Đã đảm bảo thời gian cách ly thuốc BVTV (Đủ điều kiện thu hoạch từ
+          ngày <strong>{eligibility.eligibleHarvestDate}</strong>).
         </span>
       </div>
     );
@@ -87,7 +97,10 @@ export const HarvestEligibilityAlert = ({
           <p className="font-semibold">ℹ️ Thông báo vật tư canh tác</p>
           <p>
             Lô có vật tư chưa xác định được thời gian cách ly tự động:{' '}
-            <span className="font-medium">{eligibility.unmatchedMaterials?.join(', ') || 'Vật tư ngoài danh mục'}</span>.
+            <span className="font-medium">
+              {eligibility.unmatchedMaterials?.join(', ') ||
+                'Vật tư ngoài danh mục'}
+            </span>.
           </p>
           <p className="text-xs text-blue-700">
             Hệ thống cho phép ghi nhận thu hoạch bình thường và sẽ lưu ghi chú vào hồ sơ truy xuất nguồn gốc.

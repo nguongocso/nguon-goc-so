@@ -12,6 +12,7 @@ import {
   Maximize2,
   Minimize2,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /** Props cho header của hộp thoại xem trước hồ sơ */
 export interface DossierPreviewHeaderProps {
@@ -40,7 +41,12 @@ export const DossierPreviewHeader: React.FC<DossierPreviewHeaderProps> = ({
     <DialogHeader className="space-y-1.5 pb-2.5 border-b shrink-0">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-8">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 shrink-0">
+          <div
+            className={cn(
+              'p-2 rounded-lg bg-emerald-50 text-emerald-600',
+              'dark:bg-emerald-950/40 dark:text-emerald-400 shrink-0',
+            )}
+          >
             {format === 'pdf' ? (
               <FileText className="size-5" />
             ) : format === 'csv' ? (

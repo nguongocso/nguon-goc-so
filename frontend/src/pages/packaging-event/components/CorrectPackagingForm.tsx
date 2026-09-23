@@ -76,12 +76,21 @@ export function CorrectPackagingForm() {
           <div className="space-y-2">
             <Label htmlFor="packagingSpecification">Quy cách đóng gói mới *</Label>
             <Input id="packagingSpecification" {...register('packagingSpecification')} />
-            {errors.packagingSpecification && <p className="text-sm text-red-500">{errors.packagingSpecification.message}</p>}
+            {errors.packagingSpecification && (
+              <p className="text-sm text-red-500">
+                {errors.packagingSpecification.message}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="packagingDate">Ngày đóng gói mới *</Label>
-            <Input id="packagingDate" type="date" {...register('packagingDate')} max={getLocalDateString()} />
+            <Input
+              id="packagingDate"
+              type="date"
+              {...register('packagingDate')}
+              max={getLocalDateString()}
+            />
             {errors.packagingDate && <p className="text-sm text-red-500">{errors.packagingDate.message}</p>}
           </div>
 

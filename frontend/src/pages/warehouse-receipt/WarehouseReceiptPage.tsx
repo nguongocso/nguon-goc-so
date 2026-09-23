@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Warehouse, Eye, Plus } from 'lucide-react';
+import { Warehouse, Plus } from 'lucide-react';
 import { HelpButton } from '@/components/help/HelpButton';
 import { Button } from '@/components/ui/button';
-import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { ListPageHeader } from '@/components/common/ListPageHeader';
 import { ListCard } from '@/components/common/ListCard';
 import { ListToolbar } from '@/components/common/ListToolbar';
@@ -11,25 +10,18 @@ import { SearchInput } from '@/components/common/SearchInput';
 import { RefreshButton } from '@/components/common/RefreshButton';
 import { DataTableShell } from '@/components/common/DataTableShell';
 import { Pagination } from '@/components/common/Pagination';
-import { StatusBadge } from '@/components/common/StatusBadge';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
 import { WarehouseReceiptCreateDialog } from './components/WarehouseReceiptCreateDialog';
+import {
+  WarehouseReceiptTableBody,
+  WarehouseReceiptTableHeader,
+} from './components/WarehouseReceiptTable';
 
 const PAGE_SIZE = 10;
 
-const formatDate = (iso: string) => {
-  try {
-    return new Date(iso).toLocaleDateString('vi-VN', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
-};
-
 /**
- * Trang danh sách sự kiện nhập kho nông sản
+ * Trang danh sách sự kiện nhập kho nông sản.
  */
 export default function WarehouseReceiptPage() {
   const { list, isLoadingList, error, fetchList } = useWarehouseReceipt();
@@ -71,58 +63,15 @@ export default function WarehouseReceiptPage() {
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, safePage]);
 
-  const header = (
-    <>
-      <TableHead className="w-12 text-center">STT</TableHead>
-      <TableHead>Mã lô</TableHead>
-      <TableHead>Tên lô</TableHead>
-      <TableHead className="text-right">Số lượng KN</TableHead>
-      <TableHead className="text-right">Thực nhận</TableHead>
-      <TableHead className="text-right">Chênh lệch</TableHead>
-      <TableHead className="text-center">%</TableHead>
-      <TableHead>Ngày nhập</TableHead>
-      <TableHead>Người ghi</TableHead>
-      <TableHead className="text-center">Thao tác</TableHead>
-    </>
+  const header = <WarehouseReceiptTableHeader />;
+  const body = (
+    <WarehouseReceiptTableBody
+      receipts={paginated}
+      page={safePage}
+      pageSize={PAGE_SIZE}
+      onView={(receiptId) => navigate(`/warehouse-receipt/${receiptId}`)}
+    />
   );
-
-  const body = paginated.map((receipt, index) => (
-    <TableRow key={receipt.id} className="hover:bg-muted/40 transition-colors">
-      <TableCell className="text-center font-medium text-muted-foreground">
-        {safePage * PAGE_SIZE + index + 1}
-      </TableCell>
-      <TableCell className="font-mono text-xs">{receipt.traceCode || '—'}</TableCell>
-      <TableCell className="font-medium">{receipt.shipmentName}</TableCell>
-      <TableCell className="text-right">{receipt.declaredQuantity?.toLocaleString('vi-VN')}</TableCell>
-      <TableCell className="text-right">{receipt.receivedQuantity?.toLocaleString('vi-VN')}</TableCell>
-      <TableCell className="text-right">
-        <span className={receipt.discrepancy !== 0 ? 'font-medium text-red-600' : 'text-emerald-600'}>
-          {(receipt.discrepancy ?? 0) >= 0 ? '+' : ''}{receipt.discrepancy?.toLocaleString('vi-VN')}
-        </span>
-      </TableCell>
-      <TableCell className="text-center">
-        <StatusBadge
-          tone={receipt.isDiscrepancyExceeded ? 'danger' : 'success'}
-          label={`${receipt.discrepancyPercent ?? 0}%`}
-        />
-      </TableCell>
-      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-        {formatDate(receipt.receiptDate)}
-      </TableCell>
-      <TableCell className="text-sm">{receipt.recordedBy}</TableCell>
-      <TableCell className="text-center">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => navigate(`/warehouse-receipt/${receipt.id}`)}
-          className="hover:bg-muted"
-          title="Xem chi tiết"
-        >
-          <Eye className="size-4" />
-        </Button>
-      </TableCell>
-    </TableRow>
-  ));
 
   return (
     <div className="space-y-6">

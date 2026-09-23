@@ -22,14 +22,32 @@ export interface CorrectPackagingRequest {
   correctionReason: string;
 }
 
-/**
- * Dữ liệu phản hồi chi tiết của sự kiện đóng gói trong chuỗi cung ứng.
- */
+/** Giá trị dữ liệu phẳng của sự kiện đóng gói. */
+export type PackagingEventDataValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | readonly (string | number | boolean | null)[];
+
+/** Dữ liệu linh hoạt của một sự kiện trong timeline lô hàng. */
+export interface ChainEventData
+  extends Record<string, PackagingEventDataValue> {
+  productionLotId?: string;
+  productionLotName?: string;
+  inputQuantity?: number;
+  outputQuantity?: number;
+  lossRate?: number;
+  preprocessingDate?: string;
+}
+
+/** Dữ liệu phản hồi chi tiết của sự kiện trong chuỗi cung ứng. */
 export interface ChainEventResponse {
   id: string;
   shipmentId: string | null;
   eventType: ChainEventType;
-  eventData: Record<string, any>;
+  eventData: ChainEventData;
   latitude: number | null;
   longitude: number | null;
   recordedAt: string;

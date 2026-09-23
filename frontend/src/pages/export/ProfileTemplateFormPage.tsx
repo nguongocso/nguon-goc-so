@@ -115,7 +115,8 @@ export const ProfileTemplateFormPage: React.FC = () => {
               <div>
                 <CardTitle className="text-lg">Danh mục trường dữ liệu</CardTitle>
                 <CardDescription className="text-xs">
-                  Tích chọn các trường muốn đưa vào hồ sơ kết xuất. Các trường cốt lõi theo quy định luôn được tự động giữ lại.
+                  Tích chọn các trường muốn đưa vào hồ sơ kết xuất. Các trường
+                  cốt lõi theo quy định luôn được tự động giữ lại.
                 </CardDescription>
               </div>
               <Button

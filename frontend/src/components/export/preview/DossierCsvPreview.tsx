@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Table as TableIcon, Code2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /** Dòng dữ liệu sau khi phân tích từ CSV */
 export interface CsvParsedRow {
@@ -125,7 +126,10 @@ export const DossierCsvPreview: React.FC<DossierCsvPreviewProps> = ({ csvContent
                     <tr key={rIdx} className="bg-emerald-50/80 dark:bg-emerald-950/40 border-b">
                       <td
                         colSpan={4}
-                        className="px-3 py-2 font-bold text-emerald-800 dark:text-emerald-300 text-xs uppercase tracking-wide"
+                        className={cn(
+                          'px-3 py-2 font-bold text-emerald-800 dark:text-emerald-300',
+                          'text-xs uppercase tracking-wide',
+                        )}
                       >
                         {row.cells[0]}
                       </td>
@@ -139,7 +143,10 @@ export const DossierCsvPreview: React.FC<DossierCsvPreviewProps> = ({ csvContent
                       {row.cells.map((cell, cIdx) => (
                         <th
                           key={cIdx}
-                          className="px-3 py-2 text-left border-r border-slate-200 dark:border-slate-700 last:border-r-0 font-semibold text-foreground"
+                          className={cn(
+                            'px-3 py-2 text-left border-r border-slate-200 dark:border-slate-700',
+                            'last:border-r-0 font-semibold text-foreground',
+                          )}
                         >
                           {cell}
                         </th>
@@ -156,7 +163,10 @@ export const DossierCsvPreview: React.FC<DossierCsvPreviewProps> = ({ csvContent
                     {row.cells.map((cell, cIdx) => (
                       <td
                         key={cIdx}
-                        className="px-3 py-1.5 border-r border-slate-100 dark:border-slate-800 last:border-r-0 text-foreground whitespace-pre-wrap"
+                        className={cn(
+                          'px-3 py-1.5 border-r border-slate-100 dark:border-slate-800',
+                          'last:border-r-0 text-foreground whitespace-pre-wrap',
+                        )}
                       >
                         {cell}
                       </td>

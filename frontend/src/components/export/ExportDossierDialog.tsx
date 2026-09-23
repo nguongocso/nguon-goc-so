@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Eye, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -16,6 +10,7 @@ import { toApiError } from '@/api/apiError';
 import { DossierPreviewDialog } from './DossierPreviewDialog';
 import { DossierFormatSelector, type DossierExportFormat } from './DossierFormatSelector';
 import { getLocalDateString } from '@/utils/dateTime';
+import { cn } from '@/lib/utils';
 import { ProfileTemplateSelector } from './ProfileTemplateSelector';
 import type { ProfileTemplate } from '@/types/profileTemplate';
 
@@ -26,7 +21,6 @@ export interface ExportDossierDialogProps {
   shipmentId: string;
   shipmentName: string;
   shipmentCode?: string;
-  /** UUID của tổ chức HTX sở hữu lô hàng (dành cho VT-04) */
   cooperativeOrganizationId?: string;
 }
 
@@ -52,7 +46,6 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
 
-  // Đặt lại state khi mở hộp thoại
   useEffect(() => {
     if (open) {
       setSelectedFormat('pdf');
@@ -62,7 +55,6 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
     }
   }, [open]);
 
-  // Xử lý xuất và tải tệp hồ sơ về máy
   const handleExport = async () => {
     if (!shipmentId) return;
 
@@ -71,7 +63,8 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
 
     try {
       let blob: Blob;
-      let fileName = `Ho_so_truy_xuat_${shipmentName || shipmentCode || shipmentId}_${getLocalDateString()}.${selectedFormat}`;
+      const shipmentIdentifier = shipmentName || shipmentCode || shipmentId;
+      let fileName = `Ho_so_truy_xuat_${shipmentIdentifier}_${getLocalDateString()}.${selectedFormat}`;
 
       if (selectedFormat === 'pdf') {
         blob = await exportDossier(shipmentId, activeTemplateId);
@@ -105,7 +98,12 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
         <DialogContent className="sm:max-w-lg">
           <DialogHeader className="space-y-1">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+              <div
+                className={cn(
+                  'p-2 rounded-lg bg-emerald-50 text-emerald-600',
+                  'dark:bg-emerald-950/40 dark:text-emerald-400',
+                )}
+              >
                 <FileText className="size-5" />
               </div>
               <div>
@@ -165,7 +163,10 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
                 size="sm"
                 onClick={handleExport}
                 disabled={isExporting || !shipmentId}
-                className="w-full sm:w-auto gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+                className={cn(
+                  'w-full sm:w-auto gap-1.5 bg-emerald-600 hover:bg-emerald-700',
+                  'text-white text-xs font-semibold',
+                )}
               >
                 {isExporting ? (
                   <>

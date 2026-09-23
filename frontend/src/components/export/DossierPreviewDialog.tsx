@@ -96,8 +96,15 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
       <DialogContent
         className={
           isFullscreen
-            ? '!fixed !inset-0 !z-50 !w-screen !h-screen !max-w-none !max-h-none !translate-x-0 !translate-y-0 !top-0 !left-0 !rounded-none !p-4 !m-0 flex flex-col bg-background shadow-2xl'
-            : 'w-[96vw] sm:max-w-[95vw] md:max-w-5xl lg:max-w-6xl xl:max-w-7xl h-[92vh] max-h-[94vh] flex flex-col p-4 sm:p-5'
+            ? [
+                '!fixed !inset-0 !z-50 !h-screen !max-h-none !w-screen !max-w-none',
+                '!left-0 !top-0 !m-0 !translate-x-0 !translate-y-0 !rounded-none',
+                '!p-4 flex flex-col bg-background shadow-2xl',
+              ].join(' ')
+            : [
+                'flex h-[92vh] max-h-[94vh] w-[96vw] flex-col p-4 sm:max-w-[95vw]',
+                'sm:p-5 md:max-w-5xl lg:max-w-6xl xl:max-w-7xl',
+              ].join(' ')
         }
       >
         <DossierPreviewHeader

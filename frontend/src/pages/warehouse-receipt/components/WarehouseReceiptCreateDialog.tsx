@@ -1,48 +1,25 @@
-import { useState, useMemo } from 'react';
-import { isAxiosError } from 'axios';
-import { z } from 'zod';
-import { LoaderCircle, Send, AlertTriangle, CheckCircle2, Package, ScanLine } from 'lucide-react';
+import { LoaderCircle, Package, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
-import { scanLookupTraceCode } from '@/api/chainEventApi';
 import { ScanCodeField } from '@/components/common/ScanCodeField';
 import { LotLookupResult } from '@/components/common/LotLookupResult';
 import { getShipmentStatusLabel } from '@/components/shipment/ShipmentStatusBadge';
-import { getLocalDateString } from '@/utils/dateTime';
 import { selectAllOnFocus, preventMouseUpCollapse } from '@/utils/inputUtils';
+import { WarehouseReceiptDiscrepancy } from './WarehouseReceiptDiscrepancy';
+import { WarehouseReceiptDialogFooter } from './WarehouseReceiptDialogFooter';
+import { useWarehouseReceiptCreateForm } from './useWarehouseReceiptCreateForm';
 
-const ALLOWED_THRESHOLD = 2.0;
-
-const formSchema = z.object({
-  codeValue: z.string().min(1, 'Vui lòng nhập mã truy xuất'),
-  receivedQuantity: z.coerce.number().positive('Số lượng thực nhận phải lớn hơn 0'),
-  conditionNote: z.string().max(500, 'Ghi chú tối đa 500 ký tự').optional(),
-  receiptDate: z.string().optional(),
-  reason: z.string().max(500, 'Lý do tối đa 500 ký tự').optional(),
-});
-
-interface LotInfo {
-  shipmentId: string;
-  shipmentName: string;
-  declaredQuantity: number;
-  shipmentStatus: string;
-  organizationName: string;
-}
-
-/** Thuộc tính cho hộp thoại tạo phiếu nhập kho */
+/** Thuộc tính cho hộp thoại tạo phiếu nhập kho. */
 export interface WarehouseReceiptCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -50,132 +27,32 @@ export interface WarehouseReceiptCreateDialogProps {
 }
 
 /**
- * Hộp thoại tra cứu mã truy xuất và xác nhận ghi nhận nhập kho
+ * Hộp thoại tra cứu mã truy xuất và xác nhận ghi nhận nhập kho.
  */
-export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: WarehouseReceiptCreateDialogProps) {
-  // 👇 Lấy ngày hôm nay theo giờ local (tránh lệch ngày UTC)
-  const today = getLocalDateString();
-
-  const [codeValue, setCodeValue] = useState('');
-  const [receivedQuantity, setReceivedQuantity] = useState('');
-  const [conditionNote, setConditionNote] = useState('');
-  // 👇 Set mặc định là ngày hôm nay
-  const [receiptDate, setReceiptDate] = useState(today);
-  const [reason, setReason] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
-  const [lotInfo, setLotInfo] = useState<LotInfo | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-
-  const { isSubmitting, error, submitReceipt } = useWarehouseReceipt();
-
-  const declaredQuantity = lotInfo?.declaredQuantity ?? 0;
-  const actualQty = parseFloat(receivedQuantity) || 0;
-
-  const discrepancyInfo = useMemo(() => {
-    if (!lotInfo || !receivedQuantity || isNaN(actualQty)) return null;
-    const difference = actualQty - declaredQuantity;
-    const percent = declaredQuantity === 0
-      ? (actualQty > 0 ? 100 : 0)
-      : (difference / declaredQuantity) * 100;
-    const isExceeded = Math.abs(percent) > ALLOWED_THRESHOLD;
-    return { difference, percent, isExceeded };
-  }, [lotInfo, receivedQuantity, actualQty, declaredQuantity]);
-
-  const handleScan = async (scannedCode?: string) => {
-    const code = (scannedCode ?? codeValue).trim();
-    if (!code) {
-      setScanError('Vui lòng nhập mã truy xuất.');
-      return;
-    }
-    setIsScanning(true);
-    setScanError(null);
-    setLotInfo(null);
-    try {
-      const result = await scanLookupTraceCode(code);
-      if (!result.shipmentId) {
-        setScanError('Không tìm thấy lô hàng cho mã truy xuất này.');
-        return;
-      }
-      if (result.shipmentStatus !== 'ACTIVATED') {
-        setScanError('Lô hàng chưa được kích hoạt hoặc đã bị thu hồi.');
-        return;
-      }
-      setLotInfo({
-        shipmentId: result.shipmentId,
-        shipmentName: result.shipmentName,
-        declaredQuantity: result.totalQuantity ?? 0,
-        shipmentStatus: result.shipmentStatus,
-        organizationName: result.organizationName ?? '',
-      });
-    } catch (err: unknown) {
-      const msg =
-        (isAxiosError<{ message?: string }>(err) && err.response?.data?.message) ||
-        'Không thể tra cứu mã truy xuất.';
-      setScanError(msg);
-    } finally {
-      setIsScanning(false);
-    }
-  };
-
-  const validate = (): boolean => {
-    const result = formSchema.safeParse({
-      codeValue,
-      receivedQuantity,
-      conditionNote: conditionNote || undefined,
-      receiptDate: receiptDate || undefined,
-      reason: reason || undefined,
-    });
-    if (!result.success) {
-      setFormError(result.error.issues[0]?.message ?? 'Dữ liệu không hợp lệ');
-      return false;
-    }
-    if (discrepancyInfo?.isExceeded && (!reason || reason.trim() === '')) {
-      setFormError('Chênh lệch số lượng vượt ngưỡng cho phép (2%). Vui lòng cung cấp lý do chênh lệch.');
-      return false;
-    }
-    setFormError(null);
-    return true;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!lotInfo) {
-      setFormError('Vui lòng tra cứu mã truy xuất trước.');
-      return;
-    }
-    if (!validate()) return;
-    const success = await submitReceipt({
-      codeValue: codeValue.trim(),
-      receivedQuantity: parseFloat(receivedQuantity),
-      conditionNote: conditionNote || undefined,
-      receiptDate: receiptDate || undefined,
-      reason: reason || undefined,
-    });
-    if (success) {
-      resetForm();
-      onCreated();
-    }
-  };
-
-  const resetForm = () => {
-    setCodeValue('');
-    setReceivedQuantity('');
-    setConditionNote('');
-    setReceiptDate(today); // 👈 Reset về ngày hôm nay
-    setReason('');
-    setFormError(null);
-    setLotInfo(null);
-    setScanError(null);
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    if (!open) resetForm();
-    onOpenChange(open);
-  };
+export function WarehouseReceiptCreateDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: WarehouseReceiptCreateDialogProps) {
+  const form = useWarehouseReceiptCreateForm({ onOpenChange, onCreated });
+  const {
+    codeValue,
+    receivedQuantity,
+    conditionNote,
+    receiptDate,
+    reason,
+    formError,
+    lotInfo,
+    isScanning,
+    scanError,
+    isSubmitting,
+    error,
+    actualQty,
+    discrepancyInfo,
+  } = form;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={form.handleOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -187,26 +64,29 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Mã truy xuất: nút quét cùng hàng label, nút tra cứu trong input */}
+        <form onSubmit={form.handleSubmit} className="space-y-5">
           <ScanCodeField
             value={codeValue}
-            onChange={(v) => { setCodeValue(v); setLotInfo(null); setScanError(null); }}
+            onChange={form.handleCodeChange}
             label="Mã truy xuất (tem QR) *"
             placeholder="VD: 89300900000006"
             helperText="Quét QR sẽ tự tra cứu. Nhập tay rồi bấm Tra cứu."
             disabled={isSubmitting}
             layout="embedded"
             scanButtonText="Quét mã QR"
-            onScanComplete={(code) => void handleScan(code)}
+            onScanComplete={(code) => void form.handleScan(code)}
             trailingAction={
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => void handleScan()}
+                onClick={() => void form.handleScan()}
                 disabled={isSubmitting || isScanning || !codeValue.trim()}
               >
-                {isScanning ? <LoaderCircle className="size-4 animate-spin" /> : <ScanLine className="size-4" />}
+                {isScanning ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <ScanLine className="size-4" />
+                )}
                 Tra cứu
               </Button>
             }
@@ -218,19 +98,23 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
             </Alert>
           )}
 
-          {/* Lot info */}
           {lotInfo && (
             <LotLookupResult
               items={[
                 { label: 'Lô', value: lotInfo.shipmentName },
-                { label: 'Trạng thái', value: getShipmentStatusLabel(lotInfo.shipmentStatus) },
+                {
+                  label: 'Trạng thái',
+                  value: getShipmentStatusLabel(lotInfo.shipmentStatus),
+                },
                 { label: 'Đơn vị', value: lotInfo.organizationName },
-                { label: 'Số lượng khai báo', value: `${lotInfo.declaredQuantity.toLocaleString('vi-VN')} kg` },
+                {
+                  label: 'Số lượng khai báo',
+                  value: `${lotInfo.declaredQuantity.toLocaleString('vi-VN')} kg`,
+                },
               ]}
             />
           )}
 
-          {/* Received quantity */}
           <div className="space-y-2">
             <Label htmlFor="receivedQuantity">Số lượng thực nhận (kg) *</Label>
             <Input
@@ -241,66 +125,39 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
               value={receivedQuantity}
               onFocus={selectAllOnFocus}
               onMouseUp={preventMouseUpCollapse}
-              onChange={(e) => setReceivedQuantity(e.target.value)}
+              onChange={(event) => form.setReceivedQuantity(event.target.value)}
               placeholder="VD: 500"
               disabled={isSubmitting || !lotInfo}
             />
           </div>
 
-          {/* Discrepancy display */}
-          {lotInfo && receivedQuantity && !isNaN(actualQty) && actualQty > 0 && discrepancyInfo && (
-            <Card className={discrepancyInfo.isExceeded ? 'border-red-200 bg-red-50' : 'border-emerald-200 bg-emerald-50'}>
-              <CardContent className="p-3">
-                <div className="flex items-start gap-2">
-                  {discrepancyInfo.isExceeded ? (
-                    <AlertTriangle className="mt-0.5 size-4 text-red-600" />
-                  ) : (
-                    <CheckCircle2 className="mt-0.5 size-4 text-emerald-600" />
-                  )}
-                  <div className="space-y-1 text-sm">
-                    <p className={`font-semibold ${discrepancyInfo.isExceeded ? 'text-red-700' : 'text-emerald-700'}`}>
-                      {discrepancyInfo.isExceeded ? 'Chênh lệch vượt ngưỡng!' : 'Chênh lệch trong ngưỡng cho phép'}
-                    </p>
-                    <div className={`grid grid-cols-2 gap-x-4 gap-y-0.5 ${discrepancyInfo.isExceeded ? 'text-red-700' : 'text-emerald-700'}`}>
-                      <span>Chênh lệch:</span>
-                      <span className="font-medium">{discrepancyInfo.difference >= 0 ? '+' : ''}{Math.round(discrepancyInfo.difference * 100) / 100} kg</span>
-                      <span>% Chênh lệch:</span>
-                      <span className="font-medium">{discrepancyInfo.difference >= 0 ? '+' : ''}{Math.round(discrepancyInfo.percent * 100) / 100}%</span>
-                      <span>Ngưỡng:</span>
-                      <span className="font-medium">{ALLOWED_THRESHOLD}%</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {lotInfo && receivedQuantity && !Number.isNaN(actualQty) && actualQty > 0 && discrepancyInfo && (
+            <WarehouseReceiptDiscrepancy info={discrepancyInfo} />
           )}
 
-          {/* Condition note */}
           <div className="space-y-2">
             <Label htmlFor="conditionNote">Tình trạng hàng hóa</Label>
             <Textarea
               id="conditionNote"
               value={conditionNote}
-              onChange={(e) => setConditionNote(e.target.value)}
+              onChange={(event) => form.setConditionNote(event.target.value)}
               placeholder="Mô tả tình trạng hàng khi nhập kho..."
               rows={2}
               disabled={isSubmitting || !lotInfo}
             />
           </div>
 
-          {/* Receipt date - mặc định là ngày hôm nay */}
           <div className="space-y-2">
             <Label htmlFor="receiptDate">Ngày nhập kho</Label>
             <Input
               id="receiptDate"
               type="date"
               value={receiptDate}
-              onChange={(e) => setReceiptDate(e.target.value)}
+              onChange={(event) => form.setReceiptDate(event.target.value)}
               disabled={isSubmitting || !lotInfo}
             />
           </div>
 
-          {/* Discrepancy reason */}
           <div className="space-y-2">
             <Label htmlFor="reason" className="flex items-center gap-1">
               Lý do chênh lệch
@@ -309,8 +166,12 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
             <Textarea
               id="reason"
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder={discrepancyInfo?.isExceeded ? 'Bắt buộc khi chênh lệch vượt 2%...' : 'Không bắt buộc'}
+              onChange={(event) => form.setReason(event.target.value)}
+              placeholder={
+                discrepancyInfo?.isExceeded
+                  ? 'Bắt buộc khi chênh lệch vượt 2%...'
+                  : 'Không bắt buộc'
+              }
               rows={2}
               disabled={isSubmitting || !lotInfo}
             />
@@ -322,29 +183,11 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
             </Alert>
           )}
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Hủy
-            </Button>
-            <Button type="submit" variant="view" disabled={isSubmitting || !lotInfo}>
-              {isSubmitting ? (
-                <>
-                  <LoaderCircle className="size-4 animate-spin" />
-                  Đang ghi nhận...
-                </>
-              ) : (
-                <>
-                  <Send className="size-4" />
-                  Xác nhận nhập kho
-                </>
-              )}
-            </Button>
-          </DialogFooter>
+          <WarehouseReceiptDialogFooter
+            isSubmitting={isSubmitting}
+            canSubmit={Boolean(lotInfo)}
+            onCancel={() => form.handleOpenChange(false)}
+          />
         </form>
       </DialogContent>
     </Dialog>

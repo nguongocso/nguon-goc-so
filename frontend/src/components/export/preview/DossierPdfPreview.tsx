@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 /** Props cho component xem trước file PDF */
 export interface DossierPdfPreviewProps {
@@ -10,7 +11,12 @@ export interface DossierPdfPreviewProps {
  */
 export const DossierPdfPreview: React.FC<DossierPdfPreviewProps> = ({ pdfUrl }) => {
   return (
-    <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-lg border overflow-hidden bg-slate-200 dark:bg-slate-900 shadow-inner">
+    <div
+      className={cn(
+        'flex-1 w-full h-full min-h-0 flex flex-col rounded-lg border overflow-hidden',
+        'bg-slate-200 dark:bg-slate-900 shadow-inner',
+      )}
+    >
       {pdfUrl ? (
         <iframe
           src={`${pdfUrl}#toolbar=1&navpanes=0&view=Fit`}

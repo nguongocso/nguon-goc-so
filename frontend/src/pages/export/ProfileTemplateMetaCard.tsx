@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 export interface ProfileTemplateFormData {
   name: string;
@@ -108,7 +109,10 @@ export const ProfileTemplateMetaCard: React.FC<ProfileTemplateMetaCardProps> = (
         </div>
 
         <div
-          className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer select-none"
+          className={cn(
+            'flex items-center justify-between p-3.5 rounded-xl border border-border',
+            'bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer select-none',
+          )}
           onClick={() => {
             setValue('isDefault', !watch('isDefault'), {
               shouldValidate: true,
@@ -141,7 +145,12 @@ export const ProfileTemplateMetaCard: React.FC<ProfileTemplateMetaCardProps> = (
         </div>
 
         {mandatoryValidationErr && (
-          <div className="flex items-start gap-2.5 p-3 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-sm">
+          <div
+            className={cn(
+              'flex items-start gap-2.5 p-3 rounded-lg border border-destructive/30',
+              'bg-destructive/10 text-destructive text-sm',
+            )}
+          >
             <AlertCircle className="size-4 shrink-0 mt-0.5" />
             <div className="flex-1">{mandatoryValidationErr}</div>
           </div>

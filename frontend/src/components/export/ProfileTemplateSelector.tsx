@@ -144,7 +144,11 @@ export const ProfileTemplateSelector: React.FC<ProfileTemplateSelectorProps> = (
             <SelectItem
               key={tpl.id}
               value={tpl.id}
-              label={`${tpl.name}${tpl.partnerName ? ` (${tpl.partnerName})` : ''}${tpl.isDefault ? ' — Mặc định' : ''}`}
+              label={[
+                tpl.name,
+                tpl.partnerName ? ` (${tpl.partnerName})` : '',
+                tpl.isDefault ? ' — Mặc định' : '',
+              ].join('')}
             >
               <TemplateOptionContent
                 name={tpl.name}
@@ -158,7 +162,12 @@ export const ProfileTemplateSelector: React.FC<ProfileTemplateSelectorProps> = (
 
       {/* Thông tin giải thích về mẫu đang chọn */}
       {showInfoText && (
-        <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border text-xs text-muted-foreground flex items-start gap-2">
+        <div
+          className={
+            'flex items-start gap-2 rounded-lg border bg-slate-50 p-2.5 text-xs ' +
+            'text-muted-foreground dark:bg-slate-900/50'
+          }
+        >
           <CheckCircle2 className="size-4 text-emerald-500 shrink-0 mt-0.5" />
           <div>
             {selectedTemplateId === 'default' ? (

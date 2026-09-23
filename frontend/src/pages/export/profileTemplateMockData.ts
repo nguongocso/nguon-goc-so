@@ -132,14 +132,18 @@ export function buildProfileTemplateMockData(
         recordedAt: selectedKeySet.has('chainEvent.recordedAt') ? '2026-09-10 08:30:00' : undefined,
         eventType: selectedKeySet.has('chainEvent.eventType') ? 'Thu hoạch' : undefined,
         location: selectedKeySet.has('chainEvent.location') ? '11.8345, 108.4567' : undefined,
-        eventData: selectedKeySet.has('chainEvent.eventData') ? 'Sản lượng: 2500 kg; Phương thức: Thu hoạch thủ công' : undefined,
+        eventData: selectedKeySet.has('chainEvent.eventData')
+          ? 'Sản lượng: 2500 kg; Phương thức: Thu hoạch thủ công'
+          : undefined,
         recordedBy: selectedKeySet.has('chainEvent.recordedBy') ? 'Nguyễn Văn Quản Lý' : undefined,
       },
       {
         recordedAt: selectedKeySet.has('chainEvent.recordedAt') ? '2026-09-12 14:00:00' : undefined,
         eventType: selectedKeySet.has('chainEvent.eventType') ? 'Đóng gói' : undefined,
         location: selectedKeySet.has('chainEvent.location') ? '11.8350, 108.4570' : undefined,
-        eventData: selectedKeySet.has('chainEvent.eventData') ? 'Số thùng: 200; Quy cách: Thùng carton 10kg' : undefined,
+        eventData: selectedKeySet.has('chainEvent.eventData')
+          ? 'Số thùng: 200; Quy cách: Thùng carton 10kg'
+          : undefined,
         recordedBy: selectedKeySet.has('chainEvent.recordedBy') ? 'Trần Thị Đóng Gói' : undefined,
       },
     ];

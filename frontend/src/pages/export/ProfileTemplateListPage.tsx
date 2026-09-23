@@ -82,7 +82,10 @@ export const ProfileTemplateListPage: React.FC = () => {
         icon={FileText}
         iconBoxClassName="bg-primary/10 text-primary"
         title="Mẫu hồ sơ truy xuất theo đối tác"
-        description="Cấu hình danh mục các trường dữ liệu đưa vào hồ sơ kết xuất theo yêu cầu của từng đối tác hoặc siêu thị thu mua."
+        description={
+          'Cấu hình danh mục các trường dữ liệu đưa vào hồ sơ kết xuất theo ' +
+          'yêu cầu của từng đối tác hoặc siêu thị thu mua.'
+        }
         actions={
           isManager && (
             <Button
@@ -160,7 +163,10 @@ export const ProfileTemplateListPage: React.FC = () => {
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Xác nhận xóa mẫu hồ sơ"
-        description={`Bạn có chắc chắn muốn xóa mẫu hồ sơ "${deleteTarget?.name}"? Các lần xuất dữ liệu sau này sẽ không thể sử dụng mẫu này.`}
+        description={
+          `Bạn có chắc chắn muốn xóa mẫu hồ sơ "${deleteTarget?.name}"? ` +
+          'Các lần xuất dữ liệu sau này sẽ không thể sử dụng mẫu này.'
+        }
         confirmLabel={deleting ? 'Đang xóa...' : 'Xóa mẫu'}
         variant="destructive"
         onConfirm={handleDeleteConfirm}

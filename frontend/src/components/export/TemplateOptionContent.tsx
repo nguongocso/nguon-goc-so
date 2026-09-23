@@ -33,7 +33,12 @@ export const TemplateOptionContent: React.FC<TemplateOptionContentProps> = ({
       <span className="shrink-0 text-xs text-muted-foreground">({partnerName})</span>
     ) : null}
     {isDefault ? (
-      <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+      <span
+        className={
+          'shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] ' +
+          'font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+        }
+      >
         Mặc định
       </span>
     ) : null}
