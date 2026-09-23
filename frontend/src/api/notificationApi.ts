@@ -1,4 +1,4 @@
-﻿import apiClient from './axiosConfig';
+import apiClient from './axiosConfig';
 import type { ApiResponse } from '@/types/api';
 import type {
   GetNotificationsParams,
@@ -19,7 +19,7 @@ export const getUnreadCount = async (): Promise<UnreadCountResponse> => {
 };
 
 export const markNotificationAsRead = async (notificationId: string): Promise<MarkReadResponse> => {
-  const response = await apiClient.patch<ApiResponse<MarkReadResponse>>(/notifications//read);
+  const response = await apiClient.patch<ApiResponse<MarkReadResponse>>(`/notifications/${notificationId}/read`);
   return response.data.data;
 };
 
