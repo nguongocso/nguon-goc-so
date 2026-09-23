@@ -535,7 +535,7 @@ class PartnerApiKeyServiceTest {
 
         CreateTestApiKeyRequest request = CreateTestApiKeyRequest.builder()
                 .partnerName("Đối Tác Thử Nghiệm")
-                .rateLimitPerHour(60)
+                .rateLimitPerHour(50)
                 .expiresAt(LocalDateTime.now().plusDays(5))
                 .build();
 
