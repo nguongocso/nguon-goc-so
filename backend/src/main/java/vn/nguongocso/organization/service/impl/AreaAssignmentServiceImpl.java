@@ -43,7 +43,7 @@ import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.organization.repository.UserAreaAssignmentRepository;
 import vn.nguongocso.organization.service.AreaAssignmentService;
 
-/** Triển khai nghiệp vụ gán, gỡ và xem địa bàn quản lý của tài khoản. */
+/** Service xử lý phân công và quản lý địa bàn. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -120,7 +120,9 @@ public class AreaAssignmentServiceImpl implements AreaAssignmentService {
     public AssignAreasResult assignAreas(CustomUserDetails operator, UUID userId, AssignAreasRequest request) {
         requireOperator(RoleCode.ADMIN);
 
-        User targetUser = requireUserExists(userId);
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, NOT_FOUND_USER_MESSAGE));
+
         List<UUID> requestedIds = request.getUnitIds() == null ? List.of() : request.getUnitIds();
 
         if (!hasActiveRoleMembership(userId, RoleCode.REGULATOR)) {
@@ -143,7 +145,7 @@ public class AreaAssignmentServiceImpl implements AreaAssignmentService {
             throw new BusinessException(UNKNOWN_UNIT_MESSAGE);
         }
 
-        User assignedBy = operator != null && operator.getUserId() != null
+        User assignedBy = operator.getUserId() != null
                 ? userRepository.findById(operator.getUserId()).orElse(null)
                 : null;
 
@@ -159,7 +161,8 @@ public class AreaAssignmentServiceImpl implements AreaAssignmentService {
             userAreaAssignmentRepository.saveAll(rows);
             userAreaAssignmentRepository.flush();
         } catch (DataIntegrityViolationException ex) {
-            log.warn("Trùng lặp gán địa bàn khi lưu DB: userId={}, ex={}", userId, ex.getMessage());
+            log.warn("Gán địa bàn vi phạm ràng buộc UNIQUE (user_id={}, unitIds={}): {}",
+                    userId, requestedIds, ex.getMessage());
             throw new BusinessException(DUPLICATE_ASSIGN_MESSAGE);
         }
 
@@ -185,7 +188,9 @@ public class AreaAssignmentServiceImpl implements AreaAssignmentService {
     public UnassignAreaResult unassignArea(CustomUserDetails operator, UUID userId, UUID unitId) {
         requireOperator(RoleCode.ADMIN);
 
-        User targetUser = requireUserExists(userId);
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, NOT_FOUND_USER_MESSAGE));
+
         UserAreaAssignment assignment = userAreaAssignmentRepository
                 .findFirstByUser_UserIdAndUnit_Id(userId, unitId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND_MESSAGE));
@@ -229,55 +234,57 @@ public class AreaAssignmentServiceImpl implements AreaAssignmentService {
             commune = administrativeUnitRepository.findById(request.getCommuneId())
                     .filter(unit -> unit.isActive() && unit.getLevel() == AdministrativeUnitLevel.COMMUNE)
                     .orElseThrow(() -> new BusinessException(UNKNOWN_UNIT_MESSAGE));
-
-            if (province != null) {
-                UUID parentProvinceId = commune.getProvince() != null ? commune.getProvince().getId()
-                        : (commune.getParent() != null ? commune.getParent().getId() : null);
-                if (parentProvinceId == null || !parentProvinceId.equals(province.getId())) {
-                    throw new BusinessException("Xã/phường không thuộc tỉnh/thành phố đã chọn.");
-                }
-            }
         }
 
         organization.setProvince(province);
         organization.setCommune(commune);
         organizationRepository.save(organization);
 
-        publishAudit(operator, "UPDATE_ORGANIZATION_DIVISIONS",
-                String.format("Cập nhật địa bàn cho tổ chức %s: province=%s, commune=%s",
-                        organization.getName(),
-                        province != null ? province.getName() : "null",
-                        commune != null ? commune.getName() : "null"),
-                organizationId);
+        publishAudit(
+                operator,
+                "UPDATE_ORG_DIVISION",
+                "Cập nhật địa bàn tổ chức " + organization.getName() + ": province="
+                        + (province != null ? province.getCode() + " - " + province.getName() : "(trống)")
+                        + ", commune="
+                        + (commune != null ? commune.getCode() + " - " + commune.getName() : "(trống)"),
+                organization.getOrganizationId());
     }
 
-    private void requireOperator(String requiredRoleCode) {
-        CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
-        if (currentUser == null || !requiredRoleCode.equals(currentUser.getRoleCode())) {
+    /** Kiểm tra vai trò của người thao tác. */
+    private void requireOperator(String expectedRole) {
+        CustomUserDetails operator;
+        try {
+            operator = SecurityUtils.getCurrentUserDetails();
+        } catch (BusinessException ex) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, FORBIDDEN_MESSAGE);
+        }
+        if (!expectedRole.equals(operator.getRoleCode())) {
             throw new BusinessException(HttpStatus.FORBIDDEN, FORBIDDEN_MESSAGE);
         }
     }
 
-    private User requireUserExists(UUID userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, NOT_FOUND_USER_MESSAGE));
+    /** Kiểm tra tài khoản người dùng tồn tại. */
+    private void requireUserExists(UUID userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, NOT_FOUND_USER_MESSAGE);
+        }
     }
 
+    /** Kiểm tra vai trò hoạt động của người dùng trong tổ chức. */
     private boolean hasActiveRoleMembership(UUID userId, String roleCode) {
-        List<OrganizationUser> memberships = organizationUserRepository
-                .findByUser_UserIdAndStatus(userId, OrganizationUserStatus.ACTIVE);
-        return memberships.stream()
-                .anyMatch(m -> m.getRole() != null && roleCode.equals(m.getRole().getCode()));
+        return organizationUserRepository.findAllByUser_UserId(userId).stream()
+                .anyMatch(membership -> membership.getStatus() == OrganizationUserStatus.ACTIVE
+                        && roleCode.equals(membership.getRole().getCode()));
     }
 
+    /** Chuyển đổi thông tin người dùng sang DTO lựa chọn cán bộ. */
     private RegulatorUserResponse toRegulatorOption(User user) {
-        String organizationName = organizationUserRepository
-                .findByUser_UserIdAndStatus(user.getUserId(), OrganizationUserStatus.ACTIVE).stream()
-                .filter(m -> m.getRole() != null && RoleCode.REGULATOR.equals(m.getRole().getCode()))
-                .map(m -> m.getOrganization() != null ? m.getOrganization().getName() : "")
+        String organizationName = organizationUserRepository.findAllByUser_UserId(user.getUserId()).stream()
+                .filter(membership -> membership.getStatus() == OrganizationUserStatus.ACTIVE)
+                .map(OrganizationUser::getOrganization)
                 .findFirst()
+                .map(Organization::getName)
                 .orElse("");
-
         return RegulatorUserResponse.builder()
                 .userId(user.getUserId())
                 .username(user.getUserName())
@@ -288,24 +295,31 @@ public class AreaAssignmentServiceImpl implements AreaAssignmentService {
                 .build();
     }
 
+    /** Chuyển đổi thực thể phân công sang DTO địa bàn. */
     private AssignedAreaResponse toAssignedArea(UserAreaAssignment assignment) {
         AdministrativeUnit unit = assignment.getUnit();
-        AdministrativeUnit province = unit.getLevel() == AdministrativeUnitLevel.PROVINCE
-                ? unit
-                : (unit.getProvince() != null ? unit.getProvince() : unit.getParent());
-
+        UUID provinceId = null;
+        String provinceName = null;
+        if (unit.getLevel() == AdministrativeUnitLevel.PROVINCE) {
+            provinceId = unit.getId();
+            provinceName = unit.getName();
+        } else if (unit.getProvince() != null) {
+            provinceId = unit.getProvince().getId();
+            provinceName = unit.getProvince().getName();
+        }
         return AssignedAreaResponse.builder()
                 .assignmentId(assignment.getId())
                 .unitId(unit.getId())
                 .unitCode(unit.getCode())
                 .unitName(unit.getName())
                 .unitLevel(unit.getLevel().name())
-                .provinceId(province != null ? province.getId() : null)
-                .provinceName(province != null ? province.getName() : null)
+                .provinceId(provinceId)
+                .provinceName(provinceName)
                 .assignedAt(assignment.getAssignedAt())
                 .build();
     }
 
+    /** Nối danh sách địa bàn thành chuỗi text. */
     private String joinUnits(List<AdministrativeUnit> units) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < units.size(); i++) {
@@ -317,13 +331,13 @@ public class AreaAssignmentServiceImpl implements AreaAssignmentService {
         return sb.toString();
     }
 
+    /** Ghi log hoạt động hệ thống. */
     private void publishAudit(CustomUserDetails operator, String action, String description, UUID entityId) {
-        CustomUserDetails current = operator != null ? operator : SecurityUtils.getCurrentUserDetails();
         eventPublisher.publishEvent(ActivityLogEvent.builder()
-                .userId(current != null ? current.getUserId() : null)
-                .username(current != null ? current.getUsername() : "SYSTEM")
-                .fullName(current != null ? current.getFullName() : "Hệ thống")
-                .organizationId(current != null ? current.getOrganizationId() : null)
+                .userId(operator.getUserId())
+                .username(operator.getUsername())
+                .fullName(operator.getFullName())
+                .organizationId(operator.getOrganizationId())
                 .action(action)
                 .description(description)
                 .entityType(AUDIT_ENTITY_TYPE)

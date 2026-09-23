@@ -22,7 +22,9 @@ public class CreateOrganizationRequest {
     private String organizationName;
 
     @NotBlank(message = "Mã tổ chức không được để trống")
-    @Pattern(regexp = "^[A-Z0-9_-]+$", message = "Mã tổ chức chỉ được chứa chữ in hoa, số, dấu gạch ngang và gạch dưới")
+    @Pattern(
+            regexp = "^[A-Z0-9_-]+$",
+            message = "Mã tổ chức chỉ được chứa chữ in hoa, số, dấu gạch ngang và gạch dưới")
     private String organizationCode;
 
     @NotNull(message = "Loại tổ chức không được để trống")
@@ -42,15 +44,23 @@ public class CreateOrganizationRequest {
     private String fullName;
 
     @NotBlank(message = "Tên đăng nhập không được để trống")
-    @Pattern(regexp = "^[a-zA-Z0-9._-]{4,30}$", message = "Tên đăng nhập chỉ được chứa chữ cái, số, dấu chấm, gạch dưới hoặc gạch ngang và có độ dài từ 4 đến 30 ký tự")
+    @Pattern(
+            regexp = "^[a-zA-Z0-9._-]{4,30}$",
+            message = "Tên đăng nhập chỉ được chứa chữ cái, số, dấu chấm,"
+                    + " gạch dưới hoặc gạch ngang và có độ dài từ 4 đến 30 ký tự")
     private String userName;
 
     @NotBlank(message = "Mật khẩu không được để trống")
     @Size(min = 8, max = 50, message = "Mật khẩu phải có từ 8 đến 50 ký tự")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).+$", message = "Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một chữ số và một ký tự đặc biệt")
+    @Pattern(
+            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).+$",
+            message = "Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường,"
+                    + " một chữ số và một ký tự đặc biệt")
     private String password;
 
-    @Pattern(regexp = "^(0|\\+84)[1-9][0-9]{8}$", message = "Số điện thoại người quản lý không hợp lệ")
+    @Pattern(
+            regexp = "^(0|\\+84)[1-9][0-9]{8}$",
+            message = "Số điện thoại người quản lý không hợp lệ")
     private String managerPhone;
 
     @NotBlank(message = "Email người quản lý không được để trống")

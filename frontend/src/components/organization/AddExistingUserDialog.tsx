@@ -355,7 +355,10 @@ export function AddExistingUserDialog({
 
         {!isMaximized && (
           <div
-            className="resize-handle absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize flex items-center justify-center text-muted-foreground hover:text-foreground"
+            className={
+              'resize-handle absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize ' +
+              'flex items-center justify-center text-muted-foreground hover:text-foreground'
+            }
             onMouseDown={startResize}
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">

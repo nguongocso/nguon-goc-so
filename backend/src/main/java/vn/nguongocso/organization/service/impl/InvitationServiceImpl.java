@@ -81,7 +81,9 @@ public class InvitationServiceImpl implements InvitationService {
         // VT-02 chỉ được gửi lời mời với vai trò VT-03
         if (RoleCode.ORG_MANAGER.equals(currentUser.getRoleCode())
                 && !RoleCode.EVENT_RECORDER.equals(role.getCode())) {
-            throw new BusinessException("Quản lý hợp tác xã chỉ được mời thành viên với vai trò Người ghi sự kiện");
+            throw new BusinessException(
+                    "Quản lý hợp tác xã chỉ được mời thành viên"
+                            + " với vai trò Người ghi sự kiện");
         }
 
         // Chỉ cho phép mời user chưa là thành viên ACTIVE của tổ chức hiện tại
@@ -89,7 +91,8 @@ public class InvitationServiceImpl implements InvitationService {
             organizationUserRepository.findByOrganization_OrganizationIdAndUser_UserId(orgId, user.getUserId())
                     .ifPresent(orgUser -> {
                         if (orgUser.getStatus() == OrganizationUserStatus.ACTIVE) {
-                            throw new DuplicateResourceException("Người dùng có email này đã là thành viên của tổ chức");
+                            throw new DuplicateResourceException(
+                                    "Người dùng có email này đã là thành viên của tổ chức");
                         }
                     });
         });
@@ -135,7 +138,8 @@ public class InvitationServiceImpl implements InvitationService {
                 .fullName(currentUser.getFullName())
                 .organizationId(orgId)
                 .action("CREATE")
-                .description("Người dùng " + currentUser.getUsername() + " đã gửi thư mời tham gia tổ chức cho email "
+                .description("Người dùng " + currentUser.getUsername()
+                        + " đã gửi thư mời tham gia tổ chức cho email "
                         + request.getEmail() + " với vai trò " + role.getName())
                 .entityType("MEMBER_INVITATION")
                 .entityId(invitation.getId().toString())
@@ -163,7 +167,8 @@ public class InvitationServiceImpl implements InvitationService {
     @Transactional
     public InvitationPublicResponse getInvitationDetails(String token) {
         Invitation invitation = invitationRepository.findByToken(token)
-                .orElseThrow(() -> new ResourceNotFoundException("Thư mời không tồn tại hoặc mã token không hợp lệ"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Thư mời không tồn tại hoặc mã token không hợp lệ"));
 
         if (invitation.getStatus() == InvitationStatus.PENDING
                 && invitation.getExpiryDate().isBefore(LocalDateTime.now())) {
@@ -193,14 +198,16 @@ public class InvitationServiceImpl implements InvitationService {
     @Transactional
     public AcceptInvitationResponse acceptInvitation(String token, AcceptInvitationRequest request) {
         Invitation invitation = invitationRepository.findByToken(token)
-                .orElseThrow(() -> new ResourceNotFoundException("Thư mời không tồn tại hoặc mã token không hợp lệ"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Thư mời không tồn tại hoặc mã token không hợp lệ"));
 
         // Lazy update hết hạn
         if (invitation.getStatus() == InvitationStatus.PENDING
                 && invitation.getExpiryDate().isBefore(LocalDateTime.now())) {
             invitation.setStatus(InvitationStatus.EXPIRED);
             invitationRepository.save(invitation);
-            log.info("Lazy update: Thư mời token={} đã chuyển sang EXPIRED khi cố gắng chấp nhận", token);
+            log.info("Lazy update: Thư mời token={} đã chuyển sang EXPIRED khi cố gắng chấp nhận",
+                    token);
         }
 
         if (invitation.getStatus() != InvitationStatus.PENDING) {
@@ -303,7 +310,8 @@ public class InvitationServiceImpl implements InvitationService {
                 .fullName(savedUser.getFullName())
                 .organizationId(invitation.getOrganization().getOrganizationId())
                 .action("ACCEPT")
-                .description("Người dùng " + savedUser.getUserName() + " chấp nhận thư mời tham gia tổ chức bằng email "
+                .description("Người dùng " + savedUser.getUserName()
+                        + " chấp nhận thư mời tham gia tổ chức bằng email "
                         + invitation.getEmail())
                 .entityType("MEMBER_INVITATION")
                 .entityId(invitation.getId().toString())

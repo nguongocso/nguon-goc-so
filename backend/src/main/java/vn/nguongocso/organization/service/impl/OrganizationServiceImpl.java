@@ -304,7 +304,8 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (phone != null && !phone.isBlank()) {
             organizationRepository.findByPhone(phone).ifPresent(existing -> {
                 if (!existing.getOrganizationId().equals(orgId)) {
-                    throw new BusinessException("Số điện thoại đã được sử dụng bởi tổ chức khác");
+                    throw new BusinessException(
+                            "Số điện thoại đã được sử dụng bởi tổ chức khác");
                 }
             });
         }
@@ -366,7 +367,8 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (provinceId != null) {
             AdministrativeUnit province = administrativeUnitRepository.findById(provinceId)
                     .filter(unit -> unit.isActive() && unit.getLevel() == AdministrativeUnitLevel.PROVINCE)
-                    .orElseThrow(() -> new BusinessException("Tỉnh/thành phố không nằm trong danh mục hành chính hoặc không hợp lệ"));
+                    .orElseThrow(() -> new BusinessException(
+                            "Tỉnh/thành phố không nằm trong danh mục hành chính hoặc không hợp lệ"));
             organization.setProvince(province);
         } else {
             organization.setProvince(null);
@@ -378,7 +380,8 @@ public class OrganizationServiceImpl implements OrganizationService {
             }
             AdministrativeUnit commune = administrativeUnitRepository.findById(communeId)
                     .filter(unit -> unit.isActive() && unit.getLevel() == AdministrativeUnitLevel.COMMUNE)
-                    .orElseThrow(() -> new BusinessException("Xã/phường không nằm trong danh mục hành chính hoặc không hợp lệ"));
+                    .orElseThrow(() -> new BusinessException(
+                            "Xã/phường không nằm trong danh mục hành chính hoặc không hợp lệ"));
 
             UUID parentProvinceId = commune.getProvince() != null ? commune.getProvince().getId()
                     : (commune.getParent() != null ? commune.getParent().getId() : null);

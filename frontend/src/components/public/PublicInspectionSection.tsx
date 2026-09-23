@@ -77,7 +77,9 @@ const InspectionHistoryTimeline: React.FC<{ history: PublicInspectionRound[] }> 
       <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50">
         <History className="h-4 w-4 text-gray-500" />
         <p className="text-sm font-semibold text-gray-800">
-          {isEn ? `Inspection History (${history.length} rounds)` : `Lịch sử kiểm nghiệm (${history.length} lần gửi mẫu)`}
+          {isEn
+            ? `Inspection History (${history.length} rounds)`
+            : `Lịch sử kiểm nghiệm (${history.length} lần gửi mẫu)`}
         </p>
       </div>
       <ol className="divide-y divide-gray-100">
@@ -90,7 +92,10 @@ const InspectionHistoryTimeline: React.FC<{ history: PublicInspectionRound[] }> 
                   {isEn ? `Round ${roundItem.round}` : `Lần ${roundItem.round}`}
                 </span>
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold ${meta.className}`}
+                  className={
+                    `inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold ` +
+                    meta.className
+                  }
                 >
                   {meta.label}
                 </span>
@@ -152,7 +157,8 @@ const InspectionHistoryTimeline: React.FC<{ history: PublicInspectionRound[] }> 
       <p className="px-4 py-2.5 text-2xs text-gray-500 italic bg-gray-50 border-t border-gray-100">
         {isEn
           ? 'Previous inspection results are preserved — the latest inspection serves as current evaluation basis.'
-          : 'Kết quả của các lần kiểm nghiệm trước được lưu giữ nguyên — lần kiểm nghiệm mới nhất là căn cứ đánh giá hiện tại của lô.'}
+          : 'Kết quả của các lần kiểm nghiệm trước được lưu giữ nguyên — ' +
+            'lần kiểm nghiệm mới nhất là căn cứ đánh giá hiện tại của lô.'}
       </p>
     </div>
   );
@@ -198,20 +204,32 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
               {t('loading_info')}
             </div>
           ) : error ? (
-            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div
+              className={
+                'flex items-start gap-3 rounded-lg border border-amber-200 ' +
+                'bg-amber-50 p-4 text-sm text-amber-900'
+              }
+            >
               <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
               <p>{error}</p>
             </div>
           ) : hasInspection ? (
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
+              <div
+                className={
+                  'flex flex-wrap items-center gap-x-4 gap-y-1 ' +
+                  'rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm'
+                }
+              >
                 <span className="inline-flex items-center gap-1.5 font-medium text-emerald-800">
                   <CheckCircle2 className="h-4 w-4" />
                   {isEn ? `${t('passed_criteria')}: ${passed}/${total}` : `Đạt ${passed}/${total} chỉ tiêu`}
                 </span>
                 <span className="inline-flex items-center gap-1.5 font-medium text-red-800">
                   <CircleAlert className="h-4 w-4" />
-                  {isEn ? `${t('failed_criteria')}: ${failed}/${total} (${failedRatio}%)` : `Không đạt ${failed}/${total} (${failedRatio}%)`}
+                  {isEn
+                    ? `${t('failed_criteria')}: ${failed}/${total} (${failedRatio}%)`
+                    : `Không đạt ${failed}/${total} (${failedRatio}%)`}
                 </span>
               </div>
 
@@ -277,8 +295,14 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
                               )}
                               {item.entrySource === 'TESTING_UNIT_PORTAL' && (
                                 <span
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-teal-50 text-teal-700 border border-teal-200"
-                                  title="Kết quả do chính đơn vị kiểm nghiệm nhập trực tiếp qua cổng liên kết số"
+                                  className={
+                                    'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ' +
+                                    'font-medium bg-teal-50 text-teal-700 border border-teal-200'
+                                  }
+                                  title={
+                                    'Kết quả do chính đơn vị kiểm nghiệm' +
+                                    ' nhập trực tiếp qua cổng liên kết số'
+                                  }
                                 >
                                   <ShieldCheck className="h-3 w-3 text-teal-600" />
                                   Đơn vị kiểm nghiệm khai
@@ -286,7 +310,10 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
                               )}
                               {item.entrySource === 'COOPERATIVE_MANUAL' && (
                                 <span
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200"
+                                  className={
+                                    'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ' +
+                                    'font-medium bg-slate-100 text-slate-600 border border-slate-200'
+                                  }
                                   title="Kết quả do Hợp tác xã nhập tay theo phiếu giấy"
                                 >
                                   HTX nhập
@@ -302,11 +329,13 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
                           </td>
                           <td className="px-4 py-3 text-center">
                             <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shadow-xs ${
-                                item.passed
+                              className={
+                                'inline-flex items-center gap-1 px-2.5 py-1 ' +
+                                'rounded-full text-xs font-semibold shadow-xs ' +
+                                (item.passed
                                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                  : 'bg-red-100 text-red-800 border border-red-200'
-                              }`}
+                                  : 'bg-red-100 text-red-800 border border-red-200')
+                              }
                             >
                               {item.passed ? (
                                 <CheckCircle2 className="h-3.5 w-3.5" />
@@ -329,24 +358,44 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
               </div>
 
               {items[0] && (items[0].inspectionDate || items[0].expiryDate) && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 px-4 py-3 text-xs text-gray-600 border border-gray-100">
+                <div
+                  className={
+                    'flex flex-wrap items-center justify-between gap-3 ' +
+                    'rounded-lg bg-gray-50 px-4 py-3 text-xs text-gray-600 border border-gray-100'
+                  }
+                >
                   {items[0].inspectionDate && (
                     <div className="flex items-center gap-1.5">
                       <CalendarDays className="h-3.5 w-3.5 text-gray-400" />
-                      <span>{isEn ? 'Inspection Date:' : 'Ngày kiểm nghiệm:'} <strong className="text-gray-800">{formatDate(items[0].inspectionDate, t('not_updated'))}</strong></span>
+                      <span>
+                        {isEn ? 'Inspection Date:' : 'Ngày kiểm nghiệm:'}{' '}
+                        <strong className="text-gray-800">
+                          {formatDate(items[0].inspectionDate, t('not_updated'))}
+                        </strong>
+                      </span>
                     </div>
                   )}
                   {items[0].expiryDate && (
                     <div className="flex items-center gap-1.5">
                       <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                      <span>{isEn ? 'Validity Expiry:' : 'Hạn hiệu lực kết quả:'} <strong className="text-gray-800">{formatDate(items[0].expiryDate, t('not_updated'))}</strong></span>
+                      <span>
+                        {isEn ? 'Validity Expiry:' : 'Hạn hiệu lực kết quả:'}{' '}
+                        <strong className="text-gray-800">
+                          {formatDate(items[0].expiryDate, t('not_updated'))}
+                        </strong>
+                      </span>
                     </div>
                   )}
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex min-h-28 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">
+            <div
+              className={
+                'flex min-h-28 flex-col items-center justify-center gap-2 ' +
+                'rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center'
+              }
+            >
               <ShieldQuestion className="h-7 w-7 text-gray-400" />
               <p className="font-medium text-gray-700">
                 {t('no_inspections')}

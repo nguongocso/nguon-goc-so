@@ -170,7 +170,11 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
             <div style="font-size: 13px; color: #666; margin-top: 2px;">${date}</div>
             ${detailsHtml ? `<div style="margin-top: 6px;">${detailsHtml}</div>` : ''}
             <div style="font-size: 12px; color: #999; margin-top: 4px;">
-              ${isEn ? `Event #${index + 1}/${locationEvents.length}` : `Sự kiện #${index + 1}/${locationEvents.length}`}
+              ${
+                isEn
+                  ? `Event #${index + 1}/${locationEvents.length}`
+                  : `Sự kiện #${index + 1}/${locationEvents.length}`
+              }
             </div>
           </div>
         `);
@@ -203,8 +207,14 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
   if (locationEvents.length === 0 && !hasBoundary) {
     return (
       <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">
-        <p className="text-lg font-semibold">{isEn ? 'No location data available' : 'Không có dữ liệu vị trí'}</p>
-        <p className="text-sm">{isEn ? 'Events in this shipment do not have GPS coordinates to show on map.' : 'Các sự kiện của lô hàng này chưa có tọa độ để hiển thị trên bản đồ.'}</p>
+        <p className="text-lg font-semibold">
+          {isEn ? 'No location data available' : 'Không có dữ liệu vị trí'}
+        </p>
+        <p className="text-sm">
+          {isEn
+            ? 'Events in this shipment do not have GPS coordinates to show on map.'
+            : 'Các sự kiện của lô hàng này chưa có tọa độ để hiển thị trên bản đồ.'}
+        </p>
       </div>
     );
   }
