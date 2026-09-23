@@ -10,30 +10,22 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * Node cây đơn vị hành chính trả về cho màn hình gán địa bàn và bộ lọc báo cáo.
- *
- * <p>
- * Chỉ có 1 mức lồng (tỉnh chứa xã/phường); {@code children} luôn khác null,
- * rỗng khi không có con.
- * </p>
- */
+/** Node cây đơn vị hành chính trả về cho màn hình gán địa bàn và bộ lọc báo cáo. */
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class AdministrativeUnitNode {
+    private UUID id;
 
-	private UUID id;
+    private String code;
 
-	private String code;
+    private String name;
 
-	private String name;
+    /** Cấp đơn vị: PROVINCE hoặc COMMUNE. */
+    private String level;
 
-	/** Cấp đơn vị: PROVINCE hoặc COMMUNE. */
-	private String level;
-
-	@Builder.Default
-	private List<AdministrativeUnitNode> children = List.of();
+    @Builder.Default
+    private List<AdministrativeUnitNode> children = List.of();
 }

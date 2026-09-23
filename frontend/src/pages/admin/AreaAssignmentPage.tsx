@@ -47,7 +47,6 @@ export function AreaAssignmentPage() {
 
   const filteredUsers = useMemo(() => filterUsers(users, keyword), [users, keyword]);
 
-  // Reset trang khi thay đổi từ khóa tìm kiếm
   useEffect(() => {
     setUserPage(0);
   }, [keyword]);
@@ -159,7 +158,6 @@ export function AreaAssignmentPage() {
         }
       />
 
-      {/* ── Cụm Thống kê Tổng quan ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           label="Tổng số cán bộ quản lý ngành"
@@ -200,7 +198,6 @@ export function AreaAssignmentPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* ── Cột trái: chọn cán bộ + địa bàn đã gán ── */}
         <Card className="flex flex-col shadow-xs">
           <CardHeader className="pb-3 border-b">
             <CardTitle className="text-base font-semibold">Chọn cán bộ</CardTitle>
@@ -375,7 +372,6 @@ export function AreaAssignmentPage() {
           </CardContent>
         </Card>
 
-        {/* ── Cột phải: gán địa bàn mới ── */}
         <Card className="flex flex-col shadow-xs">
           <CardHeader className="pb-3 border-b">
             <CardTitle className="text-base font-semibold">Gán địa bàn mới</CardTitle>
@@ -422,4 +418,3 @@ function filterUsers(users: UserOption[], keyword: string): UserOption[] {
 }
 
 export default AreaAssignmentPage;
-

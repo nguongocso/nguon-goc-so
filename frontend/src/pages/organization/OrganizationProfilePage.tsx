@@ -1,7 +1,7 @@
 import React from 'react';
-import { OrganizationProfileForm } from "@/components/organization/OrganizationProfileForm";
-import { HelpButton } from "@/components/help/HelpButton";
-import { Building2 } from "lucide-react";
+import { OrganizationProfileForm } from '@/components/organization/OrganizationProfileForm';
+import { HelpButton } from '@/components/help/HelpButton';
+import { Building2 } from 'lucide-react';
 
 const OrganizationProfilePage: React.FC = () => {
   return (

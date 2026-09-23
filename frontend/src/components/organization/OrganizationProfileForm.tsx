@@ -1,19 +1,19 @@
-import { getOrganizationProfile, updateOrganizationProfile } from "@/api/organizationApi";
-import { useAuth } from "@/hooks/useAuth";
-import { useAdministrativeUnits } from "@/hooks/useAdministrativeUnits";
-import type { OrganizationProfile, UpdateOrganizationRequest } from "../../types/organization.ts";
-import { type OrganizationProfileFormValues, organizationProfileSchema } from "@/utils/validators";
-import { AdministrativeUnitSingleSelect } from "@/components/common/AdministrativeUnitSingleSelect";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../ui/card";
-import { Label } from "../ui/label";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { AlertTriangle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { getOrganizationProfile, updateOrganizationProfile } from '@/api/organizationApi';
+import { useAuth } from '@/hooks/useAuth';
+import { useAdministrativeUnits } from '@/hooks/useAdministrativeUnits';
+import type { OrganizationProfile, UpdateOrganizationRequest } from '@/types/organization';
+import { type OrganizationProfileFormValues, organizationProfileSchema } from '@/utils/validators';
+import { AdministrativeUnitSingleSelect } from '@/components/common/AdministrativeUnitSingleSelect';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
+import { Label } from '../ui/label';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export const OrganizationProfileForm: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -129,13 +129,12 @@ export const OrganizationProfileForm: React.FC = () => {
             {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
           </div>
 
-          {/* Cụm chọn Địa bàn hành chính (Tỉnh/Thành phố → Xã/Phường) và Địa chỉ chi tiết */}
           <div
             className={cn(
-              "rounded-lg border p-4 space-y-3 transition-colors",
+              'rounded-lg border p-4 space-y-3 transition-colors',
               isMissingTerritory
-                ? "border-amber-300 bg-amber-50/40 dark:border-amber-800/60 dark:bg-amber-950/20"
-                : "border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30"
+                ? 'border-amber-300 bg-amber-50/40 dark:border-amber-800/60 dark:bg-amber-950/20'
+                : 'border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30',
             )}
           >
             <div className="flex items-center justify-between">

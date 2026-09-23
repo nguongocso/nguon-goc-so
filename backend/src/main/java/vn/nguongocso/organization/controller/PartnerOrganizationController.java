@@ -1,10 +1,11 @@
 package vn.nguongocso.organization.controller;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.trace.dto.response.PartnerOrganizationResponse;
@@ -16,6 +17,8 @@ import vn.nguongocso.trace.service.ShipmentService;
 @RequiredArgsConstructor
 public class PartnerOrganizationController {
     private final ShipmentService shipmentService;
+
+    /** Tra cứu danh sách đối tác doanh nghiệp có phân trang. */
     @GetMapping
     public ApiResult<PageResponse<PartnerOrganizationResponse>> search(
             @RequestParam(defaultValue = "") String keyword,

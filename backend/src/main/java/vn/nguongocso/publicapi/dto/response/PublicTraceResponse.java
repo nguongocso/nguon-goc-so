@@ -1,4 +1,3 @@
-// PublicTraceResponse.java
 package vn.nguongocso.publicapi.dto.response;
 
 import lombok.Builder;

@@ -10,11 +10,7 @@ import lombok.Setter;
 import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
 
-/**
- * Thông tin tổ chức nhận cho dropdown phiếu bàn giao.
- * Chỉ gồm các tổ chức Doanh nghiệp thu mua (VT-04, loại ENTERPRISE), ACTIVE và
- * khác tổ chức hiện tại.
- */
+/** Thông tin tổ chức nhận cho dropdown phiếu bàn giao. */
 @Getter
 @Setter
 @NoArgsConstructor

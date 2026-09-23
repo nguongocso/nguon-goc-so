@@ -2,15 +2,12 @@ package vn.nguongocso.organization.dto.request;
 
 import java.util.UUID;
 
-
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
-/**
- * Yêu cầu cập nhật thông tin tổ chức.
- */
+/** Yêu cầu cập nhật thông tin tổ chức. */
 @Data
 public class OrganizationUpdateRequest {
     @NotBlank(message = "Tên tổ chức không được để trống")
@@ -30,4 +27,3 @@ public class OrganizationUpdateRequest {
     @Email(message = "Email không hợp lệ")
     private String email;
 }
-

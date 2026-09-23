@@ -1,16 +1,11 @@
 import { isAxiosError } from 'axios';
 import { useState } from 'react';
 import { toast } from 'sonner';
-
 import { deactivateMember, reactivateMember } from '@/api/memberApi';
 
-/** Kết quả thao tác vô hiệu hóa để dialog phân nhánh hiển thị. */
+/** Kết quả thao tác vô hiệu hóa. */
 export interface DeactivateOutcome {
   ok: boolean;
-  /**
-   * Lỗi không thể xử lý tiếp tại chỗ (403 không có quyền, 404 không tồn tại,
-   * 409 thành viên đã ngừng hoạt động) → dialog nên đóng và refresh dữ liệu.
-   */
   fatal?: boolean;
 }
 
@@ -26,11 +21,10 @@ interface ApiErrorPayload {
 }
 
 const NETWORK_ERROR_MESSAGE = 'Không thể kết nối đến máy chủ. Vui lòng thử lại.';
-
 const DEACTIVATE_FALLBACK_MESSAGE = 'Không thể vô hiệu hóa thành viên.';
 const REACTIVATE_FALLBACK_MESSAGE = 'Không thể kích hoạt lại thành viên.';
 
-/** Trích xuất message tiếng Việt + trạng thái HTTP từ payload lỗi ApiResult. */
+/** Trích xuất message và status từ lỗi response. */
 const extractError = (error: unknown): { status?: number; message: string } => {
   if (isAxiosError(error)) {
     const status = error.response?.status;
@@ -43,15 +37,7 @@ const extractError = (error: unknown): { status?: number; message: string } => {
   return { message: NETWORK_ERROR_MESSAGE };
 };
 
-/**
- * Hook xử lý vô hiệu hóa / kích hoạt lại thành viên (NCL-01-CN-009, QTN-32).
- *
- * - Tách riêng khỏi component, tuân theo pattern của useRecallShipment.
- * - Toast lỗi nghiệp vụ hiển thị tại đây; trạng thái UI chỉ cập nhật sau
- *   khi backend trả thành công (thông qua onSuccess → refresh danh sách).
- *
- * @param onSuccess callback gọi lại sau khi thao tác thành công (reload danh sách).
- */
+/** Hook xử lý vô hiệu hóa và kích hoạt lại thành viên. */
 export const useMemberStatusActions = (onSuccess?: () => void) => {
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [isReactivating, setIsReactivating] = useState(false);

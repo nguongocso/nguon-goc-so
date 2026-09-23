@@ -20,15 +20,12 @@ import lombok.Setter;
 import vn.nguongocso.alert.enums.NotificationType;
 import vn.nguongocso.auth.entity.User;
 
-/**
- * Thực thể thông báo.
- */
+/** Thực thể thông báo. */
 @Getter
 @Setter
 @Entity
 @Table(name = "notifications")
 public class Notification {
-
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -48,10 +45,7 @@ public class Notification {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    /**
-     * ID thực thể nghiệp vụ liên kết (VD: shipment_handovers.id).
-     * Null khi thông báo không thuộc về một thực thể cụ thể.
-     */
+    /** ID thực thể nghiệp vụ liên kết. */
     @Column(name = "entity_id")
     @JdbcTypeCode(SqlTypes.CHAR)
     private UUID entityId;
