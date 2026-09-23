@@ -1,9 +1,19 @@
 package vn.nguongocso.farm.service.impl;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.dto.response.HarvestEligibilityResponse;
 import vn.nguongocso.farm.entity.FarmLog;
@@ -14,27 +24,19 @@ import vn.nguongocso.farm.repository.InputMaterialRepository;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.farm.service.HarvestEligibilityService;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
 /**
- * Triển khai dịch vụ tính toán điều kiện cách ly thu hoạch (NCL-681 / NCL-843).
- */
+ * Triển khai dịch vụ tính toán điều kiện cách ly thu hoạch.
+*/
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class HarvestEligibilityServiceImpl implements HarvestEligibilityService {
-
     private final ProductionLotRepository productionLotRepository;
     private final FarmLogRepository farmLogRepository;
     private final InputMaterialRepository inputMaterialRepository;
 
+    /** Tính toán ngày thu hoạch sớm nhất theo thời gian cách ly của từng loại vật tư. */
     @Override
     public HarvestEligibilityResponse calculateHarvestEligibility(UUID productionLotId) {
         if (productionLotId == null || !productionLotRepository.existsById(productionLotId)) {
@@ -44,7 +46,6 @@ public class HarvestEligibilityServiceImpl implements HarvestEligibilityService 
         List<FarmLog> pesticideLogs = farmLogRepository
                 .findByProductionLotIdAndActivityType(productionLotId, FarmActivityType.PESTICIDE);
 
-        // Trường hợp lô chưa từng có nhật ký PESTICIDE nào
         if (pesticideLogs == null || pesticideLogs.isEmpty()) {
             return HarvestEligibilityResponse.builder()
                     .determined(true)
@@ -58,7 +59,6 @@ public class HarvestEligibilityServiceImpl implements HarvestEligibilityService 
         Set<String> unmatchedSet = new LinkedHashSet<>();
 
         for (FarmLog logItem : pesticideLogs) {
-            // Kiểm tra executedDate: nếu thiếu ngày thực hiện thì không thể xác định an toàn, bắt buộc bổ sung trước (B-02)
             if (logItem.getExecutedDate() == null) {
                 throw new BusinessException("Mục nhật ký sử dụng thuốc BVTV thiếu ngày thực hiện. Vui lòng bổ sung ngày trước khi thu hoạch.");
             }

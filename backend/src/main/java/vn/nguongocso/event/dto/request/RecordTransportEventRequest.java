@@ -16,7 +16,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RecordTransportEventRequest {
-
     @NotBlank(message = "Vui lòng nhập đầy đủ thông tin sự kiện vận chuyển.")
     private String codeValue;
 
@@ -29,13 +28,9 @@ public class RecordTransportEventRequest {
     @NotNull(message = "Vui lòng nhập đầy đủ thông tin sự kiện vận chuyển.")
     private LocalDateTime transportTime;
 
-    /**
-     * Danh sách ảnh thực địa (base64 hoặc URL), tùy chọn.
-     */
+    /** Danh sách ảnh thực địa (base64 hoặc URL), tùy chọn. */
     private List<String> images;
 
-    /**
-     * Nguồn thiết bị ghi sự kiện, mặc định "WEB".
-     */
+    /** Nguồn thiết bị ghi sự kiện, mặc định "WEB". */
     private String deviceSource = "WEB";
 }

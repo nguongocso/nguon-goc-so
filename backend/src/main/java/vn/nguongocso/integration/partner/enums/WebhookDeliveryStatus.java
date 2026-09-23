@@ -1,18 +1,12 @@
 package vn.nguongocso.integration.partner.enums;
 
-/**
- * Trạng thái phân phối thông báo Webhook tới bên thứ ba (NCL-12-CN-006).
- */
+/** Trạng thái phân phối thông báo Webhook tới bên thứ ba. */
 public enum WebhookDeliveryStatus {
-    /** Gửi thành công tới địa chỉ nhận của đối tác (HTTP 2xx). */
-    SUCCESS,
+    SUCCESS, // Thành công
 
-    /** Gửi thất bại nhưng đang trong lịch chờ thử lại giãn dần. */
-    PENDING_RETRY,
+    PENDING_RETRY, // Đang thử lại
 
-    /** Thất bại vĩnh viễn sau khi đã vượt quá số lần thử lại tối đa. */
-    FAILED,
+    FAILED, // Thất bại
 
-    /** Đã hủy gửi do khóa truy cập bị thu hồi (REVOKED - TC-04). */
-    CANCELLED
+    CANCELLED // Đã hủy
 }

@@ -12,6 +12,15 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
+
+import net.sf.geographiclib.Geodesic;
+import net.sf.geographiclib.PolygonArea;
+import net.sf.geographiclib.PolygonResult;
+
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Polygon;
@@ -20,14 +29,6 @@ import org.locationtech.jts.operation.valid.TopologyValidationError;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.RequiredArgsConstructor;
-import net.sf.geographiclib.Geodesic;
-import net.sf.geographiclib.PolygonArea;
-import net.sf.geographiclib.PolygonResult;
 import vn.nguongocso.alert.dto.request.ActivityLogRequest;
 import vn.nguongocso.alert.service.ActivityLogService;
 import vn.nguongocso.auth.security.SecurityUtils;
@@ -45,13 +46,13 @@ import vn.nguongocso.farm.service.FarmAreaBoundaryService;
 
 /**
  * Triển khai nghiệp vụ ranh giới vùng trồng trên hệ tọa độ WGS84.
- */
+*/
 @Service
 @RequiredArgsConstructor
 public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
-
     private static final String MANAGER_ROLE = "VT-02";
     private static final Set<String> READ_ROLES = Set.of("VT-01", MANAGER_ROLE, "VT-03");
+
     private static final int SRID_WGS84 = 4326;
     private static final int AREA_SCALE = 4;
     private static final int DEVIATION_CALCULATION_SCALE = 10;
@@ -64,6 +65,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
     private final ObjectMapper objectMapper;
     private final ActivityLogService activityLogService;
 
+    /** Lấy ranh giới vùng trồng theo ID. */
     @Override
     @Transactional(readOnly = true)
     public FarmAreaBoundaryResponse getBoundary(UUID farmAreaId) {
@@ -73,6 +75,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         return toResponse(farmArea);
     }
 
+    /** Cập nhật ranh giới và diện tích tính toán của vùng trồng. */
     @Override
     @Transactional
     public FarmAreaBoundaryResponse updateBoundary(UUID farmAreaId, UpdateFarmAreaBoundaryRequest request) {
@@ -109,6 +112,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         return toResponse(farmArea, responseDeviation);
     }
 
+    /** Lấy vùng trồng thuộc tổ chức hiện tại theo ID. */
     private FarmArea getOwnedFarmArea(UUID farmAreaId, CustomUserDetails currentUser) {
         FarmArea farmArea = farmAreaRepository.findById(farmAreaId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND,
@@ -119,6 +123,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         return farmArea;
     }
 
+    /** Lấy vùng trồng thuộc tổ chức hiện tại theo ID, khóa bi quan để cập nhật. */
     private FarmArea getOwnedFarmAreaForUpdate(UUID farmAreaId, CustomUserDetails currentUser) {
         FarmArea farmArea = farmAreaRepository.findByIdForBoundaryUpdate(farmAreaId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND,
@@ -128,6 +133,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         return farmArea;
     }
 
+    /** Kiểm tra vùng trồng thuộc cùng tổ chức với người dùng. */
     private void ensureOwnedOrganization(FarmArea farmArea, CustomUserDetails currentUser) {
         UUID ownerOrganizationId = farmArea.getOrganization().getOrganizationId();
         if (!Objects.equals(ownerOrganizationId, currentUser.getOrganizationId())) {
@@ -137,24 +143,28 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         }
     }
 
+    /** Kiểm tra người dùng có quyền đọc ranh giới (VT-01, VT-02, VT-03). */
     private void ensureReadableRole(CustomUserDetails currentUser) {
         if (!READ_ROLES.contains(currentUser.getRoleCode())) {
             throw forbiddenRole();
         }
     }
 
+    /** Kiểm tra người dùng có vai trò Quản lý hợp tác xã (VT-02). */
     private void ensureManagerRole(CustomUserDetails currentUser) {
         if (!MANAGER_ROLE.equals(currentUser.getRoleCode())) {
             throw forbiddenRole();
         }
     }
 
+    /** Tạo lỗi từ chối quyền khi vai trò không phù hợp. */
     private BusinessException forbiddenRole() {
         return new BusinessException(HttpStatus.FORBIDDEN,
                 "Chỉ Quản lý hợp tác xã (VT-02) mới được cập nhật ranh giới vùng trồng",
                 Map.of("code", "FORBIDDEN"));
     }
 
+    /** Kiểm tra tính hợp lệ và tạo polygon ranh giới từ danh sách điểm. */
     private Polygon validateAndCreatePolygon(List<LatLngDto> points) {
         if (points == null || points.size() < 3) {
             throw boundaryError("INVALID_BOUNDARY_POINTS",
@@ -212,6 +222,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         return polygon;
     }
 
+    /** Kiểm tra tọa độ đỉnh hợp lệ và trong khoảng cho phép. */
     private void validateCoordinate(LatLngDto point) {
         if (point == null || point.getLatitude() == null || point.getLongitude() == null
                 || !Double.isFinite(point.getLatitude()) || !Double.isFinite(point.getLongitude())) {
@@ -224,11 +235,13 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         }
     }
 
+    /** Kiểm tra hai điểm có trùng tọa độ hay không. */
     private boolean samePoint(LatLngDto first, LatLngDto second) {
         return Double.compare(first.getLatitude(), second.getLatitude()) == 0
                 && Double.compare(first.getLongitude(), second.getLongitude()) == 0;
     }
 
+    /** Tính diện tích địa lý theo công thức geodesic trên WGS84, đơn vị ha. */
     private BigDecimal calculateGeodesicAreaHa(List<LatLngDto> points) {
         PolygonArea polygonArea = new PolygonArea(Geodesic.WGS84, false);
         for (LatLngDto point : points) {
@@ -238,6 +251,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         return BigDecimal.valueOf(Math.abs(result.area)).movePointLeft(4);
     }
 
+    /** Tính phần trăm chênh lệch giữa diện tích tính toán và diện tích khai báo. */
     private BigDecimal calculateDeviationPercentage(BigDecimal calculatedArea, BigDecimal declaredArea) {
         if (declaredArea == null || declaredArea.signum() <= 0) {
             throw boundaryError("INVALID_DECLARED_AREA", "Diện tích khai báo phải lớn hơn 0");
@@ -247,6 +261,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
                 .divide(declaredArea, DEVIATION_CALCULATION_SCALE, RoundingMode.HALF_UP);
     }
 
+    /** Tạo lỗi yêu cầu xác nhận khi chênh lệch diện tích vượt ngưỡng. */
     private BusinessException confirmationRequired(BigDecimal declaredArea, BigDecimal calculatedArea,
             BigDecimal deviationPercentage, BigDecimal threshold) {
         Map<String, Object> details = new LinkedHashMap<>();
@@ -264,10 +279,12 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         return new BusinessException(HttpStatus.CONFLICT, message, details);
     }
 
+    /** Tạo lỗi nghiệp vụ theo mã và thông điệp cho trước. */
     private BusinessException boundaryError(String code, String message) {
         return new BusinessException(HttpStatus.BAD_REQUEST, message, Map.of("code", code));
     }
 
+    /** Tuần tự hóa dữ liệu ranh giới và diện tích để ghi lịch sử. */
     private String serializeSnapshot(Polygon boundary, BigDecimal calculatedArea) {
         if (boundary == null) {
             return null;
@@ -280,6 +297,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         }
     }
 
+    /** Ghi nhật ký hoạt động khi cập nhật ranh giới vùng trồng. */
     private void saveActivityLog(CustomUserDetails currentUser, FarmArea farmArea,
             String beforeValue, String afterValue) {
         activityLogService.logActivity(ActivityLogRequest.builder()
@@ -298,6 +316,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
                 .build());
     }
 
+    /** Chuyển entity vùng trồng sang DTO kèm độ lệch diện tích tính lại. */
     private FarmAreaBoundaryResponse toResponse(FarmArea farmArea) {
         BigDecimal deviation = null;
         if (farmArea.getCalculatedArea() != null) {
@@ -307,6 +326,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         return toResponse(farmArea, deviation);
     }
 
+    /** Chuyển entity vùng trồng sang DTO với độ lệch diện tích cho trước. */
     private FarmAreaBoundaryResponse toResponse(FarmArea farmArea, BigDecimal deviation) {
         return FarmAreaBoundaryResponse.builder()
                 .id(farmArea.getId())
@@ -322,6 +342,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
                 .build();
     }
 
+    /** Chuyển polygon ranh giới sang danh sách tọa độ. */
     private List<LatLngDto> toPoints(Polygon polygon) {
         if (polygon == null) {
             return List.of();

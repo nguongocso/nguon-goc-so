@@ -1,15 +1,13 @@
 package vn.nguongocso.export;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import vn.nguongocso.export.dto.request.CreateProfileTemplateRequest;
-import vn.nguongocso.export.dto.request.UpdateProfileTemplateRequest;
 import vn.nguongocso.export.dto.response.ProfileTemplateResponse;
 
-import java.util.Collections;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Kiểm thử tính năng tuần tự hóa và giải tuần tự hóa Jackson cho các DTO mẫu hồ sơ.
@@ -24,7 +22,6 @@ public class JacksonSerializationTest {
         // Test CreateProfileTemplateRequest deserialization
         String jsonCreate = "{\"name\":\"Test\",\"partnerName\":\"Partner\",\"isDefault\":true,\"selectedFields\":[]}";
         CreateProfileTemplateRequest createReq = mapper.readValue(jsonCreate, CreateProfileTemplateRequest.class);
-        System.out.println("createReq.getIsDefault(): " + createReq.getIsDefault());
 
         // Test ProfileTemplateResponse serialization
         ProfileTemplateResponse resp = ProfileTemplateResponse.builder()
@@ -33,9 +30,8 @@ public class JacksonSerializationTest {
                 .isDefault(true)
                 .build();
         String jsonResp = mapper.writeValueAsString(resp);
-        System.out.println("jsonResp: " + jsonResp);
 
-        assertTrue(jsonResp.contains("\"isDefault\":true"), "Response must contain 'isDefault': " + jsonResp);
-        assertEquals(Boolean.TRUE, createReq.getIsDefault(), "CreateRequest must parse 'isDefault'");
+        assertThat(jsonResp).contains("\"isDefault\":true");
+        assertThat(createReq.getIsDefault()).isTrue();
     }
 }

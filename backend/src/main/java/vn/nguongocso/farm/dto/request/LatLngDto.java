@@ -9,14 +9,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** Tọa độ một đỉnh của ranh giới vùng trồng. */
+/**
+ * Tọa độ một đỉnh của ranh giới vùng trồng.
+*/
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class LatLngDto {
-
     @NotNull(message = "Vĩ độ không được để trống")
     @DecimalMin(value = "-90.0", message = "Vĩ độ phải nằm trong khoảng [-90, 90]")
     @DecimalMax(value = "90.0", message = "Vĩ độ phải nằm trong khoảng [-90, 90]")

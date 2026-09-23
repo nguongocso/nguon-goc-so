@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,26 +19,26 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import jakarta.servlet.http.HttpServletRequest;
+
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
+import vn.nguongocso.integration.partner.service.PartnerLotAccessService;
 import vn.nguongocso.integration.partner.util.PartnerSampleDataProvider;
 import vn.nguongocso.report.dto.response.Gs1DossierExportResponse;
 
 /**
- * Controller xuất hồ sơ theo lược đồ GS1 mô phỏng dành cho Bên thứ ba (NCL-12-CN-004, NCL-12-CN-003).
- * <p>
- * Yêu cầu đối tác gửi Header {@code X-API-KEY}. Đã qua xác thực từ {@code ApiKeyAuthenticationFilter}.
- */
+ * Controller xuất hồ sơ theo lược đồ GS1 mô phỏng dành cho bên thứ ba.
+*/
 @RestController
 @RequestMapping("/api/v1/partner/shipments")
 @RequiredArgsConstructor
 public class PartnerShipmentController {
-
     private static final Logger log = LoggerFactory.getLogger(PartnerShipmentController.class);
 
-    private final vn.nguongocso.integration.partner.service.PartnerLotAccessService partnerLotAccessService;
+    private final PartnerLotAccessService partnerLotAccessService;
 
     /**
      * Xuất hồ sơ GS1 mô phỏng cho bên thứ ba (hỗ trợ định dạng JSON và XML).
@@ -59,9 +60,8 @@ public class PartnerShipmentController {
 
         if (isTestKey) {
             String trimmedId = shipmentId.trim();
-            // Cho phép cả sample-lot-001 và sample-shipment-001
             if ("sample-lot-001".equalsIgnoreCase(trimmedId) || "sample-shipment-001".equalsIgnoreCase(trimmedId)) {
-                log.info("Bên thứ ba '{}' gọi xuất hồ sơ GS1 bằng khóa thử nghiệm (shipmentId={}) -> Trả dữ liệu mẫu Sandbox (NCL-12-CN-004)",
+                log.info("Bên thứ ba '{}' gọi xuất hồ sơ GS1 bằng khóa thử nghiệm (shipmentId={})",
                         partnerApiKey.getPartnerName(), shipmentId);
 
                 Gs1DossierExportResponse sampleResponse = PartnerSampleDataProvider.getSampleGs1DossierResponse();
@@ -86,7 +86,7 @@ public class PartnerShipmentController {
 
             log.warn("Đối tác '{}' dùng khóa thử nghiệm cố truy cập lô hàng '{}' -> từ chối",
                     partnerApiKey.getPartnerName(), shipmentId);
-            throw new BusinessException(org.springframework.http.HttpStatus.FORBIDDEN,
+            throw new BusinessException(HttpStatus.FORBIDDEN,
                     "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
         }
 
@@ -97,10 +97,8 @@ public class PartnerShipmentController {
             throw new BusinessException("Tham số 'shipmentId' có giá trị không hợp lệ (yêu cầu kiểu UUID)");
         }
 
-        // Ghi nhận nhật ký truy xuất lô hàng của đối tác (NCL-12-CN-006 / TC-03)
         partnerLotAccessService.recordLotAccess(partnerApiKey, parsedShipmentId, null);
 
-        // Trường hợp khóa thật: trả hồ sơ GS1 mẫu cho lô hàng hoặc thông báo
         Gs1DossierExportResponse response = PartnerSampleDataProvider.getSampleGs1DossierResponse();
         return ResponseEntity.ok(ApiResult.success(response));
     }

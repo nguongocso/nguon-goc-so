@@ -6,6 +6,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import jakarta.transaction.Transactional;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -17,8 +21,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import jakarta.transaction.Transactional;
-import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -41,369 +43,324 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 
 /**
  * Triển khai dịch vụ quản lý nhật ký canh tác.
- */
+*/
 @Slf4j
 @Service
 @Transactional
 public class FarmLogServiceImpl implements FarmLogService {
+    private final FarmLogRepository farmLogRepository;
+    private final ProductionLotRepository productionLotRepository;
+    private final FarmLogAttachmentRepository attachmentRepository;
+    private final TraceCodeRepository traceCodeRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
+    private final MilestoneReminderService milestoneReminderService;
 
-	private final FarmLogRepository farmLogRepository;
-	private final ProductionLotRepository productionLotRepository;
-	private final FarmLogAttachmentRepository attachmentRepository;
-	private final TraceCodeRepository traceCodeRepository;
-	private final ApplicationEventPublisher eventPublisher;
-	private final Clock clock;
-	private final MilestoneReminderService milestoneReminderService;
+    private static final String EVENT_RECORDER_ROLE = "VT-03";
+    private static final String ORG_MANAGER_ROLE = "VT-02";
+    private static final String CREATE_PERMISSION_MESSAGE = "Bạn không có quyền ghi nhật ký canh tác.";
+    private static final String VIEW_PERMISSION_MESSAGE = "Bạn không có quyền xem lịch sử nhật ký canh tác.";
+    private static final String CORRECT_PERMISSION_MESSAGE = "Bạn không có quyền đính chính nhật ký canh tác.";
+    private static final String CORRECT_NOT_OWNER_MESSAGE = "Bạn chỉ được đính chính nhật ký do bạn ghi.";
+    private static final String FARM_LOG_NOT_FOUND_MESSAGE = "Không tìm thấy nhật ký canh tác";
+    private static final String NO_CHANGED_FIELD_MESSAGE = "Phải có ít nhất một trường được đính chính so với bản gốc.";
+    private static final String REASON_REQUIRED_MESSAGE = "Lý do đính chính không được để trống";
+    private static final String ACTIVATED_TRACE_CODE_MESSAGE = "Lô sản xuất đã kích hoạt mã truy xuất. Bạn không thể đính chính nhật ký này.";
+    private static final String ORGANIZATION_ACCESS_MESSAGE = "Bạn không thuộc tổ chức của lô sản xuất.";
+    private static final String PRODUCTION_LOT_NOT_FOUND_MESSAGE = "Không tìm thấy lô sản xuất";
+    private static final String INVALID_LOT_STATUS_MESSAGE = "Chỉ được ghi nhật ký cho lô đã duyệt hoặc đang thu hoạch.";
+    private static final String CANCELLED_LOT_MESSAGE = "Lô sản xuất đã bị hủy, không thể thao tác nhật ký canh tác.";
+    private static final Sort FARM_LOG_SORT = Sort.by(
+            Sort.Order.desc("executedDate"),
+            Sort.Order.desc("createdAt"));
 
-	public FarmLogServiceImpl(
-			FarmLogRepository farmLogRepository,
-			ProductionLotRepository productionLotRepository,
-			FarmLogAttachmentRepository attachmentRepository,
-			TraceCodeRepository traceCodeRepository,
-			ApplicationEventPublisher eventPublisher,
-			Clock clock) {
-		this(farmLogRepository, productionLotRepository, attachmentRepository, traceCodeRepository, eventPublisher, clock, null);
-	}
+    /** Khởi tạo service nhật ký canh tác. */
+    public FarmLogServiceImpl(
+            FarmLogRepository farmLogRepository,
+            ProductionLotRepository productionLotRepository,
+            FarmLogAttachmentRepository attachmentRepository,
+            TraceCodeRepository traceCodeRepository,
+            ApplicationEventPublisher eventPublisher,
+            Clock clock) {
+        this(farmLogRepository, productionLotRepository, attachmentRepository, traceCodeRepository, eventPublisher,
+                clock, null);
+    }
 
-	@Autowired
-	public FarmLogServiceImpl(
-			FarmLogRepository farmLogRepository,
-			ProductionLotRepository productionLotRepository,
-			FarmLogAttachmentRepository attachmentRepository,
-			TraceCodeRepository traceCodeRepository,
-			ApplicationEventPublisher eventPublisher,
-			Clock clock,
-			@Autowired(required = false) MilestoneReminderService milestoneReminderService) {
-		this.farmLogRepository = farmLogRepository;
-		this.productionLotRepository = productionLotRepository;
-		this.attachmentRepository = attachmentRepository;
-		this.traceCodeRepository = traceCodeRepository;
-		this.eventPublisher = eventPublisher;
-		this.clock = clock;
-		this.milestoneReminderService = milestoneReminderService;
-	}
+    /** Khởi tạo service nhật ký canh tác có nhắc mốc. */
+    @Autowired
+    public FarmLogServiceImpl(
+            FarmLogRepository farmLogRepository,
+            ProductionLotRepository productionLotRepository,
+            FarmLogAttachmentRepository attachmentRepository,
+            TraceCodeRepository traceCodeRepository,
+            ApplicationEventPublisher eventPublisher,
+            Clock clock,
+            @Autowired(required = false) MilestoneReminderService milestoneReminderService) {
+        this.farmLogRepository = farmLogRepository;
+        this.productionLotRepository = productionLotRepository;
+        this.attachmentRepository = attachmentRepository;
+        this.traceCodeRepository = traceCodeRepository;
+        this.eventPublisher = eventPublisher;
+        this.clock = clock;
+        this.milestoneReminderService = milestoneReminderService;
+    }
 
-	private static final String EVENT_RECORDER_ROLE = "VT-03";
-	private static final String ORG_MANAGER_ROLE = "VT-02";
+    /** Tạo mới nhật ký canh tác cho lô sản xuất. */
+    @Override
+    public FarmLogResponse create(CreateFarmLogRequest request) {
+        CustomUserDetails currentUser = getCurrentUser();
+        String roleCode = currentUser.getRoleCode();
+        if (!ORG_MANAGER_ROLE.equals(roleCode) && !EVENT_RECORDER_ROLE.equals(roleCode)) {
+            throw new BusinessException(CREATE_PERMISSION_MESSAGE);
+        }
+        ProductionLot productionLot = getProductionLot(request.getProductionLotId());
+        validateProductionLotStatus(productionLot);
+        validateOrganizationAccess(currentUser, productionLot);
+        FarmLog farmLog = buildFarmLog(request, productionLot, currentUser.getUser());
+        FarmLog saved = farmLogRepository.save(farmLog);
 
-	private static final String CREATE_PERMISSION_MESSAGE = "Bạn không có quyền ghi nhật ký canh tác.";
-	private static final String VIEW_PERMISSION_MESSAGE = "Bạn không có quyền xem lịch sử nhật ký canh tác.";
-	private static final String CORRECT_PERMISSION_MESSAGE = "Bạn không có quyền đính chính nhật ký canh tác.";
-	private static final String CORRECT_NOT_OWNER_MESSAGE = "Bạn chỉ được đính chính nhật ký do bạn ghi.";
-	private static final String FARM_LOG_NOT_FOUND_MESSAGE = "Không tìm thấy nhật ký canh tác";
-	private static final String NO_CHANGED_FIELD_MESSAGE = "Phải có ít nhất một trường được đính chính so với bản gốc.";
-	private static final String REASON_REQUIRED_MESSAGE = "Lý do đính chính không được để trống";
-	private static final String ACTIVATED_TRACE_CODE_MESSAGE =
-			"Lô sản xuất đã kích hoạt mã truy xuất. Bạn không thể đính chính nhật ký này.";
-	private static final String ORGANIZATION_ACCESS_MESSAGE = "Bạn không thuộc tổ chức của lô sản xuất.";
+        publishActivityLog(
+                currentUser,
+                "CREATE",
+                "Ghi nhật ký canh tác cho lô " + saved.getProductionLotId().getName(),
+                "FarmLog",
+                saved.getId().toString());
+        if (milestoneReminderService != null) {
+            try {
+                if (request.getMilestoneId() != null) {
+                    milestoneReminderService.completeRemindersForLotAndMilestone(
+                            saved.getProductionLotId().getId(),
+                            request.getMilestoneId());
+                } else {
+                    milestoneReminderService.completeRemindersForLotAndActivity(
+                            saved.getProductionLotId().getId(),
+                            saved.getActivityType());
+                }
+            } catch (Exception e) {
+                log.warn("Không thể tự động đóng nhắc việc canh tác sau khi ghi nhật ký: {}", e.getMessage());
+            }
+        }
 
-	private static final String PRODUCTION_LOT_NOT_FOUND_MESSAGE = "Không tìm thấy lô sản xuất";
-	private static final String INVALID_LOT_STATUS_MESSAGE = "Chỉ được ghi nhật ký cho lô đã duyệt hoặc đang thu hoạch.";
-	private static final String CANCELLED_LOT_MESSAGE = "Lô sản xuất đã bị hủy, không thể thao tác nhật ký canh tác.";
+        return toResponse(saved);
+    }
 
-	private static final Sort FARM_LOG_SORT = Sort.by(
-			Sort.Order.desc("executedDate"),
-			Sort.Order.desc("createdAt"));
+    /** Đính chính nhật ký canh tác, tạo bản ghi mới và giữ nguyên bản gốc. */
+    @Override
+    public FarmLogResponse correctFarmLog(UUID id, CorrectFarmLogRequest request) {
+        CustomUserDetails currentUser = getCurrentUser();
 
-	/**
-	 * Tạo nhật ký canh tác.
-	 *
-	 * @param request thông tin nhật ký
-	 * @return thông tin nhật ký đã tạo
-	 */
-	@Override
-	public FarmLogResponse create(CreateFarmLogRequest request) {
+        String roleCode = currentUser.getRoleCode();
+        boolean isManager = ORG_MANAGER_ROLE.equals(roleCode);
 
-		CustomUserDetails currentUser = getCurrentUser();
+        if (!isManager && !EVENT_RECORDER_ROLE.equals(roleCode)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, CORRECT_PERMISSION_MESSAGE);
+        }
 
-		String roleCode = currentUser.getRoleCode();
-		if (!ORG_MANAGER_ROLE.equals(roleCode) && !EVENT_RECORDER_ROLE.equals(roleCode)) {
-			throw new BusinessException(CREATE_PERMISSION_MESSAGE);
-		}
+        FarmLog targetLog = farmLogRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(FARM_LOG_NOT_FOUND_MESSAGE));
 
-		ProductionLot productionLot = getProductionLot(request.getProductionLotId());
+        ProductionLot productionLot = targetLog.getProductionLotId();
 
-		validateProductionLotStatus(productionLot);
+        validateOrganizationAccess(currentUser, productionLot);
 
-		validateOrganizationAccess(currentUser, productionLot);
+        if (!isManager && !targetLog.getCreatedBy().getUserId().equals(currentUser.getUserId())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, CORRECT_NOT_OWNER_MESSAGE);
+        }
 
-		FarmLog farmLog = buildFarmLog(request, productionLot, currentUser.getUser());
+        if (request.getReason() == null || request.getReason().isBlank()) {
+            throw new BusinessException(REASON_REQUIRED_MESSAGE);
+        }
 
-		FarmLog saved = farmLogRepository.save(farmLog);
+        FarmLog root = resolveRoot(targetLog);
+        FarmLog effective = findLatestEffectiveVersion(root);
 
-		publishActivityLog(
-				currentUser,
-				"CREATE",
-				"Ghi nhật ký canh tác cho lô " + saved.getProductionLotId().getName(),
-				"FarmLog",
-				saved.getId().toString());
+        applyCorrectionChecks(isManager, productionLot, request.getCorrectionData(), effective);
 
-		// NCL-03-CN-007 (TC-02): Tự động đóng nhắc việc cho mốc tương ứng khi đã ghi nhật ký
-		if (milestoneReminderService != null) {
-			try {
-				if (request.getMilestoneId() != null) {
-					milestoneReminderService.completeRemindersForLotAndMilestone(
-							saved.getProductionLotId().getId(),
-							request.getMilestoneId());
-				} else {
-					milestoneReminderService.completeRemindersForLotAndActivity(
-							saved.getProductionLotId().getId(),
-							saved.getActivityType());
-				}
-			} catch (Exception e) {
-				log.warn("Không thể tự động đóng nhắc việc canh tác sau khi ghi nhật ký: {}", e.getMessage());
-			}
-		}
+        User actor = currentUser.getUser();
+        LocalDateTime now = LocalDateTime.now(clock);
 
-		return toResponse(saved);
-	}
+        FarmLog correction = buildCorrection(effective, root, request, actor, now);
+        FarmLog saved = farmLogRepository.save(correction);
 
-	/**
-	 * NCL-03-CN-006: Đính chính một nhật ký canh tác.
-	 *
-	 * <p>Bản gốc được giữ nguyên và đánh dấu đã đính chính; hệ thống tạo một
-	 * bản ghi mới liên kết tới bản gốc với lý do đính chính bắt buộc.</p>
-	 *
-	 * @param id      ID của nhật ký cần đính chính
-	 * @param request dữ liệu đính chính và lý do
-	 * @return thông tin bản ghi đính chính vừa tạo
-	 */
-	@Override
-	public FarmLogResponse correctFarmLog(UUID id, CorrectFarmLogRequest request) {
+        effective.setIsCorrected(true);
+        farmLogRepository.save(effective);
 
-		CustomUserDetails currentUser = getCurrentUser();
+        publishActivityLog(
+                currentUser,
+                "CORRECT",
+                "Đính chính nhật ký canh tác cho lô " + saved.getProductionLotId().getName(),
+                "FarmLog",
+                saved.getId().toString());
 
-		String roleCode = currentUser.getRoleCode();
-		boolean isManager = ORG_MANAGER_ROLE.equals(roleCode);
+        return toResponse(saved);
+    }
 
-		if (!isManager && !EVENT_RECORDER_ROLE.equals(roleCode)) {
-			throw new BusinessException(HttpStatus.FORBIDDEN, CORRECT_PERMISSION_MESSAGE);
-		}
+    /** Tìm bản gốc (root) của một nhật ký trong chuỗi đính chính. */
+    private FarmLog resolveRoot(FarmLog log) {
+        FarmLog current = log;
+        while (current.isCorrection() && current.getOriginalFarmLogId() != null) {
+            current = current.getOriginalFarmLogId();
+        }
+        return current;
+    }
 
-		FarmLog targetLog = farmLogRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException(FARM_LOG_NOT_FOUND_MESSAGE));
+    /** Tìm bản ghi có hiệu lực hiện tại trong chuỗi đính chính. */
+    private FarmLog findLatestEffectiveVersion(FarmLog root) {
+        List<FarmLog> corrections = farmLogRepository.findByOriginalFarmLogId_IdOrderByCreatedAtDesc(root.getId());
 
-		ProductionLot productionLot = targetLog.getProductionLotId();
+        for (FarmLog correction : corrections) {
+            if (!correction.isCorrected()) {
+                return correction;
+            }
+        }
+        return root;
+    }
 
-		validateOrganizationAccess(currentUser, productionLot);
+    /** Kiểm tra điều kiện nghiệp vụ trước khi tạo bản đính chính. */
+    private void applyCorrectionChecks(
+            boolean isManager,
+            ProductionLot productionLot,
+            FarmLogCorrectionData data,
+            FarmLog effective) {
 
-		// VT-03 chỉ được đính chính nhật ký do chính mình ghi.
-		if (!isManager && !targetLog.getCreatedBy().getUserId().equals(currentUser.getUserId())) {
-			throw new BusinessException(HttpStatus.FORBIDDEN, CORRECT_NOT_OWNER_MESSAGE);
-		}
+        if (productionLot.getStatus() == ProductionLotStatus.CANCELLED) {
+            throw new BusinessException(CANCELLED_LOT_MESSAGE);
+        }
 
-		if (request.getReason() == null || request.getReason().isBlank()) {
-			throw new BusinessException(REASON_REQUIRED_MESSAGE);
-		}
+        if (!isManager && traceCodeRepository.existsActivatedByProductionLotId(productionLot.getId())) {
+            throw new BusinessException(HttpStatus.CONFLICT, ACTIVATED_TRACE_CODE_MESSAGE);
+        }
 
-		// Quyết về bản gốc của chuỗi và bản ghi hiệu lực hiện tại.
-		FarmLog root = resolveRoot(targetLog);
-		FarmLog effective = findLatestEffectiveVersion(root);
+        boolean changed = isChanged(data.getActivityType(), effective.getActivityType())
+                || isChanged(data.getMaterial(), effective.getMaterial())
+                || isChanged(data.getQuantity(), effective.getQuantity())
+                || isChanged(data.getUnit(), effective.getUnit())
+                || isChanged(data.getExecutedDate(), effective.getExecutedDate())
+                || isChanged(data.getNotes(), effective.getNotes());
 
-		applyCorrectionChecks(isManager, productionLot, request.getCorrectionData(), effective);
+        if (!changed) {
+            throw new BusinessException(NO_CHANGED_FIELD_MESSAGE);
+        }
 
-		User actor = currentUser.getUser();
-		LocalDateTime now = LocalDateTime.now(clock);
+        if (data.getExecutedDate() != null && data.getExecutedDate().isAfter(LocalDate.now(clock))) {
+            throw new BusinessException("Ngày thực hiện không được là ngày ở tương lai.");
+        }
+    }
 
-		FarmLog correction = buildCorrection(effective, root, request, actor, now);
-		FarmLog saved = farmLogRepository.save(correction);
+    /** Xác định giá trị mới có thay đổi so với giá trị hiện tại hay không. */
+    private boolean isChanged(Object newValue, Object currentValue) {
+        return newValue != null && !newValue.equals(currentValue);
+    }
 
-		// Bản trước đó mất hiệu lực, bản gốc vẫn giữ nguyên dữ liệu ban đầu.
-		effective.setIsCorrected(true);
-		farmLogRepository.save(effective);
+    /** Tạo bản ghi đính chính từ dữ liệu hiệu lực và các trường được thay đổi. */
+    private FarmLog buildCorrection(
+            FarmLog effective,
+            FarmLog root,
+            CorrectFarmLogRequest request,
+            User correctedBy,
+            LocalDateTime createdAt) {
 
-		publishActivityLog(
-				currentUser,
-				"CORRECT",
-				"Đính chính nhật ký canh tác cho lô " + saved.getProductionLotId().getName(),
-				"FarmLog",
-				saved.getId().toString());
+        FarmLogCorrectionData data = request.getCorrectionData();
 
-		return toResponse(saved);
-	}
+        return FarmLog.builder()
+                .productionLotId(effective.getProductionLotId())
+                .activityType(data.getActivityType() != null ? data.getActivityType() : effective.getActivityType())
+                .material(data.getMaterial() != null ? data.getMaterial() : effective.getMaterial())
+                .quantity(data.getQuantity() != null ? data.getQuantity() : effective.getQuantity())
+                .unit(data.getUnit() != null ? data.getUnit() : effective.getUnit())
+                .executedDate(data.getExecutedDate() != null ? data.getExecutedDate() : effective.getExecutedDate())
+                .notes(data.getNotes() != null ? data.getNotes() : effective.getNotes())
+                .originalFarmLogId(root)
+                .isCorrection(true)
+                .correctionReason(request.getReason().trim())
+                .correctedBy(correctedBy)
+                .createdBy(correctedBy)
+                .createdAt(createdAt)
+                .build();
+    }
 
-	/**
-	 * NCL-03-CN-006: tìm bản gốc (root) của một nhật ký trong chuỗi đính chính.
-	 * Mọi bản đính chính đều trỏ trực tiếp tới bản gốc.
-	 */
-	private FarmLog resolveRoot(FarmLog log) {
-		FarmLog current = log;
-		while (current.isCorrection() && current.getOriginalFarmLogId() != null) {
-			current = current.getOriginalFarmLogId();
-		}
-		return current;
-	}
+    /** Ghi nhật ký hoạt động theo convention của hệ thống. */
+    private void publishActivityLog(CustomUserDetails currentUser, String action, String description, String entityType,
+            String entityId) {
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+                .userId(currentUser.getUserId())
+                .username(currentUser.getUsername())
+                .fullName(currentUser.getFullName())
+                .organizationId(currentUser.getOrganizationId())
+                .action(action)
+                .description(description)
+                .entityType(entityType)
+                .entityId(entityId)
+                .ipAddress(getClientIp())
+                .timestamp(LocalDateTime.now(clock))
+                .build());
+    }
 
-	/**
-	 * NCL-03-CN-006: tìm bản ghi có hiệu lực hiện tại trong chuỗi đính chính —
-	 * là bản đính chính mới nhất chưa bị thay thế, hoặc chính bản gốc nếu chưa
-	 * có đính chính nào.
-	 */
-	private FarmLog findLatestEffectiveVersion(FarmLog root) {
-		List<FarmLog> corrections =
-				farmLogRepository.findByOriginalFarmLogId_IdOrderByCreatedAtDesc(root.getId());
+    /** Lấy địa chỉ IP của máy khách. */
+    private String getClientIp() {
+        return "127.0.0.1";
+    }
 
-		for (FarmLog correction : corrections) {
-			if (!correction.isCorrected()) {
-				return correction;
-			}
-		}
-		return root;
-	}
+    /** Lấy thông tin người dùng đang đăng nhập. */
+    private CustomUserDetails getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return (CustomUserDetails) authentication.getPrincipal();
+    }
 
-	/**
-	 * NCL-03-CN-006: kiểm tra nghiệp vụ trước khi tạo bản đính chính.
-	 */
-	private void applyCorrectionChecks(
-			boolean isManager,
-			ProductionLot productionLot,
-			FarmLogCorrectionData data,
-			FarmLog effective) {
+    /** Lấy lô sản xuất theo ID. */
+    private ProductionLot getProductionLot(UUID productionLotId) {
+        return productionLotRepository.findById(productionLotId)
+                .orElseThrow(() -> new BusinessException(PRODUCTION_LOT_NOT_FOUND_MESSAGE));
+    }
 
-		// NCL-02-CN-006: lô đã hủy không cho phép đính chính nhật ký (TC-04);
-		// nhật ký cũ vẫn xem được ở chế độ chỉ đọc.
-		if (productionLot.getStatus() == ProductionLotStatus.CANCELLED) {
-			throw new BusinessException(CANCELLED_LOT_MESSAGE);
-		}
+    /** Xây dựng đối tượng nhật ký canh tác từ dữ liệu yêu cầu. */
+    private FarmLog buildFarmLog(CreateFarmLogRequest request, ProductionLot productionLot, User createdBy) {
 
-		// Ràng buộc mã truy xuất đã kích hoạt: chỉ VT-02 được tiếp tục.
-		if (!isManager && traceCodeRepository.existsActivatedByProductionLotId(productionLot.getId())) {
-			throw new BusinessException(HttpStatus.CONFLICT, ACTIVATED_TRACE_CODE_MESSAGE);
-		}
+        return FarmLog.builder()
+                .productionLotId(productionLot)
+                .activityType(request.getActivityType())
+                .material(request.getMaterial())
+                .quantity(request.getQuantity())
+                .unit(request.getUnit())
+                .executedDate(request.getExecutedDate())
+                .notes(request.getNotes())
+                .createdBy(createdBy)
+                .createdAt(LocalDateTime.now(clock))
+                .build();
+    }
 
-		boolean changed =
-				isChanged(data.getActivityType(), effective.getActivityType())
-						|| isChanged(data.getMaterial(), effective.getMaterial())
-						|| isChanged(data.getQuantity(), effective.getQuantity())
-						|| isChanged(data.getUnit(), effective.getUnit())
-						|| isChanged(data.getExecutedDate(), effective.getExecutedDate())
-						|| isChanged(data.getNotes(), effective.getNotes());
+    /** Chuyển entity nhật ký canh tác sang DTO phản hồi. */
+    private FarmLogResponse toResponse(FarmLog farmLog) {
+        return FarmLogResponse.builder()
+                .id(farmLog.getId())
+                .productionLotId(farmLog.getProductionLotId().getId())
+                .productionLotName(farmLog.getProductionLotId().getName())
+                .activityType(farmLog.getActivityType())
+                .material(farmLog.getMaterial())
+                .quantity(farmLog.getQuantity())
+                .unit(farmLog.getUnit())
+                .executedDate(farmLog.getExecutedDate())
+                .notes(farmLog.getNotes())
+                .createdByName(farmLog.getCreatedBy().getFullName())
+                .createdById(farmLog.getCreatedBy().getUserId())
+                .createdAt(farmLog.getCreatedAt())
+                .originalFarmLogId(farmLog.getOriginalFarmLogId() != null
+                        ? farmLog.getOriginalFarmLogId().getId()
+                        : null)
+                .isCorrection(farmLog.isCorrection())
+                .correctionReason(farmLog.getCorrectionReason())
+                .correctedByName(farmLog.getCorrectedBy() != null
+                        ? farmLog.getCorrectedBy().getFullName()
+                        : null)
+                .isCorrected(farmLog.isCorrected())
+                .build();
+    }
 
-		if (!changed) {
-			throw new BusinessException(NO_CHANGED_FIELD_MESSAGE);
-		}
-
-		if (data.getExecutedDate() != null && data.getExecutedDate().isAfter(LocalDate.now(clock))) {
-			throw new BusinessException("Ngày thực hiện không được là ngày ở tương lai.");
-		}
-	}
-
-	private boolean isChanged(Object newValue, Object currentValue) {
-		return newValue != null && !newValue.equals(currentValue);
-	}
-
-	/**
-	 * NCL-03-CN-006: tạo bản ghi đính chính từ giá trị hiệu lực hiện tại,
-	 * chỉ thay đổi các trường được gửi trong request. productionLotId và
-	 * createdBy giữ theo bản gốc (không cho phép đổi lô / người ghi gốc).
-	 */
-	private FarmLog buildCorrection(
-			FarmLog effective,
-			FarmLog root,
-			CorrectFarmLogRequest request,
-			User correctedBy,
-			LocalDateTime createdAt) {
-
-		FarmLogCorrectionData data = request.getCorrectionData();
-
-		return FarmLog.builder()
-				.productionLotId(effective.getProductionLotId())
-				.activityType(data.getActivityType() != null ? data.getActivityType() : effective.getActivityType())
-				.material(data.getMaterial() != null ? data.getMaterial() : effective.getMaterial())
-				.quantity(data.getQuantity() != null ? data.getQuantity() : effective.getQuantity())
-				.unit(data.getUnit() != null ? data.getUnit() : effective.getUnit())
-				.executedDate(data.getExecutedDate() != null ? data.getExecutedDate() : effective.getExecutedDate())
-				.notes(data.getNotes() != null ? data.getNotes() : effective.getNotes())
-				.originalFarmLogId(root)
-				.isCorrection(true)
-				.correctionReason(request.getReason().trim())
-				.correctedBy(correctedBy)
-				.createdBy(correctedBy)
-				.createdAt(createdAt)
-				.build();
-	}
-
-	private void publishActivityLog(CustomUserDetails currentUser, String action, String description, String entityType,
-			String entityId) {
-		eventPublisher.publishEvent(ActivityLogEvent.builder()
-				.userId(currentUser.getUserId())
-				.username(currentUser.getUsername())
-				.fullName(currentUser.getFullName())
-				.organizationId(currentUser.getOrganizationId())
-				.action(action)
-				.description(description)
-				.entityType(entityType)
-				.entityId(entityId)
-				.ipAddress(getClientIp()) // lấy từ request context nếu có
-				.timestamp(LocalDateTime.now(clock))
-				.build());
-	}
-
-	private String getClientIp() {
-		// Có thể lấy từ SecurityContext hoặc truyền từ controller
-		return "127.0.0.1"; // tạm thời
-	}
-
-	private CustomUserDetails getCurrentUser() {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		return (CustomUserDetails) authentication.getPrincipal();
-	}
-
-	private ProductionLot getProductionLot(UUID productionLotId) {
-		return productionLotRepository.findById(productionLotId)
-				.orElseThrow(() -> new BusinessException(PRODUCTION_LOT_NOT_FOUND_MESSAGE));
-	}
-
-	private FarmLog buildFarmLog(CreateFarmLogRequest request, ProductionLot productionLot, User createdBy) {
-
-		return FarmLog.builder()
-				.productionLotId(productionLot)
-				.activityType(request.getActivityType())
-				.material(request.getMaterial())
-				.quantity(request.getQuantity())
-				.unit(request.getUnit())
-				.executedDate(request.getExecutedDate())
-				.notes(request.getNotes())
-				.createdBy(createdBy)
-				// Ghi thời gian tạo theo múi giờ nghiệp vụ (Asia/Ho_Chi_Minh),
-				// không dùng LocalDateTime.now() mặc định của JVM.
-				.createdAt(LocalDateTime.now(clock))
-				.build();
-	}
-
-	private FarmLogResponse toResponse(FarmLog farmLog) {
-		return FarmLogResponse.builder()
-				.id(farmLog.getId())
-				.productionLotId(farmLog.getProductionLotId().getId())
-				.productionLotName(farmLog.getProductionLotId().getName())
-				.activityType(farmLog.getActivityType())
-				.material(farmLog.getMaterial())
-				.quantity(farmLog.getQuantity())
-				.unit(farmLog.getUnit())
-				.executedDate(farmLog.getExecutedDate())
-				.notes(farmLog.getNotes())
-				.createdByName(farmLog.getCreatedBy().getFullName())
-				.createdById(farmLog.getCreatedBy().getUserId())
-				.createdAt(farmLog.getCreatedAt())
-				.originalFarmLogId(farmLog.getOriginalFarmLogId() != null
-						? farmLog.getOriginalFarmLogId().getId()
-						: null)
-				.isCorrection(farmLog.isCorrection())
-				.correctionReason(farmLog.getCorrectionReason())
-				.correctedByName(farmLog.getCorrectedBy() != null
-						? farmLog.getCorrectedBy().getFullName()
-						: null)
-				.isCorrected(farmLog.isCorrected())
-				.build();
-	}
-
+    /** Kiểm tra người dùng thuộc tổ chức sở hữu lô sản xuất. */
     private void validateOrganizationAccess(
             CustomUserDetails currentUser,
             ProductionLot productionLot) {
 
-        // QTN-01: ưu tiên tổ chức sở hữu trực tiếp của lô; chỉ dùng tổ chức
-        // của vùng trồng khi lô chưa gắn tổ chức (tương thích dữ liệu cũ).
-        // Lô không có cả hai đều bị từ chối thay vì NullPointerException.
         UUID organizationId = null;
         if (productionLot.getOrganization() != null) {
             organizationId = productionLot.getOrganization().getOrganizationId();
@@ -419,96 +376,82 @@ public class FarmLogServiceImpl implements FarmLogService {
         }
     }
 
-	private void validateRole(
-			CustomUserDetails currentUser,
-			String expectedRole,
-			String message) {
+    /** Kiểm tra vai trò người dùng khớp với vai trò kỳ vọng. */
+    private void validateRole(
+            CustomUserDetails currentUser,
+            String expectedRole,
+            String message) {
 
-		if (!expectedRole.equals(currentUser.getRoleCode())) {
-			throw new BusinessException(message);
-		}
-	}
+        if (!expectedRole.equals(currentUser.getRoleCode())) {
+            throw new BusinessException(message);
+        }
+    }
 
-	private void validateProductionLotStatus(ProductionLot productionLot) {
+    /** Kiểm tra trạng thái lô cho phép ghi nhật ký canh tác. */
+    private void validateProductionLotStatus(ProductionLot productionLot) {
 
-		// NCL-02-CN-006: lô đã hủy không ghi được nhật ký mới (TC-01);
-		// nhật ký cũ vẫn xem được ở chế độ chỉ đọc (TC-04).
-		if (productionLot.getStatus() == ProductionLotStatus.CANCELLED) {
-			throw new BusinessException(CANCELLED_LOT_MESSAGE);
-		}
+        if (productionLot.getStatus() == ProductionLotStatus.CANCELLED) {
+            throw new BusinessException(CANCELLED_LOT_MESSAGE);
+        }
 
-		if (productionLot.getStatus() != ProductionLotStatus.APPROVED
-				&& productionLot.getStatus() != ProductionLotStatus.HARVESTED) {
+        if (productionLot.getStatus() != ProductionLotStatus.APPROVED
+                && productionLot.getStatus() != ProductionLotStatus.HARVESTED) {
 
-			throw new BusinessException(INVALID_LOT_STATUS_MESSAGE);
-		}
-	}
+            throw new BusinessException(INVALID_LOT_STATUS_MESSAGE);
+        }
+    }
 
-	/**
-	 * Lấy danh sách nhật ký canh tác của lô sản xuất theo phân trang.
-	 *
-	 * @param productionLotId mã lô sản xuất
-	 * @param page            số trang (bắt đầu từ 0)
-	 * @param size            số bản ghi trên mỗi trang
-	 * @return dữ liệu nhật ký canh tác theo phân trang
-	 */
-	@Override
-	public PageResponse<FarmLogResponse> getFarmLogsByProductionLot(
-			UUID productionLotId,
-			int page,
-			int size) {
+    /** Lấy danh sách nhật ký canh tác của lô sản xuất theo phân trang. */
+    @Override
+    public PageResponse<FarmLogResponse> getFarmLogsByProductionLot(
+            UUID productionLotId,
+            int page,
+            int size) {
 
-		CustomUserDetails currentUser = getCurrentUser();
+        CustomUserDetails currentUser = getCurrentUser();
 
-		String roleCode = currentUser.getRoleCode();
-		if (!ORG_MANAGER_ROLE.equals(roleCode) && !EVENT_RECORDER_ROLE.equals(roleCode)) {
-			throw new BusinessException(VIEW_PERMISSION_MESSAGE);
-		}
+        String roleCode = currentUser.getRoleCode();
+        if (!ORG_MANAGER_ROLE.equals(roleCode) && !EVENT_RECORDER_ROLE.equals(roleCode)) {
+            throw new BusinessException(VIEW_PERMISSION_MESSAGE);
+        }
 
-		ProductionLot productionLot = getProductionLot(productionLotId);
-		validateOrganizationAccess(currentUser, productionLot);
+        ProductionLot productionLot = getProductionLot(productionLotId);
+        validateOrganizationAccess(currentUser, productionLot);
 
-		Pageable pageable = PageRequest.of(page, size, FARM_LOG_SORT);
-		Page<FarmLog> farmLogs = farmLogRepository.findByProductionLotId(productionLot, pageable);
+        Pageable pageable = PageRequest.of(page, size, FARM_LOG_SORT);
+        Page<FarmLog> farmLogs = farmLogRepository.findByProductionLotId(productionLot, pageable);
 
-		List<FarmLogResponse> responses = farmLogs.getContent().stream()
-				.map(log -> {
-					int count = attachmentRepository.countByFarmLogId(log.getId());
-					FarmLogResponse response = toResponse(log);
-					response.setAttachmentCount(count);
-					return response;
-				})
-				.toList();
+        List<FarmLogResponse> responses = farmLogs.getContent().stream()
+                .map(log -> {
+                    int count = attachmentRepository.countByFarmLogId(log.getId());
+                    FarmLogResponse response = toResponse(log);
+                    response.setAttachmentCount(count);
+                    return response;
+                })
+                .toList();
 
-		return PageResponse.from(farmLogs, responses);
-	}
+        return PageResponse.from(farmLogs, responses);
+    }
 
-	/**
-	 * NCL-03-CN-006: lấy chi tiết một nhật ký canh tác theo ID, phục vụ trang
-	 * đính chính. Chỉ người ghi sự kiện (VT-03) hoặc Quản lý hợp tác xã (VT-02)
-	 * cùng tổ chức mới xem được.
-	 *
-	 * @param id ID của nhật ký
-	 * @return thông tin nhật ký
-	 */
-	@Override
-	public FarmLogResponse getFarmLog(UUID id) {
+    /** Lấy chi tiết một nhật ký canh tác theo ID. */
+    @Override
+    public FarmLogResponse getFarmLog(UUID id) {
 
-		CustomUserDetails currentUser = getCurrentUser();
+        CustomUserDetails currentUser = getCurrentUser();
 
-		String roleCode = currentUser.getRoleCode();
-		if (!ORG_MANAGER_ROLE.equals(roleCode) && !EVENT_RECORDER_ROLE.equals(roleCode)) {
-			throw new BusinessException(HttpStatus.FORBIDDEN, VIEW_PERMISSION_MESSAGE);
-		}
+        String roleCode = currentUser.getRoleCode();
+        if (!ORG_MANAGER_ROLE.equals(roleCode) && !EVENT_RECORDER_ROLE.equals(roleCode)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, VIEW_PERMISSION_MESSAGE);
+        }
 
-		FarmLog farmLog = farmLogRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException(FARM_LOG_NOT_FOUND_MESSAGE));
+        FarmLog farmLog = farmLogRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(FARM_LOG_NOT_FOUND_MESSAGE));
 
-		validateOrganizationAccess(currentUser, farmLog.getProductionLotId());
+        validateOrganizationAccess(currentUser, farmLog.getProductionLotId());
 
-		int count = attachmentRepository.countByFarmLogId(farmLog.getId());
-		FarmLogResponse response = toResponse(farmLog);
-		response.setAttachmentCount(count);
-		return response;
-	}
+        int count = attachmentRepository.countByFarmLogId(farmLog.getId());
+        FarmLogResponse response = toResponse(farmLog);
+        response.setAttachmentCount(count);
+        return response;
+    }
 }

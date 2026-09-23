@@ -1,11 +1,13 @@
 package vn.nguongocso.export.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-/**
- * DTO mô tả thông tin chi tiết một trường dữ liệu trong danh mục.
- */
+/** DTO mô tả thông tin chi tiết một trường dữ liệu trong danh mục. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,26 +27,19 @@ public class FieldItemDefinition {
     /** Diễn giải nghiệp vụ của trường */
     private String description;
 
-    /**
-     * Alias key để tương thích với frontend
-     */
+    /** Alias key để tương thích với frontend */
     public String getKey() {
         return fieldKey;
     }
 
-    /**
-     * Alias label để tương thích với frontend
-     */
+    /** Alias label để tương thích với frontend */
     public String getLabel() {
         return displayName;
     }
 
-    /**
-     * Alias isMandatory để tương thích với frontend
-     */
+    /** Alias isMandatory để tương thích với frontend */
     @JsonProperty("isMandatory")
     public boolean isMandatoryField() {
         return mandatory;
     }
 }
-
