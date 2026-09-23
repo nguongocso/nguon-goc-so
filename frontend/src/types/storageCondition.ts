@@ -34,4 +34,4 @@ export interface StorageConditionResponse {
   alertLevel: 'OK' | 'WARNING' | 'CRITICAL';
   recordedAt: string;
   recordedBy: string;
-}
+}

@@ -13,4 +13,4 @@ export const recordStorageCondition = async (
     data
   );
   return response.data.data;
-};
+};

@@ -41,4 +41,4 @@ export type RecordPackagingFormValues = z.infer<typeof recordPackagingSchema>;
 /**
  * Kiểu dữ liệu form đính chính đóng gói
  */
-export type CorrectPackagingFormValues = z.infer<typeof correctPackagingSchema>;
+export type CorrectPackagingFormValues = z.infer<typeof correctPackagingSchema>;

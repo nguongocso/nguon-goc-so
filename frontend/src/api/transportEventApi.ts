@@ -18,4 +18,4 @@ export const recordTransportEvent = async (
   );
 
   return response.data.data;
-};
+};

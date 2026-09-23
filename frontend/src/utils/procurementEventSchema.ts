@@ -14,4 +14,4 @@ export const procurementEventSchema = z.object({
 /**
  * Kiểu dữ liệu form sự kiện thu mua nông sản
  */
-export type ProcurementEventFormValues = z.infer<typeof procurementEventSchema>;
+export type ProcurementEventFormValues = z.infer<typeof procurementEventSchema>;

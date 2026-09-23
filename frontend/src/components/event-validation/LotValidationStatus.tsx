@@ -42,4 +42,4 @@ export const LotValidationStatus = ({ isValid, message, loading, className }: Lo
       <AlertDescription className="text-sm">{message}</AlertDescription>
     </Alert>
   );
-};
+};

@@ -133,4 +133,4 @@ export const useWarehouseReceipt = (): UseWarehouseReceiptResult => {
     fetchDetail,
     resetCreateResult,
   };
-};
+};

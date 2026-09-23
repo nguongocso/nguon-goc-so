@@ -52,4 +52,4 @@ export const useProcurementEvent = (): UseProcurementEventResult => {
   };
 
   return { data, isLoading, error, submit, reset };
-};
+};

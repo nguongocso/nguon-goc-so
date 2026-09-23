@@ -105,4 +105,4 @@ export const getActionLabel = (action: string): string => {
  */
 export const getActionColor = (action: string): string => {
   return ACTION_COLORS[action] || 'bg-muted text-muted-foreground';
-};
+};

@@ -29,4 +29,4 @@ export const getFailedLogs = async (page: number, size: number): Promise<PageRes
     params: { page, size },
   });
   return response.data.data;
-};
+};

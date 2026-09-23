@@ -56,4 +56,4 @@ export const scanLookupTraceCode = async (
   );
 
   return response.data.data;
-};
+};

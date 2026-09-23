@@ -12,4 +12,4 @@ export const verifyChainIntegrity = async (
     `/shipments/${shipmentId}/verify-chain`
   );
   return response.data.data;
-};
+};

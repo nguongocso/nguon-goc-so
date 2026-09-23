@@ -27,4 +27,4 @@ export const transportEventSchema = z.object({
 /**
  * Kiểu dữ liệu form ghi nhận sự kiện vận chuyển
  */
-export type TransportEventFormValues = z.infer<typeof transportEventSchema>;
+export type TransportEventFormValues = z.infer<typeof transportEventSchema>;
