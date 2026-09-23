@@ -33,7 +33,7 @@ import vn.nguongocso.permission.service.PermissionChecker;
 
 /**
  * Quản lý vùng trồng.
-*/
+ */
 @RestController
 @RequestMapping("/api/v1/farm-areas")
 @RequiredArgsConstructor

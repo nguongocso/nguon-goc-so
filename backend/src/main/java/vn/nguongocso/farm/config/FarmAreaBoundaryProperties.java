@@ -13,7 +13,7 @@ import org.springframework.validation.annotation.Validated;
 
 /**
  * Cấu hình nghiệp vụ khi cập nhật ranh giới vùng trồng.
-*/
+ */
 @Getter
 @Setter
 @Validated
