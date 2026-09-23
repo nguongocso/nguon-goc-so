@@ -34,9 +34,6 @@ public class PartnerLotDossierResponse {
     @JsonProperty("is_test")
     private Boolean isTest;
 
-    /**
-     * Lấy cờ dữ liệu thử nghiệm theo định dạng camel.
-     */
     @JsonProperty("isTest")
     public Boolean getIsTestCamel() {
         return isTest;
@@ -45,9 +42,6 @@ public class PartnerLotDossierResponse {
     @JsonProperty("test_notice")
     private String testNotice;
 
-    /**
-     * Lấy thông điệp dữ liệu thử nghiệm theo định dạng camel.
-     */
     @JsonProperty("testNotice")
     public String getTestNoticeCamel() {
         return testNotice;

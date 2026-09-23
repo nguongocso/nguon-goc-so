@@ -36,7 +36,6 @@ import vn.nguongocso.permission.service.PermissionChecker;
 @RequiredArgsConstructor
 public class ProductCategoryController {
     private final ProductCategoryService productCategoryService;
-
     private final PermissionChecker permissionChecker;
 
     /**

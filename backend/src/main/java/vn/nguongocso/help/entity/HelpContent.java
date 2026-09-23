@@ -28,7 +28,6 @@ import org.hibernate.type.SqlTypes;
 @Setter
 @NoArgsConstructor
 public class HelpContent {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)

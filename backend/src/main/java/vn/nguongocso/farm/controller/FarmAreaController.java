@@ -39,9 +39,7 @@ import vn.nguongocso.permission.service.PermissionChecker;
 @RequiredArgsConstructor
 public class FarmAreaController {
     private final FarmAreaService farmAreaService;
-
     private final FarmAreaBoundaryService farmAreaBoundaryService;
-
     private final PermissionChecker permissionChecker;
 
     /** Lấy danh sách vùng trồng. */

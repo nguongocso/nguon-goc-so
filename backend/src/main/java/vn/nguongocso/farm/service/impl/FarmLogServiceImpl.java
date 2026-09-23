@@ -56,6 +56,24 @@ public class FarmLogServiceImpl implements FarmLogService {
     private final Clock clock;
     private final MilestoneReminderService milestoneReminderService;
 
+    private static final String EVENT_RECORDER_ROLE = "VT-03";
+    private static final String ORG_MANAGER_ROLE = "VT-02";
+    private static final String CREATE_PERMISSION_MESSAGE = "Bạn không có quyền ghi nhật ký canh tác.";
+    private static final String VIEW_PERMISSION_MESSAGE = "Bạn không có quyền xem lịch sử nhật ký canh tác.";
+    private static final String CORRECT_PERMISSION_MESSAGE = "Bạn không có quyền đính chính nhật ký canh tác.";
+    private static final String CORRECT_NOT_OWNER_MESSAGE = "Bạn chỉ được đính chính nhật ký do bạn ghi.";
+    private static final String FARM_LOG_NOT_FOUND_MESSAGE = "Không tìm thấy nhật ký canh tác";
+    private static final String NO_CHANGED_FIELD_MESSAGE = "Phải có ít nhất một trường được đính chính so với bản gốc.";
+    private static final String REASON_REQUIRED_MESSAGE = "Lý do đính chính không được để trống";
+    private static final String ACTIVATED_TRACE_CODE_MESSAGE = "Lô sản xuất đã kích hoạt mã truy xuất. Bạn không thể đính chính nhật ký này.";
+    private static final String ORGANIZATION_ACCESS_MESSAGE = "Bạn không thuộc tổ chức của lô sản xuất.";
+    private static final String PRODUCTION_LOT_NOT_FOUND_MESSAGE = "Không tìm thấy lô sản xuất";
+    private static final String INVALID_LOT_STATUS_MESSAGE = "Chỉ được ghi nhật ký cho lô đã duyệt hoặc đang thu hoạch.";
+    private static final String CANCELLED_LOT_MESSAGE = "Lô sản xuất đã bị hủy, không thể thao tác nhật ký canh tác.";
+    private static final Sort FARM_LOG_SORT = Sort.by(
+            Sort.Order.desc("executedDate"),
+            Sort.Order.desc("createdAt"));
+
     /** Khởi tạo service nhật ký canh tác. */
     public FarmLogServiceImpl(
             FarmLogRepository farmLogRepository,
@@ -86,25 +104,6 @@ public class FarmLogServiceImpl implements FarmLogService {
         this.clock = clock;
         this.milestoneReminderService = milestoneReminderService;
     }
-
-    private static final String EVENT_RECORDER_ROLE = "VT-03";
-    private static final String ORG_MANAGER_ROLE = "VT-02";
-    private static final String CREATE_PERMISSION_MESSAGE = "Bạn không có quyền ghi nhật ký canh tác.";
-    private static final String VIEW_PERMISSION_MESSAGE = "Bạn không có quyền xem lịch sử nhật ký canh tác.";
-    private static final String CORRECT_PERMISSION_MESSAGE = "Bạn không có quyền đính chính nhật ký canh tác.";
-    private static final String CORRECT_NOT_OWNER_MESSAGE = "Bạn chỉ được đính chính nhật ký do bạn ghi.";
-    private static final String FARM_LOG_NOT_FOUND_MESSAGE = "Không tìm thấy nhật ký canh tác";
-    private static final String NO_CHANGED_FIELD_MESSAGE = "Phải có ít nhất một trường được đính chính so với bản gốc.";
-    private static final String REASON_REQUIRED_MESSAGE = "Lý do đính chính không được để trống";
-    private static final String ACTIVATED_TRACE_CODE_MESSAGE =
-            "Lô sản xuất đã kích hoạt mã truy xuất. Bạn không thể đính chính nhật ký này.";
-    private static final String ORGANIZATION_ACCESS_MESSAGE = "Bạn không thuộc tổ chức của lô sản xuất.";
-    private static final String PRODUCTION_LOT_NOT_FOUND_MESSAGE = "Không tìm thấy lô sản xuất";
-    private static final String INVALID_LOT_STATUS_MESSAGE = "Chỉ được ghi nhật ký cho lô đã duyệt hoặc đang thu hoạch.";
-    private static final String CANCELLED_LOT_MESSAGE = "Lô sản xuất đã bị hủy, không thể thao tác nhật ký canh tác.";
-    private static final Sort FARM_LOG_SORT = Sort.by(
-            Sort.Order.desc("executedDate"),
-            Sort.Order.desc("createdAt"));
 
     /** Tạo mới nhật ký canh tác cho lô sản xuất. */
     @Override
@@ -207,8 +206,7 @@ public class FarmLogServiceImpl implements FarmLogService {
 
     /** Tìm bản ghi có hiệu lực hiện tại trong chuỗi đính chính. */
     private FarmLog findLatestEffectiveVersion(FarmLog root) {
-        List<FarmLog> corrections =
-                farmLogRepository.findByOriginalFarmLogId_IdOrderByCreatedAtDesc(root.getId());
+        List<FarmLog> corrections = farmLogRepository.findByOriginalFarmLogId_IdOrderByCreatedAtDesc(root.getId());
 
         for (FarmLog correction : corrections) {
             if (!correction.isCorrected()) {
@@ -233,13 +231,12 @@ public class FarmLogServiceImpl implements FarmLogService {
             throw new BusinessException(HttpStatus.CONFLICT, ACTIVATED_TRACE_CODE_MESSAGE);
         }
 
-        boolean changed =
-                isChanged(data.getActivityType(), effective.getActivityType())
-                        || isChanged(data.getMaterial(), effective.getMaterial())
-                        || isChanged(data.getQuantity(), effective.getQuantity())
-                        || isChanged(data.getUnit(), effective.getUnit())
-                        || isChanged(data.getExecutedDate(), effective.getExecutedDate())
-                        || isChanged(data.getNotes(), effective.getNotes());
+        boolean changed = isChanged(data.getActivityType(), effective.getActivityType())
+                || isChanged(data.getMaterial(), effective.getMaterial())
+                || isChanged(data.getQuantity(), effective.getQuantity())
+                || isChanged(data.getUnit(), effective.getUnit())
+                || isChanged(data.getExecutedDate(), effective.getExecutedDate())
+                || isChanged(data.getNotes(), effective.getNotes());
 
         if (!changed) {
             throw new BusinessException(NO_CHANGED_FIELD_MESSAGE);

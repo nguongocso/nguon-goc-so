@@ -27,17 +27,14 @@ import org.hibernate.type.SqlTypes;
  * Thực thể đếm lượt gọi theo ngày của khóa truy cập đối tác.
 */
 @Entity
-@Table(name = "partner_api_key_daily_usage",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uq_partner_api_key_daily_usage",
-                columnNames = { "api_key_id", "usage_date" }))
+@Table(name = "partner_api_key_daily_usage", uniqueConstraints = @UniqueConstraint(name = "uq_partner_api_key_daily_usage", columnNames = {
+        "api_key_id", "usage_date" }))
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class PartnerApiKeyDailyUsage {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)

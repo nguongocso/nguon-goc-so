@@ -32,27 +32,18 @@ public class CreateTestApiKeyRequest {
     @Future(message = "Ngày hết hạn phải ở thời điểm tương lai")
     private LocalDateTime expiresAt;
 
-    /**
-     * Gán tên đối tác khi chưa có.
-     */
     public void setName(String name) {
         if (this.partnerName == null || this.partnerName.isBlank()) {
             this.partnerName = name;
         }
     }
 
-    /**
-     * Gán thời hạn theo số ngày khi chưa có.
-     */
     public void setExpireDays(Integer expireDays) {
         if (this.expiresAt == null && expireDays != null && expireDays > 0) {
             this.expiresAt = LocalDateTime.now().plusDays(expireDays);
         }
     }
 
-    /**
-     * Gán hạn mức khi chưa có.
-     */
     public void setRateLimit(Integer rateLimit) {
         if (this.rateLimitPerHour == null) {
             this.rateLimitPerHour = rateLimit;

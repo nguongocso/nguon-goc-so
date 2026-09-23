@@ -43,9 +43,6 @@ public class PartnerApiKeyResponse {
     @JsonProperty("is_test")
     private Boolean isTest;
 
-    /**
-     * Lấy cờ khóa thử nghiệm theo định dạng camel.
-     */
     @JsonProperty("isTest")
     public Boolean getIsTestCamel() {
         return isTest;

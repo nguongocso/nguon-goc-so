@@ -9,13 +9,9 @@ import org.springframework.context.ApplicationEvent;
 */
 public class ProductFeedbackSubmittedEvent extends ApplicationEvent {
     private final UUID feedbackId;
-
     private final UUID productionLotId;
-
     private final String productionLotName;
-
     private final UUID organizationId;
-
     private final String content;
 
     /** Khởi tạo sự kiện phản hồi sản phẩm được gửi. */

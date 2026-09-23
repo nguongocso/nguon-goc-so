@@ -40,7 +40,6 @@ import vn.nguongocso.farm.enums.FarmActivityType;
 @AllArgsConstructor
 @Builder
 public class FarmLog {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id")

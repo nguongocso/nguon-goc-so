@@ -211,11 +211,11 @@ public class ApiKeyWarningService {
         try {
             notificationService.sendHandoverNotification(
                     QUOTA_TITLE,
-"Khóa truy cập của đối tác \"" + partnerName + "\" đã dùng "
-                                    + usedCalls + "/" + rateLimitPerHour
-                                    + " lượt gọi trong giờ hiện tại (đạt " + percent
-                                    + "%, ngưỡng cảnh báo " + apiKeyQuotaPolicy.warningThresholdPercent()
-                                    + "%). Vui lòng nâng hạn mức hoặc điều tiết tần suất gọi.",
+                    "Khóa truy cập của đối tác \"" + partnerName + "\" đã dùng "
+                            + usedCalls + "/" + rateLimitPerHour
+                            + " lượt gọi trong giờ hiện tại (đạt " + percent
+                            + "%, ngưỡng cảnh báo " + apiKeyQuotaPolicy.warningThresholdPercent()
+                            + "%). Vui lòng nâng hạn mức hoặc điều tiết tần suất gọi.",
                     apiKeyId,
                     organizationId);
             return true;

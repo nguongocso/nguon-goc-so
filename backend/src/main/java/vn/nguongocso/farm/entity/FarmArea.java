@@ -41,7 +41,6 @@ import vn.nguongocso.organization.entity.Organization;
 @AllArgsConstructor
 @Builder
 public class FarmArea {
-
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -87,7 +86,6 @@ public class FarmArea {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    /** Khởi tạo ID và thời điểm tạo, cập nhật trước khi lưu mới. */
     @PrePersist
     protected void prePersist() {
         if (id == null) {
@@ -102,7 +100,6 @@ public class FarmArea {
         updatedAt = now;
     }
 
-    /** Cập nhật thời điểm sửa đổi trước khi lưu bản ghi hiện có. */
     @PreUpdate
     protected void preUpdate() {
         updatedAt = LocalDateTime.now();
