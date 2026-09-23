@@ -25,9 +25,7 @@ import org.hibernate.type.SqlTypes;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.event.enums.ChainEventType;
 
-/**
- * Entity nhật ký sự kiện bị chặn (ghi lỗi).
- */
+/** Entity nhật ký sự kiện bị chặn (ghi lỗi). */
 @Entity
 @Table(name = "failed_event_logs")
 @Getter
@@ -36,7 +34,6 @@ import vn.nguongocso.event.enums.ChainEventType;
 @AllArgsConstructor
 @Builder
 public class FailedEventLog {
-
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.CHAR)

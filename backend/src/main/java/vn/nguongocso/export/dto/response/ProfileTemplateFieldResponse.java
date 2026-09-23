@@ -9,9 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.export.enums.ProfileFieldGroup;
 
-/**
- * DTO thông tin trường cấu hình trong mẫu hồ sơ trả về cho client.
- */
+/** DTO thông tin trường cấu hình trong mẫu hồ sơ trả về cho client. */
 @Getter
 @Setter
 @NoArgsConstructor

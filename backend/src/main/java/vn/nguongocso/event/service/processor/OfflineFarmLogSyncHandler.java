@@ -12,9 +12,7 @@ import vn.nguongocso.farm.dto.response.FarmLogResponse;
 import vn.nguongocso.farm.service.FarmLogService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
-/**
- * Handler xử lý đồng bộ nhật ký canh tác (FARM_LOG) ghi nhận ngoại tuyến.
- */
+/** Handler xử lý đồng bộ nhật ký canh tác (FARM_LOG) ghi nhận ngoại tuyến. */
 @Component
 @RequiredArgsConstructor
 public class OfflineFarmLogSyncHandler {

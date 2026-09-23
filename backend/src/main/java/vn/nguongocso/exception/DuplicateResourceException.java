@@ -2,9 +2,8 @@ package vn.nguongocso.exception;
 
 import org.springframework.http.HttpStatus;
 
-/** Lớp ngoại lệ dùng để biểu thị lỗi khi có tài nguyên trùng lặp trong ứng dụng. */
+/** Ngoại lệ dùng khi phát hiện tài nguyên bị trùng lặp trong hệ thống. */
 public class DuplicateResourceException extends BusinessException {
-
     public DuplicateResourceException(String message) {
         super(HttpStatus.CONFLICT, message);
     }

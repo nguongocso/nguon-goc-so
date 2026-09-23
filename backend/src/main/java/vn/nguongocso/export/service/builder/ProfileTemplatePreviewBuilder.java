@@ -59,7 +59,10 @@ public class ProfileTemplatePreviewBuilder {
      * @return Map dữ liệu snapshot thuần túy đã materialize 100%
      */
     @Transactional(readOnly = true)
-    public Map<String, Object> buildPreviewSnapshot(Shipment shipment, ProfileTemplate template, Set<String> selectedFieldKeys) {
+    public Map<String, Object> buildPreviewSnapshot(
+            Shipment shipment,
+            ProfileTemplate template,
+            Set<String> selectedFieldKeys) {
         Map<String, Object> preview = new LinkedHashMap<>();
         preview.put("shipmentId", shipment.getId());
         preview.put("appliedTemplate", buildAppliedTemplateInfo(template, selectedFieldKeys.size()));
@@ -100,7 +103,10 @@ public class ProfileTemplatePreviewBuilder {
         return appliedTemplateInfo;
     }
 
-    private void buildOrganizationSection(Map<String, Object> preview, Organization org, Set<String> selectedFieldKeys) {
+    private void buildOrganizationSection(
+            Map<String, Object> preview,
+            Organization org,
+            Set<String> selectedFieldKeys) {
         if (org == null) {
             return;
         }
@@ -128,7 +134,9 @@ public class ProfileTemplatePreviewBuilder {
         Map<String, Object> farmAreaData = new LinkedHashMap<>();
         addFieldIfSelected(farmAreaData, "name", "farmArea.name", selectedFieldKeys, farmArea.getName());
         addFieldIfSelected(farmAreaData, "location", "farmArea.location", selectedFieldKeys,
-                farmArea.getLocation() != null ? (farmArea.getLocation().getY() + ", " + farmArea.getLocation().getX()) : null);
+                farmArea.getLocation() != null
+                        ? farmArea.getLocation().getY() + ", " + farmArea.getLocation().getX()
+                        : null);
         addFieldIfSelected(farmAreaData, "area", "farmArea.area", selectedFieldKeys, farmArea.getArea());
         addFieldIfSelected(farmAreaData, "areaUnit", "farmArea.areaUnit", selectedFieldKeys,
                 farmArea.getAreaUnit() != null ? ExportDisplayFormatter.formatAreaUnit(farmArea.getAreaUnit()) : null);
@@ -141,16 +149,32 @@ public class ProfileTemplatePreviewBuilder {
         }
     }
 
-    private void buildProductionLotSection(Map<String, Object> preview, ProductionLot lot, Set<String> selectedFieldKeys) {
+    private void buildProductionLotSection(
+            Map<String, Object> preview,
+            ProductionLot lot,
+            Set<String> selectedFieldKeys) {
         Map<String, Object> lotData = new LinkedHashMap<>();
         addFieldIfSelected(lotData, "name", "productionLot.name", selectedFieldKeys, lot.getName());
         addFieldIfSelected(lotData, "productCategory", "productionLot.productCategory", selectedFieldKeys,
                 lot.getProductCategory() != null ? lot.getProductCategory().getName() : null);
-        addFieldIfSelected(lotData, "plantingDate", "productionLot.plantingDate", selectedFieldKeys, lot.getPlantingDate());
-        addFieldIfSelected(lotData, "harvestDate", "productionLot.harvestDate", selectedFieldKeys, lot.getHarvestDate());
-        addFieldIfSelected(lotData, "expectedQuantity", "productionLot.expectedQuantity", selectedFieldKeys, lot.getExpectedQuantity());
-        addFieldIfSelected(lotData, "expectedQuantityUnit", "productionLot.expectedQuantityUnit", selectedFieldKeys, lot.getExpectedQuantityUnit());
-        addFieldIfSelected(lotData, "actualQuantity", "productionLot.actualQuantity", selectedFieldKeys, lot.getActualQuantity());
+        addFieldIfSelected(
+                lotData, "plantingDate", "productionLot.plantingDate", selectedFieldKeys, lot.getPlantingDate());
+        addFieldIfSelected(
+                lotData, "harvestDate", "productionLot.harvestDate", selectedFieldKeys, lot.getHarvestDate());
+        addFieldIfSelected(
+                lotData,
+                "expectedQuantity",
+                "productionLot.expectedQuantity",
+                selectedFieldKeys,
+                lot.getExpectedQuantity());
+        addFieldIfSelected(
+                lotData,
+                "expectedQuantityUnit",
+                "productionLot.expectedQuantityUnit",
+                selectedFieldKeys,
+                lot.getExpectedQuantityUnit());
+        addFieldIfSelected(
+                lotData, "actualQuantity", "productionLot.actualQuantity", selectedFieldKeys, lot.getActualQuantity());
         addFieldIfSelected(lotData, "status", "productionLot.status", selectedFieldKeys,
                 lot.getStatus() != null ? ExportDisplayFormatter.formatProductionLotStatus(lot.getStatus()) : null);
         if (!lotData.isEmpty()) {
@@ -161,10 +185,22 @@ public class ProfileTemplatePreviewBuilder {
     private void buildShipmentSection(Map<String, Object> preview, Shipment shipment, Set<String> selectedFieldKeys) {
         Map<String, Object> shipmentData = new LinkedHashMap<>();
         addFieldIfSelected(shipmentData, "name", "shipment.name", selectedFieldKeys, shipment.getName());
-        addFieldIfSelected(shipmentData, "totalQuantity", "shipment.totalQuantity", selectedFieldKeys, shipment.getTotalQuantity());
-        addFieldIfSelected(shipmentData, "packagingInfo", "shipment.packagingInfo", selectedFieldKeys, shipment.getPackagingInfo());
+        addFieldIfSelected(
+                shipmentData,
+                "totalQuantity",
+                "shipment.totalQuantity",
+                selectedFieldKeys,
+                shipment.getTotalQuantity());
+        addFieldIfSelected(
+                shipmentData,
+                "packagingInfo",
+                "shipment.packagingInfo",
+                selectedFieldKeys,
+                shipment.getPackagingInfo());
         addFieldIfSelected(shipmentData, "status", "shipment.status", selectedFieldKeys,
-                shipment.getStatus() != null ? ExportDisplayFormatter.formatShipmentStatus(shipment.getStatus()) : null);
+                shipment.getStatus() != null
+                        ? ExportDisplayFormatter.formatShipmentStatus(shipment.getStatus())
+                        : null);
         addFieldIfSelected(shipmentData, "createdAt", "shipment.createdAt", selectedFieldKeys, shipment.getCreatedAt());
         if (!shipmentData.isEmpty()) {
             preview.put("shipment", shipmentData);
@@ -180,7 +216,9 @@ public class ProfileTemplatePreviewBuilder {
         for (FarmLog l : logs) {
             Map<String, Object> item = new LinkedHashMap<>();
             addFieldIfSelected(item, "activityType", "farmLog.activityType", selectedFieldKeys,
-                    l.getActivityType() != null ? ExportDisplayFormatter.formatFarmActivityType(l.getActivityType()) : null);
+                    l.getActivityType() != null
+                            ? ExportDisplayFormatter.formatFarmActivityType(l.getActivityType())
+                            : null);
             addFieldIfSelected(item, "executedDate", "farmLog.executedDate", selectedFieldKeys, l.getExecutedDate());
             addFieldIfSelected(item, "material", "farmLog.material", selectedFieldKeys, l.getMaterial());
             addFieldIfSelected(item, "quantity", "farmLog.quantity", selectedFieldKeys, l.getQuantity());
@@ -207,7 +245,8 @@ public class ProfileTemplatePreviewBuilder {
         if (!hasAnyPrefixSelected("certification.", selectedFieldKeys)) {
             return;
         }
-        List<ProductionLotCertification> certs = productionLotCertificationRepository.findByProductionLotIdIn(List.of(lotId));
+        List<ProductionLotCertification> certs =
+                productionLotCertificationRepository.findByProductionLotIdIn(List.of(lotId));
         List<Map<String, Object>> certList = new ArrayList<>();
         for (ProductionLotCertification plc : certs) {
             if (plc.getCertification() != null) {
@@ -216,9 +255,11 @@ public class ProfileTemplatePreviewBuilder {
                 addFieldIfSelected(item, "name", "certification.name", selectedFieldKeys, c.getName());
                 addFieldIfSelected(item, "standardName", "certification.standardName", selectedFieldKeys,
                         c.getStandard() != null ? c.getStandard().getName() : null);
-                addFieldIfSelected(item, "certificationCode", "certification.certificationCode", selectedFieldKeys, c.getCode());
+                addFieldIfSelected(
+                        item, "certificationCode", "certification.certificationCode", selectedFieldKeys, c.getCode());
                 addFieldIfSelected(item, "issueDate", "certification.issueDate", selectedFieldKeys, c.getIssueDate());
-                addFieldIfSelected(item, "expiryDate", "certification.expiryDate", selectedFieldKeys, c.getExpiryDate());
+                addFieldIfSelected(
+                        item, "expiryDate", "certification.expiryDate", selectedFieldKeys, c.getExpiryDate());
                 addFieldIfSelected(item, "certifier", "certification.certifier", selectedFieldKeys, c.getIssuedBy());
                 if (!item.isEmpty()) {
                     certList.add(item);
@@ -234,7 +275,8 @@ public class ProfileTemplatePreviewBuilder {
         if (!hasAnyPrefixSelected("inspection.", selectedFieldKeys)) {
             return;
         }
-        List<InspectionRequest> inspections = inspectionRequestRepository.findByProductionLot_IdOrderByCreatedAtDesc(lotId);
+        List<InspectionRequest> inspections =
+                inspectionRequestRepository.findByProductionLot_IdOrderByCreatedAtDesc(lotId);
         List<Map<String, Object>> inspList = new ArrayList<>();
         for (InspectionRequest ir : inspections) {
             appendInspectionRequestItems(ir, selectedFieldKeys, inspList);
@@ -271,8 +313,10 @@ public class ProfileTemplatePreviewBuilder {
             InspectionRequest ir, InspectionCriterion c,
             InspectionCriterionResult res, Set<String> selectedFieldKeys) {
         Map<String, Object> item = new LinkedHashMap<>();
-        addFieldIfSelected(item, "sampleSentDate", "inspection.sampleSentDate", selectedFieldKeys, ir.getSampleSentDate());
-        addFieldIfSelected(item, "inspectionUnit", "inspection.inspectionUnit", selectedFieldKeys, ir.getInspectionUnit());
+        addFieldIfSelected(
+                item, "sampleSentDate", "inspection.sampleSentDate", selectedFieldKeys, ir.getSampleSentDate());
+        addFieldIfSelected(
+                item, "inspectionUnit", "inspection.inspectionUnit", selectedFieldKeys, ir.getInspectionUnit());
 
         String critLabel = c.getCriterionName() != null ? c.getCriterionName() : c.getCriterionCode();
         if (c.getStandard() != null && c.getStandard().getName() != null) {
@@ -283,22 +327,37 @@ public class ProfileTemplatePreviewBuilder {
         String outcome = res == null ? "Chưa có kết quả" : (Boolean.TRUE.equals(res.getPassed()) ? "Đạt" : "Không đạt");
         addFieldIfSelected(item, "passed", "inspection.passed", selectedFieldKeys, outcome);
         addFieldIfSelected(item, "status", "inspection.passed", selectedFieldKeys, outcome);
-        addFieldIfSelected(item, "resultDate", "inspection.resultDate", selectedFieldKeys, res != null ? res.getResultDate() : null);
-        addFieldIfSelected(item, "expiryDate", "inspection.expiryDate", selectedFieldKeys, res != null ? res.getExpiryDate() : null);
+        addFieldIfSelected(
+                item,
+                "resultDate",
+                "inspection.resultDate",
+                selectedFieldKeys,
+                res != null ? res.getResultDate() : null);
+        addFieldIfSelected(
+                item,
+                "expiryDate",
+                "inspection.expiryDate",
+                selectedFieldKeys,
+                res != null ? res.getExpiryDate() : null);
         return item;
     }
 
     private Map<String, Object> buildFallbackInspectionItem(InspectionRequest ir, Set<String> selectedFieldKeys) {
         Map<String, Object> item = new LinkedHashMap<>();
-        addFieldIfSelected(item, "sampleSentDate", "inspection.sampleSentDate", selectedFieldKeys, ir.getSampleSentDate());
-        addFieldIfSelected(item, "inspectionUnit", "inspection.inspectionUnit", selectedFieldKeys, ir.getInspectionUnit());
+        addFieldIfSelected(
+                item, "sampleSentDate", "inspection.sampleSentDate", selectedFieldKeys, ir.getSampleSentDate());
+        addFieldIfSelected(
+                item, "inspectionUnit", "inspection.inspectionUnit", selectedFieldKeys, ir.getInspectionUnit());
         String outcome = ir.getStatus() != null ? ir.getStatus().name() : null;
         addFieldIfSelected(item, "passed", "inspection.passed", selectedFieldKeys, outcome);
         addFieldIfSelected(item, "status", "inspection.passed", selectedFieldKeys, outcome);
         return item;
     }
 
-    private void buildTimelineEventsSection(Map<String, Object> preview, UUID shipmentId, Set<String> selectedFieldKeys) {
+    private void buildTimelineEventsSection(
+            Map<String, Object> preview,
+            UUID shipmentId,
+            Set<String> selectedFieldKeys) {
         if (!hasAnyPrefixSelected("chainEvent.", selectedFieldKeys)) {
             return;
         }
@@ -311,7 +370,9 @@ public class ProfileTemplatePreviewBuilder {
             addFieldIfSelected(item, "recordedAt", "chainEvent.recordedAt", selectedFieldKeys, ce.getRecordedAt());
             addFieldIfSelected(item, "recordedBy", "chainEvent.recordedBy", selectedFieldKeys,
                     ce.getRecordedBy() != null ? ce.getRecordedBy().getFullName() : null);
-            String locStr = ce.getLocation() != null ? (ce.getLocation().getY() + ", " + ce.getLocation().getX()) : null;
+            String locStr = ce.getLocation() != null
+                    ? ce.getLocation().getY() + ", " + ce.getLocation().getX()
+                    : null;
             addFieldIfSelected(item, "location", "chainEvent.location", selectedFieldKeys, locStr);
             addFieldIfSelected(item, "eventData", "chainEvent.eventData", selectedFieldKeys,
                     ExportDisplayFormatter.formatEventData(ce.getEventData(), "; "));
@@ -324,7 +385,12 @@ public class ProfileTemplatePreviewBuilder {
         }
     }
 
-    private void addFieldIfSelected(Map<String, Object> target, String outputKey, String fieldKey, Set<String> selectedFieldKeys, Object value) {
+    private void addFieldIfSelected(
+            Map<String, Object> target,
+            String outputKey,
+            String fieldKey,
+            Set<String> selectedFieldKeys,
+            Object value) {
         if (selectedFieldKeys.contains(fieldKey)) {
             target.put(outputKey, value);
         }

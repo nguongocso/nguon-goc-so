@@ -223,9 +223,7 @@ public class ExportCsvRenderer {
         return val != null ? val.toString() : "";
     }
 
-    /**
-     * Escape giá trị trường CSV theo chuẩn RFC 4180.
-     */
+    /** Escape giá trị trường CSV theo chuẩn RFC 4180. */
     public String escapeCsv(String value) {
         if (value == null) {
             return "";

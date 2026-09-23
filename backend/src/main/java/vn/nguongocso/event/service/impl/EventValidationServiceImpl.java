@@ -30,9 +30,7 @@ import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
-/**
- * Implementation xác thực tính hợp lệ của lô hàng/lô sản xuất trước khi ghi sự kiện.
- */
+/** Implementation xác thực tính hợp lệ của lô hàng/lô sản xuất trước khi ghi sự kiện. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -47,7 +45,9 @@ public class EventValidationServiceImpl implements EventValidationService {
 
     @Override
     public LotValidationResponse validateLot(UUID lotId, ChainEventType eventType, CustomUserDetails currentUser) {
-        if (eventType == ChainEventType.HARVEST || eventType == ChainEventType.PREPROCESSING || eventType == ChainEventType.PACKAGING) {
+        if (eventType == ChainEventType.HARVEST
+                || eventType == ChainEventType.PREPROCESSING
+                || eventType == ChainEventType.PACKAGING) {
             return validateProductionLot(lotId, eventType, currentUser);
         } else if (eventType == ChainEventType.TRANSPORT || eventType == ChainEventType.PROCUREMENT) {
             return validateShipment(lotId, eventType, currentUser);
@@ -55,7 +55,8 @@ public class EventValidationServiceImpl implements EventValidationService {
         throw new BusinessException("Loại sự kiện không được hỗ trợ để xác thực lô.");
     }
 
-    private LotValidationResponse validateProductionLot(UUID lotId, ChainEventType eventType, CustomUserDetails currentUser) {
+    private LotValidationResponse validateProductionLot(
+            UUID lotId, ChainEventType eventType, CustomUserDetails currentUser) {
         ProductionLot lot = productionLotRepository.findById(lotId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất."));
 
@@ -68,7 +69,9 @@ public class EventValidationServiceImpl implements EventValidationService {
             message = "Lô sản xuất chưa được duyệt, không thể ghi sự kiện thu hoạch.";
         } else if (eventType == ChainEventType.PREPROCESSING && lot.getStatus() != ProductionLotStatus.HARVESTED) {
             message = "Chỉ được ghi nhận sự kiện sơ chế cho lô đã thu hoạch.";
-        } else if (eventType == ChainEventType.PACKAGING && (lot.getStatus() != ProductionLotStatus.HARVESTED && lot.getStatus() != ProductionLotStatus.PREPROCESSED)) {
+        } else if (eventType == ChainEventType.PACKAGING
+                && lot.getStatus() != ProductionLotStatus.HARVESTED
+                && lot.getStatus() != ProductionLotStatus.PREPROCESSED) {
             message = "Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch hoặc đã sơ chế.";
         } else if (lot.getStatus() == ProductionLotStatus.CANCELLED) {
             message = "Lô sản xuất đã bị hủy, không thể ghi sự kiện.";
@@ -90,7 +93,8 @@ public class EventValidationServiceImpl implements EventValidationService {
                 .build();
     }
 
-    private LotValidationResponse validateShipment(UUID lotId, ChainEventType eventType, CustomUserDetails currentUser) {
+    private LotValidationResponse validateShipment(
+            UUID lotId, ChainEventType eventType, CustomUserDetails currentUser) {
         Shipment shipment = shipmentRepository.findById(lotId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy lô hàng."));
 
@@ -100,7 +104,8 @@ public class EventValidationServiceImpl implements EventValidationService {
         if (eventType == ChainEventType.TRANSPORT
                 && !shipment.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
             message = "Bạn không thuộc tổ chức quản lý của lô hàng này.";
-        } else if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
+        } else if (shipment.getStatus() == ShipmentStatus.RECALLED
+                || shipment.getStatus() == ShipmentStatus.RECALLING) {
             message = "Lô hàng đã bị thu hồi, không thể ghi sự kiện.";
         } else if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
             message = "Lô hàng chưa được kích hoạt, không thể ghi sự kiện.";

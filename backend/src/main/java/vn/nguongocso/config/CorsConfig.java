@@ -3,7 +3,6 @@ package vn.nguongocso.config;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,14 +10,13 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-/**
- * Cấu hình chia sẻ tài nguyên giữa các nguồn (CORS) cho ứng dụng.
- */
+import lombok.RequiredArgsConstructor;
+
+/** Cấu hình chia sẻ tài nguyên giữa các nguồn (CORS) cho ứng dụng. */
 @Configuration
 @RequiredArgsConstructor
 @EnableConfigurationProperties(CorsProperties.class)
 public class CorsConfig {
-
     private static final List<String> DEFAULT_ALLOWED_ORIGINS = List.of(
             "http://localhost:3000",
             "http://localhost:5173",
@@ -32,11 +30,7 @@ public class CorsConfig {
 
     private final CorsProperties corsProperties;
 
-    /**
-     * Cấu hình nguồn CORS cho các request đến toàn bộ các endpoint.
-     *
-     * @return bean CorsConfigurationSource
-     */
+    /** Khởi tạo cấu hình nguồn CORS cho toàn bộ đường dẫn API. */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

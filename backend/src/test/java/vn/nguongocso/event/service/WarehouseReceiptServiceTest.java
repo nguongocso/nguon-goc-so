@@ -243,9 +243,7 @@ class WarehouseReceiptServiceTest {
         assertThat(txManager.rollbackCount).isEqualTo(0);
     }
 
-    /**
-     * TransactionManager ghi nhận số lần commit/rollback thực tế qua Spring proxy.
-     */
+    /** TransactionManager ghi nhận số lần commit/rollback thực tế qua Spring proxy. */
     private static class TrackingTransactionManager implements PlatformTransactionManager {
         int commitCount = 0;
         int rollbackCount = 0;

@@ -27,9 +27,7 @@ import vn.nguongocso.export.dto.request.ExportOpenDataRequest;
 import vn.nguongocso.export.service.ExportService;
 import vn.nguongocso.export.service.ProfileTemplateService;
 
-/**
- * Controller phụ trách xuất dữ liệu công khai và hồ sơ truy xuất theo mẫu đối tác.
- */
+/** Controller phụ trách xuất dữ liệu công khai và hồ sơ truy xuất theo mẫu đối tác. */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/export")
@@ -39,9 +37,7 @@ public class ExportController {
     private final ExportService exportService;
     private final ProfileTemplateService profileTemplateService;
 
-    /**
-     * Xuất dữ liệu open data theo định dạng yêu cầu.
-     */
+    /** Xuất dữ liệu open data theo định dạng yêu cầu. */
     @PostMapping("/open-data")
     @PreAuthorize("hasRole('VT-05')")
     public ResponseEntity<Resource> exportOpenData(

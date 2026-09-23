@@ -17,9 +17,7 @@ import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 
-/**
- * Tiện ích Việt hóa các giá trị Enum và dữ liệu hồ sơ xuất (PDF, CSV, JSON).
- */
+/** Tiện ích Việt hóa các giá trị Enum và dữ liệu hồ sơ xuất (PDF, CSV, JSON). */
 public final class ExportDisplayFormatter {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -32,9 +30,7 @@ public final class ExportDisplayFormatter {
         throw new UnsupportedOperationException("Utility class");
     }
 
-    /**
-     * Việt hóa Loại tổ chức.
-     */
+    /** Việt hóa Loại tổ chức. */
     public static String formatOrganizationType(OrganizationType type) {
         if (type == null) {
             return null;
@@ -47,9 +43,7 @@ public final class ExportDisplayFormatter {
         };
     }
 
-    /**
-     * Việt hóa Trạng thái tổ chức.
-     */
+    /** Việt hóa Trạng thái tổ chức. */
     public static String formatOrganizationStatus(OrganizationStatus status) {
         if (status == null) {
             return null;
@@ -60,9 +54,7 @@ public final class ExportDisplayFormatter {
         };
     }
 
-    /**
-     * Việt hóa Trạng thái lô sản xuất.
-     */
+    /** Việt hóa Trạng thái lô sản xuất. */
     public static String formatProductionLotStatus(ProductionLotStatus status) {
         if (status == null) {
             return null;
@@ -70,9 +62,7 @@ public final class ExportDisplayFormatter {
         return LOT_STATUS_MAP.get(status);
     }
 
-    /**
-     * Việt hóa Trạng thái lô hàng vận chuyển.
-     */
+    /** Việt hóa Trạng thái lô hàng vận chuyển. */
     public static String formatShipmentStatus(ShipmentStatus status) {
         if (status == null) {
             return null;
@@ -87,9 +77,7 @@ public final class ExportDisplayFormatter {
         };
     }
 
-    /**
-     * Việt hóa Hoạt động canh tác.
-     */
+    /** Việt hóa Hoạt động canh tác. */
     public static String formatFarmActivityType(FarmActivityType type) {
         if (type == null) {
             return null;
@@ -105,9 +93,7 @@ public final class ExportDisplayFormatter {
         };
     }
 
-    /**
-     * Việt hóa Loại sự kiện chuỗi cung ứng.
-     */
+    /** Việt hóa Loại sự kiện chuỗi cung ứng. */
     public static String formatChainEventType(ChainEventType type) {
         if (type == null) {
             return null;
@@ -115,9 +101,7 @@ public final class ExportDisplayFormatter {
         return CHAIN_EVENT_TYPE_MAP.get(type);
     }
 
-    /**
-     * Việt hóa Đơn vị diện tích.
-     */
+    /** Việt hóa Đơn vị diện tích. */
     public static String formatAreaUnit(AreaUnit unit) {
         if (unit == null) {
             return null;
@@ -128,9 +112,7 @@ public final class ExportDisplayFormatter {
         };
     }
 
-    /**
-     * Định dạng chi tiết dữ liệu sự kiện dạng văn bản tiếng Việt dễ hiểu.
-     */
+    /** Định dạng chi tiết dữ liệu sự kiện dạng văn bản tiếng Việt dễ hiểu. */
     public static String formatEventData(String rawJson, String delimiter) {
         if (rawJson == null || rawJson.isBlank()) {
             return "";

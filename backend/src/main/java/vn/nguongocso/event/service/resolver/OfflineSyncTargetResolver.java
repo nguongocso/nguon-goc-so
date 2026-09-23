@@ -91,8 +91,6 @@ public class OfflineSyncTargetResolver {
         return new SyncTargetInfo(lotId, lotCode);
     }
 
-    /**
-     * Bản ghi chứa định danh và mã hiển thị của đối tượng đồng bộ ngoại tuyến.
-     */
+    /** Bản ghi chứa định danh và mã hiển thị của đối tượng đồng bộ ngoại tuyến. */
     public record SyncTargetInfo(UUID lotId, String lotCode) {}
 }

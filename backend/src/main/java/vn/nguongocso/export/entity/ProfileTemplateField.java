@@ -23,9 +23,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import vn.nguongocso.export.enums.ProfileFieldGroup;
 
-/**
- * Thực thể lưu trữ trường thông tin được chọn trong một mẫu hồ sơ truy xuất.
- */
+/** Thực thể lưu trữ trường thông tin được chọn trong một mẫu hồ sơ truy xuất. */
 @Entity
 @Table(name = "profile_template_fields")
 @Getter

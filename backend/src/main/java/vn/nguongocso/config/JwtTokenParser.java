@@ -5,21 +5,19 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.stereotype.Component;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.stereotype.Component;
 
-/**
- * Thành phần phân tích cú pháp, xác thực chữ ký và trích xuất claims từ mã JWT.
- */
+/** Thành phần phân tích cú pháp, xác thực chữ ký và trích xuất thông tin từ mã JWT. */
 @Component
 @RequiredArgsConstructor
 @EnableConfigurationProperties(JwtProperties.class)
 public class JwtTokenParser {
-
     public static final String CLAIM_USER_ID = "userId";
     public static final String CLAIM_ORG_ID = "orgId";
     public static final String CLAIM_ORG_NAME = "orgName";
@@ -30,21 +28,12 @@ public class JwtTokenParser {
 
     private final JwtProperties jwtProperties;
 
-    /**
-     * Tạo khóa bí mật HMAC từ cấu hình.
-     *
-     * @return khóa HMAC dùng cho ký và kiểm tra JWT
-     */
+    /** Tạo khóa bí mật HMAC từ cấu hình. */
     public SecretKey getKey() {
         return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
-    /**
-     * Giải mã và xác thực chữ ký token.
-     *
-     * @param token chuỗi JWT
-     * @return payload chứa các claims
-     */
+    /** Giải mã và xác thực chữ ký của mã JWT. */
     public Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getKey())
@@ -53,12 +42,7 @@ public class JwtTokenParser {
                 .getPayload();
     }
 
-    /**
-     * Kiểm tra tính hợp lệ của token (chữ ký đúng định dạng, chưa hết hạn).
-     *
-     * @param token chuỗi JWT
-     * @return true nếu hợp lệ, ngược lại false
-     */
+    /** Kiểm tra tính hợp lệ của mã JWT. */
     public boolean validateToken(String token) {
         try {
             parseClaims(token);
@@ -68,44 +52,32 @@ public class JwtTokenParser {
         }
     }
 
-    /**
-     * Lấy loại token (ORG_SELECTION hoặc ACCESS).
-     */
+    /** Lấy loại mã JWT (ORG_SELECTION hoặc ACCESS). */
     public String getTokenType(String token) {
         return parseClaims(token).get(CLAIM_TOKEN_TYPE, String.class);
     }
 
-    /**
-     * Lấy username từ subject của token.
-     */
+    /** Lấy tên đăng nhập từ chủ thể của mã JWT. */
     public String getUsername(String token) {
         return parseClaims(token).getSubject();
     }
 
-    /**
-     * Lấy ID người dùng từ claim userId (phục hồi hành vi nguyên thủy, throw nếu null).
-     */
+    /** Lấy định danh người dùng từ claim userId (ném ngoại lệ nếu null). */
     public UUID getUserId(String token) {
         return UUID.fromString(parseClaims(token).get(CLAIM_USER_ID, String.class));
     }
 
-    /**
-     * Lấy ID tổ chức từ claim orgId (phục hồi hành vi nguyên thủy, throw nếu null).
-     */
+    /** Lấy định danh tổ chức từ claim orgId (ném ngoại lệ nếu null). */
     public UUID getOrganizationId(String token) {
         return UUID.fromString(parseClaims(token).get(CLAIM_ORG_ID, String.class));
     }
 
-    /**
-     * Lấy mã tổ chức từ claim orgCode.
-     */
+    /** Lấy mã tổ chức từ claim orgCode. */
     public String getOrganizationCode(String token) {
         return parseClaims(token).get(CLAIM_ORG_CODE, String.class);
     }
 
-    /**
-     * Lấy mã vai trò từ claim role.
-     */
+    /** Lấy mã vai trò từ claim role. */
     public String getRoleCode(String token) {
         return parseClaims(token).get(CLAIM_ROLE, String.class);
     }

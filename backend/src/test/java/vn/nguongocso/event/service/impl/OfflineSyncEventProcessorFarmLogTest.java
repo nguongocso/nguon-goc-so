@@ -36,9 +36,7 @@ import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
-/**
- * Kiểm thử đồng bộ nhật ký canh tác ngoại tuyến (NCL-10-CN-012).
- */
+/** Kiểm thử đồng bộ nhật ký canh tác ngoại tuyến (NCL-10-CN-012). */
 @ExtendWith(MockitoExtension.class)
 class OfflineSyncEventProcessorFarmLogTest {
 
@@ -70,7 +68,8 @@ class OfflineSyncEventProcessorFarmLogTest {
     private PermissionChecker permissionChecker;
 
     @org.mockito.Spy
-    private vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper offlineFarmLogPayloadMapper = new vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper();
+    private vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper offlineFarmLogPayloadMapper =
+            new vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper();
 
     private vn.nguongocso.event.service.processor.OfflineFarmLogSyncHandler offlineFarmLogSyncHandler;
     private vn.nguongocso.event.service.resolver.OfflineSyncTargetResolver offlineSyncTargetResolver;

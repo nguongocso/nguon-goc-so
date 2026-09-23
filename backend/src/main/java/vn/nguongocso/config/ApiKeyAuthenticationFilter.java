@@ -3,35 +3,30 @@ package vn.nguongocso.config;
 import java.io.IOException;
 import java.util.List;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
 
 /**
- * Filter kiểm tra và xác thực API Key từ bên thứ ba (QTN-20).
- * <p>
- * Bẫy tất cả các request đến đường dẫn {@code /api/v1/partner/**},
- * kiểm tra Header {@code X-API-KEY}, kiểm tra hạn mức gọi API trong 1 giờ
- * và tính hợp lệ của khóa (REVOKED / EXPIRED).
+ * Bộ lọc xác thực khóa API đối tác cho các đường dẫn tích hợp (QTN-20).
+ * Kiểm tra tính hợp lệ của khóa và giới hạn tần suất gọi API.
  */
 @Component
 @RequiredArgsConstructor
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
-
     private static final String API_KEY_HEADER = "X-API-KEY";
     private static final String API_KEY_HEADER_ALT = "X-Api-Key";
     private static final List<String> FILTER_PREFIXES = List.of(
@@ -53,7 +48,6 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
-
         PartnerApiKeyService partnerApiKeyService = partnerApiKeyServiceProvider.getIfAvailable();
         if (partnerApiKeyService == null) {
             filterChain.doFilter(request, response);
@@ -73,7 +67,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         } catch (BusinessException ex) {
             int status = HttpStatus.UNAUTHORIZED.value();
             if (ex.getMessage() != null && ex.getMessage().contains("vượt quá hạn mức")) {
-                status = HttpStatus.TOO_MANY_REQUESTS.value(); // HTTP 429 (QTN-20)
+                // QTN-20: Trả về HTTP 429 khi đối tác vượt hạn mức gọi API
+                status = HttpStatus.TOO_MANY_REQUESTS.value();
             }
 
             response.setStatus(status);

@@ -22,9 +22,7 @@ import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
-/**
- * Component xử lý nghiệp vụ hủy bản nháp lô hàng và hoàn lại dải mã truy xuất.
- */
+/** Component xử lý nghiệp vụ hủy bản nháp lô hàng và hoàn lại dải mã truy xuất. */
 @Slf4j
 @Component
 @RequiredArgsConstructor

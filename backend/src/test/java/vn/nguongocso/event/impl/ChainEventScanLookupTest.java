@@ -116,7 +116,12 @@ class ChainEventScanLookupTest {
                 .thenReturn(Optional.empty());
 
         chainScanLookupResolver = new ChainScanLookupResolver(
-                traceCodeRepository, chainEventRepository, organizationUserRepository, null, null, new com.fasterxml.jackson.databind.ObjectMapper()
+                traceCodeRepository,
+                chainEventRepository,
+                organizationUserRepository,
+                null,
+                null,
+                new com.fasterxml.jackson.databind.ObjectMapper()
         );
         chainEventService = new ChainEventServiceImpl(
                 chainEventRepository, null, null, null, null, chainScanLookupResolver, null

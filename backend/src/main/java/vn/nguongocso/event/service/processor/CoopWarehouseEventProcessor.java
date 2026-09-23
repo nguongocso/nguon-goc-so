@@ -1,7 +1,6 @@
 package vn.nguongocso.event.service.processor;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -9,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -134,13 +132,13 @@ public class CoopWarehouseEventProcessor {
         validateWarehouseEntry(shipment, currentUser);
 
         Point locationPoint = buildPoint(request.getLatitude(), request.getLongitude());
-        Map<String, Object> eventDataMap = buildWarehouseEntryDataMap(shipment, lot, request);
+        Map<String, Object> eventDataMap = CoopWarehouseEventDataBuilder.buildEntryData(shipment, lot, request);
         User actor = getActor(currentUser);
 
         ChainEvent chainEvent = ChainEvent.builder()
                 .shipment(shipment)
                 .eventType(ChainEventType.WAREHOUSE_ENTRY)
-                .eventData(toJson(eventDataMap))
+                .eventData(CoopWarehouseEventDataCodec.toJson(objectMapper, eventDataMap))
                 .location(locationPoint)
                 .recordedAt(request.getEntryTime())
                 .recordedBy(actor)
@@ -150,7 +148,10 @@ public class CoopWarehouseEventProcessor {
 
         chainEvent = chainEventHashRecorder.saveWithChainHash(chainEvent);
 
-        publishActivityLog(currentUser, "Ghi sự kiện nhập kho HTX cho lô hàng " + shipment.getName(), chainEvent.getId().toString());
+        publishActivityLog(
+                currentUser,
+                "Ghi sự kiện nhập kho HTX cho lô hàng " + shipment.getName(),
+                chainEvent.getId().toString());
 
         return CoopWarehouseEventResponse.builder()
                 .id(chainEvent.getId())
@@ -178,7 +179,8 @@ public class CoopWarehouseEventProcessor {
             if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
                 throw new BusinessException("Lô hàng đang hoặc đã bị thu hồi, không thể ghi sự kiện.");
             }
-            List<ChainEvent> shipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
+            List<ChainEvent> shipmentEvents = chainEventRepository
+                    .findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
             List<ChainEvent> entryEvents = shipmentEvents.stream()
                     .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_ENTRY && !e.isCorrection())
                     .sorted((a, b) -> b.getRecordedAt().compareTo(a.getRecordedAt()))
@@ -190,9 +192,12 @@ public class CoopWarehouseEventProcessor {
 
             if (!entryEvents.isEmpty()) {
                 LocalDateTime latestEntryRecorded = entryEvents.get(0).getRecordedAt();
-                boolean isExited = !exitEvents.isEmpty() && !exitEvents.get(0).getRecordedAt().isBefore(latestEntryRecorded);
+                boolean isExited = !exitEvents.isEmpty()
+                        && !exitEvents.get(0).getRecordedAt().isBefore(latestEntryRecorded);
                 if (!isExited) {
-                    throw new BusinessException("Lô hàng [" + shipment.getName() + "] hiện đang trong kho HTX, vui lòng ghi xuất kho trước khi nhập kho mới.");
+                    throw new BusinessException(
+                            "Lô hàng [" + shipment.getName()
+                                    + "] hiện đang trong kho HTX, vui lòng ghi xuất kho trước khi nhập kho mới.");
                 }
             }
         } catch (BusinessException e) {
@@ -212,17 +217,24 @@ public class CoopWarehouseEventProcessor {
         ProductionLot lot = shipment.getProductionLot();
         ExitValidationResult exitVal = validateWarehouseExit(shipment, request, currentUser);
 
-        DurationResult durationResult = calculateStorageDurations(exitVal.entryTime(), request.getExitTime(), lot);
+        CoopWarehouseEventDataBuilder.DurationResult durationResult =
+                CoopWarehouseEventDataBuilder.calculateStorageDuration(
+                        exitVal.entryTime(), request.getExitTime(), lot);
 
         Point locationPoint = buildPoint(request.getLatitude(), request.getLongitude());
-        Map<String, Object> eventDataMap = buildWarehouseExitDataMap(
-                shipment, lot, exitVal, request, durationResult);
+        Map<String, Object> eventDataMap = CoopWarehouseEventDataBuilder.buildExitData(
+                shipment,
+                lot,
+                exitVal.warehouseName(),
+                exitVal.entryTime(),
+                request,
+                durationResult);
         User actor = getActor(currentUser);
 
         ChainEvent chainEvent = ChainEvent.builder()
                 .shipment(shipment)
                 .eventType(ChainEventType.WAREHOUSE_EXIT)
-                .eventData(toJson(eventDataMap))
+                .eventData(CoopWarehouseEventDataCodec.toJson(objectMapper, eventDataMap))
                 .location(locationPoint)
                 .recordedAt(request.getExitTime())
                 .recordedBy(actor)
@@ -232,7 +244,10 @@ public class CoopWarehouseEventProcessor {
 
         chainEvent = chainEventHashRecorder.saveWithChainHash(chainEvent);
 
-        publishActivityLog(currentUser, "Ghi sự kiện xuất kho HTX cho lô hàng " + shipment.getName(), chainEvent.getId().toString());
+        publishActivityLog(
+                currentUser,
+                "Ghi sự kiện xuất kho HTX cho lô hàng " + shipment.getName(),
+                chainEvent.getId().toString());
 
         return CoopWarehouseEventResponse.builder()
                 .id(chainEvent.getId())
@@ -269,7 +284,8 @@ public class CoopWarehouseEventProcessor {
                 throw new BusinessException("Lô hàng đang hoặc đã bị thu hồi, không thể ghi sự kiện.");
             }
 
-            List<ChainEvent> shipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
+            List<ChainEvent> shipmentEvents = chainEventRepository
+                    .findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
             List<ChainEvent> entryEvents = shipmentEvents.stream()
                     .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_ENTRY && !e.isCorrection())
                     .sorted((a, b) -> b.getRecordedAt().compareTo(a.getRecordedAt()))
@@ -280,15 +296,21 @@ public class CoopWarehouseEventProcessor {
                     .toList();
 
             if (entryEvents.isEmpty()) {
-                throw new BusinessException("Lô hàng [" + shipment.getName() + "] chưa được ghi nhận nhập kho HTX. Vui lòng ghi sự kiện nhập kho trước khi xuất kho.");
+                throw new BusinessException(
+                        "Lô hàng [" + shipment.getName()
+                                + "] chưa được ghi nhận nhập kho HTX. "
+                                + "Vui lòng ghi sự kiện nhập kho trước khi xuất kho.");
             }
 
             ChainEvent latestEntry = entryEvents.get(0);
             if (!exitEvents.isEmpty() && !exitEvents.get(0).getRecordedAt().isBefore(latestEntry.getRecordedAt())) {
-                throw new BusinessException("Lô hàng [" + shipment.getName() + "] đã được ghi xuất kho rồi. Vui lòng ghi nhập kho mới trước khi xuất kho lại.");
+                throw new BusinessException(
+                        "Lô hàng [" + shipment.getName()
+                                + "] đã được ghi xuất kho rồi. "
+                                + "Vui lòng ghi nhập kho mới trước khi xuất kho lại.");
             }
 
-            LocalDateTime entryTime = extractEntryTime(latestEntry);
+            LocalDateTime entryTime = CoopWarehouseEventDataCodec.extractEntryTime(objectMapper, latestEntry);
             LocalDateTime exitTime = request.getExitTime();
             LocalDateTime now = clock != null ? LocalDateTime.now(clock) : LocalDateTime.now();
             if (exitTime.isAfter(now)) {
@@ -298,8 +320,10 @@ public class CoopWarehouseEventProcessor {
                 throw new BusinessException("Thời điểm xuất kho không được trước thời điểm nhập kho.");
             }
 
-            String warehouseName = extractStringField(latestEntry, "warehouseName");
-            String storageCondition = extractStringField(latestEntry, "storageCondition");
+            String warehouseName =
+                    CoopWarehouseEventDataCodec.extractStringField(objectMapper, latestEntry, "warehouseName");
+            String storageCondition =
+                    CoopWarehouseEventDataCodec.extractStringField(objectMapper, latestEntry, "storageCondition");
             return new ExitValidationResult(entryTime, warehouseName, storageCondition);
 
         } catch (BusinessException e) {
@@ -307,51 +331,6 @@ public class CoopWarehouseEventProcessor {
                     shipment.getId(), shipment.getName(), ChainEventType.WAREHOUSE_EXIT, e.getMessage(), currentUser);
             throw e;
         }
-    }
-
-    private LocalDateTime extractEntryTime(ChainEvent latestEntry) {
-        if (latestEntry.getEventData() != null) {
-            try {
-                Map<String, Object> data = objectMapper.readValue(latestEntry.getEventData(), new TypeReference<Map<String, Object>>() {});
-                if (data.get("entryTime") != null) {
-                    return LocalDateTime.parse(data.get("entryTime").toString());
-                }
-            } catch (Exception e) {
-                return latestEntry.getRecordedAt();
-            }
-        }
-        return latestEntry.getRecordedAt();
-    }
-
-    private String extractStringField(ChainEvent event, String key) {
-        if (event.getEventData() != null) {
-            try {
-                Map<String, Object> data = objectMapper.readValue(event.getEventData(), new TypeReference<Map<String, Object>>() {});
-                Object val = data.get(key);
-                return val != null ? val.toString() : null;
-            } catch (Exception e) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    private DurationResult calculateStorageDurations(LocalDateTime entryTime, LocalDateTime exitTime, ProductionLot lot) {
-        long storageDurationHours = Duration.between(entryTime, exitTime).toHours();
-        long storageDurationDays = Duration.between(entryTime, exitTime).toDays();
-
-        Integer maxAllowedStorageDays = (lot != null && lot.getProductCategory() != null)
-                ? lot.getProductCategory().getMaxStorageDays() : null;
-
-        boolean isStorageExceeded = false;
-        String warningMessage = null;
-        if (maxAllowedStorageDays != null && storageDurationDays > maxAllowedStorageDays) {
-            isStorageExceeded = true;
-            String categoryName = lot.getProductCategory() != null ? lot.getProductCategory().getName() : "";
-            warningMessage = "CẢNH BÁO: Thời gian lưu kho (" + storageDurationDays + " ngày) vượt quá ngưỡng bảo quản cho phép (" + maxAllowedStorageDays + " ngày) cho loại nông sản [" + categoryName + "]";
-        }
-
-        return new DurationResult(storageDurationHours, storageDurationDays, maxAllowedStorageDays, isStorageExceeded, warningMessage);
     }
 
     // ==========================================
@@ -375,7 +354,9 @@ public class CoopWarehouseEventProcessor {
     private void validateOrganization(Shipment shipment, CustomUserDetails currentUser) {
         if ("VT-01".equals(currentUser.getRoleCode())) return;
         if (!shipment.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
-            throw new BusinessException(HttpStatus.FORBIDDEN, "Bạn không có quyền ghi sự kiện cho lô hàng của tổ chức này.");
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "Bạn không có quyền ghi sự kiện cho lô hàng của tổ chức này.");
         }
     }
 
@@ -414,14 +395,6 @@ public class CoopWarehouseEventProcessor {
             return geometryFactory.createPoint(new Coordinate(longitude, latitude));
         }
         return null;
-    }
-
-    private String toJson(Map<String, Object> data) {
-        try {
-            return objectMapper.writeValueAsString(data);
-        } catch (JsonProcessingException e) {
-            throw new BusinessException("Lỗi chuyển đổi dữ liệu sự kiện sang chuỗi JSON.");
-        }
     }
 
     private Map<String, Object> parseEventData(String json) {
@@ -469,48 +442,5 @@ public class CoopWarehouseEventProcessor {
                 .build();
     }
 
-    private Map<String, Object> buildWarehouseEntryDataMap(Shipment shipment, ProductionLot lot, RecordWarehouseEntryRequest req) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("shipmentId", shipment.getId().toString());
-        m.put("shipmentName", shipment.getName());
-        if (lot != null) {
-            m.put("productionLotId", lot.getId().toString());
-            m.put("productionLotName", lot.getName());
-        }
-        m.put("warehouseName", req.getWarehouseName());
-        m.put("entryTime", req.getEntryTime().toString());
-        if (req.getStorageCondition() != null) m.put("storageCondition", req.getStorageCondition());
-        if (req.getNotes() != null) m.put("notes", req.getNotes());
-        if (req.getImages() != null && !req.getImages().isEmpty()) m.put("images", req.getImages());
-        m.put("deviceSource", req.getDeviceSource() != null ? req.getDeviceSource() : "WEB");
-        return m;
-    }
-
-    private Map<String, Object> buildWarehouseExitDataMap(
-            Shipment shipment, ProductionLot lot, ExitValidationResult exitVal,
-            RecordWarehouseExitRequest req, DurationResult dur) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("shipmentId", shipment.getId().toString());
-        m.put("shipmentName", shipment.getName());
-        if (lot != null) {
-            m.put("productionLotId", lot.getId().toString());
-            m.put("productionLotName", lot.getName());
-        }
-        m.put("warehouseName", exitVal.warehouseName());
-        m.put("entryTime", exitVal.entryTime().toString());
-        m.put("exitTime", req.getExitTime().toString());
-        m.put("storageDurationDays", dur.storageDays());
-        m.put("storageDurationHours", dur.storageHours());
-        if (dur.maxDays() != null) m.put("maxAllowedStorageDays", dur.maxDays());
-        m.put("isStorageExceeded", dur.isExceeded());
-        if (dur.warning() != null) m.put("warningMessage", dur.warning());
-        if (req.getDestination() != null) m.put("destination", req.getDestination());
-        if (req.getNotes() != null) m.put("notes", req.getNotes());
-        if (req.getImages() != null && !req.getImages().isEmpty()) m.put("images", req.getImages());
-        m.put("deviceSource", req.getDeviceSource() != null ? req.getDeviceSource() : "WEB");
-        return m;
-    }
-
     private record ExitValidationResult(LocalDateTime entryTime, String warehouseName, String storageCondition) {}
-    private record DurationResult(long storageHours, long storageDays, Integer maxDays, boolean isExceeded, String warning) {}
 }

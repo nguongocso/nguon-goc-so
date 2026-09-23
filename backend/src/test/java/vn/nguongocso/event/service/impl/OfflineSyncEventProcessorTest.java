@@ -74,7 +74,8 @@ class OfflineSyncEventProcessorTest {
     private vn.nguongocso.permission.service.PermissionChecker permissionChecker;
 
     @org.mockito.Spy
-    private vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper offlineFarmLogPayloadMapper = new vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper();
+    private vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper offlineFarmLogPayloadMapper =
+            new vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper();
 
     private vn.nguongocso.event.service.processor.OfflineFarmLogSyncHandler offlineFarmLogSyncHandler;
     private vn.nguongocso.event.service.resolver.OfflineSyncTargetResolver offlineSyncTargetResolver;

@@ -81,13 +81,17 @@ public class ExportServiceImpl implements ExportService {
     private void validateShipmentOwnership(Shipment shipment, CustomUserDetails currentUser) {
         UUID userOrgId = currentUser.getOrganizationId();
         if ("VT-02".equals(currentUser.getRoleCode())) {
-            if (shipment.getOrganization() == null || !shipment.getOrganization().getOrganizationId().equals(userOrgId)) {
+            if (shipment.getOrganization() == null
+                    || !shipment.getOrganization().getOrganizationId().equals(userOrgId)) {
                 throw new TemplateNotOwnedException("Từ chối thao tác: Lô hàng không thuộc tổ chức của bạn.");
             }
         }
     }
 
-    private ProfileTemplate resolveEffectiveTemplate(Shipment shipment, UUID templateId, CustomUserDetails currentUser) {
+    private ProfileTemplate resolveEffectiveTemplate(
+            Shipment shipment,
+            UUID templateId,
+            CustomUserDetails currentUser) {
         UUID userOrgId = currentUser.getOrganizationId();
         UUID effectiveOrgId = ("VT-04".equals(currentUser.getRoleCode()) && shipment.getOrganization() != null)
                 ? shipment.getOrganization().getOrganizationId()

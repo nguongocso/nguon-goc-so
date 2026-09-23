@@ -93,9 +93,7 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API tạo sự kiện đính chính thông tin sơ chế và phân loại (giữ nguyên gốc).
-     */
+    /** API tạo sự kiện đính chính thông tin sơ chế và phân loại (giữ nguyên gốc). */
     @PostMapping("/preprocessing/{id}/correct")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> correctPreprocessing(
@@ -107,9 +105,7 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API ghi nhận sự kiện đóng gói cho lô sản xuất.
-     */
+    /** API ghi nhận sự kiện đóng gói cho lô sản xuất. */
     @PostMapping("/packaging")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> recordPackaging(
@@ -135,9 +131,7 @@ public class ChainEventController {
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API tạo sự kiện đính chính thông tin đóng gói (giữ nguyên gốc).
-     */
+    /** API tạo sự kiện đính chính thông tin đóng gói (giữ nguyên gốc). */
     @PostMapping("/packaging/{id}/correct")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> correctPackaging(
@@ -164,9 +158,7 @@ public class ChainEventController {
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API đồng bộ sự kiện ngoại tuyến.
-     */
+    /** API đồng bộ sự kiện ngoại tuyến. */
     @PostMapping("/sync")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<OfflineEventSyncResponse>> syncOfflineEvents(
@@ -200,9 +192,7 @@ public class ChainEventController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * API ghi nhận sự kiện nhập kho tại hợp tác xã (HTX).
-     */
+    /** API ghi nhận sự kiện nhập kho tại hợp tác xã (HTX). */
     @PostMapping("/coop-warehouse/entry")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<CoopWarehouseEventResponse>> recordWarehouseEntry(
@@ -213,9 +203,7 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API ghi nhận sự kiện xuất kho tại hợp tác xã (HTX).
-     */
+    /** API ghi nhận sự kiện xuất kho tại hợp tác xã (HTX). */
     @PostMapping("/coop-warehouse/exit")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<CoopWarehouseEventResponse>> recordWarehouseExit(

@@ -10,9 +10,7 @@ import vn.nguongocso.export.dto.response.FieldGroupDefinition;
 import vn.nguongocso.export.dto.response.FieldItemDefinition;
 import vn.nguongocso.export.enums.ProfileFieldGroup;
 
-/**
- * Định nghĩa danh mục trường và danh sách các trường bắt buộc theo QTN-11.
- */
+/** Định nghĩa danh mục trường và danh sách các trường bắt buộc theo QTN-11. */
 public final class MandatoryFields {
 
     private MandatoryFields() {
@@ -34,9 +32,7 @@ public final class MandatoryFields {
             "chainEvent.eventType"
     );
 
-    /**
-     * Bản đồ ánh xạ mã trường sang tên hiển thị tiếng Việt.
-     */
+    /** Bản đồ ánh xạ mã trường sang tên hiển thị tiếng Việt. */
     public static final Map<String, String> FIELD_DISPLAY_NAMES = Map.ofEntries(
             Map.entry("organization.name", "Tên tổ chức / HTX"),
             Map.entry("organization.code", "Mã tổ chức"),
@@ -91,9 +87,7 @@ public final class MandatoryFields {
             Map.entry("chainEvent.eventData", "Chi tiết sự kiện")
     );
 
-    /**
-     * Kiểm tra và trả về danh sách các trường bắt buộc QTN-11 bị thiếu trong tập trường cung cấp.
-     */
+    /** Kiểm tra và trả về danh sách các trường bắt buộc QTN-11 bị thiếu trong tập trường cung cấp. */
     public static List<String> findMissingMandatoryFields(Collection<String> selectedFieldKeys) {
         if (selectedFieldKeys == null || selectedFieldKeys.isEmpty()) {
             return QTN11_MANDATORY_FIELD_KEYS.stream()
@@ -109,16 +103,12 @@ public final class MandatoryFields {
         return missing;
     }
 
-    /**
-     * Kiểm tra xem một mã trường có phải là bắt buộc theo QTN-11 hay không.
-     */
+    /** Kiểm tra xem một mã trường có phải là bắt buộc theo QTN-11 hay không. */
     public static boolean isMandatory(String fieldKey) {
         return QTN11_MANDATORY_FIELD_KEYS.contains(fieldKey);
     }
 
-    /**
-     * Sinh danh mục tất cả các trường có thể chọn trong hệ thống, phân nhóm phục vụ frontend.
-     */
+    /** Sinh danh mục tất cả các trường có thể chọn trong hệ thống, phân nhóm phục vụ frontend. */
     public static List<FieldGroupDefinition> buildFullCatalog() {
         return List.of(
                 buildOrganizationGroup(),

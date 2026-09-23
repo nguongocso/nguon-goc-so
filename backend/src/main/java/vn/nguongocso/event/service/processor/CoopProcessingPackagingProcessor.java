@@ -42,9 +42,7 @@ import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 
-/**
- * Processor xử lý các sự kiện sơ chế và đóng gói sản phẩm tại hợp tác xã.
- */
+/** Processor xử lý các sự kiện sơ chế và đóng gói sản phẩm tại hợp tác xã. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -61,9 +59,7 @@ public class CoopProcessingPackagingProcessor {
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
-    /**
-     * Ghi nhận sự kiện sơ chế và phân loại cho lô sản xuất.
-     */
+    /** Ghi nhận sự kiện sơ chế và phân loại cho lô sản xuất. */
     public ChainEventResponse recordPreprocessingEvent(
             RecordPreprocessingEventRequest request, CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
@@ -84,10 +80,12 @@ public class CoopProcessingPackagingProcessor {
                 request.getLongitude(), getActor(currentUser), false, null);
 
         publishActivityLog(currentUser, "Ghi sự kiện sơ chế cho lô " + lot.getName(), chainEvent.getId().toString());
-        return buildResponse(chainEvent, eventDataMap, request.getLatitude(), request.getLongitude(), chainEvent.getRecordedBy());
+        return buildResponse(
+                chainEvent, eventDataMap, request.getLatitude(), request.getLongitude(), chainEvent.getRecordedBy());
     }
 
-    private void validatePreprocessing(ProductionLot lot, RecordPreprocessingEventRequest request, CustomUserDetails currentUser) {
+    private void validatePreprocessing(
+            ProductionLot lot, RecordPreprocessingEventRequest request, CustomUserDetails currentUser) {
         try {
             validateOrganization(lot, currentUser);
             if (lot.getStatus() == ProductionLotStatus.CANCELLED) {
@@ -108,14 +106,16 @@ public class CoopProcessingPackagingProcessor {
             }
         } catch (BusinessException e) {
             eventValidationService.logFailedAttempt(
-                    request.getProductionLotId(), lot.getName(), ChainEventType.PREPROCESSING, e.getMessage(), currentUser);
+                    request.getProductionLotId(),
+                    lot.getName(),
+                    ChainEventType.PREPROCESSING,
+                    e.getMessage(),
+                    currentUser);
             throw e;
         }
     }
 
-    /**
-     * Đính chính sự kiện sơ chế và phân loại đã ghi nhận.
-     */
+    /** Đính chính sự kiện sơ chế và phân loại đã ghi nhận. */
     public ChainEventResponse correctPreprocessingEvent(
             UUID originalEventId, CorrectPreprocessingEventRequest request, CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
@@ -140,8 +140,16 @@ public class CoopProcessingPackagingProcessor {
                 ChainEventType.PREPROCESSING, toJson(eventDataMap), request.getLatitude(),
                 request.getLongitude(), getActor(currentUser), true, originalEvent);
 
-        publishActivityLog(currentUser, "Đính chính sự kiện sơ chế cho lô " + lot.getName(), correctionEvent.getId().toString());
-        return buildResponse(correctionEvent, eventDataMap, request.getLatitude(), request.getLongitude(), correctionEvent.getRecordedBy());
+        publishActivityLog(
+                currentUser,
+                "Đính chính sự kiện sơ chế cho lô " + lot.getName(),
+                correctionEvent.getId().toString());
+        return buildResponse(
+                correctionEvent,
+                eventDataMap,
+                request.getLatitude(),
+                request.getLongitude(),
+                correctionEvent.getRecordedBy());
     }
 
     private void validateCorrectPreprocessingDates(ProductionLot lot, CorrectPreprocessingEventRequest request) {
@@ -157,9 +165,7 @@ public class CoopProcessingPackagingProcessor {
         }
     }
 
-    /**
-     * Ghi nhận sự kiện đóng gói sản phẩm cho lô sản xuất.
-     */
+    /** Ghi nhận sự kiện đóng gói sản phẩm cho lô sản xuất. */
     public ChainEventResponse recordPackagingEvent(
             RecordPackagingEventRequest request, CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
@@ -178,16 +184,19 @@ public class CoopProcessingPackagingProcessor {
                 request.getLongitude(), getActor(currentUser), false, null);
 
         publishActivityLog(currentUser, "Ghi sự kiện đóng gói cho lô " + lot.getName(), chainEvent.getId().toString());
-        return buildResponse(chainEvent, eventDataMap, request.getLatitude(), request.getLongitude(), chainEvent.getRecordedBy());
+        return buildResponse(
+                chainEvent, eventDataMap, request.getLatitude(), request.getLongitude(), chainEvent.getRecordedBy());
     }
 
-    private void validatePackaging(ProductionLot lot, RecordPackagingEventRequest request, CustomUserDetails currentUser) {
+    private void validatePackaging(
+            ProductionLot lot, RecordPackagingEventRequest request, CustomUserDetails currentUser) {
         try {
             validateOrganization(lot, currentUser);
             if (lot.getStatus() == ProductionLotStatus.CANCELLED) {
                 throw new BusinessException("Lô sản xuất đã bị hủy, không thể ghi sự kiện.");
             }
-            if (lot.getStatus() != ProductionLotStatus.HARVESTED && lot.getStatus() != ProductionLotStatus.PREPROCESSED) {
+            if (lot.getStatus() != ProductionLotStatus.HARVESTED
+                    && lot.getStatus() != ProductionLotStatus.PREPROCESSED) {
                 throw new BusinessException("Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch hoặc đã sơ chế.");
             }
             LocalDate today = clock != null ? LocalDate.now(clock) : LocalDate.now();
@@ -199,7 +208,8 @@ public class CoopProcessingPackagingProcessor {
             }
             List<String> missingMilestones = milestoneValidationService.validateMilestoneCompletion(lot);
             if (!missingMilestones.isEmpty()) {
-                throw new BusinessException("Lô chưa đủ mốc canh tác bắt buộc: " + String.join(", ", missingMilestones));
+                throw new BusinessException(
+                        "Lô chưa đủ mốc canh tác bắt buộc: " + String.join(", ", missingMilestones));
             }
         } catch (BusinessException e) {
             eventValidationService.logFailedAttempt(
@@ -208,10 +218,9 @@ public class CoopProcessingPackagingProcessor {
         }
     }
 
-    /**
-     * Ghi nhận sự kiện đóng gói từ thiết bị di động.
-     */
-    public ChainEventResponse recordMobilePackagingEvent(RecordMobileEventRequest request, CustomUserDetails currentUser) {
+    /** Ghi nhận sự kiện đóng gói từ thiết bị di động. */
+    public ChainEventResponse recordMobilePackagingEvent(
+            RecordMobileEventRequest request, CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
 
         ProductionLot lot = productionLotRepository.findById(request.getProductionLotId())
@@ -242,7 +251,8 @@ public class CoopProcessingPackagingProcessor {
                 .build();
     }
 
-    private RecordPackagingEventRequest buildPackagingRequestFromMobile(ProductionLot lot, RecordMobileEventRequest request) {
+    private RecordPackagingEventRequest buildPackagingRequestFromMobile(
+            ProductionLot lot, RecordMobileEventRequest request) {
         Map<String, Object> data = request.getEventData() != null ? request.getEventData() : Map.of();
         Object specObj = data.get("packagingSpecification");
         Object packagingDateStrObj = data.get("packagingDate");
@@ -277,9 +287,7 @@ public class CoopProcessingPackagingProcessor {
         return packagingRequest;
     }
 
-    /**
-     * Đính chính sự kiện đóng gói sản phẩm đã ghi nhận.
-     */
+    /** Đính chính sự kiện đóng gói sản phẩm đã ghi nhận. */
     public ChainEventResponse correctPackagingEvent(
             UUID originalEventId, CorrectPackagingEventRequest request, CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
@@ -307,8 +315,16 @@ public class CoopProcessingPackagingProcessor {
                 ChainEventType.PACKAGING, toJson(eventDataMap), request.getLatitude(),
                 request.getLongitude(), getActor(currentUser), true, originalEvent);
 
-        publishActivityLog(currentUser, "Đính chính sự kiện đóng gói cho lô " + lot.getName(), correctionEvent.getId().toString());
-        return buildResponse(correctionEvent, eventDataMap, request.getLatitude(), request.getLongitude(), correctionEvent.getRecordedBy());
+        publishActivityLog(
+                currentUser,
+                "Đính chính sự kiện đóng gói cho lô " + lot.getName(),
+                correctionEvent.getId().toString());
+        return buildResponse(
+                correctionEvent,
+                eventDataMap,
+                request.getLatitude(),
+                request.getLongitude(),
+                correctionEvent.getRecordedBy());
     }
 
     private void validateEventPermission(CustomUserDetails currentUser) {
@@ -415,7 +431,8 @@ public class CoopProcessingPackagingProcessor {
                 .build();
     }
 
-    private Map<String, Object> buildPreprocessingDataMap(ProductionLot lot, RecordPreprocessingEventRequest req, double lossRate) {
+    private Map<String, Object> buildPreprocessingDataMap(
+            ProductionLot lot, RecordPreprocessingEventRequest req, double lossRate) {
         Map<String, Object> m = new HashMap<>();
         m.put("productionLotId", lot.getId().toString());
         m.put("productionLotName", lot.getName());
@@ -430,7 +447,8 @@ public class CoopProcessingPackagingProcessor {
         return m;
     }
 
-    private Map<String, Object> buildCorrectPreprocessingDataMap(ProductionLot lot, CorrectPreprocessingEventRequest req, double lossRate, UUID origId) {
+    private Map<String, Object> buildCorrectPreprocessingDataMap(
+            ProductionLot lot, CorrectPreprocessingEventRequest req, double lossRate, UUID origId) {
         Map<String, Object> m = new HashMap<>();
         m.put("productionLotId", lot.getId().toString());
         m.put("productionLotName", lot.getName());
@@ -456,7 +474,8 @@ public class CoopProcessingPackagingProcessor {
         return m;
     }
 
-    private Map<String, Object> buildCorrectPackagingDataMap(ProductionLot lot, CorrectPackagingEventRequest req, UUID origId) {
+    private Map<String, Object> buildCorrectPackagingDataMap(
+            ProductionLot lot, CorrectPackagingEventRequest req, UUID origId) {
         Map<String, Object> m = new HashMap<>();
         m.put("productionLotId", lot.getId().toString());
         m.put("productionLotName", lot.getName());

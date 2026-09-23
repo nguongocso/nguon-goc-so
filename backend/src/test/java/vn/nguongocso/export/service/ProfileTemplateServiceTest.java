@@ -162,7 +162,9 @@ public class ProfileTemplateServiceTest {
 
         when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
         when(profileTemplateRepository.findById(templateId)).thenReturn(Optional.of(template));
-        Map<String, Object> expectedSnapshot = Map.of("shipmentId", shipmentId, "organization", Map.of("name", "HTX A"));
+        Map<String, Object> expectedSnapshot = Map.of(
+                "shipmentId", shipmentId,
+                "organization", Map.of("name", "HTX A"));
         when(profileTemplatePreviewBuilder.buildPreviewSnapshot(eq(shipment), eq(template), any()))
                 .thenReturn(expectedSnapshot);
 
@@ -288,7 +290,8 @@ public class ProfileTemplateServiceTest {
     }
 
     @Test
-    @DisplayName("TC-04 (Cao): listTemplates chỉ trả về các mẫu thuộc tổ chức được yêu cầu, không lộ mẫu của tổ chức khác")
+    @DisplayName("TC-04 (Cao): listTemplates chỉ trả về các mẫu thuộc tổ chức được yêu cầu, "
+            + "không lộ mẫu của tổ chức khác")
     void tc04_listTemplates_isolatedByOrganization() {
         ProfileTemplate t1 = ProfileTemplate.builder()
                 .id(UUID.randomUUID())
@@ -452,7 +455,8 @@ public class ProfileTemplateServiceTest {
                 .selectedFields(updatedSelections)
                 .build();
 
-        ProfileTemplateResponse resp = profileTemplateService.updateTemplate(orgAId, templateId, updateReq, userDetailsOrgA);
+        ProfileTemplateResponse resp =
+                profileTemplateService.updateTemplate(orgAId, templateId, updateReq, userDetailsOrgA);
 
         assertThat(resp).isNotNull();
         assertThat(resp.getName()).isEqualTo("Mẫu đã cập nhật");

@@ -53,9 +53,7 @@ public class ProfileTemplateController {
         return ResponseEntity.ok(ApiResult.success(catalog));
     }
 
-    /**
-     * Lấy danh sách mẫu hồ sơ thuộc tổ chức của người dùng (TC-04).
-     */
+    /** Lấy danh sách mẫu hồ sơ thuộc tổ chức của người dùng (TC-04). */
     @GetMapping
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<List<ProfileTemplateResponse>>> listTemplates(
@@ -67,9 +65,7 @@ public class ProfileTemplateController {
         return ResponseEntity.ok(ApiResult.success(templates));
     }
 
-    /**
-     * Tạo mới mẫu hồ sơ truy xuất (TC-01, TC-02).
-     */
+    /** Tạo mới mẫu hồ sơ truy xuất (TC-01, TC-02). */
     @PostMapping
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<ProfileTemplateResponse>> createTemplate(
@@ -84,9 +80,7 @@ public class ProfileTemplateController {
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * Lấy mẫu hồ sơ mặc định của tổ chức (TC-03).
-     */
+    /** Lấy mẫu hồ sơ mặc định của tổ chức (TC-03). */
     @GetMapping("/default")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<ProfileTemplateResponse>> getDefaultTemplate(
@@ -98,9 +92,7 @@ public class ProfileTemplateController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * Lấy thông tin chi tiết mẫu hồ sơ theo ID (TC-04).
-     */
+    /** Lấy thông tin chi tiết mẫu hồ sơ theo ID (TC-04). */
     @GetMapping("/{templateId}")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<ProfileTemplateResponse>> getTemplate(
@@ -115,9 +107,7 @@ public class ProfileTemplateController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * Cập nhật mẫu hồ sơ (TC-02).
-     */
+    /** Cập nhật mẫu hồ sơ (TC-02). */
     @PutMapping("/{templateId}")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<ProfileTemplateResponse>> updateTemplate(
@@ -132,9 +122,7 @@ public class ProfileTemplateController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * Xóa mẫu hồ sơ.
-     */
+    /** Xóa mẫu hồ sơ. */
     @DeleteMapping("/{templateId}")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<Void>> deleteTemplate(

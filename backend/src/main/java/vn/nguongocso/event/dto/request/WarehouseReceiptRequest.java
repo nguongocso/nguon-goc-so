@@ -17,7 +17,6 @@ import java.time.LocalDate;
 @Getter
 @Setter
 public class WarehouseReceiptRequest {
-
     @NotBlank(message = "Mã truy xuất không được để trống")
     private String codeValue;
 

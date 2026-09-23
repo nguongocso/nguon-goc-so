@@ -2,12 +2,6 @@ package vn.nguongocso.config;
 
 import java.io.IOException;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
@@ -15,32 +9,26 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import vn.nguongocso.backup.service.RestoreService;
 import vn.nguongocso.common.ApiResult;
 
 /**
- * Lớp MaintenanceFilter là một bộ lọc (filter) trong ứng dụng Spring Boot, chịu
- * trách nhiệm kiểm tra trạng thái bảo trì của hệ thống.
- * Khi hệ thống đang ở chế độ bảo trì, bộ lọc này sẽ chặn các yêu cầu HTTP không
- * được phép và trả về mã lỗi 503 (Service Unavailable).
- * Chỉ có các yêu cầu từ người dùng có vai trò ADMIN (VT-01) hoặc các endpoint
- * đặc biệt như /actuator/health và /api/v1/backups mới được phép tiếp tục.
+ * Bộ lọc kiểm tra trạng thái bảo trì hệ thống.
+ * Trả về HTTP 503 cho các yêu cầu thông thường, ngoại trừ quản trị viên (VT-01)
+ * và các đường dẫn quản trị phục hồi hoặc kiểm tra trạng thái hoạt động.
  */
 @Component
 public class MaintenanceFilter extends OncePerRequestFilter {
     private final ApplicationContext applicationContext;
     private final ObjectMapper objectMapper;
 
-    /**
-     * Khởi tạo MaintenanceFilter với ApplicationContext và ObjectMapper.
-     *
-     * @param applicationContext Context của ứng dụng Spring, dùng để lấy bean
-     *                           RestoreService.
-     * @param objectMapper       Dùng để chuyển đổi đối tượng thành JSON khi trả về
-     *                           phản hồi lỗi.
-     */
-    public MaintenanceFilter(ApplicationContext applicationContext,
-            ObjectMapper objectMapper) {
+    public MaintenanceFilter(ApplicationContext applicationContext, ObjectMapper objectMapper) {
         this.applicationContext = applicationContext;
         this.objectMapper = objectMapper;
     }
@@ -53,34 +41,23 @@ public class MaintenanceFilter extends OncePerRequestFilter {
         }
     }
 
-    /**
-     * Thực hiện lọc các yêu cầu HTTP dựa trên trạng thái bảo trì của hệ thống.
-     * Nếu hệ thống đang ở chế độ bảo trì, chỉ cho phép các yêu cầu từ người dùng
-     * có vai trò ADMIN (VT-01) hoặc các endpoint đặc biệt như /actuator/health và
-     * /api/v1/backups.
-     * Các yêu cầu khác sẽ nhận được phản hồi lỗi 503 (Service Unavailable).
-     *
-     * @param request     Yêu cầu HTTP.
-     * @param response    Phản hồi HTTP.
-     * @param filterChain Chuỗi bộ lọc tiếp theo trong pipeline.
-     * @throws ServletException Nếu có lỗi trong quá trình xử lý bộ lọc.
-     * @throws IOException      Nếu có lỗi I/O trong quá trình xử lý bộ lọc.
-     */
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
         RestoreService restoreService = getRestoreService();
         if (restoreService != null && restoreService.isMaintenanceMode()) {
             String uri = request.getRequestURI();
 
-            // Allow Actuator health endpoint, Backup APIs, and Monitoring APIs
-            if (uri.equals("/actuator/health") || uri.startsWith("/api/v1/backups") || uri.startsWith("/api/v1/admin/monitoring")) {
+            boolean isPermittedPath = uri.equals("/actuator/health")
+                    || uri.startsWith("/api/v1/backups")
+                    || uri.startsWith("/api/v1/admin/monitoring");
+            if (isPermittedPath) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            // Check if authenticated user has ADMIN (VT-01) role
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             boolean isAdmin = auth != null && auth.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_VT-01")
@@ -93,7 +70,6 @@ public class MaintenanceFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Return 503 Service Unavailable for other requests
             response.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
             response.setContentType("application/json;charset=UTF-8");
 

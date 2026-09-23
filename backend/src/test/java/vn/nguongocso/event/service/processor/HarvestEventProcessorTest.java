@@ -349,7 +349,8 @@ class HarvestEventProcessorTest {
 
         when(harvestEligibilityService.calculateHarvestEligibility(productionLot.getId()))
                 .thenThrow(new BusinessException(
-                        "Mục nhật ký sử dụng thuốc BVTV thiếu ngày thực hiện. Vui lòng bổ sung ngày trước khi thu hoạch."));
+                        "Mục nhật ký sử dụng thuốc BVTV thiếu ngày thực hiện. "
+                                + "Vui lòng bổ sung ngày trước khi thu hoạch."));
 
         assertThatThrownBy(() -> chainEventService.recordHarvestEvent(request, validUser))
                 .isInstanceOf(BusinessException.class)

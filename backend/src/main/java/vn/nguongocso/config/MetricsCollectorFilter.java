@@ -2,22 +2,19 @@ package vn.nguongocso.config;
 
 import java.io.IOException;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
 import vn.nguongocso.report.service.MetricsBufferService;
 
-/**
- * Filter thu thập số liệu tự động từ các request HTTP phục vụ giám sát hệ thống.
- */
+/** Bộ lọc thu thập chỉ số tự động từ các yêu cầu HTTP phục vụ giám sát hiệu năng hệ thống. */
 @Component
 public class MetricsCollectorFilter extends OncePerRequestFilter {
-
     private final MetricsBufferService metricsBufferService;
 
     public MetricsCollectorFilter(@Autowired(required = false) MetricsBufferService metricsBufferService) {
@@ -25,15 +22,16 @@ public class MetricsCollectorFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
         long startTime = System.currentTimeMillis();
         String uri = request.getRequestURI();
 
         boolean isPublicTrace = uri.startsWith("/api/v1/public/") || uri.startsWith("/public/");
-        boolean isDataGateway = uri.startsWith("/api/v1/partner/") 
-                || uri.startsWith("/api/v1/export/") 
+        boolean isDataGateway = uri.startsWith("/api/v1/partner/")
+                || uri.startsWith("/api/v1/export/")
                 || uri.startsWith("/api/v1/integration/");
 
         if (isDataGateway && metricsBufferService != null) {

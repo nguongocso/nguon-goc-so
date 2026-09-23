@@ -40,9 +40,7 @@ import vn.nguongocso.event.service.resolver.ChainScanLookupResolver;
 import vn.nguongocso.event.service.verifier.ChainIntegrityVerifier;
 import vn.nguongocso.exception.BusinessException;
 
-/**
- * Service implementation đóng vai trò Facade điều phối các nghiệp vụ chuỗi sự kiện.
- */
+/** Service implementation đóng vai trò Facade điều phối các nghiệp vụ chuỗi sự kiện. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -65,7 +63,8 @@ public class ChainEventServiceImpl implements ChainEventService {
 
     @Override
     @Transactional
-    public ChainEventResponse recordPreprocessingEvent(RecordPreprocessingEventRequest request, CustomUserDetails currentUser) {
+    public ChainEventResponse recordPreprocessingEvent(
+            RecordPreprocessingEventRequest request, CustomUserDetails currentUser) {
         return coopWarehouseEventProcessor.recordPreprocessingEvent(request, currentUser);
     }
 
@@ -97,7 +96,8 @@ public class ChainEventServiceImpl implements ChainEventService {
 
     @Override
     @Transactional
-    public StorageConditionResponse recordStorageCondition(StorageConditionRequest request, CustomUserDetails currentUser) {
+    public StorageConditionResponse recordStorageCondition(
+            StorageConditionRequest request, CustomUserDetails currentUser) {
         return storageConditionProcessor.recordStorageCondition(request, currentUser);
     }
 

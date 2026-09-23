@@ -28,9 +28,7 @@ import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
-/**
- * Processor xử lý sự kiện vận chuyển hàng hóa cho hợp tác xã.
- */
+/** Processor xử lý sự kiện vận chuyển hàng hóa cho hợp tác xã. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -86,7 +84,10 @@ public class CoopTransportEventProcessor {
 
         chainEvent = chainEventHashRecorder.saveWithChainHash(chainEvent);
 
-        publishActivityLog(currentUser, "Ghi sự kiện vận chuyển cho lô hàng " + shipment.getName(), chainEvent.getId().toString());
+        publishActivityLog(
+                currentUser,
+                "Ghi sự kiện vận chuyển cho lô hàng " + shipment.getName(),
+                chainEvent.getId().toString());
         return buildResponse(chainEvent, eventDataMap, null, null, actor);
     }
 
@@ -112,7 +113,9 @@ public class CoopTransportEventProcessor {
         }
         if (shipment.getOrganization() == null
                 || !shipment.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
-            throw new BusinessException(org.springframework.http.HttpStatus.FORBIDDEN, "Bạn không có quyền ghi sự kiện cho lô hàng của tổ chức này.");
+            throw new BusinessException(
+                    org.springframework.http.HttpStatus.FORBIDDEN,
+                    "Bạn không có quyền ghi sự kiện cho lô hàng của tổ chức này.");
         }
     }
 

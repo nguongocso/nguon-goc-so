@@ -9,9 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.export.enums.ProfileFieldGroup;
 
-/**
- * DTO đại diện cho một trường được chọn trong yêu cầu tạo / cập nhật mẫu hồ sơ.
- */
+/** DTO đại diện cho một trường được chọn trong yêu cầu tạo / cập nhật mẫu hồ sơ. */
 @Getter
 @Setter
 @NoArgsConstructor

@@ -27,9 +27,7 @@ import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.trace.entity.Shipment;
 
-/**
- * Thực thể đại diện cho một sự kiện trong chuỗi cung ứng.
- */
+/** Thực thể đại diện cho một sự kiện trong chuỗi cung ứng. */
 @Entity
 @Table(name = "chain_events")
 @Getter
@@ -38,7 +36,6 @@ import vn.nguongocso.trace.entity.Shipment;
 @AllArgsConstructor
 @Builder
 public class ChainEvent {
-
     @Id
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "id", nullable = false, updatable = false)
@@ -68,8 +65,11 @@ public class ChainEvent {
     /**
      * Tổ chức mà người dùng đại diện tại thời điểm ghi sự kiện.
      *
-     * <p>Không suy ra giá trị này từ membership hiện tại vì một người dùng có thể đồng thời thuộc
-     * nhiều tổ chức hoặc chuyển tổ chức sau khi sự kiện đã được ghi.</p>
+     * <p>
+     * Không suy ra giá trị này từ membership hiện tại vì một người dùng có thể đồng
+     * thời thuộc
+     * nhiều tổ chức hoặc chuyển tổ chức sau khi sự kiện đã được ghi.
+     * </p>
      */
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "recorded_organization_id")

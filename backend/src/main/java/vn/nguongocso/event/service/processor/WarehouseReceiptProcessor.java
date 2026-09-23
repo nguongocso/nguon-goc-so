@@ -38,9 +38,7 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
-/**
- * Component xử lý nghiệp vụ ghi nhận nhập kho (Warehouse Receipt) và kiểm tra đối chiếu chênh lệch.
- */
+/** Component xử lý nghiệp vụ ghi nhận nhập kho (Warehouse Receipt) và kiểm tra đối chiếu chênh lệch. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -146,10 +144,12 @@ public class WarehouseReceiptProcessor {
     private void validateShipmentStatus(Shipment shipment, CustomUserDetails currentUser) {
         try {
             if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
-                throw new BusinessException("Lô hàng chưa được kích hoạt hoặc đang/đã bị thu hồi, không thể ghi nhận nhập kho.");
+                throw new BusinessException(
+                        "Lô hàng chưa được kích hoạt hoặc đang/đã bị thu hồi, không thể ghi nhận nhập kho.");
             }
             if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
-                throw new BusinessException("Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận nhập kho.");
+                throw new BusinessException(
+                        "Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận nhập kho.");
             }
         } catch (BusinessException e) {
             eventValidationService.logFailedAttempt(shipment.getId(), shipment.getName(),
@@ -167,7 +167,8 @@ public class WarehouseReceiptProcessor {
 
         if (procurementEvents.isEmpty()) {
             throw new BusinessException(HttpStatus.FORBIDDEN,
-                    "Bạn không có quyền ghi nhận nhập kho cho lô hàng này. Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
+                    "Bạn không có quyền ghi nhận nhập kho cho lô hàng này. "
+                            + "Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
         }
 
         UUID currentOrgId = currentUser.getOrganizationId();
@@ -183,7 +184,8 @@ public class WarehouseReceiptProcessor {
 
         if (!hasRelationship) {
             throw new BusinessException(HttpStatus.FORBIDDEN,
-                    "Bạn không có quyền ghi nhận nhập kho cho lô hàng này. Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
+                    "Bạn không có quyền ghi nhận nhập kho cho lô hàng này. "
+                            + "Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
         }
     }
 
@@ -305,8 +307,6 @@ public class WarehouseReceiptProcessor {
         return builder.build();
     }
 
-    /**
-     * Record hỗ trợ đóng gói kết quả tính chênh lệch số lượng.
-     */
+    /** Record hỗ trợ đóng gói kết quả tính chênh lệch số lượng. */
     public record DiscrepancyResult(double discrepancy, double discrepancyPercent, boolean isExceeded) {}
 }

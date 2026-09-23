@@ -4,10 +4,6 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import jakarta.servlet.http.HttpServletRequest;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -28,25 +24,23 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.report.exception.DossierValidationException;
 
-/**
- * Xử lý ngoại lệ toàn cục của hệ thống.
- */
+/** Bộ xử lý ngoại lệ toàn cục cho các API trong hệ thống. */
 @Slf4j
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
-
     private final ApplicationEventPublisher eventPublisher;
 
-    /**
-     * Lỗi nghiệp vụ.
-     */
+    /** Xử lý ngoại lệ vi phạm quy tắc nghiệp vụ. */
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResult<Void>> handleBusiness(
             BusinessException e,
@@ -55,9 +49,7 @@ public class GlobalExceptionHandler {
         return build(status, e.getMessage(), e.getDetails(), request);
     }
 
-    /**
-     * Không tìm thấy tài nguyên.
-     */
+    /** Xử lý ngoại lệ không tìm thấy tài nguyên. */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResult<Void>> handleNotFound(
             ResourceNotFoundException e,
@@ -65,9 +57,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, e.getMessage(), null, request);
     }
 
-    /**
-     * Không tìm thấy endpoint hoặc tài nguyên tĩnh.
-     */
+    /** Xử lý ngoại lệ không tìm thấy đường dẫn API hoặc tài nguyên tĩnh. */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiResult<Void>> handleNoResourceFound(
             NoResourceFoundException e,
@@ -79,9 +69,7 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    /**
-     * Xung đột tài nguyên.
-     */
+    /** Xử lý ngoại lệ xung đột hoặc trùng lặp tài nguyên. */
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiResult<Void>> handleDuplicate(
             DuplicateResourceException e,
@@ -89,9 +77,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, e.getMessage(), null, request);
     }
 
-    /**
-     * Lỗi validate dữ liệu đầu vào.
-     */
+    /** Xử lý lỗi kiểm tra tính hợp lệ của dữ liệu đầu vào. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResult<Void>> handleValidation(
             MethodArgumentNotValidException e,
@@ -108,9 +94,7 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    /**
-     * JSON sai định dạng hoặc không đọc được request body.
-     */
+    /** Xử lý khi nội dung JSON không hợp lệ hoặc không thể đọc được. */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResult<Void>> handleUnreadable(
             HttpMessageNotReadableException e,
@@ -122,9 +106,7 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    /**
-     * Thiếu một phần bắt buộc trong multipart request, ví dụ trường file.
-     */
+    /** Xử lý khi thiếu phần dữ liệu bắt buộc trong yêu cầu multipart. */
     @ExceptionHandler(MissingServletRequestPartException.class)
     public ResponseEntity<ApiResult<Void>> handleMissingPart(
             MissingServletRequestPartException e,
@@ -136,9 +118,7 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    /**
-     * Thiếu tham số truy vấn (query parameter) bắt buộc.
-     */
+    /** Xử lý khi thiếu tham số truy vấn bắt buộc. */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResult<Void>> handleMissingParam(
             MissingServletRequestParameterException e,
@@ -150,9 +130,7 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    /**
-     * Sai kiểu dữ liệu của tham số.
-     */
+    /** Xử lý khi tham số yêu cầu sai kiểu dữ liệu. */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResult<Void>> handleTypeMismatch(
             MethodArgumentTypeMismatchException e,
@@ -169,9 +147,7 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    /**
-     * Chưa xác thực.
-     */
+    /** Xử lý ngoại lệ chưa xác thực hoặc phiên đăng nhập không hợp lệ. */
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResult<Void>> handleAuthentication(
             AuthenticationException e,
@@ -183,9 +159,7 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    /**
-     * Không có quyền truy cập.
-     */
+    /** Xử lý ngoại lệ từ chối quyền truy cập (HTTP 403). */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResult<Void>> handleAccessDenied(
             AccessDeniedException e,
@@ -203,9 +177,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, message, "ACCESS_DENIED", request);
     }
 
-    /**
-     * Ghi nhật ký truy cập trái phép (TC-03) vào activity_logs cho các endpoint giám sát hệ thống.
-     */
+    /** Ghi nhật ký truy cập trái phép (TC-03) cho các đường dẫn giám sát hệ thống. */
     private void publishAccessDeniedAudit(HttpServletRequest request) {
         String uri = request.getRequestURI();
         if (uri == null || !uri.startsWith("/api/v1/admin/monitoring")) {
@@ -232,9 +204,7 @@ public class GlobalExceptionHandler {
                 .build());
     }
 
-    /**
-     * Trùng dữ liệu hoặc vi phạm ràng buộc cơ sở dữ liệu.
-     */
+    /** Xử lý ngoại lệ vi phạm ràng buộc toàn vẹn cơ sở dữ liệu. */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResult<Void>> handleDataIntegrity(
             DataIntegrityViolationException e,
@@ -246,9 +216,7 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    /**
-     * Sai HTTP Method.
-     */
+    /** Xử lý khi phương thức HTTP không được hỗ trợ. */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResult<Void>> handleMethodNotSupported(
             HttpRequestMethodNotSupportedException e,
@@ -260,9 +228,7 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    /**
-     * Content-Type không được hỗ trợ.
-     */
+    /** Xử lý khi định dạng Content-Type không được hỗ trợ. */
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ApiResult<Void>> handleMediaType(
             HttpMediaTypeNotSupportedException e,
@@ -274,9 +240,7 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    /**
-     * Lỗi hồ sơ không đủ điều kiện xuất.
-     */
+    /** Xử lý ngoại lệ hồ sơ không đủ điều kiện xuất. */
     @ExceptionHandler(DossierValidationException.class)
     public ResponseEntity<ApiResult<Void>> handleDossierValidation(
             DossierValidationException e,
@@ -288,9 +252,7 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    /**
-     * Lỗi chưa được xử lý.
-     */
+    /** Xử lý tất cả các ngoại lệ chưa được phân loại cụ thể (HTTP 500). */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResult<Void>> handleException(
             Exception e,
@@ -304,9 +266,7 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    /**
-     * Tạo phản hồi lỗi chuẩn.
-     */
+    /** Đóng gói phản hồi lỗi chuẩn theo cấu trúc ApiResult. */
     private ResponseEntity<ApiResult<Void>> build(
             HttpStatus status,
             String message,

@@ -234,7 +234,9 @@ class ExportCsvRendererTest {
                 + "Lô hàng vận chuyển,Quy cách đóng gói,\"Bao đay 60kg, đóng gói chuẩn xuất khẩu\"\n"
                 + "\n# CHỨNG NHẬN TIÊU CHUẨN\n"
                 + "STT,Tên chứng nhận,Tiêu chuẩn,Số hiệu,Ngày cấp,Hạn hiệu lực,Tổ chức chứng nhận\n"
-                + "1,Chứng nhận Hữu cơ Châu Âu (EU Organic),Tiêu chuẩn Nông nghiệp Hữu cơ EU 2018/848,VN-BIO-149,2025-01-15,2027-01-14,\"Control Union Vietnam, Co. Ltd.\"\n"
+                + "1,Chứng nhận Hữu cơ Châu Âu (EU Organic),"
+                + "Tiêu chuẩn Nông nghiệp Hữu cơ EU 2018/848,VN-BIO-149,"
+                + "2025-01-15,2027-01-14,\"Control Union Vietnam, Co. Ltd.\"\n"
                 + "\n# LỊCH TRÌNH CANH TÁC & CHỨNG TỪ\n"
                 + "STT,Ngày thực hiện,Hoạt động,Vật tư / Số lượng,Ghi chú,Chứng từ đính kèm\n"
                 + "1,2026-08-10,Bón phân hữu cơ sinh học,Phân trùn quế vi sinh (500 kg),\"Ghi chú canh tác:\n"
@@ -242,10 +244,12 @@ class ExportCsvRendererTest {
                 + "- Thời tiết nắng ráo\",\"phieu-kiem-tra,phan-bon.pdf; hinh-anh-bon-phan.jpg\"\n"
                 + "\n# LỊCH SỬ KIỂM NGHIỆM\n"
                 + "STT,Ngày gửi mẫu,Đơn vị kiểm nghiệm,Chỉ tiêu / Tiêu chuẩn,Kết quả,Ngày cấp kết quả,Hạn hiệu lực\n"
-                + "1,2026-09-01,Trung tâm Phân tích & Giám định Eurofins Sắc Ký Hải Đăng,Dư lượng hóa chất Glyphosate & Kim loại nặng,Đạt,2026-09-05,2027-09-05\n"
+                + "1,2026-09-01,Trung tâm Phân tích & Giám định Eurofins Sắc Ký Hải Đăng,"
+                + "Dư lượng hóa chất Glyphosate & Kim loại nặng,Đạt,2026-09-05,2027-09-05\n"
                 + "\n# DÒNG SỰ KIỆN CHUỖI CUNG ỨNG\n"
                 + "STT,Thời điểm ghi nhận,Loại sự kiện,Tọa độ địa điểm,Chi tiết sự kiện,Người ghi nhận\n"
-                + "1,2026-09-20T07:15,Thu hoạch (HARVEST),\"11.9404, 108.4583\",Nhiệt độ: 18°C; Độ ẩm: 70%,Trần Văn Quản Lý\n";
+                + "1,2026-09-20T07:15,Thu hoạch (HARVEST),\"11.9404, 108.4583\","
+                + "Nhiệt độ: 18°C; Độ ẩm: 70%,Trần Văn Quản Lý\n";
 
         String actualCsv = exportCsvRenderer.renderPreviewToCsv(fixtureSnapshot, fixedExportTime);
         byte[] actualBytes = actualCsv.getBytes(StandardCharsets.UTF_8);

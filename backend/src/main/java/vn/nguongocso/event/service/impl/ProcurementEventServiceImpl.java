@@ -32,9 +32,7 @@ import vn.nguongocso.event.service.resolver.ProcurementShipmentResolver;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.trace.entity.Shipment;
 
-/**
- * Implementation dịch vụ ghi nhận sự kiện thu mua cho lô hàng.
- */
+/** Implementation dịch vụ ghi nhận sự kiện thu mua cho lô hàng. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -67,7 +65,8 @@ public class ProcurementEventServiceImpl implements ProcurementEventService {
         User actor = userRepository.findById(currentUser.getUserId())
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin người ghi nhận."));
 
-        ChainEvent chainEvent = saveChainEvent(shipment, eventDataJson, actor, locationPoint, currentUser.getOrganizationId());
+        ChainEvent chainEvent = saveChainEvent(
+                shipment, eventDataJson, actor, locationPoint, currentUser.getOrganizationId());
 
         publishActivityLog(shipment, chainEvent, currentUser);
 

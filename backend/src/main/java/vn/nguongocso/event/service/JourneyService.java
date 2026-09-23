@@ -19,9 +19,7 @@ import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
-/**
- * Xây dựng dữ liệu hành trình của lô hàng.
- */
+/** Xây dựng dữ liệu hành trình của lô hàng. */
 @Service
 @RequiredArgsConstructor
 public class JourneyService {

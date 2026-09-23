@@ -19,9 +19,7 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
-/**
- * Component xác thực quyền và trạng thái lô hàng cho quy trình ghi nhận sự kiện thu mua.
- */
+/** Component xác thực quyền và trạng thái lô hàng cho quy trình ghi nhận sự kiện thu mua. */
 @Slf4j
 @Component
 @RequiredArgsConstructor

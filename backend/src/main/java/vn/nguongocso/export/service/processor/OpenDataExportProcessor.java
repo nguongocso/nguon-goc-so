@@ -62,9 +62,7 @@ public class OpenDataExportProcessor {
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    /**
-     * Đọc và xác thực tính đầy đủ dữ liệu QTN-11 của các lô hàng trong một read-only transaction độc lập.
-     */
+    /** Đọc và xác thực tính đầy đủ dữ liệu QTN-11 của các lô hàng trong một read-only transaction độc lập. */
     @Transactional(readOnly = true)
     public OpenDataSchema buildSnapshot(ExportOpenDataRequest request, CustomUserDetails currentUser) {
         if (!"VT-05".equals(currentUser.getRoleCode())) {
@@ -86,9 +84,7 @@ public class OpenDataExportProcessor {
         return buildSchemaFromEligibleShipments(eligibleShipments, currentUser);
     }
 
-    /**
-     * Sinh tệp JSON/CSV thuần túy in-memory hoàn toàn ngoài transaction DB.
-     */
+    /** Sinh tệp JSON/CSV thuần túy in-memory hoàn toàn ngoài transaction DB. */
     public Resource generateFile(OpenDataSchema schema, String format) {
         try {
             if ("xml".equalsIgnoreCase(format)) {
@@ -238,7 +234,8 @@ public class OpenDataExportProcessor {
                 .distinct()
                 .collect(Collectors.toList());
 
-        List<ProductionLotCertification> allCerts = productionLotCertificationRepository.findByProductionLotIdIn(lotIds);
+        List<ProductionLotCertification> allCerts =
+                productionLotCertificationRepository.findByProductionLotIdIn(lotIds);
         Map<UUID, List<ProductionLotCertification>> certsByLot = allCerts.stream()
                 .collect(Collectors.groupingBy(c -> c.getProductionLot().getId()));
 
@@ -281,7 +278,9 @@ public class OpenDataExportProcessor {
                 .id(s.getId())
                 .name(s.getName())
                 .productionLotName(lot != null ? lot.getName() : null)
-                .productCategory(lot != null && lot.getProductCategory() != null ? lot.getProductCategory().getName() : null)
+                .productCategory(lot != null && lot.getProductCategory() != null
+                        ? lot.getProductCategory().getName()
+                        : null)
                 .totalQuantity((double) s.getTotalQuantity())
                 .unit(lot != null ? lot.getExpectedQuantityUnit() : null)
                 .status(s.getStatus().name())

@@ -25,9 +25,7 @@ import org.hibernate.type.SqlTypes;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.event.enums.ChainEventType;
 
-/**
- * Entity nhật ký đồng bộ các sự kiện ngoại tuyến.
- */
+/** Entity nhật ký đồng bộ các sự kiện ngoại tuyến. */
 @Entity
 @Table(name = "offline_sync_logs")
 @Getter
@@ -36,7 +34,6 @@ import vn.nguongocso.event.enums.ChainEventType;
 @AllArgsConstructor
 @Builder
 public class OfflineSyncLog {
-
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.CHAR)

@@ -37,9 +37,7 @@ import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 
-/**
- * Processor chuyên trách xử lý nghiệp vụ ghi nhận sự kiện thu hoạch cho lô sản xuất.
- */
+/** Processor chuyên trách xử lý nghiệp vụ ghi nhận sự kiện thu hoạch cho lô sản xuất. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -202,10 +200,9 @@ public class HarvestEventProcessor {
 
     private record EarlyHarvestResult(boolean isEarlyHarvest, String reason) {}
 
-    /**
-     * Ghi nhận sự kiện thu hoạch từ thiết bị di động.
-     */
-    public ChainEventResponse recordMobileHarvestEvent(RecordMobileEventRequest request, CustomUserDetails currentUser) {
+    /** Ghi nhận sự kiện thu hoạch từ thiết bị di động. */
+    public ChainEventResponse recordMobileHarvestEvent(
+            RecordMobileEventRequest request, CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
 
         ProductionLot lot = productionLotRepository.findById(request.getProductionLotId())

@@ -4,10 +4,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.farm.entity.ProductCategory;
 import vn.nguongocso.farm.entity.ProductionLot;
@@ -23,15 +24,12 @@ import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 
-/**
- * Thành phần khởi tạo tổ chức, khóa API và lô sản xuất mẫu cho môi trường kiểm thử runtime.
- */
+/** Thành phần khởi tạo tổ chức, khóa API và lô sản xuất mẫu cho môi trường kiểm thử runtime. */
 @Slf4j
 @Component
 @Profile("runtime-test")
 @RequiredArgsConstructor
 public class TestOrganizationBootstrap {
-
     public static final UUID TEST_ORG_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
     private final OrganizationRepository organizationRepository;
@@ -39,9 +37,7 @@ public class TestOrganizationBootstrap {
     private final ProductCategoryRepository productCategoryRepository;
     private final ProductionLotRepository productionLotRepository;
 
-    /**
-     * Khởi tạo tổ chức hợp tác xã mẫu.
-     */
+    /** Khởi tạo tổ chức hợp tác xã mẫu. */
     public Organization bootstrapOrganization() {
         return organizationRepository.findById(TEST_ORG_ID).orElseGet(() -> {
             Organization o = new Organization();
@@ -54,10 +50,12 @@ public class TestOrganizationBootstrap {
         });
     }
 
-    /**
-     * Khởi tạo các API Key mẫu (active và expired).
-     */
-    public void bootstrapPartnerApiKeys(Organization org, User managerUser, String activeRawKey, String expiredRawKey) {
+    /** Khởi tạo các khóa API đối tác mẫu. */
+    public void bootstrapPartnerApiKeys(
+            Organization org,
+            User managerUser,
+            String activeRawKey,
+            String expiredRawKey) {
         String activeHash = PartnerApiKeyService.hashSha256(activeRawKey);
         if (partnerApiKeyRepository.findByKeyHash(activeHash).isEmpty()) {
             partnerApiKeyRepository.save(PartnerApiKey.builder()
@@ -89,9 +87,7 @@ public class TestOrganizationBootstrap {
         }
     }
 
-    /**
-     * Khởi tạo danh mục sản phẩm và lô sản xuất mẫu.
-     */
+    /** Khởi tạo danh mục sản phẩm và lô sản xuất mẫu. */
     public ProductionLot bootstrapProductLot(Organization org) {
         ProductCategory category = productCategoryRepository.findAll().stream().findFirst().orElseGet(() -> {
             ProductCategory c = new ProductCategory();

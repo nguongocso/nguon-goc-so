@@ -38,9 +38,7 @@ import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
-/**
- * Triển khai dịch vụ cấu hình mẫu hồ sơ truy xuất theo đối tác.
- */
+/** Triển khai dịch vụ cấu hình mẫu hồ sơ truy xuất theo đối tác. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -231,13 +229,18 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
                 ? shipment.getOrganization().getOrganizationId()
                 : userOrgId;
 
-        ProfileTemplate template = resolveTemplateForPreview(templateId, effectiveOrgId, userOrgId, currentUser.getRoleCode());
+        ProfileTemplate template =
+                resolveTemplateForPreview(templateId, effectiveOrgId, userOrgId, currentUser.getRoleCode());
         Set<String> selectedFieldKeys = resolveSelectedFieldKeys(template);
 
         return profileTemplatePreviewBuilder.buildPreviewSnapshot(shipment, template, selectedFieldKeys);
     }
 
-    private ProfileTemplate resolveTemplateForPreview(UUID templateId, UUID effectiveOrgId, UUID userOrgId, String roleCode) {
+    private ProfileTemplate resolveTemplateForPreview(
+            UUID templateId,
+            UUID effectiveOrgId,
+            UUID userOrgId,
+            String roleCode) {
         if (templateId != null) {
             ProfileTemplate template = profileTemplateRepository.findById(templateId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin mẫu hồ sơ."));
@@ -264,7 +267,11 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
         return new HashSet<>(MandatoryFields.FIELD_DISPLAY_NAMES.keySet());
     }
 
-    private void validateTemplateNameAndFields(UUID orgId, String name, UUID templateId, List<FieldSelectionDto> selectedFields) {
+    private void validateTemplateNameAndFields(
+            UUID orgId,
+            String name,
+            UUID templateId,
+            List<FieldSelectionDto> selectedFields) {
         boolean nameExists = templateId == null
                 ? profileTemplateRepository.existsByNameAndOrganization_OrganizationId(name, orgId)
                 : profileTemplateRepository.existsByNameAndOrganization_OrganizationIdAndIdNot(name, orgId, templateId);

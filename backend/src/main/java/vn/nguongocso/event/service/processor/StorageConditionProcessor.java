@@ -36,9 +36,7 @@ import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
-/**
- * Processor chuyên trách xử lý ghi nhận mốc điều kiện bảo quản (nhiệt độ, độ ẩm) khi vận chuyển.
- */
+/** Processor chuyên trách xử lý ghi nhận mốc điều kiện bảo quản (nhiệt độ, độ ẩm) khi vận chuyển. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -53,9 +51,7 @@ public class StorageConditionProcessor {
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
-    /**
-     * Ghi nhận mốc điều kiện bảo quản khi vận chuyển.
-     */
+    /** Ghi nhận mốc điều kiện bảo quản khi vận chuyển. */
     public StorageConditionResponse recordStorageCondition(StorageConditionRequest request,
             CustomUserDetails currentUser) {
         String role = currentUser.getRoleCode();
@@ -216,7 +212,8 @@ public class StorageConditionProcessor {
 
         if (!hasProcurementEvent) {
             throw new BusinessException(HttpStatus.FORBIDDEN,
-                    "Bạn không có quyền ghi nhận điều kiện bảo quản cho lô hàng này. Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
+                    "Bạn không có quyền ghi nhận điều kiện bảo quản cho lô hàng này. "
+                            + "Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
         }
     }
 

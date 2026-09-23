@@ -2,21 +2,19 @@ package vn.nguongocso.config;
 
 import java.util.Date;
 
-import io.jsonwebtoken.Jwts;
-import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
+
+import io.jsonwebtoken.Jwts;
+import lombok.RequiredArgsConstructor;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
 
-/**
- * Thành phần khởi tạo và ký mã xác thực JWT (Access token & Selection token).
- */
+/** Thành phần khởi tạo và ký mã xác thực JWT. */
 @Component
 @RequiredArgsConstructor
 @EnableConfigurationProperties(JwtProperties.class)
 public class JwtTokenSigner {
-
     public static final String TOKEN_TYPE_SELECTION = "ORG_SELECTION";
     public static final String TOKEN_TYPE_ACCESS = "ACCESS";
 
@@ -24,8 +22,7 @@ public class JwtTokenSigner {
     private final JwtProperties jwtProperties;
 
     /**
-     * Sinh JWT ngắn hạn phục vụ bước chọn tổ chức (ORG_SELECTION).
-     * Thời hạn 5 phút.
+     * Sinh mã JWT ngắn hạn phục vụ bước chọn tổ chức (thời hạn 5 phút).
      *
      * @param user người dùng đã xác thực thông tin đăng nhập
      * @return chuỗi JWT đã ký
@@ -46,7 +43,7 @@ public class JwtTokenSigner {
     }
 
     /**
-     * Sinh JWT truy cập đầy đủ (ACCESS) chứa ngữ cảnh tổ chức và vai trò.
+     * Sinh mã JWT truy cập đầy đủ chứa ngữ cảnh tổ chức và quyền hạn.
      *
      * @param userDetails thông tin người dùng đã chọn tổ chức
      * @return chuỗi JWT đã ký
@@ -70,16 +67,12 @@ public class JwtTokenSigner {
                 .compact();
     }
 
-    /**
-     * Thời gian hết hạn của ACCESS token tính theo giây.
-     */
+    /** Thời gian hết hạn của mã ACCESS tính theo giây. */
     public long getExpirationInSeconds() {
         return jwtProperties.getExpiration() / 1000;
     }
 
-    /**
-     * Thời gian hết hạn của ORG_SELECTION token tính theo giây (5 phút).
-     */
+    /** Thời gian hết hạn của mã ORG_SELECTION tính theo giây (5 phút). */
     public long getSelectionTokenExpirationInSeconds() {
         return 5 * 60L;
     }

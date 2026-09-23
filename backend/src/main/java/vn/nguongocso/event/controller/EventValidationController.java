@@ -27,9 +27,7 @@ import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.service.EventValidationService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
-/**
- * Controller xác thực sự kiện chuỗi cung ứng.
- */
+/** Controller xác thực sự kiện chuỗi cung ứng. */
 @RestController
 @RequestMapping("/api/v1/chain-events")
 @RequiredArgsConstructor
@@ -37,9 +35,7 @@ public class EventValidationController {
     private final EventValidationService eventValidationService;
     private final PermissionChecker permissionChecker;
 
-    /**
-     * API 1: Kiểm tra tính hợp lệ của Lô/Lô hàng trước khi tạo sự kiện.
-     */
+    /** API 1: Kiểm tra tính hợp lệ của Lô/Lô hàng trước khi tạo sự kiện. */
     @GetMapping("/validate-lot")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03', 'VT-04')")
     public ResponseEntity<ApiResult<LotValidationResponse>> validateLot(
@@ -51,9 +47,7 @@ public class EventValidationController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * API 2: Hủy bỏ bản nháp sự kiện / lô hàng sai lô.
-     */
+    /** API 2: Hủy bỏ bản nháp sự kiện / lô hàng sai lô. */
     @DeleteMapping("/drafts/{id}")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<Void>> deleteDraft(
@@ -64,9 +58,7 @@ public class EventValidationController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), null));
     }
 
-    /**
-     * API 3: Truy vấn nhật ký các lần ghi sự kiện bị chặn (Sai lô).
-     */
+    /** API 3: Truy vấn nhật ký các lần ghi sự kiện bị chặn (Sai lô). */
     @GetMapping("/failed-logs")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<PageResponse<FailedEventLogResponse>>> getFailedLogs(

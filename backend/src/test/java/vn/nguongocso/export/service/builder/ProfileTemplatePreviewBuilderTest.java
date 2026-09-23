@@ -226,7 +226,8 @@ class ProfileTemplatePreviewBuilderTest {
                 "inspection.passed"
         );
 
-        vn.nguongocso.certification.entity.Certification cert = vn.nguongocso.certification.entity.Certification.builder()
+        vn.nguongocso.certification.entity.Certification cert =
+                vn.nguongocso.certification.entity.Certification.builder()
                 .id(UUID.randomUUID())
                 .name("VietGAP Trồng trọt")
                 .issuedBy("Tổ chức chứng nhận Vinacert")

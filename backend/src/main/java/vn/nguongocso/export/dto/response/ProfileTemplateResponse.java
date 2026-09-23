@@ -11,9 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * DTO trả về thông tin chi tiết hoặc tóm tắt mẫu hồ sơ truy xuất.
- */
+/** DTO trả về thông tin chi tiết hoặc tóm tắt mẫu hồ sơ truy xuất. */
 @Getter
 @Setter
 @NoArgsConstructor

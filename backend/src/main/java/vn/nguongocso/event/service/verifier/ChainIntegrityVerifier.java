@@ -25,9 +25,7 @@ import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
-/**
- * Verifier chuyên trách kiểm chứng tính toàn vẹn chuỗi băm liên kết (QTN-19 / NCL-08-CN-006).
- */
+/** Verifier chuyên trách kiểm chứng tính toàn vẹn chuỗi băm liên kết (QTN-19 / NCL-08-CN-006). */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -39,9 +37,7 @@ public class ChainIntegrityVerifier {
     private final OrganizationUserRepository organizationUserRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    /**
-     * Kiểm chứng tính toàn vẹn dòng sự kiện của một lô hàng.
-     */
+    /** Kiểm chứng tính toàn vẹn dòng sự kiện của một lô hàng. */
     public ChainVerificationResponse verifyChainIntegrity(UUID shipmentId, CustomUserDetails currentUser) {
         Shipment shipment = shipmentRepository.findById(shipmentId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Không tìm thấy lô hàng."));
@@ -210,7 +206,8 @@ public class ChainIntegrityVerifier {
 
         if (!hasProcurementEvent) {
             throw new BusinessException(HttpStatus.FORBIDDEN,
-                    "Bạn không có quyền kiểm chứng dòng sự kiện của lô này. Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
+                    "Bạn không có quyền kiểm chứng dòng sự kiện của lô này. "
+                            + "Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
         }
     }
 }

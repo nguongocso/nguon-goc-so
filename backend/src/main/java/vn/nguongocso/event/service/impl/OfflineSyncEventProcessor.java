@@ -224,9 +224,7 @@ public class OfflineSyncEventProcessor {
         }
     }
 
-    /**
-     * Lưu log thất bại vào offline_sync_logs với pessimistic locking.
-     */
+    /** Lưu log thất bại vào offline_sync_logs với pessimistic locking. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void saveFailedSyncLog(RecordOfflineEventDto eventDto, UUID syncId, String reason,
             CustomUserDetails currentUser) {
@@ -275,9 +273,7 @@ public class OfflineSyncEventProcessor {
         }
     }
 
-    /**
-     * Lưu log thành công vào offline_sync_logs.
-     */
+    /** Lưu log thành công vào offline_sync_logs. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void saveSuccessSyncLog(RecordOfflineEventDto eventDto, UUID syncId, CustomUserDetails currentUser) {
         try {

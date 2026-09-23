@@ -31,9 +31,7 @@ import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
-/**
- * Implementation của dịch vụ nhập kho và đối chiếu số lượng.
- */
+/** Implementation của dịch vụ nhập kho và đối chiếu số lượng. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

@@ -14,9 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * DTO yêu cầu cập nhật mẫu hồ sơ truy xuất theo đối tác.
- */
+/** DTO yêu cầu cập nhật mẫu hồ sơ truy xuất theo đối tác. */
 @Getter
 @Setter
 @NoArgsConstructor

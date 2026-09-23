@@ -36,9 +36,7 @@ import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
-/**
- * Resolver chuyên trách xử lý tra cứu mã quét (scanLookup) và dòng thời gian (timeline) cho chuỗi sự kiện.
- */
+/** Resolver chuyên trách xử lý tra cứu mã quét (scanLookup) và dòng thời gian (timeline) cho chuỗi sự kiện. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -51,9 +49,7 @@ public class ChainScanLookupResolver {
     private final ShipmentHandoverRepository shipmentHandoverRepository;
     private final ObjectMapper objectMapper;
 
-    /**
-     * Tra cứu thông tin lô hàng và các loại sự kiện được phép ghi dựa trên mã quét.
-     */
+    /** Tra cứu thông tin lô hàng và các loại sự kiện được phép ghi dựa trên mã quét. */
     public ScanLookupResponse scanLookup(String codeValue, CustomUserDetails currentUser) {
         TraceCode traceCode = traceCodeRepository.findByCodeValue(codeValue)
                 .orElseThrow(() -> new BusinessException("Mã truy xuất không tồn tại."));
@@ -128,9 +124,7 @@ public class ChainScanLookupResolver {
                 .build();
     }
 
-    /**
-     * Lấy dòng thời gian của một lô hàng.
-     */
+    /** Lấy dòng thời gian của một lô hàng. */
     public List<ChainEventResponse> getShipmentTimeline(UUID shipmentId) {
         Shipment shipment = shipmentRepository.findById(shipmentId)
                 .orElseThrow(() -> new BusinessException("Lô hàng không tồn tại."));
@@ -147,15 +141,20 @@ public class ChainScanLookupResolver {
             Shipment parent = shipment.getParentShipment();
             LocalDateTime splitAt = shipment.getSplitAt();
             chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(parent.getId()).stream()
-                    .filter(event -> splitAt == null || event.getRecordedAt() == null || !event.getRecordedAt().isAfter(splitAt))
-                    .forEach(event -> timeline.add(toChainEventResponse(event, "SOURCE_SHIPMENT", parent.getId(), true)));
+                    .filter(event -> splitAt == null
+                            || event.getRecordedAt() == null
+                            || !event.getRecordedAt().isAfter(splitAt))
+                    .forEach(event -> timeline.add(
+                            toChainEventResponse(event, "SOURCE_SHIPMENT", parent.getId(), true)));
         }
 
         shipmentEvents.forEach(event -> timeline.add(toChainEventResponse(
                 event, shipment.getParentShipment() == null ? "SOURCE_SHIPMENT" : "CHILD_SHIPMENT",
                 shipment.getId(), false)));
 
-        timeline.sort(Comparator.comparing(ChainEventResponse::getRecordedAt, Comparator.nullsLast(Comparator.naturalOrder())));
+        timeline.sort(Comparator.comparing(
+                ChainEventResponse::getRecordedAt,
+                Comparator.nullsLast(Comparator.naturalOrder())));
         return timeline;
     }
 

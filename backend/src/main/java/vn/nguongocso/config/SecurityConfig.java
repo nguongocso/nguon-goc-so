@@ -1,6 +1,5 @@
 package vn.nguongocso.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -14,10 +13,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import lombok.RequiredArgsConstructor;
+
 /**
- * Cấu hình chuỗi lọc bảo mật Spring Security cho hệ thống.
- * <p>
- * Hệ thống sử dụng JWT hoàn toàn stateless và tích hợp các filter xác thực theo thứ tự.
+ * Cấu hình chuỗi bộ lọc bảo mật Spring Security cho hệ thống.
+ * Áp dụng cơ chế xác thực JWT phi trạng thái và tích hợp các bộ lọc tuần tự.
  */
 @Configuration
 @EnableWebSecurity
@@ -25,18 +25,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 @Import({CorsConfig.class, SecurityBeansConfig.class})
 public class SecurityConfig {
-
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ApiKeyAuthenticationFilter apiKeyAuthenticationFilter;
     private final MetricsCollectorFilter metricsCollectorFilter;
 
-    /**
-     * Cấu hình chuỗi bộ lọc bảo mật SecurityFilterChain.
-     *
-     * @param http đối tượng HttpSecurity
-     * @return chuỗi bộ lọc đã cấu hình
-     * @throws Exception nếu xảy ra lỗi cấu hình
-     */
+    /** Cấu hình chuỗi bộ lọc bảo mật với chính sách quản lý phiên phi trạng thái. */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -53,16 +46,13 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Cấu hình phân quyền truy cập cho từng nhóm endpoint.
-     */
+    /** Cấu hình phân quyền truy cập cho từng nhóm đường dẫn API. */
     private void configureAuthorization(
             AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
         auth
-                // CORS preflight
+                // Yêu cầu CORS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Xác thực tài khoản & Quên mật khẩu
                 .requestMatchers(
                         "/api/v1/auth/login",
                         "/api/v1/auth/forgot-password",
@@ -70,29 +60,26 @@ public class SecurityConfig {
                         "/api/v1/auth/reset-password/validate"
                 ).permitAll()
 
-                // Quy trình lựa chọn tổ chức (tự xác thực qua ORG_SELECTION token)
+                // Quy trình chọn tổ chức tự xác thực qua ORG_SELECTION token
                 .requestMatchers(
                         "/api/v1/auth/organizations",
                         "/api/v1/auth/select-organization"
                 ).permitAll()
 
-                // API công khai và đối tác tích hợp (xác thực qua API Key filter)
+                // API đối tác được xác thực riêng qua bộ lọc API Key
                 .requestMatchers(
                         "/api/v1/public/**",
                         "/api/v1/partner/**",
                         "/api/publicapi/**"
                 ).permitAll()
 
-                // Health check giám sát hệ thống
                 .requestMatchers("/actuator/health").permitAll()
 
-                // Tài nguyên tệp tĩnh và ảnh tải lên
                 .requestMatchers(
                         "/files/qr/**",
                         "/uploads/**"
                 ).permitAll()
 
-                // Toàn bộ các yêu cầu còn lại bắt buộc có ACCESS JWT hợp lệ
                 .anyRequest().authenticated();
     }
 }

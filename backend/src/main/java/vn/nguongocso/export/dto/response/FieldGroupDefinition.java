@@ -9,9 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.export.enums.ProfileFieldGroup;
 
-/**
- * DTO định nghĩa nhóm trường phục vụ hiển thị trên giao diện cấu hình mẫu.
- */
+/** DTO định nghĩa nhóm trường phục vụ hiển thị trên giao diện cấu hình mẫu. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -28,11 +26,8 @@ public class FieldGroupDefinition {
     /** Danh sách các trường thuộc nhóm */
     private List<FieldItemDefinition> fields;
 
-    /**
-     * Alias thuộc tính group để tương thích hoàn toàn với frontend
-     */
+    /** Alias thuộc tính group để tương thích hoàn toàn với frontend */
     public String getGroup() {
         return fieldGroup != null ? fieldGroup.name() : null;
     }
 }
-
