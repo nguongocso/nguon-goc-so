@@ -6,11 +6,7 @@ import vn.nguongocso.report.entity.ReportAccessLog;
 
 import java.util.UUID;
 
-/**
- * Repository cho entity ReportAccessLog.
- *
- * @author Triệu Văn Đại
- */
+/** Repository quản lý nhật ký truy cập báo cáo. */
 @Repository
 public interface ReportAccessLogRepository extends JpaRepository<ReportAccessLog, UUID> {
 

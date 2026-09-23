@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Yêu cầu khóa mã tem truy xuất. */
 @Getter
 @Setter
 @NoArgsConstructor

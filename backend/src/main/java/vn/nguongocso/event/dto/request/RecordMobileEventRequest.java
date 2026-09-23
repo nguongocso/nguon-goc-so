@@ -19,7 +19,6 @@ import java.util.UUID;
 @Getter
 @Setter
 public class RecordMobileEventRequest {
-
     @NotNull(message = "Vui lòng chọn lô sản xuất")
     private UUID productionLotId;
 

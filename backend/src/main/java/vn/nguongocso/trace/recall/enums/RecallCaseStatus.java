@@ -1,9 +1,8 @@
 package vn.nguongocso.trace.recall.enums;
 
-/**
- * Trạng thái vụ việc thu hồi — chỉ có OPEN và CLOSED (một chiều).
- */
+/** Trạng thái vụ việc thu hồi. */
 public enum RecallCaseStatus {
-    OPEN,
-    CLOSED
+    OPEN, // Đang mở xử lý
+
+    CLOSED // Đã đóng vụ việc
 }

@@ -1,23 +1,23 @@
 package vn.nguongocso.farm.dto.response;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import vn.nguongocso.farm.enums.ChainProgressStage;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * DTO đại diện cho một cột giai đoạn trên bảng theo dõi tiến độ chuỗi (NCL-10-CN-013).
- */
+ * Thông tin một cột giai đoạn trên bảng theo dõi tiến độ chuỗi.
+*/
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChainProgressStageGroupResponse {
-
     private ChainProgressStage stage;
 
     private String stageName;

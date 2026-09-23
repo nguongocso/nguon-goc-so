@@ -1,5 +1,15 @@
 package vn.nguongocso.trace.service.impl;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +26,15 @@ import vn.nguongocso.organization.entity.OrganizationUser;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.report.entity.TraceCodeScanLog;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
-import vn.nguongocso.trace.dto.response.*;
+import vn.nguongocso.trace.dto.response.ChainEventTraceDto;
+import vn.nguongocso.trace.dto.response.EvidenceEventResponse;
+import vn.nguongocso.trace.dto.response.FarmAreaTraceDto;
+import vn.nguongocso.trace.dto.response.ImpactScopeSummaryDto;
+import vn.nguongocso.trace.dto.response.ImpactScopeTraceResponse;
+import vn.nguongocso.trace.dto.response.ProductionLotTraceDto;
+import vn.nguongocso.trace.dto.response.ReceivingOrganizationTraceDto;
+import vn.nguongocso.trace.dto.response.ScanStatsTraceDto;
+import vn.nguongocso.trace.dto.response.ShipmentTraceDto;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
@@ -25,13 +43,10 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.ImpactScopeTraceService;
 
-import java.time.LocalDateTime;
-import java.util.*;
-
+/** Triển khai dịch vụ truy vết phạm vi ảnh hưởng hai chiều. */
 @Service
 @RequiredArgsConstructor
 public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
-
     private final ProductionLotRepository productionLotRepository;
     private final ShipmentRepository shipmentRepository;
     private final TraceCodeRepository traceCodeRepository;
@@ -52,7 +67,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
         String rootNodeType = null;
         ProductionLot productionLot = null;
 
-        // 1. Tìm theo TraceCode
+        // Tìm theo TraceCode
         Optional<TraceCode> traceCodeOpt = traceCodeRepository.findByCodeValue(searchCode);
         if (!traceCodeOpt.isPresent() && uuidCode != null) {
             traceCodeOpt = traceCodeRepository.findById(uuidCode);
@@ -66,7 +81,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
             }
         }
 
-        // 2. Nếu chưa thấy, tìm theo Shipment
+        // Nếu chưa thấy, tìm theo Shipment
         if (productionLot == null) {
             Optional<Shipment> shipmentOpt = Optional.empty();
             if (uuidCode != null) {
@@ -85,7 +100,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
             }
         }
 
-        // 3. Nếu chưa thấy, tìm theo ProductionLot
+        // Nếu chưa thấy, tìm theo ProductionLot
         if (productionLot == null) {
             Optional<ProductionLot> lotOpt = Optional.empty();
             if (uuidCode != null) {

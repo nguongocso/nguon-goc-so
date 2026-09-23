@@ -3,9 +3,15 @@ package vn.nguongocso.trace.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -67,7 +73,7 @@ class ShipmentSplitServiceTest {
                 mock(ProductionLotRepository.class), mock(QRCodeService.class), users,
                 mock(ApplicationEventPublisher.class), mock(NotificationService.class), permissions,
                 mock(InspectionEligibilityService.class), organizations, mock(ShipmentHandoverRepository.class), events,
-                new EventHashService(new ObjectMapper()), new ObjectMapper());
+                new vn.nguongocso.event.service.impl.EventHashServiceImpl(new ObjectMapper()), new ObjectMapper());
         actor = mock(CustomUserDetails.class);
         when(actor.getRoleCode()).thenReturn("VT-02"); when(actor.getOrganizationId()).thenReturn(sourceOrgId);
         when(actor.getUserId()).thenReturn(UUID.randomUUID()); when(actor.getFullName()).thenReturn("Quản lý HTX");
@@ -79,7 +85,11 @@ class ShipmentSplitServiceTest {
         when(shipments.existsByParentShipment_Id(parentId)).thenReturn(false);
         when(events.findTopByShipmentIdOrderByCreatedAtDesc(parentId)).thenReturn(java.util.Optional.empty());
         when(shipments.save(any(Shipment.class))).thenAnswer(invocation -> {
-            Shipment shipment = invocation.getArgument(0); if (shipment.getId() == null) shipment.setId(UUID.randomUUID()); return shipment;
+            Shipment shipment = invocation.getArgument(0);
+            if (shipment.getId() == null) {
+                shipment.setId(UUID.randomUUID());
+            }
+            return shipment;
         });
     }
 
@@ -87,7 +97,11 @@ class ShipmentSplitServiceTest {
 
     @Test
     void tc01_tc02_splits_all_codes_without_changing_code_range_usage() {
-        List<TraceCode> traceCodes = List.of(code("HTX00000001"), code("HTX00000002"), code("HTX00000003"), code("HTX00000004"));
+        List<TraceCode> traceCodes = List.of(
+                code("HTX00000001"),
+                code("HTX00000002"),
+                code("HTX00000003"),
+                code("HTX00000004"));
         when(codes.findAllByShipmentIdForSplitUpdate(parentId)).thenReturn(traceCodes);
         Organization first = partner(), second = partner();
         when(organizations.findById(first.getOrganizationId())).thenReturn(java.util.Optional.of(first));
@@ -111,14 +125,19 @@ class ShipmentSplitServiceTest {
 
     @Test
     void tc02_rejects_non_full_allocation_before_persisting_children() {
-        when(codes.findAllByShipmentIdForSplitUpdate(parentId)).thenReturn(List.of(code("HTX00000001"), code("HTX00000002"), code("HTX00000003"), code("HTX00000004")));
+        when(codes.findAllByShipmentIdForSplitUpdate(parentId)).thenReturn(List.of(
+                code("HTX00000001"),
+                code("HTX00000002"),
+                code("HTX00000003"),
+                code("HTX00000004")));
         Organization first = partner(), second = partner();
         when(organizations.findById(first.getOrganizationId())).thenReturn(java.util.Optional.of(first));
         when(organizations.findById(second.getOrganizationId())).thenReturn(java.util.Optional.of(second));
 
         assertThatThrownBy(() -> service.splitShipment(parentId, request(first, second, 1, 2)))
                 .isInstanceOf(BusinessException.class).satisfies(error ->
-                        assertThat(((BusinessException) error).getDetails()).isEqualTo(java.util.Map.of("code", "SPLIT_004")));
+                        assertThat(((BusinessException) error).getDetails())
+                                .isEqualTo(Map.of("code", "SPLIT_004")));
         verify(shipments, never()).save(any(Shipment.class));
     }
 
@@ -127,7 +146,8 @@ class ShipmentSplitServiceTest {
         parent.setStatus(ShipmentStatus.RECALLED);
         assertThatThrownBy(() -> service.splitShipment(parentId, new SplitShipmentRequest()))
                 .isInstanceOf(BusinessException.class).satisfies(error ->
-                        assertThat(((BusinessException) error).getDetails()).isEqualTo(java.util.Map.of("code", "INVALID_SHIPMENT_STATUS")));
+                        assertThat(((BusinessException) error).getDetails())
+                                .isEqualTo(Map.of("code", "INVALID_SHIPMENT_STATUS")));
         verify(codes, never()).findAllByShipmentIdForSplitUpdate(any());
         verify(shipments, never()).save(any(Shipment.class));
     }
@@ -137,7 +157,8 @@ class ShipmentSplitServiceTest {
         when(shipments.findOwnedByIdForSplitUpdate(parentId, sourceOrgId)).thenReturn(java.util.Optional.empty());
         assertThatThrownBy(() -> service.splitShipment(parentId, new SplitShipmentRequest()))
                 .isInstanceOf(BusinessException.class).satisfies(error ->
-                        assertThat(((BusinessException) error).getDetails()).isEqualTo(java.util.Map.of("code", "SHIPMENT_NOT_FOUND")));
+                        assertThat(((BusinessException) error).getDetails())
+                                .isEqualTo(Map.of("code", "SHIPMENT_NOT_FOUND")));
     }
 
     @Test
@@ -145,7 +166,8 @@ class ShipmentSplitServiceTest {
         doThrow(new BusinessException("denied")).when(permissions).check("shipment", "SPLIT");
         assertThatThrownBy(() -> service.splitShipment(parentId, new SplitShipmentRequest()))
                 .isInstanceOf(BusinessException.class).satisfies(error ->
-                        assertThat(((BusinessException) error).getDetails()).isEqualTo(java.util.Map.of("code", "ACCESS_DENIED")));
+                        assertThat(((BusinessException) error).getDetails())
+                                .isEqualTo(Map.of("code", "ACCESS_DENIED")));
     }
 
     @Test
@@ -202,7 +224,11 @@ class ShipmentSplitServiceTest {
 
     @Test
     void rejects_invalid_recipient_and_invalid_range_before_writes() {
-        List<TraceCode> traceCodes = List.of(code("HTX00000001"), code("HTX00000002"), code("HTX00000003"), code("HTX00000004"));
+        List<TraceCode> traceCodes = List.of(
+                code("HTX00000001"),
+                code("HTX00000002"),
+                code("HTX00000003"),
+                code("HTX00000004"));
         when(codes.findAllByShipmentIdForSplitUpdate(parentId)).thenReturn(traceCodes);
         Organization invalid = partner(); invalid.setType(OrganizationType.COOPERATIVE);
         Organization second = partner();
@@ -210,18 +236,24 @@ class ShipmentSplitServiceTest {
         when(organizations.findById(second.getOrganizationId())).thenReturn(java.util.Optional.of(second));
         assertThatThrownBy(() -> service.splitShipment(parentId, request(invalid, second, 2, 2)))
                 .isInstanceOf(BusinessException.class).satisfies(error ->
-                        assertThat(((BusinessException) error).getDetails()).isEqualTo(java.util.Map.of("code", "SPLIT_005")));
+                        assertThat(((BusinessException) error).getDetails())
+                                .isEqualTo(Map.of("code", "SPLIT_005")));
         SplitShipmentRequest badRange = request(second, partner(), 2, 2);
         badRange.getAllocations().get(0).setFromCode("OUTSIDE");
         assertThatThrownBy(() -> service.splitShipment(parentId, badRange))
                 .isInstanceOf(BusinessException.class).satisfies(error ->
-                        assertThat(((BusinessException) error).getDetails()).isEqualTo(java.util.Map.of("code", "SPLIT_007")));
+                        assertThat(((BusinessException) error).getDetails())
+                                .isEqualTo(Map.of("code", "SPLIT_007")));
         verify(shipments, never()).save(any(Shipment.class));
     }
 
     @Test
     void rejects_overlapping_ranges_before_writes() {
-        when(codes.findAllByShipmentIdForSplitUpdate(parentId)).thenReturn(List.of(code("HTX00000001"), code("HTX00000002"), code("HTX00000003"), code("HTX00000004")));
+        when(codes.findAllByShipmentIdForSplitUpdate(parentId)).thenReturn(List.of(
+                code("HTX00000001"),
+                code("HTX00000002"),
+                code("HTX00000003"),
+                code("HTX00000004")));
         Organization first = partner(), second = partner();
         when(organizations.findById(first.getOrganizationId())).thenReturn(java.util.Optional.of(first));
         SplitShipmentRequest overlap = request(first, second, 2, 2);
@@ -229,7 +261,8 @@ class ShipmentSplitServiceTest {
         overlap.getAllocations().get(1).setToCode("HTX00000003");
         assertThatThrownBy(() -> service.splitShipment(parentId, overlap))
                 .isInstanceOf(BusinessException.class).satisfies(error ->
-                        assertThat(((BusinessException) error).getDetails()).isEqualTo(java.util.Map.of("code", "SPLIT_008")));
+                        assertThat(((BusinessException) error).getDetails())
+                                .isEqualTo(Map.of("code", "SPLIT_008")));
         verify(shipments, never()).save(any(Shipment.class));
     }
 
@@ -237,15 +270,57 @@ class ShipmentSplitServiceTest {
         Organization source = new Organization(); source.setOrganizationId(sourceOrgId);
         ProductionLot lot = new ProductionLot(); lot.setId(UUID.randomUUID()); lot.setName("Lô sản xuất");
         CodeRange range = new CodeRange(); range.setUsedCount(4L);
-        Shipment value = new Shipment(); value.setId(parentId); value.setOrganization(source); value.setProductionLot(lot); value.setCodeRange(range);
+        Shipment value = new Shipment();
+        value.setId(parentId);
+        value.setOrganization(source);
+        value.setProductionLot(lot);
+        value.setCodeRange(range);
         value.setName("Lô cha"); value.setTotalQuantity(4); value.setStatus(ShipmentStatus.CODE_PRINTED); return value;
     }
-    private TraceCode code(String value) { TraceCode code = new TraceCode(); code.setId(UUID.randomUUID()); code.setCodeValue(value); code.setStatus(TraceCodeStatus.INACTIVE); code.setShipment(parent); return code; }
-    private Organization partner() { Organization o = new Organization(); o.setOrganizationId(UUID.randomUUID()); o.setCode("DN"); o.setName("Doanh nghiệp"); o.setType(OrganizationType.ENTERPRISE); o.setStatus(OrganizationStatus.ACTIVE); return o; }
-    private SplitShipmentRequest request(Organization first, Organization second, long firstQuantity, long secondQuantity) {
-        SplitShipmentAllocationRequest a = allocation(first.getOrganizationId(), firstQuantity, "HTX00000001", firstQuantity == 2 ? "HTX00000002" : "HTX00000001");
-        SplitShipmentAllocationRequest b = allocation(second.getOrganizationId(), secondQuantity, "HTX00000003", "HTX00000004");
-        SplitShipmentRequest request = new SplitShipmentRequest(); request.setAllocations(List.of(a, b)); return request;
+    private TraceCode code(String value) {
+        TraceCode code = new TraceCode();
+        code.setId(UUID.randomUUID());
+        code.setCodeValue(value);
+        code.setStatus(TraceCodeStatus.INACTIVE);
+        code.setShipment(parent);
+        return code;
     }
-    private SplitShipmentAllocationRequest allocation(UUID recipient, long quantity, String from, String to) { SplitShipmentAllocationRequest a = new SplitShipmentAllocationRequest(); a.setRecipientOrganizationId(recipient); a.setName("Lô con"); a.setQuantity(quantity); a.setFromCode(from); a.setToCode(to); return a; }
+
+    private Organization partner() {
+        Organization organization = new Organization();
+        organization.setOrganizationId(UUID.randomUUID());
+        organization.setCode("DN");
+        organization.setName("Doanh nghiệp");
+        organization.setType(OrganizationType.ENTERPRISE);
+        organization.setStatus(OrganizationStatus.ACTIVE);
+        return organization;
+    }
+    private SplitShipmentRequest request(
+            Organization first,
+            Organization second,
+            long firstQuantity,
+            long secondQuantity) {
+        SplitShipmentAllocationRequest firstAllocation = allocation(
+                first.getOrganizationId(),
+                firstQuantity,
+                "HTX00000001",
+                firstQuantity == 2 ? "HTX00000002" : "HTX00000001");
+        SplitShipmentAllocationRequest secondAllocation = allocation(
+                second.getOrganizationId(),
+                secondQuantity,
+                "HTX00000003",
+                "HTX00000004");
+        SplitShipmentRequest request = new SplitShipmentRequest();
+        request.setAllocations(List.of(firstAllocation, secondAllocation));
+        return request;
+    }
+    private SplitShipmentAllocationRequest allocation(UUID recipient, long quantity, String from, String to) {
+        SplitShipmentAllocationRequest allocation = new SplitShipmentAllocationRequest();
+        allocation.setRecipientOrganizationId(recipient);
+        allocation.setName("Lô con");
+        allocation.setQuantity(quantity);
+        allocation.setFromCode(from);
+        allocation.setToCode(to);
+        return allocation;
+    }
 }

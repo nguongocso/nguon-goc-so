@@ -10,42 +10,46 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import vn.nguongocso.trace.entity.ShipmentHandover;
 import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 
-/**
- * Repository cho thực thể ShipmentHandover.
- */
+/** Repository quản lý biên bản bàn giao lô hàng. */
+@Repository
 public interface ShipmentHandoverRepository extends JpaRepository<ShipmentHandover, UUID> {
-
+    /** Lấy danh sách bàn giao theo ID lô hàng. */
     List<ShipmentHandover> findByShipmentId(UUID shipmentId);
 
+    /** Lấy danh sách bàn giao theo ID tổ chức nhận. */
     List<ShipmentHandover> findByToOrganizationOrganizationId(UUID orgId);
 
+    /** Lấy danh sách bàn giao theo ID tổ chức giao. */
     List<ShipmentHandover> findByFromOrganizationOrganizationId(UUID orgId);
 
+    /** Kiểm tra lô hàng có bàn giao theo trạng thái hay chưa. */
     boolean existsByShipmentIdAndStatus(UUID shipmentId, ShipmentHandoverStatus status);
 
+    /** Kiểm tra lô hàng có bàn giao đến tổ chức nhận hay chưa. */
     boolean existsByShipmentIdAndToOrganizationOrganizationId(UUID shipmentId, UUID orgId);
 
+    /** Kiểm tra lô hàng có bàn giao đến tổ chức nhận theo trạng thái hay chưa. */
     boolean existsByShipmentIdAndToOrganizationOrganizationIdAndStatus(UUID shipmentId, UUID orgId, ShipmentHandoverStatus status);
 
+    /** Tính tổng số lượng bàn giao theo lô hàng và danh sách trạng thái. */
     @Query("SELECT COALESCE(SUM(h.quantity), 0) FROM ShipmentHandover h " +
            "WHERE h.shipment.id = :shipmentId " +
            "AND h.status IN (:statuses)")
     Long sumQuantityByShipmentIdAndStatusIn(@Param("shipmentId") UUID shipmentId,
                                             @Param("statuses") Collection<ShipmentHandoverStatus> statuses);
 
+    /** Lấy danh sách bàn giao chờ duyệt đã hết hạn. */
     @Query("SELECT h FROM ShipmentHandover h " +
            "WHERE h.status = :status AND h.expiresAt < :now")
     List<ShipmentHandover> findExpiredPending(@Param("status") ShipmentHandoverStatus status,
                                               @Param("now") LocalDateTime now);
 
-    /**
-     * Truy vấn danh sách phiếu bàn giao mà tổ chức hiện tại là BÊN NHẬN (VT-04).
-     * Hỗ trợ lọc theo trạng thái, tìm kiếm theo tên lô hàng / tên tổ chức giao và phân trang.
-     */
+    /** Lấy danh sách bàn giao bên nhận có bộ lọc và phân trang. */
     @Query("SELECT h FROM ShipmentHandover h " +
            "WHERE h.toOrganization.organizationId = :orgId " +
            "AND (:status IS NULL OR h.status = :status) " +
@@ -59,10 +63,7 @@ public interface ShipmentHandoverRepository extends JpaRepository<ShipmentHandov
             @Param("keyword") String keyword,
             Pageable pageable);
 
-    /**
-     * Truy vấn danh sách phiếu bàn giao mà tổ chức hiện tại là BÊN GIAO (VT-02).
-     * Hỗ trợ lọc theo trạng thái, tìm kiếm theo tên lô hàng / tên tổ chức nhận và phân trang.
-     */
+    /** Lấy danh sách bàn giao bên giao có bộ lọc và phân trang. */
     @Query("SELECT h FROM ShipmentHandover h " +
            "WHERE h.fromOrganization.organizationId = :orgId " +
            "AND (:status IS NULL OR h.status = :status) " +

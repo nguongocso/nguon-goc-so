@@ -6,18 +6,15 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.integration.apikey.service.ApiKeyWarningService;
 
 /**
- * Scheduler quét hằng ngày khóa truy cập sắp hết hạn (NCL-12-CN-005).
- * <p>
- * Mặc định chạy lúc 00:00 (nửa đêm) theo múi giờ {@code app.timezone}.
- * Logic chi tiết nằm ở {@link ApiKeyWarningService}.
- */
+ * Scheduler quét hằng ngày khóa truy cập sắp hết hạn.
+*/
 @Component
 @RequiredArgsConstructor
 public class ApiKeyWarningScheduler {
-
     private static final Logger log = LoggerFactory.getLogger(ApiKeyWarningScheduler.class);
 
     private final ApiKeyWarningService apiKeyWarningService;

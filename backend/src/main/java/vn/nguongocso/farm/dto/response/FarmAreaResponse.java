@@ -9,42 +9,43 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import vn.nguongocso.farm.enums.AreaUnit;
 
 /**
- * DTO phản hồi sau khi tạo vùng trồng.
- */
+ * Thông tin vùng trồng.
+*/
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class FarmAreaResponse {
-	private UUID id;
+    private UUID id;
 
-	private String name;
+    private String name;
 
-	private UUID organizationId;
+    private UUID organizationId;
 
-	private String organizationName;
+    private String organizationName;
 
-	private UUID cropTypeId;
+    private UUID cropTypeId;
 
-	private String cropTypeName;
+    private String cropTypeName;
 
-	private Double latitude;
+    private Double latitude;
 
-	private Double longitude;
+    private Double longitude;
 
-	private BigDecimal area;
+    private BigDecimal area;
 
-	private AreaUnit areaUnit;
+    private AreaUnit areaUnit;
 
-	private Boolean isActive;
+    private Boolean isActive;
 
-	private Long associatedLotsCount;
+    private Long associatedLotsCount;
 
-	private LocalDateTime createdAt;
+    private LocalDateTime createdAt;
 
-	private LocalDateTime updatedAt;
+    private LocalDateTime updatedAt;
 }

@@ -37,14 +37,11 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.TraceCodeStatusService;
 
-/**
- * Triển khai dịch vụ xem và tra cứu trạng thái từng mã tem trong lô hàng (NCL-04-CN-008).
- */
+/** Triển khai dịch vụ xem và tra cứu trạng thái từng mã tem trong lô hàng. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
-
     private static final String ROLE_COOPERATIVE_MANAGER = "VT-02";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
@@ -61,17 +58,17 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
             Pageable pageable,
             CustomUserDetails currentUser) {
 
-        // 1. Kiểm tra quyền hạn vai trò (Chỉ VT-02)
+        // Kiểm tra quyền hạn vai trò (Chỉ VT-02)
         validateUserRole(currentUser);
 
-        // 2. Kiểm tra tồn tại lô hàng và cô lập dữ liệu theo tổ chức (QTN-01)
+        // Kiểm tra tồn tại lô hàng và cô lập dữ liệu theo tổ chức (QTN-01)
         Shipment shipment = getAndValidateShipmentAccess(shipmentId, currentUser);
 
-        // 3. Chuẩn hóa bộ lọc
+        // Chuẩn hóa bộ lọc
         TraceCodeStatus parsedStatus = parseStatus(status);
         String trimmedSearch = (search != null && !search.isBlank()) ? search.trim() : null;
 
-        // 4. Truy vấn danh sách mã tem phân trang
+        // Truy vấn danh sách mã tem phân trang
         Page<TraceCode> page = traceCodeRepository.findByShipmentAndFilters(
                 shipment.getId(),
                 currentUser.getOrganizationId(),
@@ -83,10 +80,10 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
             return PageResponse.from(page, Collections.emptyList());
         }
 
-        // 5. Tính số lượt quét tối ưu hóa (tránh N+1)
+        // Tính số lượt quét tối ưu hóa (tránh N+1)
         Map<UUID, Long> scanCounts = getScanCountsMap(page.getContent());
 
-        // 6. Chuyển đổi sang DTO
+        // Chuyển đổi sang DTO
         List<TraceCodeSummaryResponse> items = page.getContent().stream()
                 .map(tc -> TraceCodeSummaryResponse.builder()
                         .id(tc.getId())
@@ -110,27 +107,27 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
             String codeValue,
             CustomUserDetails currentUser) {
 
-        // 1. Kiểm tra quyền hạn vai trò (Chỉ VT-02)
+        // Kiểm tra quyền hạn vai trò (Chỉ VT-02)
         validateUserRole(currentUser);
 
         if (codeValue == null || codeValue.isBlank()) {
             throw new BusinessException("Mã tem không được để trống.");
         }
 
-        // 2. Tìm mã tem
+        // Tìm mã tem
         TraceCode traceCode = traceCodeRepository.findByCodeValue(codeValue.trim())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy mã tem truy xuất: " + codeValue));
 
-        // 3. Kiểm tra cô lập dữ liệu theo tổ chức (QTN-01)
+        // Kiểm tra cô lập dữ liệu theo tổ chức (QTN-01)
         Shipment shipment = traceCode.getShipment();
         if (shipment == null || !currentUser.getOrganizationId().equals(shipment.getOrganization().getOrganizationId())) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "Bạn không có quyền xem mã tem của tổ chức khác.");
         }
 
-        // 4. Tổng số lượt quét
+        // Tổng số lượt quét
         long scanCount = traceCodeScanLogRepository.countByTraceCode_Id(traceCode.getId());
 
-        // 5. Thu thập dòng thời gian các sự kiện
+        // Thu thập dòng thời gian các sự kiện
         List<HistoryEvent> events = buildHistoryEvents(traceCode);
 
         return TraceCodeHistoryResponse.builder()
@@ -151,19 +148,19 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
             ExportTraceCodesRequest request,
             CustomUserDetails currentUser) {
 
-        // 1. Kiểm tra quyền hạn vai trò (Chỉ VT-02)
+        // Kiểm tra quyền hạn vai trò (Chỉ VT-02)
         validateUserRole(currentUser);
 
-        // 2. Kiểm tra tồn tại lô hàng và cô lập dữ liệu theo tổ chức (QTN-01)
+        // Kiểm tra tồn tại lô hàng và cô lập dữ liệu theo tổ chức (QTN-01)
         Shipment shipment = getAndValidateShipmentAccess(shipmentId, currentUser);
 
-        // 3. Chuẩn hóa bộ lọc
+        // Chuẩn hóa bộ lọc
         String status = (request != null) ? request.getStatus() : null;
         String search = (request != null) ? request.getSearch() : null;
         TraceCodeStatus parsedStatus = parseStatus(status);
         String trimmedSearch = (search != null && !search.isBlank()) ? search.trim() : null;
 
-        // 4. Truy vấn toàn bộ mã tem thỏa mãn bộ lọc
+        // Truy vấn toàn bộ mã tem thỏa mãn bộ lọc
         List<TraceCode> traceCodes = traceCodeRepository.findAllByShipmentAndFilters(
                 shipment.getId(),
                 currentUser.getOrganizationId(),
@@ -172,7 +169,7 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
 
         Map<UUID, Long> scanCounts = getScanCountsMap(traceCodes);
 
-        // 5. Sinh nội dung file CSV kèm BOM UTF-8
+        // Sinh nội dung file CSV kèm BOM UTF-8
         StringBuilder sb = new StringBuilder();
         sb.append('\ufeff'); // BOM cho Excel hiển thị đúng tiếng Việt
         sb.append("STT,Mã tem,Trạng thái,Ngày tạo,Ngày in,Ngày kích hoạt,Lượt quét\n");
@@ -190,8 +187,6 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
 
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
-
-    // ==================== CÁC PHƯƠNG THỨC HỖ TRỢ NỘI BỘ ====================
 
     private void validateUserRole(CustomUserDetails currentUser) {
         if (currentUser == null || !ROLE_COOPERATIVE_MANAGER.equals(currentUser.getRoleCode())) {
@@ -239,7 +234,7 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
     private List<HistoryEvent> buildHistoryEvents(TraceCode tc) {
         List<HistoryEvent> list = new ArrayList<>();
 
-        // 1. Sự kiện khởi tạo
+        // Sự kiện khởi tạo
         if (tc.getCreatedAt() != null) {
             String creatorName = (tc.getShipment() != null && tc.getShipment().getCreatedBy() != null)
                     ? tc.getShipment().getCreatedBy().getFullName()
@@ -252,7 +247,7 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
                     .build());
         }
 
-        // 2. Sự kiện in tem
+        // Sự kiện in tem
         if (tc.getPrintedAt() != null) {
             String printInfo = (tc.getPrintBatchId() != null)
                     ? "Xuất file in tem QR (Đợt in: " + tc.getPrintBatchId() + ")"
@@ -265,7 +260,7 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
                     .build());
         }
 
-        // 3. Sự kiện kích hoạt
+        // Sự kiện kích hoạt
         if (tc.getActivatedAt() != null) {
             String activatorName = (tc.getActivatedBy() != null)
                     ? tc.getActivatedBy().getFullName()
@@ -278,7 +273,7 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
                     .build());
         }
 
-        // 4. Sự kiện khóa tem
+        // Sự kiện khóa tem
         if (tc.getLockedAt() != null) {
             String lockerName = (tc.getLockedBy() != null)
                     ? tc.getLockedBy().getFullName()
@@ -294,7 +289,7 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
                     .build());
         }
 
-        // 5. Sự kiện mở khóa tem
+        // Sự kiện mở khóa tem
         if (tc.getUnlockedAt() != null) {
             String unlockerName = (tc.getUnlockedBy() != null)
                     ? tc.getUnlockedBy().getFullName()
@@ -310,7 +305,7 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
                     .build());
         }
 
-        // 6. Sự kiện hủy tem
+        // Sự kiện hủy tem
         if (tc.getCancelledAt() != null) {
             String cancellerName = (tc.getCancelledBy() != null)
                     ? tc.getCancelledBy().getFullName()
@@ -326,7 +321,7 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
                     .build());
         }
 
-        // 7. Sự kiện thu hồi nếu mã/lô hàng ở trạng thái RECALLING hoặc RECALLED
+        // Sự kiện thu hồi nếu mã/lô hàng ở trạng thái RECALLING hoặc RECALLED
         if (tc.getShipment() != null && tc.getShipment().getStatus() == ShipmentStatus.RECALLING) {
             LocalDateTime recallTime = (tc.getShipment().getUpdatedAt() != null)
                     ? tc.getShipment().getUpdatedAt()
@@ -350,7 +345,7 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
                     .build());
         }
 
-        // 8. Tối đa 5 lượt quét người tiêu dùng gần nhất
+        // Tối đa 5 lượt quét người tiêu dùng gần nhất
         List<TraceCodeScanLog> recentScans = traceCodeScanLogRepository
                 .findTop5ByTraceCode_IdOrderByScannedAtDesc(tc.getId());
         for (TraceCodeScanLog scan : recentScans) {

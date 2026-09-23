@@ -29,33 +29,15 @@ import vn.nguongocso.trace.dto.response.CodeRangeSupplementResponse;
 import vn.nguongocso.trace.dto.response.EvidenceEventResponse;
 import vn.nguongocso.trace.service.CodeRangeSupplementService;
 
-/**
- * Controller quản lý yêu cầu cấp bổ sung dải mã truy xuất (NCL-04-CN-007).
- *
- * <p>
- * Quy trình:
- * <ol>
- *   <li>Quản lý hợp tác xã (VT-02) tạo yêu cầu khi hạn mức còn lại
- *       dưới ngưỡng cảnh báo hoặc đã hết.</li>
- *   <li>Quản trị viên nền tảng (VT-01) duyệt toàn bộ / duyệt một phần
- *       hoặc từ chối kèm lý do.</li>
- * </ol>
- */
+/** Controller quản lý yêu cầu cấp bổ sung dải mã truy xuất. */
 @RestController
 @RequestMapping("/api/v1/code-range-supplement-requests")
 @RequiredArgsConstructor
 @Validated
 public class CodeRangeSupplementController {
-
     private final CodeRangeSupplementService supplementService;
 
-    /**
-     * Tạo yêu cầu cấp bổ sung dải mã.
-     *
-     * <p>Chỉ Quản lý hợp tác xã (VT-02) được phép.</p>
-     *
-     * POST /api/v1/code-range-supplement-requests
-     */
+    /** Tạo yêu cầu cấp bổ sung dải mã. */
     @PostMapping
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<CodeRangeSupplementResponse>> create(
@@ -68,15 +50,7 @@ public class CodeRangeSupplementController {
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * Lấy danh sách sự kiện bằng chứng sản lượng thực (thu hoạch / sơ chế)
-     * của tổ chức để chọn khi tạo yêu cầu cấp bổ sung.
-     *
-     * <p>Chỉ Quản lý hợp tác xã (VT-02) được phép. Danh sách phẳng, sắp xếp
-     * mới nhất trước, tối đa 200 sự kiện.</p>
-     *
-     * GET /api/v1/code-range-supplement-requests/evidence-events
-     */
+    /** Lấy danh sách sự kiện bằng chứng sản lượng thực của tổ chức. */
     @GetMapping("/evidence-events")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<List<EvidenceEventResponse>>> listEvidenceEvents(
@@ -87,13 +61,7 @@ public class CodeRangeSupplementController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Lấy danh sách yêu cầu của tổ chức mình.
-     *
-     * <p>Chỉ Quản lý hợp tác xã (VT-02) được phép.</p>
-     *
-     * GET /api/v1/code-range-supplement-requests/my?status=PENDING&page=0&size=20
-     */
+    /** Lấy danh sách yêu cầu của tổ chức mình. */
     @GetMapping("/my")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<PageResponse<CodeRangeSupplementResponse>>> listMine(
@@ -108,13 +76,7 @@ public class CodeRangeSupplementController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Lấy danh sách tất cả yêu cầu theo trạng thái, phân trang.
-     *
-     * <p>Chỉ Quản trị viên nền tảng (VT-01) được phép.</p>
-     *
-     * GET /api/v1/code-range-supplement-requests?status=PENDING&page=0&size=20
-     */
+    /** Lấy danh sách tất cả yêu cầu theo trạng thái, phân trang. */
     @GetMapping
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<PageResponse<CodeRangeSupplementResponse>>> list(
@@ -129,13 +91,7 @@ public class CodeRangeSupplementController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Lấy chi tiết một yêu cầu.
-     *
-     * <p>VT-01 xem tất cả; VT-02 chỉ xem yêu cầu của tổ chức mình.</p>
-     *
-     * GET /api/v1/code-range-supplement-requests/{id}
-     */
+    /** Lấy chi tiết một yêu cầu. */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
     public ResponseEntity<ApiResult<CodeRangeSupplementResponse>> getById(
@@ -147,15 +103,7 @@ public class CodeRangeSupplementController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Duyệt toàn bộ hoặc một phần một yêu cầu.
-     *
-     * <p>Chỉ Quản trị viên nền tảng (VT-01) được phép. Khi duyệt, hạn mức
-     * ({@code totalLimit}) của dải mã hiện có của tổ chức tăng ngay
-     * theo số lượng thực cấp.</p>
-     *
-     * PUT /api/v1/code-range-supplement-requests/{id}/approve
-     */
+    /** Duyệt toàn bộ hoặc một phần một yêu cầu. */
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<CodeRangeSupplementResponse>> approve(
@@ -168,13 +116,7 @@ public class CodeRangeSupplementController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Từ chối một yêu cầu kèm lý do bắt buộc.
-     *
-     * <p>Chỉ Quản trị viên nền tảng (VT-01) được phép.</p>
-     *
-     * PUT /api/v1/code-range-supplement-requests/{id}/reject
-     */
+    /** Từ chối một yêu cầu kèm lý do bắt buộc. */
     @PutMapping("/{id}/reject")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<CodeRangeSupplementResponse>> reject(

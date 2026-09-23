@@ -1,14 +1,13 @@
 package vn.nguongocso.farm.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.time.LocalDateTime;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-
 import org.springframework.data.repository.query.Param;
 
 import vn.nguongocso.farm.entity.FarmLog;
@@ -18,15 +17,9 @@ import vn.nguongocso.farm.projection.FarmLogProjection;
 
 /**
  * Repository thao tác dữ liệu nhật ký canh tác.
- */
+*/
 public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
-	/**
-	 * Lấy danh sách nhật ký canh tác của lô sản xuất theo phân trang.
-	 *
-	 * @param productionLot lô sản xuất
-	 * @param pageable      thông tin phân trang
-	 * @return danh sách nhật ký canh tác
-	 */
+	/** Lấy danh sách nhật ký canh tác của lô sản xuất theo phân trang. */
 	@Query("""
 			SELECT
 			    fl.id AS id,
@@ -49,91 +42,40 @@ public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
 			ProductionLot productionLot,
 			Pageable pageable);
 
-	/**
-	 * Lấy danh sách nhật ký canh tác của lô sản xuất theo ID của lô sản xuất, sắp
-	 * xếp theo ngày thực hiện tăng dần.
-	 *
-	 * @param productionLotId ID của lô sản xuất
-	 * @return danh sách nhật ký canh tác
-	 */
+	/** Lấy nhật ký canh tác của lô sản xuất theo phân trang. */
 	Page<FarmLog> findByProductionLotId(ProductionLot productionLot, Pageable pageable);
 
-	/**
-	 * Lấy danh sách nhật ký canh tác của lô sản xuất theo ID của lô sản xuất, sắp
-	 * xếp theo ngày thực hiện tăng dần.
-	 *
-	 * @param productionLotId ID của lô sản xuất
-	 * @return danh sách nhật ký canh tác
-	 */
+	/** Lấy nhật ký canh tác theo ID lô sản xuất theo ngày thực hiện. */
 	List<FarmLog> findByProductionLotId_IdOrderByExecutedDateAsc(UUID productionLotId);
 
-	/**
-	 * Kiểm tra xem có tồn tại nhật ký canh tác nào liên quan đến lô sản xuất hay
-	 * không.
-	 *
-	 * @param productionLotId ID của lô sản xuất
-	 * @return true nếu tồn tại, false nếu không tồn tại
-	 */
+	/** Kiểm tra lô sản xuất đã có nhật ký canh tác hay chưa. */
 	@Query("SELECT COUNT(fl) > 0 FROM FarmLog fl " +
 			"WHERE fl.productionLotId.id = :productionLotId")
 	boolean existsByProductionLotId(@Param("productionLotId") UUID productionLotId);
 
-	/**
-	 * Đếm số lượng nhật ký canh tác của lô sản xuất theo ID.
-	 *
-	 * @param productionLotId ID của lô sản xuất
-	 * @return số lượng nhật ký canh tác
-	 */
+	/** Đếm số nhật ký canh tác của lô sản xuất. */
 	@Query("SELECT COUNT(fl) FROM FarmLog fl WHERE fl.productionLotId.id = :productionLotId")
 	long countByProductionLotId(@Param("productionLotId") UUID productionLotId);
 
-	/**
-	 * Kiểm tra xem vật tư có tên cho trước đã từng được dùng trong nhật ký canh tác hay chưa.
-	 */
+	/** Kiểm tra vật tư đã từng được dùng trong nhật ký canh tác hay chưa. */
 	@Query("SELECT COUNT(fl) > 0 FROM FarmLog fl WHERE LOWER(TRIM(fl.material)) = LOWER(TRIM(:materialName))")
 	boolean existsByMaterialIgnoreCase(@Param("materialName") String materialName);
 
-	/**
-	 * NCL-03-CN-006: lấy các bản đính chính liên kết tới một bản gốc
-	 * nhật ký canh tác, sắp xếp theo thời gian tạo giảm dần (mới nhất trước).
-	 *
-	 * @param originalFarmLogId ID của bản gốc
-	 * @return danh sách bản đính chính
-	 */
+	/** Lấy các bản đính chính của bản gốc theo thời gian tạo giảm dần. */
 	List<FarmLog> findByOriginalFarmLogId_IdOrderByCreatedAtDesc(UUID originalFarmLogId);
 
-	/**
-	 * Lấy danh sách nhật ký canh tác của các lô sản xuất theo danh sách ID của lô
-	 * sản xuất, sắp xếp theo ngày thực hiện tăng dần.
-	 *
-	 * @param productionLotIds danh sách ID của các lô sản xuất
-	 * @return danh sách nhật ký canh tác
-	 */
+	/** Lấy nhật ký canh tác của danh sách lô sản xuất theo ngày thực hiện. */
 	@Query("SELECT fl FROM FarmLog fl WHERE fl.productionLotId.id IN :productionLotIds ORDER BY fl.executedDate ASC")
 	List<FarmLog> findByProductionLotId_IdInOrderByExecutedDateAsc(
 			@Param("productionLotIds") List<UUID> productionLotIds);
 
-	/**
-	 * Lấy toàn bộ nhật ký canh tác của một lô sản xuất theo loại hoạt động.
-	 *
-	 * @param productionLotId ID của lô sản xuất
-	 * @param activityType    loại hoạt động (ví dụ: PESTICIDE)
-	 * @return danh sách nhật ký canh tác
-	 */
+	/** Lấy nhật ký canh tác của lô sản xuất theo loại hoạt động. */
 	@Query("SELECT fl FROM FarmLog fl WHERE fl.productionLotId.id = :productionLotId AND fl.activityType = :activityType ORDER BY fl.executedDate ASC")
 	List<FarmLog> findByProductionLotIdAndActivityType(
 			@Param("productionLotId") UUID productionLotId,
 			@Param("activityType") FarmActivityType activityType);
 
-	/**
-	 * Đếm số mục nhật ký canh tác theo từng tổ chức trong khoảng thời gian
-	 * (NCL-07-CN-008). Tổ chức được suy ra qua lô sản xuất của nhật ký.
-	 * Dùng {@code createdAt} (thời điểm ghi nhật ký).
-	 *
-	 * @param from mốc bắt đầu khoảng thời gian
-	 * @param to   mốc kết thúc khoảng thời gian
-	 * @return danh sách [organizationId, số lượng]
-	 */
+	/** Đếm số nhật ký canh tác theo từng tổ chức trong khoảng thời gian. */
 	@Query("""
 			SELECT pl.organization.organizationId, COUNT(fl)
 			FROM FarmLog fl
@@ -145,12 +87,7 @@ public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
 			@Param("from") LocalDateTime from,
 			@Param("to") LocalDateTime to);
 
-	/**
-	 * Lấy thời điểm ghi nhật ký mới nhất của từng tổ chức (NCL-07-CN-008,
-	 * phục vụ tính lastActivityAt).
-	 *
-	 * @return danh sách [organizationId, createdAt lớn nhất]
-	 */
+	/** Lấy thời điểm ghi nhật ký mới nhất của từng tổ chức. */
 	@Query("""
 			SELECT pl.organization.organizationId, MAX(fl.createdAt)
 			FROM FarmLog fl

@@ -23,6 +23,7 @@ import vn.nguongocso.event.dto.response.ScanLookupResponse;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.event.service.resolver.ChainScanLookupResolver;
 import vn.nguongocso.event.service.impl.ChainEventServiceImpl;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
@@ -51,7 +52,7 @@ class ChainEventScanLookupTest {
     @Mock
     private OrganizationUserRepository organizationUserRepository;
 
-    @InjectMocks
+    private ChainScanLookupResolver chainScanLookupResolver;
     private ChainEventServiceImpl chainEventService;
 
     private CustomUserDetails vt04User;
@@ -113,6 +114,18 @@ class ChainEventScanLookupTest {
                 .thenReturn(Optional.of(traceCode));
         when(chainEventRepository.findTopByShipmentIdOrderByRecordedAtDesc(shipment.getId()))
                 .thenReturn(Optional.empty());
+
+        chainScanLookupResolver = new ChainScanLookupResolver(
+                traceCodeRepository,
+                chainEventRepository,
+                organizationUserRepository,
+                null,
+                null,
+                new com.fasterxml.jackson.databind.ObjectMapper()
+        );
+        chainEventService = new ChainEventServiceImpl(
+                chainEventRepository, null, null, null, null, chainScanLookupResolver, null
+        );
     }
 
     private ChainEvent event(ChainEventType type, User recorder) {

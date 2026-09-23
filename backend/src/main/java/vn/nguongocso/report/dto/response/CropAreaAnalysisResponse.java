@@ -1,15 +1,12 @@
 package vn.nguongocso.report.dto.response;
 
-import lombok.Builder;
-import lombok.Getter;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO phản hồi phân tích diện tích canh tác.
- *
- * @author Triệu Văn Đại
- */
+import lombok.Builder;
+import lombok.Getter;
+
+/** DTO phản hồi phân tích diện tích canh tác. */
 @Getter
 @Builder
 public class CropAreaAnalysisResponse {
@@ -19,18 +16,13 @@ public class CropAreaAnalysisResponse {
 
     private List<SeasonAnalysisStats> bySeason;
 
-    /**
-     * Thông báo bổ sung (VD: cán bộ chưa được phân công địa bàn quản lý nào);
-     * null khi không có.
-     */
     private String message;
 
-    /**
-     * DTO phản hồi thống kê theo khu vực canh tác.
-     */
+    /** Thống kê tổng hợp. */
     @Getter
     @Builder
     public static class SummaryStats {
+
         private long totalLots;
 
         private double totalExpectedYield;
@@ -40,12 +32,11 @@ public class CropAreaAnalysisResponse {
         private double totalArea;
     }
 
-    /**
-     * DTO phản hồi thống kê theo mùa vụ.
-     */
+    /** Thống kê theo khu vực canh tác. */
     @Getter
     @Builder
     public static class AreaAnalysisStats {
+
         private UUID farmAreaId;
 
         private String farmAreaName;
@@ -63,12 +54,11 @@ public class CropAreaAnalysisResponse {
         private List<AreaSeasonStats> seasons;
     }
 
-    /**
-     * DTO phản hồi thống kê theo mùa vụ trong khu vực canh tác.
-     */
+    /** Thống kê theo mùa vụ trong khu vực canh tác. */
     @Getter
     @Builder
     public static class AreaSeasonStats {
+
         private String seasonCode;
 
         private String seasonName;
@@ -82,12 +72,11 @@ public class CropAreaAnalysisResponse {
         private double actualYield;
     }
 
-    /**
-     * DTO phản hồi thống kê theo mùa vụ.
-     */
+    /** Thống kê theo mùa vụ. */
     @Getter
     @Builder
     public static class SeasonAnalysisStats {
+
         private String seasonCode;
 
         private String seasonName;
@@ -103,12 +92,11 @@ public class CropAreaAnalysisResponse {
         private List<SeasonAreaStats> areas;
     }
 
-    /**
-     * DTO phản hồi thống kê theo khu vực canh tác trong mùa vụ.
-     */
+    /** Thống kê theo khu vực canh tác trong mùa vụ. */
     @Getter
     @Builder
     public static class SeasonAreaStats {
+
         private UUID farmAreaId;
 
         private String farmAreaName;

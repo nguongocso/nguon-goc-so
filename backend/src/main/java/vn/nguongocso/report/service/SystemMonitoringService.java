@@ -1,14 +1,13 @@
 package vn.nguongocso.report.service;
 
+import java.util.List;
+
 import vn.nguongocso.report.dto.response.MetricThresholdDto;
 import vn.nguongocso.report.dto.response.SystemStatusResponse;
 
-import java.util.List;
-
-/**
- * Interface cho dịch vụ Giám sát tình trạng hệ thống.
- */
+/** Service giám sát tình trạng hệ thống. */
 public interface SystemMonitoringService {
+
     /**
      * Lấy tình trạng sức khỏe tổng thể của hệ thống thời gian thực.
      */

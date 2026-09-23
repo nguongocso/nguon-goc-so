@@ -10,20 +10,25 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * DTO phản hồi thông tin cấu hình địa chỉ nhận thông báo Webhook của đối tác (NCL-12-CN-006).
- */
+ * DTO phản hồi thông tin cấu hình địa chỉ nhận thông báo Webhook của đối tác.
+*/
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class PartnerWebhookResponse {
-
     private UUID id;
+
     private String partnerName;
+
     private String keyPrefix;
+
     private String webhookUrl;
+
     private Boolean isWebhookActive;
+
     private String webhookSecret;
+
     private LocalDateTime updatedAt;
 }

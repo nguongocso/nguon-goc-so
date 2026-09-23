@@ -5,12 +5,13 @@ import java.util.UUID;
 import vn.nguongocso.farm.dto.request.UpdateFarmAreaBoundaryRequest;
 import vn.nguongocso.farm.dto.response.FarmAreaBoundaryResponse;
 
-/** Nghiệp vụ đọc và cập nhật ranh giới vùng trồng. */
+/**
+ * Nghiệp vụ ranh giới vùng trồng.
+*/
 public interface FarmAreaBoundaryService {
-
-    /** Lấy ranh giới vùng trồng thuộc tổ chức hiện tại. */
+    /** Lấy ranh giới vùng trồng. */
     FarmAreaBoundaryResponse getBoundary(UUID farmAreaId);
 
-    /** Thiết lập hoặc cập nhật ranh giới vùng trồng thuộc tổ chức hiện tại. */
+    /** Cập nhật ranh giới vùng trồng. */
     FarmAreaBoundaryResponse updateBoundary(UUID farmAreaId, UpdateFarmAreaBoundaryRequest request);
 }

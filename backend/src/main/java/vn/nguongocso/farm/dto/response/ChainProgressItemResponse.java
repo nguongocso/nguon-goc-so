@@ -1,24 +1,24 @@
 package vn.nguongocso.farm.dto.response;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import vn.nguongocso.farm.enums.ChainProgressStage;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
 /**
- * DTO đại diện cho một thẻ lô sản xuất/hàng trên bảng theo dõi tiến độ chuỗi (NCL-10-CN-013).
- */
+ * Thông tin một lô sản xuất trên bảng theo dõi tiến độ chuỗi.
+*/
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChainProgressItemResponse {
-
     private UUID id;
 
     private String name;
