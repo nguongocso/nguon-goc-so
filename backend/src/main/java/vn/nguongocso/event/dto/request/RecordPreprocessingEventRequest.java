@@ -20,7 +20,6 @@ import java.util.UUID;
 @Getter
 @Setter
 public class RecordPreprocessingEventRequest {
-
     @NotNull(message = "Vui lòng chọn lô sản xuất")
     private UUID productionLotId;
 
@@ -44,13 +43,9 @@ public class RecordPreprocessingEventRequest {
     private Double latitude;
     private Double longitude;
 
-    /**
-     * Danh sách ảnh thực địa (base64 hoặc URL), tùy chọn.
-     */
+    /** Danh sách ảnh thực địa (base64 hoặc URL), tùy chọn. */
     private List<String> images;
 
-    /**
-     * Nguồn thiết bị ghi sự kiện, mặc định "WEB".
-     */
+    /** Nguồn thiết bị ghi sự kiện, mặc định "WEB". */
     private String deviceSource = "WEB";
 }

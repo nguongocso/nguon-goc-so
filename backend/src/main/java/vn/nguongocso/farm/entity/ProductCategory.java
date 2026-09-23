@@ -2,18 +2,23 @@ package vn.nguongocso.farm.entity;
 
 import java.util.UUID;
 
-import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 /**
  * Entity đại diện cho danh mục loại cây trồng.
- */
+*/
 @Entity
 @Table(name = "product_categories")
 @Getter
@@ -22,45 +27,42 @@ import jakarta.persistence.Table;
 @AllArgsConstructor
 @Builder
 public class ProductCategory {
-	@Id
-	@Column(name = "id", nullable = false, updatable = false)
-	@JdbcTypeCode(SqlTypes.CHAR)
-	private UUID id;
+    @Id
+    @Column(name = "id", nullable = false, updatable = false)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID id;
 
-	@Column(name = "name", nullable = false)
-	private String name;
+    @Column(name = "name", nullable = false)
+    private String name;
 
-	@Column(name = "name_en")
-	private String nameEn;
+    @Column(name = "name_en")
+    private String nameEn;
 
-	@Column(name = "category_group")
-	private String group;
+    @Column(name = "category_group")
+    private String group;
 
-	@Column(name = "description")
-	private String description;
+    @Column(name = "description")
+    private String description;
 
-	@Column(name = "is_active", nullable = false)
-	private Boolean isActive;
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive;
 
-	@Column(name = "temp_min", columnDefinition = "DECIMAL(4,1)")
-	private Double tempMin;
+    @Column(name = "temp_min", columnDefinition = "DECIMAL(4,1)")
+    private Double tempMin;
 
-	@Column(name = "temp_max", columnDefinition = "DECIMAL(4,1)")
-	private Double tempMax;
+    @Column(name = "temp_max", columnDefinition = "DECIMAL(4,1)")
+    private Double tempMax;
 
-	@Column(name = "humidity_min", columnDefinition = "DECIMAL(5,1)")
-	private Double humidityMin;
+    @Column(name = "humidity_min", columnDefinition = "DECIMAL(5,1)")
+    private Double humidityMin;
 
-	@Column(name = "humidity_max", columnDefinition = "DECIMAL(5,1)")
-	private Double humidityMax;
+    @Column(name = "humidity_max", columnDefinition = "DECIMAL(5,1)")
+    private Double humidityMax;
 
-	/**
-	 * Thời gian lưu kho tối đa cho phép (tính theo ngày).
-	 */
-	@Column(name = "max_storage_days")
-	private Integer maxStorageDays;
+    @Column(name = "max_storage_days")
+    private Integer maxStorageDays;
 
-	@Column(name = "requires_inspection", nullable = false)
-	@Builder.Default
-	private Boolean requiresInspection = false;
+    @Column(name = "requires_inspection", nullable = false)
+    @Builder.Default
+    private Boolean requiresInspection = false;
 }

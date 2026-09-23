@@ -18,7 +18,6 @@ import java.util.UUID;
 @Getter
 @Setter
 public class RecordWarehouseExitRequest {
-
     @NotNull(message = "Vui lòng chọn lô hàng")
     private UUID shipmentId;
 
@@ -34,13 +33,9 @@ public class RecordWarehouseExitRequest {
     private Double latitude;
     private Double longitude;
 
-    /**
-     * Danh sách ảnh thực địa (base64 hoặc URL), tùy chọn.
-     */
+    /** Danh sách ảnh thực địa (base64 hoặc URL), tùy chọn. */
     private List<String> images;
 
-    /**
-     * Nguồn thiết bị ghi sự kiện, mặc định "WEB".
-     */
+    /** Nguồn thiết bị ghi sự kiện, mặc định "WEB". */
     private String deviceSource = "WEB";
 }

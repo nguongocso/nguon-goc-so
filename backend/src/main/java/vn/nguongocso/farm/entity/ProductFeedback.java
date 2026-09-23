@@ -1,11 +1,30 @@
 package vn.nguongocso.farm.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
@@ -14,7 +33,7 @@ import vn.nguongocso.trace.entity.TraceCode;
 
 /**
  * Entity đại diện cho phản hồi sản phẩm.
- */
+*/
 @Entity
 @Table(name = "product_feedbacks")
 @Getter
@@ -81,6 +100,7 @@ public class ProductFeedback {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /** Khởi tạo thời điểm tạo, cập nhật và trạng thái mặc định trước khi lưu mới. */
     @PrePersist
     public void prePersist() {
         LocalDateTime now = LocalDateTime.now();
@@ -94,6 +114,7 @@ public class ProductFeedback {
         updatedAt = now;
     }
 
+    /** Cập nhật thời điểm sửa đổi trước khi lưu bản ghi hiện có. */
     @PreUpdate
     public void preUpdate() {
         updatedAt = LocalDateTime.now();

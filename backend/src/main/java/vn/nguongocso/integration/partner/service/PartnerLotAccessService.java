@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
@@ -20,16 +21,11 @@ import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
 /**
- * Service ghi nhận nhật ký đối tác bên thứ ba truy xuất dữ liệu của lô (NCL-12-CN-006).
- * <p>
- * Lưu vết mỗi khi bên thứ ba sử dụng khóa API để tra cứu hồ sơ lô sản xuất, xuất hồ sơ GS1
- * hoặc tra cứu hành trình theo mã tem. Nhật ký này là căn cứ trực tiếp để lọc phạm vi đối tác
- * cần gửi thông báo khi lô xảy ra biến cố thu hồi (TC-03).
- */
+ * Service ghi nhận nhật ký đối tác bên thứ ba truy xuất dữ liệu của lô.
+*/
 @Service
 @RequiredArgsConstructor
 public class PartnerLotAccessService {
-
     private static final Logger log = LoggerFactory.getLogger(PartnerLotAccessService.class);
 
     private final PartnerLotAccessLogRepository partnerLotAccessLogRepository;
@@ -38,10 +34,6 @@ public class PartnerLotAccessService {
 
     /**
      * Ghi nhận lượt truy xuất dữ liệu lô của đối tác.
-     *
-     * @param partnerApiKey Khóa API của đối tác gọi cổng
-     * @param shipmentId    ID lô hàng được truy xuất (nếu có)
-     * @param productionLotId ID lô sản xuất được truy xuất (nếu có)
      */
     @Async
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -50,7 +42,6 @@ public class PartnerLotAccessService {
             return;
         }
 
-        // Bỏ qua nếu là khóa thử nghiệm (Sandbox key)
         if (Boolean.TRUE.equals(partnerApiKey.getIsTest())) {
             return;
         }

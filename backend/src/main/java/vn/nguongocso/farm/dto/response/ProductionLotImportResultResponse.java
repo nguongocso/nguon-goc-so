@@ -9,29 +9,25 @@ import lombok.Getter;
 
 /**
  * Kết quả sau khi hoàn tất nhập dữ liệu lô sản xuất.
- */
+*/
 @Getter
 @Builder
 public class ProductionLotImportResultResponse {
-    private UUID importHistoryId; // ID lịch sử nhập dữ liệu.
+    private UUID importHistoryId;
 
-    private String status; // Trạng thái: SUCCESS, PARTIAL_SUCCESS hoặc FAILED.
+    private String status;
 
-    private String fileName; // Tên tệp đã nhập.
+    private String fileName;
 
-    private Integer totalRows; // Tổng số dòng dữ liệu.
+    private Integer totalRows;
 
-    private Integer successCount; // Số dòng được lưu thành công.
+    private Integer successCount;
 
-    private Integer failedCount; // Số dòng bị lỗi.
+    private Integer failedCount;
 
-    private List<UUID> savedLotIds; // Danh sách ID các lô đã được tạo.
+    private List<UUID> savedLotIds;
 
-    private List<ProductionLotImportRowError> errors; // Danh sách dòng lỗi.
+    private List<ProductionLotImportRowError> errors;
 
-    /**
-     * Thời điểm hoàn tất nhập dữ liệu, theo giờ nghiệp vụ
-     * (Asia/Ho_Chi_Minh) — thống nhất với createdAt của nhật ký canh tác.
-     */
     private LocalDateTime importedAt;
 }

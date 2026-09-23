@@ -10,13 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * DTO ghi nhận sự kiện ngoại tuyến.
- */
+/** DTO ghi nhận sự kiện ngoại tuyến. */
 @Getter
 @Setter
 public class RecordOfflineEventDto {
-
     @NotNull(message = "ID sự kiện ngoại tuyến không được để trống")
     private UUID offlineEventId;
 
@@ -26,9 +23,7 @@ public class RecordOfflineEventDto {
      */
     private UUID productionLotId;
 
-    /**
-     * ID của lô hàng (dùng cho TRANSPORT, PROCUREMENT).
-     */
+    /** ID của lô hàng (dùng cho TRANSPORT, PROCUREMENT). */
     private UUID shipmentId;
 
     /**

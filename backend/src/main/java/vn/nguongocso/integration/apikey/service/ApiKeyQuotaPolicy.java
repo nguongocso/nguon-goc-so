@@ -4,30 +4,29 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Quy tắc ngưỡng cảnh báo hạn mức của khóa truy cập đối tác (NCL-12-CN-005).
- * <p>
- * Là nơi duy nhất tính ngưỡng cảnh báo trong backend để đường gọi API của đối
- * tác, job đối soát và trang cảnh báo tổng hợp luôn nhất quán:
- * {@code ngưỡng = ceil(rateLimitPerHour × tỷ lệ cảnh báo)}.
- */
+ * Quy tắc ngưỡng cảnh báo hạn mức của khóa truy cập đối tác.
+*/
 @Component
 public class ApiKeyQuotaPolicy {
-
     @Value("${app.apikey.quota-warning-ratio:0.8}")
     private double quotaWarningRatio;
 
     /**
-     * Tỷ lệ hạn mức chạm ngưỡng cảnh báo (0.8 = 80%).
+     * Lấy tỷ lệ hạn mức chạm ngưỡng cảnh báo.
      */
     public double getQuotaWarningRatio() {
         return quotaWarningRatio;
     }
 
     /**
-     * Số lượt gọi trong ngày chạm ngưỡng cảnh báo của một khóa.
-     *
-     * @param rateLimitPerHour hạn mức lượt gọi mỗi giờ của khóa
-     * @return ngưỡng cảnh báo; trả 0 nếu hạn mức hoặc tỷ lệ cấu hình không hợp lệ
+     * Gán tỷ lệ hạn mức chạm ngưỡng cảnh báo.
+     */
+    public void setQuotaWarningRatio(double quotaWarningRatio) {
+        this.quotaWarningRatio = quotaWarningRatio;
+    }
+
+    /**
+     * Tính số lượt gọi chạm ngưỡng cảnh báo của một khóa.
      */
     public int warningThreshold(int rateLimitPerHour) {
         if (rateLimitPerHour <= 0 || quotaWarningRatio <= 0) {
@@ -37,7 +36,7 @@ public class ApiKeyQuotaPolicy {
     }
 
     /**
-     * Kiểm tra số lượt gọi trong ngày đã chạm ngưỡng cảnh báo hay chưa.
+     * Kiểm tra số lượt gọi đã chạm ngưỡng cảnh báo hay chưa.
      */
     public boolean isReached(int usedCallsInDay, int rateLimitPerHour) {
         int threshold = warningThreshold(rateLimitPerHour);
@@ -45,7 +44,7 @@ public class ApiKeyQuotaPolicy {
     }
 
     /**
-     * Tỷ lệ ngưỡng cảnh báo dạng phần trăm để hiển thị trong nội dung cảnh báo.
+     * Lấy tỷ lệ ngưỡng cảnh báo dạng phần trăm để hiển thị.
      */
     public int warningThresholdPercent() {
         return (int) Math.round(quotaWarningRatio * 100);

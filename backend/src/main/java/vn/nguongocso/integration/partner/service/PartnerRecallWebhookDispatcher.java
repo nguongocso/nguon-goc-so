@@ -1,61 +1,33 @@
 package vn.nguongocso.integration.partner.service;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
-import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
-import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
-import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
-import vn.nguongocso.integration.partner.dto.response.PartnerRecallPayloadDto;
-import vn.nguongocso.integration.partner.dto.response.PartnerWebhookAttemptDto;
-import vn.nguongocso.integration.partner.entity.PartnerWebhookNotification;
-import vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus;
-import vn.nguongocso.integration.partner.repository.PartnerLotAccessLogRepository;
-import vn.nguongocso.integration.partner.repository.PartnerWebhookNotificationRepository;
+
 import vn.nguongocso.certification.entity.SystemConfiguration;
 import vn.nguongocso.certification.repository.SystemConfigurationRepository;
+import vn.nguongocso.integration.partner.entity.PartnerWebhookNotification;
+import vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus;
+import vn.nguongocso.integration.partner.repository.PartnerWebhookNotificationRepository;
 import vn.nguongocso.trace.entity.Shipment;
 
 /**
- * Service điều phối và gửi thông báo Webhook tự động tới bên thứ ba khi lô bị thu hồi (NCL-12-CN-006).
- * <p>
- * Bắt sự kiện khi lô chuyển sang {@code RECALLING} hoặc {@code RECALLED}, xác định đúng đối tác
- * đã từng lấy dữ liệu lô trong khoảng thời gian cấu hình (TC-03), kiểm tra trạng thái khóa (TC-04),
- * gửi thông báo qua HTTPS và thực thi cơ chế thử lại theo lịch giãn dần (TC-01, TC-02).
- */
+ * Service điều phối và gửi thông báo Webhook tự động tới bên thứ ba khi lô bị thu hồi.
+*/
 @Service
 @RequiredArgsConstructor
 public class PartnerRecallWebhookDispatcher {
-
     private static final Logger log = LoggerFactory.getLogger(PartnerRecallWebhookDispatcher.class);
-
     private static final String CONFIG_WINDOW_DAYS = "PARTNER_RECALL_NOTIFICATION_WINDOW_DAYS";
     private static final int DEFAULT_WINDOW_DAYS = 30;
-    private static final int[] RETRY_INTERVAL_MINUTES = {1, 5, 15, 30, 60};
 
     private final PartnerWebhookDeliveryService webhookDeliveryService;
     private final PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
@@ -63,11 +35,6 @@ public class PartnerRecallWebhookDispatcher {
 
     /**
      * Điều phối gửi thông báo thu hồi cho danh sách các lô hàng.
-     *
-     * @param shipments         Danh sách lô hàng bị thu hồi
-     * @param newStatus         Trạng thái mới: RECALLING hoặc RECALLED
-     * @param publicReason      Lý do thu hồi ở mức công khai
-     * @param remediationSummary Tóm tắt biện pháp khắc phục (nếu có, khi đóng case)
      */
     @Async
     public void dispatchRecallNotifications(
@@ -95,7 +62,7 @@ public class PartnerRecallWebhookDispatcher {
     }
 
     /**
-     * Xử lý xác định đối tác và tạo thông báo cho một lô hàng (ủy quyền sang DeliveryService).
+     * Xử lý xác định đối tác và tạo thông báo cho một lô hàng.
      */
     public void processShipmentRecallNotification(
             Shipment shipment,
@@ -108,14 +75,14 @@ public class PartnerRecallWebhookDispatcher {
     }
 
     /**
-     * Thực thi một lượt gửi HTTP Webhook POST (ủy quyền sang DeliveryService).
+     * Thực thi một lượt gửi HTTP Webhook.
      */
     public void executeWebhookDelivery(PartnerWebhookNotification notification, String webhookSecret) {
         webhookDeliveryService.executeWebhookDelivery(notification, webhookSecret);
     }
 
     /**
-     * Cron định kỳ quét các thông báo Webhook cần thử lại theo lịch giãn dần (NCL-12-CN-006-CV-04).
+     * Quét định kỳ các thông báo Webhook cần thử lại theo lịch giãn dần.
      */
     @Scheduled(fixedDelay = 60000)
     public void retryPendingNotifications() {
@@ -141,6 +108,9 @@ public class PartnerRecallWebhookDispatcher {
         }
     }
 
+    /**
+     * Đọc số ngày của cửa sổ thông báo từ cấu hình hệ thống.
+     */
     private int resolveNotificationWindowDays() {
         try {
             Optional<SystemConfiguration> configOpt = systemConfigurationRepository.findById(CONFIG_WINDOW_DAYS);
@@ -153,6 +123,9 @@ public class PartnerRecallWebhookDispatcher {
         return DEFAULT_WINDOW_DAYS;
     }
 
+    /**
+     * Tính toán chữ ký của dữ liệu gửi webhook.
+     */
     public static String computeHmacSha256(String data, String secret) {
         return PartnerWebhookDeliveryService.computeHmacSha256(data, secret);
     }

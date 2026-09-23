@@ -15,7 +15,6 @@ import java.util.UUID;
 @Getter
 @Setter
 public class RecordProcurementEventRequest {
-
     @NotNull(message = "Vui lòng chọn lô hàng")
     private UUID shipmentId;
 
@@ -28,5 +27,4 @@ public class RecordProcurementEventRequest {
     private Double latitude;
 
     private Double longitude;
-
 }
