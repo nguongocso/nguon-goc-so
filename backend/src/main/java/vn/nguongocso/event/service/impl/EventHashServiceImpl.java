@@ -35,26 +35,21 @@ public class EventHashServiceImpl implements EventHashService {
         try {
             StringBuilder canonical = new StringBuilder();
 
-            // 1. eventType
+            // Thứ tự trường là một phần của hợp đồng băm chuỗi sự kiện.
             canonical.append(event.getEventType() != null ? event.getEventType().name() : "");
 
-            // 2. shipmentId
             canonical.append(event.getShipment() != null && event.getShipment().getId() != null
                     ? event.getShipment().getId().toString()
                     : "");
 
-            // 3. recordedAt (canonical form)
             canonical.append(formatTime(event.getRecordedAt()));
 
-            // 4. recordedBy (user id)
             canonical.append(event.getRecordedBy() != null && event.getRecordedBy().getUserId() != null
                     ? event.getRecordedBy().getUserId().toString()
                     : "");
 
-            // 5. eventData (canonical JSON - sorted keys)
             canonical.append(canonicalizeEventData(event.getEventData()));
 
-            // 6. previousHash (empty for genesis event)
             canonical.append(previousHash != null ? previousHash : "");
 
             return sha256Hex(canonical.toString());

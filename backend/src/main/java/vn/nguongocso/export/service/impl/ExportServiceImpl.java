@@ -66,13 +66,11 @@ public class ExportServiceImpl implements ExportService {
         validateShipmentOwnership(shipment, currentUser);
         ProfileTemplate effectiveTemplate = resolveEffectiveTemplate(shipment, templateId, currentUser);
 
-        // 1. Lấy dữ liệu xem trước đã materialize 100% qua read-only transaction độc lập
         var previewData = profileTemplateService.buildPreview(shipmentId, templateId, currentUser);
 
-        // 2. Render nội dung tệp hoàn toàn ngoài transaction (in-memory CPU)
+        // Kết xuất ngoài giao dịch để không giữ kết nối cơ sở dữ liệu khi xử lý tệp.
         byte[] fileBytes = renderExportBytes(previewData, format);
 
-        // 3. Nếu render thành công, mở write-transaction ngắn độc lập để lưu ExportLog
         exportLogRecorder.recordExportLog(shipment, effectiveTemplate, currentUser.getUserId());
 
         return new ByteArrayResource(fileBytes);

@@ -47,8 +47,13 @@ public class BatchProfileTemplateController {
             @AuthenticationPrincipal CustomUserDetails currentUser) {
         log.info("Nhận yêu cầu lấy mẫu hồ sơ từ nhiều tổ chức: organizationIds={}, user={}",
                 organizationIds, currentUser != null ? currentUser.getUsername() : "anonymous");
-        List<ProfileTemplateResponse> templates = profileTemplateService.listTemplatesForMultipleOrganizations(organizationIds, currentUser);
-        log.info("Lấy mẫu hồ sơ từ nhiều tổ chức thành công: số tổ chức={}, tổng số mẫu={}", organizationIds.size(), templates.size());
+        List<ProfileTemplateResponse> templates = profileTemplateService.listTemplatesForMultipleOrganizations(
+                organizationIds,
+                currentUser);
+        log.info(
+                "Lấy mẫu hồ sơ từ nhiều tổ chức thành công: số tổ chức={}, tổng số mẫu={}",
+                organizationIds.size(),
+                templates.size());
         return ResponseEntity.ok(ApiResult.success(templates));
     }
 }

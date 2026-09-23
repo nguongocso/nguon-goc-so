@@ -75,10 +75,6 @@ public class CoopWarehouseEventProcessor {
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
-    // ==========================================
-    // 1. SƠ CHẾ & PHÂN LOẠI (Ủy quyền)
-    // ==========================================
-
     public ChainEventResponse recordPreprocessingEvent(
             RecordPreprocessingEventRequest request, CustomUserDetails currentUser) {
         return coopProcessingPackagingProcessor.recordPreprocessingEvent(request, currentUser);
@@ -88,10 +84,6 @@ public class CoopWarehouseEventProcessor {
             UUID originalEventId, CorrectPreprocessingEventRequest request, CustomUserDetails currentUser) {
         return coopProcessingPackagingProcessor.correctPreprocessingEvent(originalEventId, request, currentUser);
     }
-
-    // ==========================================
-    // 2. ĐÓNG GÓI (Ủy quyền)
-    // ==========================================
 
     public ChainEventResponse recordPackagingEvent(
             RecordPackagingEventRequest request, CustomUserDetails currentUser) {
@@ -108,18 +100,10 @@ public class CoopWarehouseEventProcessor {
         return coopProcessingPackagingProcessor.correctPackagingEvent(originalEventId, request, currentUser);
     }
 
-    // ==========================================
-    // 3. VẬN CHUYỂN (Ủy quyền)
-    // ==========================================
-
     public ChainEventResponse recordTransportEvent(
             RecordTransportEventRequest request, CustomUserDetails currentUser) {
         return coopTransportEventProcessor.recordTransportEvent(request, currentUser);
     }
-
-    // ==========================================
-    // 4. NHẬP KHO & XUẤT KHO HTX
-    // ==========================================
 
     public CoopWarehouseEventResponse recordWarehouseEntryEvent(
             RecordWarehouseEntryRequest request, CustomUserDetails currentUser) {
@@ -332,10 +316,6 @@ public class CoopWarehouseEventProcessor {
             throw e;
         }
     }
-
-    // ==========================================
-    // SHARED PRIVATE HELPERS
-    // ==========================================
 
     private void validateEventPermission(CustomUserDetails currentUser) {
         String role = currentUser.getRoleCode();

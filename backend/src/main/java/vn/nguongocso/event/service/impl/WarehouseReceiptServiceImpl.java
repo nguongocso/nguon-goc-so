@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,12 +47,16 @@ public class WarehouseReceiptServiceImpl implements WarehouseReceiptService {
 
     @Override
     @Transactional
-    public WarehouseReceiptResponse recordWarehouseReceipt(WarehouseReceiptRequest request, CustomUserDetails currentUser) {
+    public WarehouseReceiptResponse recordWarehouseReceipt(
+            WarehouseReceiptRequest request,
+            CustomUserDetails currentUser) {
         return warehouseReceiptProcessor.processWarehouseReceipt(request, currentUser);
     }
 
     @Override
-    public PageResponse<WarehouseReceiptResponse> getWarehouseReceipts(CustomUserDetails currentUser, Pageable pageable) {
+    public PageResponse<WarehouseReceiptResponse> getWarehouseReceipts(
+            CustomUserDetails currentUser,
+            Pageable pageable) {
         if (!RoleCode.PROCUREMENT.equals(currentUser.getRoleCode())) {
             throw new BusinessException(HttpStatus.FORBIDDEN,
                     "Chỉ Doanh nghiệp thu mua mới được xem danh sách nhập kho.");
@@ -153,7 +158,9 @@ public class WarehouseReceiptServiceImpl implements WarehouseReceiptService {
             return Collections.emptyMap();
         }
         try {
-            return objectMapper.readValue(eventDataJson, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+            return objectMapper.readValue(
+                    eventDataJson,
+                    new TypeReference<Map<String, Object>>() {});
         } catch (JsonProcessingException e) {
             log.warn("Không thể parse eventData: {}", eventDataJson);
             return Collections.emptyMap();

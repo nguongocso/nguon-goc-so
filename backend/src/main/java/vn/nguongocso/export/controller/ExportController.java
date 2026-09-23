@@ -82,7 +82,10 @@ public class ExportController {
         log.info("Nhận yêu cầu xem trước hồ sơ theo mẫu: shipmentId={}, templateId={}, user={}",
                 shipmentId, templateId, currentUser != null ? currentUser.getUsername() : "anonymous");
         Map<String, Object> previewData = profileTemplateService.buildPreview(shipmentId, templateId, currentUser);
-        log.info("Xây dựng dữ liệu xem trước thành công: shipmentId={}, số nhóm thuộc tính={}", shipmentId, previewData.size());
+        log.info(
+                "Xây dựng dữ liệu xem trước thành công: shipmentId={}, số nhóm thuộc tính={}",
+                shipmentId,
+                previewData.size());
         return ResponseEntity.ok(ApiResult.success(previewData));
     }
 

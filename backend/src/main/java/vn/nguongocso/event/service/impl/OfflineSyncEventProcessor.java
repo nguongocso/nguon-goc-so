@@ -91,7 +91,6 @@ public class OfflineSyncEventProcessor {
                             "Loại sự kiện không hỗ trợ đồng bộ ngoại tuyến: " + eventDto.getEventType());
             }
 
-            // Ghi log thành công vào offline_sync_logs
             saveSuccessSyncLog(eventDto, syncId, currentUser);
 
             return OfflineEventSyncResultDto.builder()
@@ -143,7 +142,6 @@ public class OfflineSyncEventProcessor {
         harvestRequest.setLatitude(eventDto.getLatitude());
         harvestRequest.setLongitude(eventDto.getLongitude());
 
-        // Delegate to the same online service method
         chainEventService.recordHarvestEvent(harvestRequest, currentUser);
     }
 
@@ -166,7 +164,6 @@ public class OfflineSyncEventProcessor {
         packagingRequest.setLatitude(eventDto.getLatitude());
         packagingRequest.setLongitude(eventDto.getLongitude());
 
-        // Delegate to the same online service method
         chainEventService.recordPackagingEvent(packagingRequest, currentUser);
     }
 
@@ -176,7 +173,7 @@ public class OfflineSyncEventProcessor {
         // Sử dụng codeValue để lookup mã truy xuất (giống online endpoint)
         String codeValue = eventDto.getCodeValue();
         if (codeValue == null || codeValue.isBlank()) {
-            // Fallback: thử lấy từ eventData
+            // Dữ liệu ngoại tuyến cũ có thể chỉ lưu codeValue trong eventData.
             Object codeValueObj = eventDto.getEventData().get("codeValue");
             if (codeValueObj != null) {
                 codeValue = codeValueObj.toString();
@@ -204,7 +201,6 @@ public class OfflineSyncEventProcessor {
             transportRequest.setTransportTime(eventDto.getRecordedAt());
         }
 
-        // Delegate to the same online service method
         chainEventService.recordTransportEvent(transportRequest, currentUser);
     }
 

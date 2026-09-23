@@ -49,7 +49,9 @@ public class ProcurementEventServiceImpl implements ProcurementEventService {
 
     @Override
     @Transactional
-    public ChainEventResponse recordProcurementEvent(RecordProcurementEventRequest request, CustomUserDetails currentUser) {
+    public ChainEventResponse recordProcurementEvent(
+            RecordProcurementEventRequest request,
+            CustomUserDetails currentUser) {
         validateRole(currentUser);
 
         Shipment shipment = procurementShipmentResolver.resolveAndValidateShipment(

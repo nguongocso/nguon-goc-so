@@ -213,9 +213,21 @@ public class ExportWithTemplateServiceTest {
 
         // 3 sự kiện chuỗi bắt buộc để vượt qua QTN-11
         List<ChainEvent> events = List.of(
-                ChainEvent.builder().shipment(validShipment).eventType(ChainEventType.HARVEST).recordedAt(LocalDateTime.now().minusDays(3)).build(),
-                ChainEvent.builder().shipment(validShipment).eventType(ChainEventType.PACKAGING).recordedAt(LocalDateTime.now().minusDays(2)).build(),
-                ChainEvent.builder().shipment(validShipment).eventType(ChainEventType.TRANSPORT).recordedAt(LocalDateTime.now().minusDays(1)).build()
+                ChainEvent.builder()
+                        .shipment(validShipment)
+                        .eventType(ChainEventType.HARVEST)
+                        .recordedAt(LocalDateTime.now().minusDays(3))
+                        .build(),
+                ChainEvent.builder()
+                        .shipment(validShipment)
+                        .eventType(ChainEventType.PACKAGING)
+                        .recordedAt(LocalDateTime.now().minusDays(2))
+                        .build(),
+                ChainEvent.builder()
+                        .shipment(validShipment)
+                        .eventType(ChainEventType.TRANSPORT)
+                        .recordedAt(LocalDateTime.now().minusDays(1))
+                        .build()
         );
         lenient().when(chainEventRepository.findByShipmentIdInOrderByRecordedAtAsc(any())).thenReturn(events);
 

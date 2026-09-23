@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -54,7 +55,10 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
 
     @Override
     @Transactional
-    public ProfileTemplateResponse createTemplate(UUID orgId, CreateProfileTemplateRequest request, CustomUserDetails currentUser) {
+    public ProfileTemplateResponse createTemplate(
+            UUID orgId,
+            CreateProfileTemplateRequest request,
+            CustomUserDetails currentUser) {
         validateOrganizationOwnership(orgId, currentUser);
         validateTemplateNameAndFields(orgId, request.getName(), null, request.getSelectedFields());
 
@@ -90,7 +94,11 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
         }
         savedTemplate.getFields().addAll(fields);
 
-        log.info("Đã tạo mẫu hồ sơ '{}' (ID: {}) cho tổ chức ID: {}", savedTemplate.getName(), savedTemplate.getId(), orgId);
+        log.info(
+                "Đã tạo mẫu hồ sơ '{}' (ID: {}) cho tổ chức ID: {}",
+                savedTemplate.getName(),
+                savedTemplate.getId(),
+                orgId);
         return mapToResponse(savedTemplate);
     }
 
@@ -103,19 +111,23 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
             validateOrganizationOwnership(orgId, currentUser);
         }
 
-        List<ProfileTemplate> templates = profileTemplateRepository.findAllByOrganization_OrganizationIdOrderByNameAsc(orgId);
+        List<ProfileTemplate> templates = profileTemplateRepository
+                .findAllByOrganization_OrganizationIdOrderByNameAsc(orgId);
         return templates.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<ProfileTemplateResponse> listTemplatesForMultipleOrganizations(List<UUID> organizationIds, CustomUserDetails currentUser) {
+    public List<ProfileTemplateResponse> listTemplatesForMultipleOrganizations(
+            List<UUID> organizationIds,
+            CustomUserDetails currentUser) {
         if (currentUser == null || currentUser.getOrganizationId() == null) {
             throw new TemplateNotOwnedException("Từ chối thao tác: Phiên đăng nhập không hợp lệ.");
         }
         if (!"VT-04".equals(currentUser.getRoleCode())) {
-            throw new TemplateNotOwnedException("Chỉ doanh nghiệp thu mua (VT-04) mới có thể xem mẫu của nhiều tổ chức.");
+            throw new TemplateNotOwnedException(
+                    "Chỉ doanh nghiệp thu mua (VT-04) mới có thể xem mẫu của nhiều tổ chức.");
         }
         if (organizationIds == null || organizationIds.isEmpty()) {
             return Collections.emptyList();
@@ -152,7 +164,11 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
 
     @Override
     @Transactional
-    public ProfileTemplateResponse updateTemplate(UUID orgId, UUID templateId, UpdateProfileTemplateRequest request, CustomUserDetails currentUser) {
+    public ProfileTemplateResponse updateTemplate(
+            UUID orgId,
+            UUID templateId,
+            UpdateProfileTemplateRequest request,
+            CustomUserDetails currentUser) {
         validateOrganizationOwnership(orgId, currentUser);
 
         ProfileTemplate template = profileTemplateRepository.findById(templateId)
@@ -341,17 +357,24 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
     }
 
     private void validateOrganizationOwnership(UUID orgId, CustomUserDetails currentUser) {
-        if (currentUser == null || currentUser.getOrganizationId() == null || !currentUser.getOrganizationId().equals(orgId)) {
-            log.warn("Từ chối thao tác mẫu hồ sơ: orgId yêu cầu={}, orgId của user={}, username={}",
-                    orgId, currentUser != null ? currentUser.getOrganizationId() : null, currentUser != null ? currentUser.getUsername() : null);
-            throw new TemplateNotOwnedException("Từ chối thao tác: Bạn không có quyền truy cập dữ liệu của tổ chức khác.");
+        if (currentUser == null
+                || currentUser.getOrganizationId() == null
+                || !currentUser.getOrganizationId().equals(orgId)) {
+            log.warn(
+                    "Từ chối thao tác mẫu hồ sơ: orgId yêu cầu={}, orgId của user={}, username={}",
+                    orgId,
+                    currentUser != null ? currentUser.getOrganizationId() : null,
+                    currentUser != null ? currentUser.getUsername() : null);
+            throw new TemplateNotOwnedException(
+                    "Từ chối thao tác: Bạn không có quyền truy cập dữ liệu của tổ chức khác.");
         }
     }
 
     private void validateShipmentAccess(Shipment shipment, CustomUserDetails currentUser) {
         UUID userOrgId = currentUser.getOrganizationId();
         if ("VT-02".equals(currentUser.getRoleCode())) {
-            if (shipment.getOrganization() == null || !shipment.getOrganization().getOrganizationId().equals(userOrgId)) {
+            if (shipment.getOrganization() == null
+                    || !shipment.getOrganization().getOrganizationId().equals(userOrgId)) {
                 throw new TemplateNotOwnedException("Từ chối thao tác: Lô hàng không thuộc tổ chức của bạn.");
             }
         }
@@ -380,7 +403,9 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
                             .id(f.getId())
                             .fieldKey(f.getFieldKey())
                             .fieldGroup(f.getFieldGroup())
-                            .displayName(MandatoryFields.FIELD_DISPLAY_NAMES.getOrDefault(f.getFieldKey(), f.getFieldKey()))
+                            .displayName(MandatoryFields.FIELD_DISPLAY_NAMES.getOrDefault(
+                                    f.getFieldKey(),
+                                    f.getFieldKey()))
                             .mandatory(Boolean.TRUE.equals(f.getIsMandatory()))
                             .sortOrder(f.getSortOrder() != null ? f.getSortOrder() : 0)
                             .build())
@@ -389,7 +414,9 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
 
         return ProfileTemplateResponse.builder()
                 .id(template.getId())
-                .organizationId(template.getOrganization() != null ? template.getOrganization().getOrganizationId() : null)
+                .organizationId(template.getOrganization() != null
+                        ? template.getOrganization().getOrganizationId()
+                        : null)
                 .name(template.getName())
                 .partnerName(template.getPartnerName())
                 .description(template.getDescription())

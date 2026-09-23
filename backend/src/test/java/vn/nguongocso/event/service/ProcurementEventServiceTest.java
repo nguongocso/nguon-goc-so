@@ -1,22 +1,37 @@
 package vn.nguongocso.event.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+import java.util.UUID;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
-import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.event.dto.request.RecordProcurementEventRequest;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.event.service.impl.ProcurementEventServiceImpl;
+import vn.nguongocso.event.service.resolver.ProcurementShipmentResolver;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.entity.Shipment;
@@ -24,17 +39,6 @@ import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
-
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.Mockito.*;
-
-import vn.nguongocso.event.service.resolver.ProcurementShipmentResolver;
 
 @ExtendWith(MockitoExtension.class)
 public class ProcurementEventServiceTest {

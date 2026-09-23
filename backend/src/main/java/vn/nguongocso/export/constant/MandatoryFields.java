@@ -2,6 +2,8 @@ package vn.nguongocso.export.constant;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,16 +23,17 @@ public final class MandatoryFields {
      * Tập hợp 8 trường bắt buộc cốt lõi theo quy tắc QTN-11.
      * Mọi mẫu hồ sơ truy xuất bắt buộc phải chứa tất cả các trường này.
      */
-    public static final Set<String> QTN11_MANDATORY_FIELD_KEYS = Set.of(
-            "organization.name",
-            "farmArea.name",
-            "productionLot.name",
-            "productionLot.productCategory",
-            "shipment.name",
-            "shipment.totalQuantity",
-            "farmLog.activityType",
-            "chainEvent.eventType"
-    );
+    public static final Set<String> QTN11_MANDATORY_FIELD_KEYS =
+            Collections.unmodifiableSet(
+                    new LinkedHashSet<>(List.of(
+                            "organization.name",
+                            "farmArea.name",
+                            "productionLot.name",
+                            "productionLot.productCategory",
+                            "shipment.name",
+                            "shipment.totalQuantity",
+                            "farmLog.activityType",
+                            "chainEvent.eventType")));
 
     /** Bản đồ ánh xạ mã trường sang tên hiển thị tiếng Việt. */
     public static final Map<String, String> FIELD_DISPLAY_NAMES = Map.ofEntries(

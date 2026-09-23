@@ -101,7 +101,10 @@ public class ChainEventController {
             @Valid @RequestBody CorrectPreprocessingEventRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        ChainEventResponse response = chainEventService.correctPreprocessingEvent(originalEventId, request, currentUser);
+        ChainEventResponse response = chainEventService.correctPreprocessingEvent(
+                originalEventId,
+                request,
+                currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
