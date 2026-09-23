@@ -1,6 +1,6 @@
-import { CreateOrganizationForm } from "@/components/organization/CreateOrganizationForm";
-import { HelpButton } from "@/components/help/HelpButton";
-import { Building2 } from "lucide-react";
+import { CreateOrganizationForm } from '@/components/organization/CreateOrganizationForm';
+import { HelpButton } from '@/components/help/HelpButton';
+import { Building2 } from 'lucide-react';
 
 export function CreateOrganizationPage() {
   return (

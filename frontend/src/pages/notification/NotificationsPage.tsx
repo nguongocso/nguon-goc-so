@@ -77,7 +77,7 @@ const NotificationsPage = () => {
   const isMissingEmail = Boolean(
     user &&
     hasAnyRole(user.roleCode, ROLE_ACCESS.userProfile) &&
-    (!user.email || user.email.trim() === '')
+    (!user.email || user.email.trim() === ''),
   );
 
   const emailNoticeKey = user ? `session_read_email_notice_${user.userId}` : '';
@@ -97,11 +97,10 @@ const NotificationsPage = () => {
       (filter === 'UNREAD' && !isEmailNoticeRead) ||
       (filter === 'READ' && isEmailNoticeRead));
 
-  // Cảnh báo thiếu địa bàn hành chính đối với vai trò Quản lý HTX (VT-02)
   const isMissingTerritory = Boolean(
     user &&
     user.roleCode === 'VT-02' &&
-    (!user.organizationProvinceId || !user.organizationCommuneId)
+    (!user.organizationProvinceId || !user.organizationCommuneId),
   );
 
   const territoryNoticeKey = user?.organizationId
@@ -141,10 +140,9 @@ const NotificationsPage = () => {
       navigate(`/shipment-handovers/${notification.entityId}`);
       return;
     }
-    // NCL-11-CN-004: Điều hướng tới danh sách lô sản xuất khi thông báo liên quan đến kiểm nghiệm
     const text = `${notification.title} ${notification.content}`.toLowerCase();
-    if (text.includes("kiểm nghiệm") || text.includes("lô sản xuất")) {
-      navigate("/production-lots");
+    if (text.includes('kiểm nghiệm') || text.includes('lô sản xuất')) {
+      navigate('/production-lots');
     }
   };
 

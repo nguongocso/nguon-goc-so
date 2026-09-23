@@ -1,39 +1,36 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { isAxiosError } from "axios";
-import { BrowserQRCodeReader } from "@zxing/browser";
-import { recordPublicScan } from "@/api/publicApi";
-import { lookupPublicProductFeedback } from "@/api/productFeedbackApi";
-import type { PublicProductFeedbackLookupResult } from "@/types/productFeedback";
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { isAxiosError } from 'axios';
+import { BrowserQRCodeReader } from '@zxing/browser';
+import { recordPublicScan } from '@/api/publicApi';
+import { lookupPublicProductFeedback } from '@/api/productFeedbackApi';
+import type { PublicProductFeedbackLookupResult } from '@/types/productFeedback';
 import {
   ProductFeedbackInlineResult,
   type LookupErrorKind,
-} from "@/components/public/ProductFeedbackInlineResult";
+} from '@/components/public/ProductFeedbackInlineResult';
 import {
+  BadgeCheck,
   LogIn,
   ScanLine,
   Search,
   ShieldCheck,
   Truck,
-  BadgeCheck,
-} from "lucide-react";
-import { Logo } from "@/components/common/Logo";
-import { toast } from "sonner";
+} from 'lucide-react';
+import { Logo } from '@/components/common/Logo';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/useAuth";
-
-/**
- * Nhận diện mã tra cứu phản ánh (có tiền tố PA- hoặc dạng PA+16 ký tự Base32).
- */
+/** Nhận diện mã tra cứu phản ánh (tiền tố PA- hoặc dạng PA+16 ký tự Base32). */
 export function isProductFeedbackLookupCode(rawCode: string): boolean {
   const trimmed = rawCode.trim();
   if (!trimmed) return false;
   const upper = trimmed.toUpperCase();
-  if (upper.startsWith("PA-")) return true;
-  const compact = upper.replace(/-/g, "");
-  return compact.startsWith("PA") && compact.length === 18;
+  if (upper.startsWith('PA-')) return true;
+  const compact = upper.replace(/-/g, '');
+  return compact.startsWith('PA') && compact.length === 18;
 }
 
 export default function PublicHomePage() {
@@ -41,7 +38,7 @@ export default function PublicHomePage() {
   const [searchParams] = useSearchParams();
   const { user, isLoading: isAuthLoading } = useAuth();
 
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState('');
   const [isScanning, setIsScanning] = useState(false);
 
   const [feedbackResult, setFeedbackResult] =
@@ -49,7 +46,7 @@ export default function PublicHomePage() {
   const [feedbackErrorKind, setFeedbackErrorKind] =
     useState<LookupErrorKind | null>(null);
   const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
-  const [searchedFeedbackCode, setSearchedFeedbackCode] = useState("");
+  const [searchedFeedbackCode, setSearchedFeedbackCode] = useState('');
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -57,7 +54,7 @@ export default function PublicHomePage() {
 
   useEffect(() => {
     if (!isAuthLoading && user) {
-      navigate("/dashboard", { replace: true });
+      navigate('/dashboard', { replace: true });
     }
   }, [user, isAuthLoading, navigate]);
 
@@ -75,11 +72,11 @@ export default function PublicHomePage() {
       setFeedbackResult(data);
     } catch (error: unknown) {
       if (isAxiosError(error) && error.response?.status === 404) {
-        setFeedbackErrorKind("not-found");
+        setFeedbackErrorKind('not-found');
       } else if (isAxiosError(error) && error.response?.status === 429) {
-        setFeedbackErrorKind("rate-limit");
+        setFeedbackErrorKind('rate-limit');
       } else {
-        setFeedbackErrorKind("system");
+        setFeedbackErrorKind('system');
       }
     } finally {
       setIsFeedbackLoading(false);
@@ -89,12 +86,11 @@ export default function PublicHomePage() {
   const handleResetFeedback = () => {
     setFeedbackResult(null);
     setFeedbackErrorKind(null);
-    setSearchedFeedbackCode("");
+    setSearchedFeedbackCode('');
   };
 
-  // Tự động kích hoạt tra cứu phản ánh nếu có query param ?feedbackCode=...
   useEffect(() => {
-    const feedbackCodeParam = searchParams.get("feedbackCode");
+    const feedbackCodeParam = searchParams.get('feedbackCode');
     if (feedbackCodeParam && feedbackCodeParam.trim()) {
       const cleanCode = feedbackCodeParam.trim();
       setCode(cleanCode);
@@ -112,7 +108,7 @@ export default function PublicHomePage() {
 
   const startScanner = () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      toast.error("Trình duyệt không hỗ trợ camera");
+      toast.error('Trình duyệt không hỗ trợ camera');
       return;
     }
     setIsScanning(true);
@@ -129,12 +125,12 @@ export default function PublicHomePage() {
         await new Promise((resolve) => window.setTimeout(resolve, 150));
         const video = videoRef.current;
         if (!video) {
-          throw new Error("Không tìm thấy vùng hiển thị camera.");
+          throw new Error('Không tìm thấy vùng hiển thị camera.');
         }
 
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: { facingMode: { ideal: "environment" } },
+          video: { facingMode: { ideal: 'environment' } },
         });
 
         if (!isActive) {
@@ -151,25 +147,22 @@ export default function PublicHomePage() {
             if (!result || !isActive) return;
 
             let codeValue = result.getText();
-            if (codeValue.includes("/public/trace/")) {
-              codeValue = codeValue.split("/public/trace/")[1];
+            if (codeValue.includes('/public/trace/')) {
+              codeValue = codeValue.split('/public/trace/')[1];
             }
 
             if (!codeValue) {
-              toast.error("Mã QR không hợp lệ");
+              toast.error('Mã QR không hợp lệ');
               return;
             }
 
-            toast.success("Đã quét mã tra cứu.");
+            toast.success('Đã quét mã tra cứu.');
             controls.stop();
             stream.getTracks().forEach((track) => track.stop());
             streamRef.current = null;
             controlsRef.current = null;
             setIsScanning(false);
 
-            // Luồng quét QR thực tế: gọi POST /public/trace/{codeValue}/scan
-            // để tạo TraceCodeScanLog và kích hoạt đánh giá nghi vấn,
-            // sau đó chuyển kết quả sang trang tra cứu qua router state.
             const submitScan = async () => {
               try {
                 let latitude: number | undefined;
@@ -201,7 +194,7 @@ export default function PublicHomePage() {
               } catch (scanError: any) {
                 const message =
                   scanError.response?.data?.message ||
-                  "Không thể ghi nhận lượt quét. Vui lòng thử lại.";
+                  'Không thể ghi nhận lượt quét. Vui lòng thử lại.';
                 toast.error(message);
               }
             };
@@ -217,15 +210,15 @@ export default function PublicHomePage() {
         controlsRef.current = controls;
       } catch (scanError: unknown) {
         if (!isActive) return;
-        if (scanError instanceof DOMException && scanError.name === "NotAllowedError") {
-          toast.error("Bạn chưa cho phép dùng camera. Hãy cấp quyền camera rồi thử lại.");
+        if (scanError instanceof DOMException && scanError.name === 'NotAllowedError') {
+          toast.error('Bạn chưa cho phép dùng camera. Hãy cấp quyền camera rồi thử lại.');
           return;
         }
-        if (scanError instanceof DOMException && scanError.name === "NotReadableError") {
-          toast.error("Camera đang được ứng dụng khác sử dụng. Hãy đóng ứng dụng đó rồi thử lại.");
+        if (scanError instanceof DOMException && scanError.name === 'NotReadableError') {
+          toast.error('Camera đang được ứng dụng khác sử dụng. Hãy đóng ứng dụng đó rồi thử lại.');
           return;
         }
-        toast.error("Không thể mở camera. Hãy kiểm tra camera hoặc nhập mã thủ công.");
+        toast.error('Không thể mở camera. Hãy kiểm tra camera hoặc nhập mã thủ công.');
       } finally {
         if (isActive && !controlsRef.current) {
           setIsScanning(false);
@@ -248,7 +241,7 @@ export default function PublicHomePage() {
     e.preventDefault();
     const trimmed = code.trim();
     if (!trimmed) {
-      toast.error("Vui lòng nhập mã tra cứu");
+      toast.error('Vui lòng nhập mã tra cứu');
       return;
     }
 
@@ -261,21 +254,19 @@ export default function PublicHomePage() {
   };
 
   const features = [
-    { icon: ShieldCheck, title: "Minh bạch", desc: "Thông tin rõ ràng từ nông trại" },
-    { icon: Truck, title: "Hành trình", desc: "Theo dõi từng công đoạn vận chuyển" },
-    { icon: BadgeCheck, title: "Chứng nhận", desc: "Đạt chuẩn an toàn thực phẩm" },
+    { icon: ShieldCheck, title: 'Minh bạch', desc: 'Thông tin rõ ràng từ nông trại' },
+    { icon: Truck, title: 'Hành trình', desc: 'Theo dõi từng công đoạn vận chuyển' },
+    { icon: BadgeCheck, title: 'Chứng nhận', desc: 'Đạt chuẩn an toàn thực phẩm' },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-green-50 flex flex-col items-center relative overflow-hidden">
-      {/* Decorative Background Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute -top-20 -left-20 w-80 h-80 bg-emerald-200/40 rounded-full blur-3xl" />
         <div className="absolute top-1/3 -right-20 w-96 h-96 bg-green-100/50 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-lime-200/30 rounded-full blur-3xl" />
       </div>
 
-      {/* Header */}
       <header className="w-full h-25 px-6 flex justify-between items-center relative z-10">
         <Logo height={100} />
 
@@ -283,7 +274,7 @@ export default function PublicHomePage() {
           <Button
             variant="outline"
             className="gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate('/login')}
           >
             <LogIn className="h-4 w-4" />
             Đăng nhập
@@ -291,9 +282,7 @@ export default function PublicHomePage() {
         )}
       </header>
 
-      {/* Hero Section */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-8 md:py-16 relative z-10 flex flex-col lg:flex-row items-center gap-12">
-        {/* Left Content */}
         <div className="flex-1 text-center lg:text-left space-y-6">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -312,7 +301,6 @@ export default function PublicHomePage() {
             </p>
           </div>
 
-          {/* Feature Icons */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg mx-auto lg:mx-0">
             {features.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex flex-col items-center lg:items-start gap-1 p-3 rounded-xl bg-white/70 backdrop-blur-sm border border-emerald-100 shadow-sm">
@@ -324,7 +312,6 @@ export default function PublicHomePage() {
           </div>
         </div>
 
-        {/* Right: QR Scanner / Search Card */}
         <div className="flex-1 w-full max-w-md">
           <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl border border-emerald-100 p-6 md:p-8 space-y-5">
             {isScanning ? (
@@ -390,7 +377,6 @@ export default function PublicHomePage() {
                   </Button>
                 </form>
 
-                {/* Kết quả tra cứu phản ánh hiển thị trực tiếp inline dưới ô nhập */}
                 <ProductFeedbackInlineResult
                   isLoading={isFeedbackLoading}
                   lookupCode={searchedFeedbackCode}
@@ -405,7 +391,6 @@ export default function PublicHomePage() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="w-full py-6 text-center relative z-10">
         <p className="text-sm text-muted-foreground">
           © {new Date().getFullYear()} Nguồn gốc số – Thông tin minh bạch từ nông trại đến bàn ăn

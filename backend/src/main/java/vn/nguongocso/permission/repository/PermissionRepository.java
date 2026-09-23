@@ -7,28 +7,18 @@ import vn.nguongocso.permission.entity.Permission;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repository cho thực thể Permission.
- */
+/** Repository cho thực thể Permission. */
 public interface PermissionRepository extends JpaRepository<Permission, Integer> {
-    /**
-     * Lấy tất cả quyền theo nhóm chức năng (resource).
-     */
+    /** Lấy tất cả quyền theo nhóm chức năng (resource). */
     List<Permission> findByResource(String resource);
 
-    /**
-     * Lấy một quyền theo resource và action.
-     */
+    /** Lấy một quyền theo resource và action. */
     Optional<Permission> findByResourceAndAction(
             String resource,
-            String action
-    );
+            String action);
 
-    /**
-     * Kiểm tra quyền đã tồn tại hay chưa.
-     */
+    /** Kiểm tra quyền đã tồn tại hay chưa. */
     boolean existsByResourceAndAction(
             String resource,
-            String action
-    );
+            String action);
 }
