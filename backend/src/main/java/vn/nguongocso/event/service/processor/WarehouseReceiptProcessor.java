@@ -43,7 +43,6 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 @Component
 @RequiredArgsConstructor
 public class WarehouseReceiptProcessor {
-
     private static final double DISCREPANCY_THRESHOLD_PERCENT = 2.0;
 
     private final TraceCodeRepository traceCodeRepository;
@@ -57,13 +56,7 @@ public class WarehouseReceiptProcessor {
     private final OrganizationUserRepository organizationUserRepository;
     private final ObjectMapper objectMapper;
 
-    /**
-     * Xử lý ghi nhận sự kiện nhập kho cho lô hàng.
-     *
-     * @param request dữ liệu yêu cầu nhập kho
-     * @param currentUser thông tin người dùng thực hiện
-     * @return kết quả ghi nhận nhập kho
-     */
+    /** Xử lý ghi nhận sự kiện nhập kho cho lô hàng. */
     public WarehouseReceiptResponse processWarehouseReceipt(
             WarehouseReceiptRequest request, CustomUserDetails currentUser) {
 

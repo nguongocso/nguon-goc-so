@@ -42,7 +42,6 @@ import vn.nguongocso.farm.repository.ProductionLotRepository;
 @Component
 @RequiredArgsConstructor
 public class HarvestEventProcessor {
-
     private final ProductionLotRepository productionLotRepository;
     private final ChainEventRepository chainEventRepository;
     private final UserRepository userRepository;
@@ -54,13 +53,7 @@ public class HarvestEventProcessor {
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
-    /**
-     * Ghi nhận sự kiện thu hoạch cho lô sản xuất.
-     *
-     * @param request     yêu cầu ghi nhận sự kiện thu hoạch
-     * @param currentUser người dùng hiện tại
-     * @return phản hồi sự kiện chuỗi cung ứng
-     */
+    /** Ghi nhận sự kiện thu hoạch cho lô sản xuất. */
     public ChainEventResponse recordHarvestEvent(RecordHarvestEventRequest request, CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
 

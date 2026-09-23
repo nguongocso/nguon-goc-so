@@ -17,19 +17,13 @@ public class RecordOfflineEventDto {
     @NotNull(message = "ID sự kiện ngoại tuyến không được để trống")
     private UUID offlineEventId;
 
-    /**
-     * ID của lô sản xuất (dùng cho HARVEST, PACKAGING).
-     * Đối với TRANSPORT/PROCUREMENT, sử dụng shipmentId hoặc codeValue.
-     */
+    /** ID của lô sản xuất (dùng cho HARVEST, PACKAGING). */
     private UUID productionLotId;
 
     /** ID của lô hàng (dùng cho TRANSPORT, PROCUREMENT). */
     private UUID shipmentId;
 
-    /**
-     * Mã truy xuất (dùng cho TRANSPORT để lookup shipment thay vì dùng shipmentId
-     * trực tiếp).
-     */
+    /** Mã truy xuất (dùng cho TRANSPORT để lookup shipment thay vì dùng shipmentId trực tiếp). */
     private String codeValue;
 
     @NotNull(message = "Loại sự kiện không được để trống")

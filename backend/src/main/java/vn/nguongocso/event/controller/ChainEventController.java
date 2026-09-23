@@ -39,24 +39,7 @@ import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.OfflineSyncService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
-/**
- * Controller REST quản lý các sự kiện trong chuỗi cung ứng.
- * <p>
- * Cung cấp các API để ghi nhận và quản lý các sự kiện như:
- * <ul>
- *   <li>Thu hoạch (HARVEST)</li>
- *   <li>Đóng gói (PACKAGING)</li>
- *   <li>Sửa lỗi đóng gói (CORRECTION)</li>
- * </ul>
- * </p>
- *
- * <p>Tất cả các API đều yêu cầu xác thực và phân quyền.
- * Chỉ người dùng có vai trò VT-02 (Quản lý HTX) hoặc VT-03 (Người ghi sự kiện)
- * mới được phép thực hiện các thao tác này.</p>
- *
- * @author Team WEB !
- */
-
+/** Controller REST quản lý các sự kiện trong chuỗi cung ứng. */
 @RestController
 @RequestMapping("/api/v1/chain-events")
 @RequiredArgsConstructor
@@ -65,10 +48,7 @@ public class ChainEventController {
     private final ChainEventService chainEventService;
     private final PermissionChecker permissionChecker;
 
-    /**
-     * API ghi nhận sự kiện thu hoạch cho lô sản xuất.
-     * Chấp nhận vai trò VT-01 (Admin), VT-02 (Quản lý HTX) và VT-03 (Người ghi sự kiện).
-     */
+    /** API ghi nhận sự kiện thu hoạch cho lô sản xuất. */
     @PostMapping("/harvest")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> recordHarvest(
@@ -79,10 +59,7 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API ghi nhận sự kiện sơ chế và phân loại cho lô sản xuất.
-     * Chỉ chấp nhận vai trò VT-02 (Quản lý HTX) và VT-03 (Người ghi sự kiện).
-     */
+    /** API ghi nhận sự kiện sơ chế và phân loại cho lô sản xuất. */
     @PostMapping("/preprocessing")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> recordPreprocessing(
@@ -119,10 +96,7 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API ghi nhận sự kiện vận chuyển cho lô hàng.
-     * Chỉ chấp nhận vai trò VT-03 (Người ghi sự kiện).
-     */
+    /** API ghi nhận sự kiện vận chuyển cho lô hàng. */
     @PostMapping("/transport")
     @PreAuthorize("hasRole('VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> recordTransport(
@@ -146,10 +120,7 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API ghi nhận sự kiện ngoài đồng từ thiết bị di động.
-     * Chỉ chấp nhận vai trò VT-02 (Quản lý HTX) và VT-03 (Người ghi sự kiện).
-     */
+    /** API ghi nhận sự kiện ngoài đồng từ thiết bị di động. */
     @PostMapping("/mobile")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> recordMobileEvent(
@@ -173,17 +144,7 @@ public class ChainEventController {
                 .body(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Tra cứu mã truy xuất trước khi mở biểu mẫu ghi sự kiện.
-     *
-     * Chức năng:
-     * - Kiểm tra quyền sử dụng chức năng quét mã.
-     * - Kiểm tra mã truy xuất có tồn tại.
-     * - Kiểm tra mã đã gắn lô hàng.
-     * - Kiểm tra quyền theo tổ chức.
-     * - Kiểm tra trạng thái lô hàng.
-     * - Trả về thông tin cần thiết để mở biểu mẫu ghi sự kiện.
-     */
+    /** Tra cứu mã truy xuất trước khi mở biểu mẫu ghi sự kiện. */
     @GetMapping("/scan-lookup")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResult<ScanLookupResponse>> scanLookup(
@@ -217,11 +178,7 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API ghi nhận mốc điều kiện bảo quản khi vận chuyển.
-     * VT-03 (Người ghi sự kiện, đúng tổ chức) và VT-04
-     * (Doanh nghiệp thu mua, đã thu mua lô hàng) — cùng luật với tra cứu tay.
-     */
+    /** API ghi nhận mốc điều kiện bảo quản khi vận chuyển. */
     @PostMapping("/storage-condition")
     @PreAuthorize("hasAnyRole('VT-03', 'VT-04')")
     public ResponseEntity<ApiResult<StorageConditionResponse>> recordStorageCondition(
@@ -232,5 +189,4 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
-
 }

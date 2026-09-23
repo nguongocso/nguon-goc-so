@@ -16,7 +16,6 @@ import vn.nguongocso.export.enums.ProfileFieldGroup;
 @AllArgsConstructor
 @Builder
 public class FieldGroupDefinition {
-
     /** Mã nhóm trường */
     private ProfileFieldGroup fieldGroup;
 

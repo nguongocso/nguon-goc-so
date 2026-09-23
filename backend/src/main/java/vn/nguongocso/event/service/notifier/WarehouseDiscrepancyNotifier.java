@@ -15,33 +15,17 @@ import vn.nguongocso.organization.constant.RoleCode;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.trace.entity.Shipment;
 
-/**
- * Component chuyên trách gửi thông báo cảnh báo chênh lệch số lượng khi nhập kho.
- *
- * <p>Hoạt động theo mô hình non-blocking: sự cố phát sinh khi gửi thông báo
- * được bắt lại an toàn và không làm gián đoạn hoặc rollback giao dịch nhập kho.</p>
- */
+/** Component chuyên trách gửi thông báo cảnh báo chênh lệch số lượng khi nhập kho. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class WarehouseDiscrepancyNotifier {
-
     private static final double DISCREPANCY_THRESHOLD_PERCENT = 2.0;
 
     private final OrganizationUserRepository organizationUserRepository;
     private final NotificationRepository notificationRepository;
 
-    /**
-     * Gửi thông báo cảnh báo chênh lệch nhập kho tới người dùng quản lý HTX (VT-02).
-     *
-     * @param shipment           lô hàng nhập kho
-     * @param declaredQuantity   số lượng khai báo
-     * @param receivedQuantity   số lượng thực nhận
-     * @param discrepancy        chênh lệch khối lượng
-     * @param discrepancyPercent tỷ lệ phần trăm chênh lệch
-     * @param reason             lý do giải trình nếu có
-     * @return true nếu gửi thành công, false nếu thất bại hoặc không có người nhận
-     */
+    /** Gửi thông báo cảnh báo chênh lệch nhập kho tới người dùng quản lý HTX (VT-02). */
     public boolean sendDiscrepancyNotification(Shipment shipment, double declaredQuantity,
             double receivedQuantity, double discrepancy, double discrepancyPercent,
             String reason) {

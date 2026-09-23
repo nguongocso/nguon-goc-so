@@ -62,15 +62,7 @@ public class ChainEvent {
     @JoinColumn(name = "recorded_by", nullable = false)
     private User recordedBy;
 
-    /**
-     * Tổ chức mà người dùng đại diện tại thời điểm ghi sự kiện.
-     *
-     * <p>
-     * Không suy ra giá trị này từ membership hiện tại vì một người dùng có thể đồng
-     * thời thuộc
-     * nhiều tổ chức hoặc chuyển tổ chức sau khi sự kiện đã được ghi.
-     * </p>
-     */
+    /** Tổ chức mà người dùng đại diện tại thời điểm ghi sự kiện. */
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "recorded_organization_id")
     private UUID recordedOrganizationId;

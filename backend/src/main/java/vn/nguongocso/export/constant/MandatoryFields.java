@@ -14,15 +14,11 @@ import vn.nguongocso.export.enums.ProfileFieldGroup;
 
 /** Định nghĩa danh mục trường và danh sách các trường bắt buộc theo QTN-11. */
 public final class MandatoryFields {
-
     private MandatoryFields() {
         throw new UnsupportedOperationException("Utility class");
     }
 
-    /**
-     * Tập hợp 8 trường bắt buộc cốt lõi theo quy tắc QTN-11.
-     * Mọi mẫu hồ sơ truy xuất bắt buộc phải chứa tất cả các trường này.
-     */
+    /** Tập hợp 8 trường bắt buộc cốt lõi theo quy tắc QTN-11. */
     public static final Set<String> QTN11_MANDATORY_FIELD_KEYS =
             Collections.unmodifiableSet(
                     new LinkedHashSet<>(List.of(

@@ -28,21 +28,11 @@ import vn.nguongocso.event.service.processor.OfflineFarmLogSyncHandler;
 import vn.nguongocso.event.service.resolver.OfflineSyncTargetResolver;
 import vn.nguongocso.exception.BusinessException;
 
-/**
- * Xử lý một sự kiện ngoại tuyến trong transaction riêng.
- * <p>
- * Đảm bảo logic xử lý offline nhất quán với online:
- * - Sử dụng cùng các service method (recordHarvestEvent, recordPackagingEvent,
- * recordTransportEvent, FarmLogService.create qua OfflineFarmLogSyncHandler).
- * - Log thất bại vào cả failed_event_logs (qua EventValidationService) và
- * offline_sync_logs.
- * - Hỗ trợ HARVEST, PACKAGING, TRANSPORT, FARM_LOG (NCL-10-CN-012).
- */
+/** Xử lý một sự kiện ngoại tuyến trong transaction riêng. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OfflineSyncEventProcessor {
-
     private final OfflineSyncLogRepository offlineSyncLogRepository;
     private final UserRepository userRepository;
     private final ChainEventService chainEventService;
@@ -50,11 +40,7 @@ public class OfflineSyncEventProcessor {
     private final OfflineFarmLogSyncHandler offlineFarmLogSyncHandler;
     private final OfflineSyncTargetResolver offlineSyncTargetResolver;
 
-    /**
-     * Xử lý một event trong transaction riêng (REQUIRES_NEW).
-     * Khi phương thức này được gọi, transaction hiện tại (nếu có) sẽ tạm dừng,
-     * và một transaction mới được tạo.
-     */
+    /** Xử lý một event trong transaction riêng (REQUIRES_NEW). */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OfflineEventSyncResultDto processEvent(RecordOfflineEventDto eventDto, UUID syncId,
             CustomUserDetails currentUser) {
@@ -204,10 +190,7 @@ public class OfflineSyncEventProcessor {
         chainEventService.recordTransportEvent(transportRequest, currentUser);
     }
 
-    /**
-     * Ghi log thất bại vào failed_event_logs (cùng bảng với online).
-     * Sử dụng REQUIRES_NEW để không bị ảnh hưởng bởi transaction chính.
-     */
+    /** Ghi log thất bại vào failed_event_logs (cùng bảng với online). */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logFailedAttempts(RecordOfflineEventDto eventDto, CustomUserDetails currentUser, String reason) {
         try {

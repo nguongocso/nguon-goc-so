@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @EnableConfigurationProperties(CorsProperties.class)
 public class CorsConfig {
-
     private static final List<String> DEFAULT_ALLOWED_ORIGINS = List.of(
             "http://localhost:3000",
             "http://localhost:5173",

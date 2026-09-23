@@ -30,7 +30,6 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 @Component
 @RequiredArgsConstructor
 public class ChainIntegrityVerifier {
-
     private final ShipmentRepository shipmentRepository;
     private final ChainEventRepository chainEventRepository;
     private final EventHashService eventHashService;

@@ -9,10 +9,7 @@ import org.springframework.context.annotation.Configuration;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Cấu hình thời gian nghiệp vụ cho hệ thống.
- * Cung cấp bean {@link Clock} dựa theo múi giờ cấu hình (${app.timezone}).
- */
+/** Cấu hình thời gian nghiệp vụ cho hệ thống. */
 @Configuration
 @RequiredArgsConstructor
 @EnableConfigurationProperties(AppTimeProperties.class)

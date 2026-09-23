@@ -15,10 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Cấu hình chuỗi bộ lọc bảo mật Spring Security cho hệ thống.
- * Áp dụng cơ chế xác thực JWT phi trạng thái và tích hợp các bộ lọc tuần tự.
- */
+/** Cấu hình chuỗi bộ lọc bảo mật Spring Security cho hệ thống. */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity

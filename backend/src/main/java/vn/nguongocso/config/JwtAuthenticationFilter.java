@@ -18,11 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.auth.service.CustomUserDetailsService;
 
-/**
- * Bộ lọc xác thực JWT cho các yêu cầu HTTP.
- * Chỉ ACCESS JWT được dùng để thiết lập SecurityContext;
- * ORG_SELECTION chỉ phục vụ bước lựa chọn tổ chức.
- */
+/** Bộ lọc xác thực JWT cho các yêu cầu HTTP. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -74,8 +70,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // QTN-32: Không thiết lập Authentication khi thành viên bị vô hiệu hóa
-        // để yêu cầu được xử lý như chưa đăng nhập, tránh phát sinh lỗi 500
+        // QTN-32: Không xác thực thành viên bị vô hiệu hóa để yêu cầu được xử lý như chưa đăng nhập.
         UserDetails userDetails;
         try {
             userDetails = userDetailsService.loadUserByUserIdAndOrganizationId(userId, organizationId);

@@ -12,7 +12,6 @@ import vn.nguongocso.trace.entity.Shipment;
 
 /** Tạo dữ liệu sự kiện nhập, xuất kho và tính thời gian lưu kho. */
 final class CoopWarehouseEventDataBuilder {
-
     private CoopWarehouseEventDataBuilder() {}
 
     static Map<String, Object> buildEntryData(

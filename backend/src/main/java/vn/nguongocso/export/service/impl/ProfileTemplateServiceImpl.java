@@ -45,7 +45,6 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProfileTemplateServiceImpl implements ProfileTemplateService {
-
     private final ProfileTemplateRepository profileTemplateRepository;
     private final ProfileTemplateFieldRepository profileTemplateFieldRepository;
     private final OrganizationRepository organizationRepository;

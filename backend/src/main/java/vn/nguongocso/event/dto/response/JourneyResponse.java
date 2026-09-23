@@ -6,11 +6,7 @@ import lombok.Data;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO phản hồi hành trình của lô hàng.
- *
- * @author Team WEB 1
- */
+/** DTO phản hồi hành trình của lô hàng. */
 @Data
 @Builder
 public class JourneyResponse {

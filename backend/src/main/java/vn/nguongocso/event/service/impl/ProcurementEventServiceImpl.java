@@ -38,7 +38,6 @@ import vn.nguongocso.trace.entity.Shipment;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProcurementEventServiceImpl implements ProcurementEventService {
-
     private final ProcurementShipmentResolver procurementShipmentResolver;
     private final ChainEventService chainEventService;
     private final UserRepository userRepository;

@@ -8,10 +8,7 @@ import lombok.RequiredArgsConstructor;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
 
-/**
- * Lớp điều phối cung cấp các tiện ích xử lý mã JWT cho hệ thống.
- * Ủy quyền ký mã cho {@link JwtTokenSigner} và phân tích cú pháp cho {@link JwtTokenParser}.
- */
+/** Lớp điều phối cung cấp các tiện ích xử lý mã JWT cho hệ thống. */
 @Component
 @RequiredArgsConstructor
 public class JwtTokenProvider {
