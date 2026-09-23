@@ -35,7 +35,7 @@ export interface ProfileTemplateMetaCardProps {
 }
 
 /**
- * Component hiển thị form nhập thông tin cơ bản: Tên mẫu, Đối tác áp dụng và switch Mẫu mặc định.
+ * Nhập tên mẫu, đối tác áp dụng và trạng thái mẫu mặc định.
  */
 export const ProfileTemplateMetaCard: React.FC<ProfileTemplateMetaCardProps> = ({
   control,

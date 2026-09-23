@@ -29,7 +29,7 @@ export interface ProfileFieldGroupItemProps {
 }
 
 /**
- * Component hiển thị từng nhóm trường dữ liệu (accordion item, nút chọn nhanh, danh sách thẻ trường).
+ * Hiển thị nhóm trường dữ liệu, nút chọn nhanh và danh sách trường.
  */
 export const ProfileFieldGroupItem: React.FC<ProfileFieldGroupItemProps> = ({
   group,

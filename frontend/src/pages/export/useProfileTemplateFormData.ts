@@ -20,7 +20,7 @@ export interface UseProfileTemplateFormDataParams {
 }
 
 /**
- * Hook quản lý dữ liệu và logic nghiệp vụ cho form mẫu hồ sơ (khởi tạo, validation QTN-11, lưu mẫu).
+ * Quản lý khởi tạo, kiểm tra QTN-11 và lưu mẫu hồ sơ.
  */
 export function useProfileTemplateFormData({
   orgId,

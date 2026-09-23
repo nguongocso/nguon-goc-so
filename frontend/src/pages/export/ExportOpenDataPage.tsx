@@ -8,7 +8,7 @@ import { usePermission } from '@/hooks/usePermission';
 
 /**
  * Trang xuất dữ liệu mở (Open Data Export).
- * Cung cấp nút điều hướng sang trang quản lý mẫu hồ sơ đối tác cho VT-02 và nhúng biểu mẫu ExportOpenDataForm.
+ * Hiển thị biểu mẫu xuất dữ liệu và lối vào quản lý mẫu hồ sơ đối tác.
  */
 export const ExportOpenDataPage: React.FC = () => {
   const navigate = useNavigate();

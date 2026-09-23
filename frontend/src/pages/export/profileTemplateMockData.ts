@@ -1,7 +1,7 @@
 import type { FieldSelectionItem } from '@/types/profileTemplate';
 
 /**
- * Xây dựng dữ liệu giả lập mẫu (mock data) phản ánh đầy đủ cấu trúc các trường dữ liệu được chọn
+ * Xây dựng dữ liệu mẫu theo cấu trúc các trường đã chọn
  * để truyền vào DossierPreviewDialog khi người dùng bấm "Xem trước hồ sơ".
  *
  * @param templateName Tên mẫu hồ sơ đang nhập trên form.
@@ -25,7 +25,6 @@ export function buildProfileTemplateMockData(
     },
   };
 
-  // 1. Organization
   const orgData: Record<string, unknown> = {};
   if (selectedKeySet.has('organization.name')) orgData.name = 'Hợp tác xã Nông nghiệp Xanh Lam Đồng';
   if (selectedKeySet.has('organization.code')) orgData.code = 'HTX-LAMDONG-01';
@@ -37,7 +36,6 @@ export function buildProfileTemplateMockData(
   if (selectedKeySet.has('organization.email')) orgData.email = 'lienhe@htxxanh.vn';
   if (Object.keys(orgData).length > 0) mock.organization = orgData;
 
-  // 2. FarmArea
   const farmAreaData: Record<string, unknown> = {};
   if (selectedKeySet.has('farmArea.name')) farmAreaData.name = 'Vùng chuyên canh Cà Rốt Đơn Dương';
   if (selectedKeySet.has('farmArea.location')) farmAreaData.location = '11.8345, 108.4567';
@@ -47,7 +45,6 @@ export function buildProfileTemplateMockData(
   if (selectedKeySet.has('farmArea.isActive')) farmAreaData.isActive = 'Đang hoạt động';
   if (Object.keys(farmAreaData).length > 0) mock.farmArea = farmAreaData;
 
-  // 3. ProductionLot
   const lotData: Record<string, unknown> = {};
   if (selectedKeySet.has('productionLot.name')) lotData.name = 'Lô Cà Rốt hữu cơ VietGAP 2026';
   if (selectedKeySet.has('productionLot.productCategory')) lotData.productCategory = 'Rau củ quả tươi';
@@ -59,7 +56,6 @@ export function buildProfileTemplateMockData(
   if (selectedKeySet.has('productionLot.status')) lotData.status = 'Đang đóng gói';
   if (Object.keys(lotData).length > 0) mock.productionLot = lotData;
 
-  // 4. Shipment
   const shipmentData: Record<string, unknown> = {};
   if (selectedKeySet.has('shipment.name')) shipmentData.name = 'Chuyến hàng xuất siêu thị Go! - Đà Lạt';
   if (selectedKeySet.has('shipment.totalQuantity')) shipmentData.totalQuantity = 2000;
@@ -68,7 +64,6 @@ export function buildProfileTemplateMockData(
   if (selectedKeySet.has('shipment.createdAt')) shipmentData.createdAt = '2026-09-12 08:00:00';
   if (Object.keys(shipmentData).length > 0) mock.shipment = shipmentData;
 
-  // 5. FarmLogs
   const hasFarmLogs = selectedFields.some((f) => f.fieldKey.startsWith('farmLog.'));
   if (hasFarmLogs) {
     mock.farmLogs = [
@@ -93,7 +88,6 @@ export function buildProfileTemplateMockData(
     ];
   }
 
-  // 6. Certifications
   const hasCertifications = selectedFields.some((f) => f.fieldKey.startsWith('certification.'));
   if (hasCertifications) {
     mock.certifications = [
@@ -108,7 +102,6 @@ export function buildProfileTemplateMockData(
     ];
   }
 
-  // 7. Inspections
   const hasInspections = selectedFields.some((f) => f.fieldKey.startsWith('inspection.'));
   if (hasInspections) {
     mock.inspections = [
@@ -124,7 +117,6 @@ export function buildProfileTemplateMockData(
     ];
   }
 
-  // 8. Timeline
   const hasTimeline = selectedFields.some((f) => f.fieldKey.startsWith('chainEvent.'));
   if (hasTimeline) {
     mock.timelineEvents = [

@@ -151,7 +151,7 @@ apiClient.interceptors.request.use(
 );
 
 /**
- * Response Interceptor: Phân loại mã lỗi 401/403 để xử lý hết hạn phiên hoặc thông báo lỗi phù hợp.
+ * Phân loại mã lỗi 401/403 để xử lý phiên hết hạn hoặc hiển thị thông báo phù hợp.
  */
 apiClient.interceptors.response.use(
   (response) => response,

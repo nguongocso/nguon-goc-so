@@ -20,7 +20,7 @@ export const toDateTimeLocal = (date: Date, endOfDay = false): string => {
 export type QuickRangeKey = '7days' | '30days' | 'week' | 'month' | 'year' | null;
 
 /**
- * Xác định khóa khoảng thời gian nhanh (7 ngày, 30 ngày, tuần này, tháng này, năm nay) dựa vào từ ngày và đến ngày.
+ * Xác định khóa khoảng thời gian nhanh dựa trên ngày bắt đầu và kết thúc.
  */
 export const detectActiveQuickRange = (fromDate?: string, toDate?: string): QuickRangeKey => {
   if (!fromDate || !toDate) return null;

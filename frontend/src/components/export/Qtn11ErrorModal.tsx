@@ -35,7 +35,7 @@ interface Qtn11ErrorModalProps {
 }
 
 /**
- * Hộp thoại hiển thị chi tiết các lô hàng vi phạm điều kiện xuất dữ liệu theo quy định QTN-11
+ * Hiển thị các lô hàng vi phạm điều kiện xuất dữ liệu theo QTN-11
  * (thiếu sự kiện chuỗi cung ứng hoặc thiếu chứng từ / nhật ký nông hộ bắt buộc).
  *
  * @param props Các thuộc tính kiểm soát hiển thị và danh sách lỗi QTN-11.

@@ -18,7 +18,7 @@ export interface DossierPreviewContentProps {
 }
 
 /**
- * Component quản lý trạng thái loading, lỗi hoặc hiển thị bản xem trước theo định dạng PDF, CSV, JSON.
+ * Hiển thị trạng thái tải, lỗi hoặc bản xem trước PDF, CSV và JSON.
  */
 export const DossierPreviewContent: React.FC<DossierPreviewContentProps> = ({
   loading,

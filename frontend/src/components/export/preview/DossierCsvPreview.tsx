@@ -15,7 +15,7 @@ export interface DossierCsvPreviewProps {
 }
 
 /**
- * Phân tích nội dung văn bản CSV thành danh sách các hàng có định dạng (tiêu đề, nhóm mục, ô dữ liệu).
+ * Phân tích CSV thành các hàng tiêu đề, nhóm mục và dữ liệu.
  */
 export const parseCsvText = (text: string): CsvParsedRow[] => {
   const lines = text.split(/\r?\n/);
@@ -70,7 +70,7 @@ export const parseCsvText = (text: string): CsvParsedRow[] => {
 };
 
 /**
- * Component hiển thị bản xem trước tệp CSV dưới dạng bảng dữ liệu hoặc định dạng văn bản thô.
+ * Hiển thị bản xem trước CSV dưới dạng bảng hoặc văn bản thô.
  */
 export const DossierCsvPreview: React.FC<DossierCsvPreviewProps> = ({ csvContent }) => {
   const [csvViewMode, setCsvViewMode] = useState<'table' | 'raw'>('table');

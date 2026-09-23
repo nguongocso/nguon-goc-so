@@ -26,7 +26,7 @@ export interface DossierPreviewFooterProps {
 }
 
 /**
- * Footer của DossierPreviewDialog hiển thị bảo chứng, nút mở tab mới (PDF), sao chép, tải file và nút đóng.
+ * Hiển thị bảo chứng và các thao tác của hộp thoại xem trước hồ sơ.
  */
 export const DossierPreviewFooter: React.FC<DossierPreviewFooterProps> = ({
   format,

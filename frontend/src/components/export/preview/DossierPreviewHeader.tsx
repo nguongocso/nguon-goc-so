@@ -26,7 +26,7 @@ export interface DossierPreviewHeaderProps {
 }
 
 /**
- * Header của DossierPreviewDialog hiển thị tiêu đề, tên mẫu/lô hàng, bộ chọn định dạng và nút toàn màn hình.
+ * Hiển thị tiêu đề, đối tượng, định dạng và chế độ toàn màn hình.
  */
 export const DossierPreviewHeader: React.FC<DossierPreviewHeaderProps> = ({
   format,

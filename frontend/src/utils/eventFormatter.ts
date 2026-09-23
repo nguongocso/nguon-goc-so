@@ -50,13 +50,10 @@ export function getEventTypeLabel(eventType: string, lang: 'vi' | 'en' = 'vi'): 
   return EVENT_TYPE_VN_LABELS[eventType as ChainEventType] || eventType;
 }
 
-// ─────────────────────────────────────────────
-// Known Business-Field Labels (Vietnamese & English)
-// Keys: backend camelCase → Values: Human-readable label
-// ─────────────────────────────────────────────
+// Nhãn nghiệp vụ song ngữ theo khóa camelCase của backend.
 
 const KNOWN_FIELD_LABELS: Record<string, string> = {
-  // Preprocessing
+  // Sơ chế
   inputQuantity: 'Khối lượng đưa vào (kg)',
   outputQuantity: 'Khối lượng sau sơ chế (kg)',
   lossRate: 'Tỷ lệ hao hụt (%)',
@@ -64,34 +61,34 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
   processingMethod: 'Phương pháp sơ chế',
   preprocessingDate: 'Ngày sơ chế',
   parentEventId: 'Mã sự kiện gốc',
-  // Packaging
+  // Đóng gói
   packagingSpecification: 'Quy cách đóng gói',
   packagingDate: 'Ngày đóng gói',
-  // Harvest
+  // Thu hoạch
   harvestDate: 'Ngày thu hoạch',
   quantity: 'Số lượng (kg)',
   earlyHarvest: 'Thu hoạch sớm',
   earlyHarvestReason: 'Lý do thu hoạch sớm',
   eligibleHarvestDate: 'Ngày đủ điều kiện cách ly',
   unmatchedMaterials: 'Vật tư ngoài danh mục',
-  // Transport
+  // Vận chuyển
   fromLocation: 'Điểm xuất phát',
   toLocation: 'Điểm đến',
   transportDate: 'Ngày vận chuyển',
   transportMethod: 'Phương thức vận chuyển',
-  // Procurement
+  // Thu mua
   shipmentName: 'Tên lô hàng',
   receivedQuantity: 'Số lượng nhận (kg)',
   notes: 'Ghi chú',
-  // Production Lot
+  // Lô sản xuất
   productionLotName: 'Tên lô sản xuất',
   productionLotId: 'Mã lô sản xuất',
-  // Correction
+  // Đính chính
   correctionReason: 'Lý do điều chỉnh',
   // Nhật ký canh tác ngoại tuyến (NCL-10-CN-012)
   activityType: 'Loại hoạt động',
   executedDate: 'Ngày thực hiện',
-  // Common
+  // Dùng chung
   seedType: 'Loại giống',
   plantingDate: 'Ngày trồng',
   specification: 'Quy cách',
@@ -99,7 +96,7 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
   deviceSource: 'Nguồn thiết bị',
   images: 'Ảnh',
 
-  // Coop Warehouse (NCL-05-CN-011)
+  // Kho hợp tác xã (NCL-05-CN-011)
   warehouseName: 'Tên kho HTX',
   entryTime: 'Thời điểm nhập kho',
   exitTime: 'Thời điểm xuất kho',
@@ -111,7 +108,7 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
   warningMessage: 'Cảnh báo lưu kho',
   destination: 'Nơi chuyển đến',
 
-  // ========== Warehouse Receipt (NCL-05-CN-006) ==========
+  // Nhập kho (NCL-05-CN-006)
   conditionNote: 'Tình trạng hàng',
   isDiscrepancyExceeded: 'Vượt ngưỡng',
   declaredQuantity: 'Số lượng khai báo',
@@ -131,7 +128,7 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
   toCode: 'Mã kết thúc',
   sourceLastEventHash: 'Mã băm sự kiện nguồn',
 
-  // ========== Handover (NCL-05-CN-009) ==========
+  // Bàn giao (NCL-05-CN-009)
   action: 'Hành động',
   fromOrgId: 'Mã bên giao',
   toOrgId: 'Mã bên nhận',
@@ -140,7 +137,7 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
 };
 
 const KNOWN_FIELD_LABELS_EN: Record<string, string> = {
-  // Preprocessing
+  // Sơ chế
   inputQuantity: 'Input Quantity (kg)',
   outputQuantity: 'Output Quantity (kg)',
   lossRate: 'Loss Rate (%)',
@@ -148,34 +145,34 @@ const KNOWN_FIELD_LABELS_EN: Record<string, string> = {
   processingMethod: 'Processing Method',
   preprocessingDate: 'Preprocessing Date',
   parentEventId: 'Parent Event ID',
-  // Packaging
+  // Đóng gói
   packagingSpecification: 'Packaging Specification',
   packagingDate: 'Packaging Date',
-  // Harvest
+  // Thu hoạch
   harvestDate: 'Harvest Date',
   quantity: 'Quantity (kg)',
   earlyHarvest: 'Early Harvest',
   earlyHarvestReason: 'Early Harvest Reason',
   eligibleHarvestDate: 'Pre-harvest Isolation Date',
   unmatchedMaterials: 'Unlisted Materials',
-  // Transport
+  // Vận chuyển
   fromLocation: 'Origin',
   toLocation: 'Destination',
   transportDate: 'Transport Date',
   transportMethod: 'Transport Method',
-  // Procurement
+  // Thu mua
   shipmentName: 'Shipment Name',
   receivedQuantity: 'Received Quantity (kg)',
   notes: 'Notes',
-  // Production Lot
+  // Lô sản xuất
   productionLotName: 'Production Lot Name',
   productionLotId: 'Production Lot ID',
-  // Correction
+  // Đính chính
   correctionReason: 'Correction Reason',
-  // Offline farm log (NCL-10-CN-012)
+  // Nhật ký canh tác ngoại tuyến (NCL-10-CN-012)
   activityType: 'Activity Type',
   executedDate: 'Execution Date',
-  // Common
+  // Dùng chung
   seedType: 'Seed Type',
   plantingDate: 'Planting Date',
   specification: 'Specification',
@@ -183,7 +180,7 @@ const KNOWN_FIELD_LABELS_EN: Record<string, string> = {
   deviceSource: 'Device Source',
   images: 'Images',
 
-  // Coop Warehouse
+  // Kho hợp tác xã
   warehouseName: 'HTX Warehouse Name',
   entryTime: 'Inbound Time',
   exitTime: 'Outbound Time',
@@ -195,7 +192,7 @@ const KNOWN_FIELD_LABELS_EN: Record<string, string> = {
   warningMessage: 'Storage Warning',
   destination: 'Destination',
 
-  // Warehouse Receipt
+  // Nhập kho
   conditionNote: 'Condition Note',
   isDiscrepancyExceeded: 'Threshold Exceeded',
   declaredQuantity: 'Declared Quantity',
@@ -205,7 +202,7 @@ const KNOWN_FIELD_LABELS_EN: Record<string, string> = {
   reason: 'Reason for Discrepancy',
   receiptDate: 'Receipt Date',
 
-  // Split
+  // Tách lô
   sourceShipmentId: 'Source Shipment ID',
   sourceShipmentName: 'Source Shipment Name',
   recipientOrganizationId: 'Recipient Org ID',
@@ -215,7 +212,7 @@ const KNOWN_FIELD_LABELS_EN: Record<string, string> = {
   toCode: 'To Code',
   sourceLastEventHash: 'Source Event Hash',
 
-  // Handover
+  // Bàn giao
   action: 'Action',
   fromOrgId: 'Sender Org ID',
   toOrgId: 'Receiver Org ID',
@@ -266,10 +263,6 @@ export function formatFieldLabel(key: string, lang: 'vi' | 'en' = 'vi'): string 
     .replace(/^./, (s) => s.toUpperCase())
     .trim();
 }
-
-// ─────────────────────────────────────────────
-// Value Formatting
-// ─────────────────────────────────────────────
 
 function isISODateString(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$/.test(value);
@@ -361,10 +354,6 @@ export function getDisplayEventDataEntries(
     });
 }
 
-// ─────────────────────────────────────────────
-// Date / DateTime formatting
-// ─────────────────────────────────────────────
-
 /**
  * Định dạng chuỗi ngày giờ ISO thành chuỗi ngày giờ dễ đọc (DD/MM/YYYY HH:mm)
  */
@@ -405,11 +394,6 @@ export function formatDisplayDate(iso: string, lang: 'vi' | 'en' = 'vi'): string
     return iso;
   }
 }
-
-// ─────────────────────────────────────────────
-// Shared translation helper — used by Timeline
-// and RouteMap to produce labelled event data
-// ─────────────────────────────────────────────
 
 /**
  * Chuyển đổi dữ liệu sự kiện thô thành bản đồ nhãn hiển thị và giá trị đã định dạng

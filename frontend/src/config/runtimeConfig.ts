@@ -19,7 +19,7 @@ declare global {
 }
 
 /**
- * Kiểm tra một giá trị cấu hình có hợp lệ hay không (không rỗng và không phải placeholder dạng __KEY__).
+ * Kiểm tra giá trị cấu hình không rỗng và không phải placeholder.
  *
  * @param value Giá trị chuỗi cần kiểm tra.
  * @returns `true` nếu giá trị chuỗi hợp lệ và đã được thiết lập.

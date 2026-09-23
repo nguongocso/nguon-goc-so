@@ -26,7 +26,7 @@ export interface ExportDateRangeFilterProps {
 }
 
 /**
- * Component bộ lọc thời gian gồm các nút chọn nhanh (7 ngày, 30 ngày, tuần, tháng, năm) và input datetime-local.
+ * Lọc thời gian theo mốc nhanh hoặc khoảng ngày tùy chọn.
  */
 export const ExportDateRangeFilter: React.FC<ExportDateRangeFilterProps> = ({
   control,
