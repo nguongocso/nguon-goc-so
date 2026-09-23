@@ -1,10 +1,10 @@
 package vn.nguongocso.organization.enums;
 
-/**
- * Trạng thái của người dùng trong tổ chức.
- */
+/** Trạng thái của người dùng trong tổ chức. */
 public enum OrganizationUserStatus {
-    ACTIVE, // Đang hoạt động
+    /** Đang hoạt động. */
+    ACTIVE,
 
-    INACTIVE // Ngừng hoạt động
+    /** Ngừng hoạt động. */
+    INACTIVE
 }

@@ -22,7 +22,7 @@ const createMemberSchema = z
       .max(50, 'Mật khẩu tối đa 50 ký tự')
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
-        'Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt (@$!%*?&)'
+        'Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt (@$!%*?&)',
       ),
     confirmPassword: z.string().min(1, 'Vui lòng xác nhận mật khẩu'),
     fullName: z.string().min(1, 'Họ tên không được để trống'),
@@ -60,17 +60,15 @@ export function CreateMemberForm() {
       fullName: '',
       phone: '',
       email: '',
-      roleId: 0, // placeholder, sẽ được cập nhật sau
+      roleId: 0,
     },
   });
 
-  // Load roles và tự động gán VT-03
   useEffect(() => {
     const loadRoles = async () => {
       try {
         setIsLoading(true);
         const allRoles = await getRoles();
-        // Chỉ lấy VT-03 (Người ghi sự kiện)
         const vt03Roles = allRoles.filter((role) => role.code === 'VT-03');
 
         if (vt03Roles.length === 0) {
@@ -79,7 +77,6 @@ export function CreateMemberForm() {
         }
 
         setRoles(vt03Roles);
-        // Tự động gán roleId của VT-03
         const vt03Role = vt03Roles[0];
         setValue('roleId', vt03Role.roleId);
       } catch {
@@ -137,14 +134,12 @@ export function CreateMemberForm() {
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4 pt-6">
-          {/* Tên đăng nhập */}
           <div className="space-y-2">
             <Label htmlFor="username">Tên đăng nhập *</Label>
             <Input id="username" {...register('username')} placeholder="VD: nguyenvana" />
             {errors.username && <p className="text-sm text-red-500">{errors.username.message}</p>}
           </div>
 
-          {/* Mật khẩu */}
           <div className="space-y-2">
             <Label htmlFor="password">Mật khẩu *</Label>
             <div className="relative">
@@ -171,7 +166,6 @@ export function CreateMemberForm() {
             {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
           </div>
 
-          {/* Xác nhận mật khẩu */}
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Xác nhận mật khẩu *</Label>
             <div className="relative">
@@ -195,14 +189,12 @@ export function CreateMemberForm() {
             {errors.confirmPassword && <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>}
           </div>
 
-          {/* Họ và tên */}
           <div className="space-y-2">
             <Label htmlFor="fullName">Họ và tên *</Label>
             <Input id="fullName" {...register('fullName')} placeholder="VD: Nguyễn Văn A" />
             {errors.fullName && <p className="text-sm text-red-500">{errors.fullName.message}</p>}
           </div>
 
-          {/* Số điện thoại & Email */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="phone">Số điện thoại</Label>
@@ -216,7 +208,6 @@ export function CreateMemberForm() {
             </div>
           </div>
 
-          {/* Hiển thị vai trò dưới dạng text (đã mặc định VT-03) */}
           <div className="space-y-2">
             <Label>Vai trò *</Label>
             <div className="text-sm font-medium text-muted-foreground">

@@ -20,24 +20,18 @@ import vn.nguongocso.integration.apikey.entity.PartnerApiKeyDailyUsage;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyDailyUsageRepository;
 
 /**
- * Dịch vụ đọc/ghi bộ đếm lượt gọi theo ngày của khóa truy cập đối tác (NCL-12-CN-005).
- * <p>
- * Là nguồn sự thật cho ngưỡng cảnh báo hạn mức: số liệu được lưu ở DB nên cảnh
- * báo không mất khi khởi động lại backend và không gửi trùng khi chạy nhiều
- * instance. Mọi thao tác ghi đều đi qua {@link PartnerApiKeyUsageWriter} để nằm
- * trong transaction riêng, không ảnh hưởng transaction xử lý request của đối tác.
- */
+ * Dịch vụ đọc và ghi bộ đếm lượt gọi theo ngày của khóa truy cập đối tác.
+*/
 @Service
 @RequiredArgsConstructor
 public class PartnerApiKeyUsageService {
-
     private static final Logger log = LoggerFactory.getLogger(PartnerApiKeyUsageService.class);
 
     private final PartnerApiKeyDailyUsageRepository usageRepository;
     private final PartnerApiKeyUsageWriter usageWriter;
 
     /**
-     * Ngày nghiệp vụ hiện tại dùng làm khóa đếm theo ngày.
+     * Lấy ngày nghiệp vụ hiện tại dùng làm khóa đếm theo ngày.
      */
     public LocalDate currentUsageDate() {
         return LocalDate.now();
@@ -45,21 +39,12 @@ public class PartnerApiKeyUsageService {
 
     /**
      * Ghi nhận một lượt gọi đã xác thực thành công và trả về tổng lượt gọi trong ngày.
-     * <p>
-     * Không bao giờ ném lỗi ra ngoài: nếu không ghi được (ví dụ tranh chấp tạo
-     * dòng), trả về số lượt đã đọc được để không chặn request của đối tác; job
-     * đối soát sẽ bù cảnh báo khi dữ liệu hoàn tất.
-     *
-     * @param apiKeyId ID khóa truy cập
-     * @return số lượt gọi trong ngày hôm nay của khóa
      */
     public int recordCallAndGetDailyCount(UUID apiKeyId) {
         LocalDate today = currentUsageDate();
         try {
             return usageWriter.incrementInNewTransaction(apiKeyId, today);
         } catch (DataIntegrityViolationException e) {
-            // Thua tranh chấp tạo dòng: instance khác vừa tạo dòng cho cùng khóa + ngày,
-            // gọi lại chỉ còn bước cộng lượt gọi trên dòng đã có.
             log.debug("Dòng usage đã được tạo bởi tiến trình khác cho khóa {} ngày {}", apiKeyId, today);
             return usageWriter.incrementInNewTransaction(apiKeyId, today);
         } catch (RuntimeException e) {
@@ -80,17 +65,15 @@ public class PartnerApiKeyUsageService {
     }
 
     /**
-     * Số lượt gọi trong ngày hôm nay của nhiều khóa bằng một truy vấn duy nhất.
-     *
-     * @param apiKeyIds danh sách ID khóa truy cập
-     * @return map ID khóa → số lượt gọi trong ngày (khóa không có dữ liệu sẽ không xuất hiện)
+     * Lấy số lượt gọi trong ngày hôm nay của nhiều khóa bằng một truy vấn duy nhất.
      */
     @Transactional(readOnly = true)
     public Map<UUID, Integer> getDailyCallCounts(Collection<UUID> apiKeyIds) {
         if (apiKeyIds == null || apiKeyIds.isEmpty()) {
             return new HashMap<>();
         }
-        List<PartnerApiKeyDailyUsage> rows = usageRepository.findByApiKeyIdInAndUsageDate(apiKeyIds, currentUsageDate());
+        List<PartnerApiKeyDailyUsage> rows = usageRepository.findByApiKeyIdInAndUsageDate(apiKeyIds,
+                currentUsageDate());
         Map<UUID, Integer> result = new HashMap<>();
         for (PartnerApiKeyDailyUsage row : rows) {
             result.put(row.getApiKeyId(), row.getCallCount() == null ? 0 : row.getCallCount());
@@ -107,7 +90,7 @@ public class PartnerApiKeyUsageService {
     }
 
     /**
-     * Các dòng usage trong ngày hôm nay chưa gửi cảnh báo hạn mức (phục vụ job đối soát).
+     * Lấy các dòng usage trong ngày hôm nay chưa gửi cảnh báo hạn mức.
      */
     @Transactional(readOnly = true)
     public List<PartnerApiKeyDailyUsage> findTodayUnwarnedUsages() {
@@ -115,16 +98,14 @@ public class PartnerApiKeyUsageService {
     }
 
     /**
-     * Giành quyền gửi cảnh báo hạn mức cho một dòng usage (chống trùng giữa nhiều instance).
-     *
-     * @return {@code true} nếu giành được quyền gửi
+     * Giành quyền gửi cảnh báo hạn mức cho một dòng usage.
      */
     public boolean claimQuotaWarning(UUID usageId) {
         return usageWriter.claimQuotaWarningInNewTransaction(usageId);
     }
 
     /**
-     * Nhả quyền gửi cảnh báo để lần đối soát sau gửi lại (dùng khi gửi thông báo thất bại).
+     * Nhả quyền gửi cảnh báo để lần đối soát sau gửi lại.
      */
     public void releaseQuotaWarning(UUID usageId) {
         usageWriter.releaseQuotaWarningInNewTransaction(usageId);

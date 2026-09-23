@@ -19,19 +19,14 @@ import vn.nguongocso.notification.dto.response.NotificationResponse;
 import vn.nguongocso.notification.dto.response.UnreadCountResponse;
 import vn.nguongocso.notification.service.NotificationService;
 
-/**
- * API quản lý hộp thông báo của người dùng.
- */
+/** API quản lý hộp thông báo của người dùng. */
 @RestController
 @RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
-
     private final NotificationService notificationService;
 
-    /**
-     * Lấy danh sách thông báo của người dùng.
-     */
+    /** Lấy danh sách thông báo của người dùng. */
     @GetMapping
     public ResponseEntity<ApiResult<PageResponse<NotificationResponse>>> getNotifications(
             @RequestParam(required = false) Boolean isRead,
@@ -46,9 +41,7 @@ public class NotificationController {
                                 pageable)));
     }
 
-    /**
-     * Lấy số lượng thông báo chưa đọc.
-     */
+    /** Lấy số lượng thông báo chưa đọc. */
     @GetMapping("/unread-count")
     public ResponseEntity<ApiResult<UnreadCountResponse>> getUnreadCount() {
         return ResponseEntity.ok(
@@ -56,9 +49,7 @@ public class NotificationController {
                         notificationService.getUnreadCount()));
     }
 
-    /**
-     * Đánh dấu thông báo là đã đọc.
-     */
+    /** Đánh dấu thông báo là đã đọc. */
     @PatchMapping("/{notificationId}/read")
     public ResponseEntity<ApiResult<NotificationResponse>> markAsRead(
             @PathVariable UUID notificationId) {

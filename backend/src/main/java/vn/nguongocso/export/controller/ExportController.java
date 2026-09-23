@@ -1,5 +1,10 @@
 package vn.nguongocso.export.controller;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.UUID;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,21 +14,20 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.export.dto.request.ExportOpenDataRequest;
 import vn.nguongocso.export.service.ExportService;
 import vn.nguongocso.export.service.ProfileTemplateService;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Map;
-import java.util.UUID;
-
-/**
- * Controller phụ trách xuất dữ liệu công khai và hồ sơ truy xuất theo mẫu đối tác.
- */
+/** Controller phụ trách xuất dữ liệu công khai và hồ sơ truy xuất theo mẫu đối tác. */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/export")
@@ -33,9 +37,7 @@ public class ExportController {
     private final ExportService exportService;
     private final ProfileTemplateService profileTemplateService;
 
-    /**
-     * Xuất dữ liệu open data theo định dạng yêu cầu.
-     */
+    /** Xuất dữ liệu open data theo định dạng yêu cầu. */
     @PostMapping("/open-data")
     @PreAuthorize("hasRole('VT-05')")
     public ResponseEntity<Resource> exportOpenData(
@@ -80,7 +82,10 @@ public class ExportController {
         log.info("Nhận yêu cầu xem trước hồ sơ theo mẫu: shipmentId={}, templateId={}, user={}",
                 shipmentId, templateId, currentUser != null ? currentUser.getUsername() : "anonymous");
         Map<String, Object> previewData = profileTemplateService.buildPreview(shipmentId, templateId, currentUser);
-        log.info("Xây dựng dữ liệu xem trước thành công: shipmentId={}, số nhóm thuộc tính={}", shipmentId, previewData.size());
+        log.info(
+                "Xây dựng dữ liệu xem trước thành công: shipmentId={}, số nhóm thuộc tính={}",
+                shipmentId,
+                previewData.size());
         return ResponseEntity.ok(ApiResult.success(previewData));
     }
 

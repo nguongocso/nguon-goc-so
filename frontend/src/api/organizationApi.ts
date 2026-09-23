@@ -1,4 +1,4 @@
-import apiClient from "@/api/axiosConfig";
+import apiClient from '@/api/axiosConfig';
 
 import type {
   OrganizationProfile,
@@ -11,34 +11,32 @@ import type {
   AddMemberRequest,
   CreateOrganizationMemberResponse,
   AvailableUser,
-} from "@/types/organization";
+} from '@/types/organization';
 
-export const getOrganizationProfile = async (): Promise<
-  OrganizationProfile
-> => {
+export const getOrganizationProfile = async (): Promise<OrganizationProfile> => {
   const response = await apiClient.get<{
     data: OrganizationProfile;
-  }>("/organizations/profile");
+  }>('/organizations/profile');
 
   return response.data.data;
 };
 
 export const updateOrganizationProfile = async (
-  data: UpdateOrganizationRequest
+  data: UpdateOrganizationRequest,
 ): Promise<OrganizationProfile> => {
   const response = await apiClient.put<{
     data: OrganizationProfile;
-  }>("/organizations/profile", data);
+  }>('/organizations/profile', data);
 
   return response.data.data;
 };
 
 export const createOrganization = async (
-  data: CreateOrganizationRequest
+  data: CreateOrganizationRequest,
 ): Promise<CreateOrganizationResponse> => {
   const response = await apiClient.post<CreateOrganizationResponse>(
-    "/admin/organizations",
-    data
+    '/admin/organizations',
+    data,
   );
 
   return response.data;
@@ -47,28 +45,22 @@ export const createOrganization = async (
 export const getOrganizations = async (): Promise<Organization[]> => {
   const response = await apiClient.get<{
     data: Organization[];
-  }>("/admin/organizations");
+  }>('/admin/organizations');
 
   return response.data.data;
 };
 
-/**
- * Danh sách tổ chức nhận cho dropdown phiếu bàn giao.
- * Chỉ gồm các tổ chức Doanh nghiệp thu mua (VT-04 / ENTERPRISE), ACTIVE và khác
- * tổ chức hiện tại nên VT-02 dùng được, thay cho GET /admin/organizations
- * (chỉ VT-01, gây 403).
- * GET /api/v1/organizations/recipient-organizations
- */
+/** Danh sách tổ chức nhận cho dropdown phiếu bàn giao. */
 export const getRecipientOrganizations = async (): Promise<Organization[]> => {
   const response = await apiClient.get<{
     data: Organization[];
-  }>("/organizations/recipient-organizations");
+  }>('/organizations/recipient-organizations');
 
   return response.data.data;
 };
 
 export const getOrganizationDetail = async (
-  id: string
+  id: string,
 ): Promise<OrganizationDetailResponse> => {
   const response = await apiClient.get<{
     data: OrganizationDetailResponse;
@@ -79,7 +71,7 @@ export const getOrganizationDetail = async (
 
 export const createOrganizationMember = async (
   organizationId: string,
-  data: AddMemberRequest
+  data: AddMemberRequest,
 ): Promise<CreateOrganizationMemberResponse> => {
   const response = await apiClient.post<{
     data: CreateOrganizationMemberResponse;
@@ -94,7 +86,7 @@ export interface AddExistingUserRequest {
 }
 
 export const getAvailableUsers = async (
-  organizationId: string
+  organizationId: string,
 ): Promise<AvailableUser[]> => {
   const response = await apiClient.get<{
     data: AvailableUser[];
@@ -105,7 +97,7 @@ export const getAvailableUsers = async (
 
 export const addExistingUser = async (
   organizationId: string,
-  data: AddExistingUserRequest
+  data: AddExistingUserRequest,
 ): Promise<OrganizationUserResponse> => {
   const response = await apiClient.post<{
     data: OrganizationUserResponse;
@@ -120,7 +112,7 @@ export const assignRole = async (data: {
 }): Promise<OrganizationUserResponse> => {
   const response = await apiClient.put<{
     data: OrganizationUserResponse;
-  }>("/admin/organizations/current/members/role", data);
+  }>('/admin/organizations/current/members/role', data);
 
   return response.data.data;
 };

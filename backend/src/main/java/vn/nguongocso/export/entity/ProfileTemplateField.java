@@ -1,16 +1,29 @@
 package vn.nguongocso.export.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import java.util.UUID;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import vn.nguongocso.export.enums.ProfileFieldGroup;
 
-import java.util.UUID;
-
-/**
- * Thực thể lưu trữ trường thông tin được chọn trong một mẫu hồ sơ truy xuất.
- */
+/** Thực thể lưu trữ trường thông tin được chọn trong một mẫu hồ sơ truy xuất. */
 @Entity
 @Table(name = "profile_template_fields")
 @Getter

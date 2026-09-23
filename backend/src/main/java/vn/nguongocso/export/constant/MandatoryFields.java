@@ -1,38 +1,41 @@
 package vn.nguongocso.export.constant;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import vn.nguongocso.export.dto.response.FieldGroupDefinition;
 import vn.nguongocso.export.dto.response.FieldItemDefinition;
 import vn.nguongocso.export.enums.ProfileFieldGroup;
 
-import java.util.*;
-
-/**
- * Định nghĩa danh mục trường và danh sách các trường bắt buộc theo QTN-11.
- */
+/** Định nghĩa danh mục trường và danh sách các trường bắt buộc theo QTN-11. */
 public final class MandatoryFields {
 
     private MandatoryFields() {
-        // Utility class
+        throw new UnsupportedOperationException("Utility class");
     }
 
     /**
      * Tập hợp 8 trường bắt buộc cốt lõi theo quy tắc QTN-11.
      * Mọi mẫu hồ sơ truy xuất bắt buộc phải chứa tất cả các trường này.
      */
-    public static final Set<String> QTN11_MANDATORY_FIELD_KEYS = Set.of(
-            "organization.name",
-            "farmArea.name",
-            "productionLot.name",
-            "productionLot.productCategory",
-            "shipment.name",
-            "shipment.totalQuantity",
-            "farmLog.activityType",
-            "chainEvent.eventType"
-    );
+    public static final Set<String> QTN11_MANDATORY_FIELD_KEYS =
+            Collections.unmodifiableSet(
+                    new LinkedHashSet<>(List.of(
+                            "organization.name",
+                            "farmArea.name",
+                            "productionLot.name",
+                            "productionLot.productCategory",
+                            "shipment.name",
+                            "shipment.totalQuantity",
+                            "farmLog.activityType",
+                            "chainEvent.eventType")));
 
-    /**
-     * Bản đồ ánh xạ mã trường sang tên hiển thị tiếng Việt.
-     */
+    /** Bản đồ ánh xạ mã trường sang tên hiển thị tiếng Việt. */
     public static final Map<String, String> FIELD_DISPLAY_NAMES = Map.ofEntries(
             Map.entry("organization.name", "Tên tổ chức / HTX"),
             Map.entry("organization.code", "Mã tổ chức"),
@@ -87,9 +90,7 @@ public final class MandatoryFields {
             Map.entry("chainEvent.eventData", "Chi tiết sự kiện")
     );
 
-    /**
-     * Kiểm tra và trả về danh sách các trường bắt buộc QTN-11 bị thiếu trong tập trường cung cấp.
-     */
+    /** Kiểm tra và trả về danh sách các trường bắt buộc QTN-11 bị thiếu trong tập trường cung cấp. */
     public static List<String> findMissingMandatoryFields(Collection<String> selectedFieldKeys) {
         if (selectedFieldKeys == null || selectedFieldKeys.isEmpty()) {
             return QTN11_MANDATORY_FIELD_KEYS.stream()
@@ -105,21 +106,27 @@ public final class MandatoryFields {
         return missing;
     }
 
-    /**
-     * Kiểm tra xem một mã trường có phải là bắt buộc theo QTN-11 hay không.
-     */
+    /** Kiểm tra xem một mã trường có phải là bắt buộc theo QTN-11 hay không. */
     public static boolean isMandatory(String fieldKey) {
         return QTN11_MANDATORY_FIELD_KEYS.contains(fieldKey);
     }
 
-    /**
-     * Sinh danh mục tất cả các trường có thể chọn trong hệ thống, phân nhóm phục vụ frontend.
-     */
+    /** Sinh danh mục tất cả các trường có thể chọn trong hệ thống, phân nhóm phục vụ frontend. */
     public static List<FieldGroupDefinition> buildFullCatalog() {
-        List<FieldGroupDefinition> catalog = new ArrayList<>();
+        return List.of(
+                buildOrganizationGroup(),
+                buildFarmAreaGroup(),
+                buildProductionLotGroup(),
+                buildShipmentGroup(),
+                buildFarmLogGroup(),
+                buildInspectionGroup(),
+                buildCertificationGroup(),
+                buildChainEventGroup()
+        );
+    }
 
-        // 1. ORGANIZATION
-        catalog.add(FieldGroupDefinition.builder()
+    private static FieldGroupDefinition buildOrganizationGroup() {
+        return FieldGroupDefinition.builder()
                 .fieldGroup(ProfileFieldGroup.ORGANIZATION)
                 .groupLabel(ProfileFieldGroup.ORGANIZATION.getLabel())
                 .fields(List.of(
@@ -132,10 +139,11 @@ public final class MandatoryFields {
                         createItem("organization.phone", "Số điện thoại liên hệ"),
                         createItem("organization.email", "Địa chỉ email giao dịch")
                 ))
-                .build());
+                .build();
+    }
 
-        // 2. FARM_AREA
-        catalog.add(FieldGroupDefinition.builder()
+    private static FieldGroupDefinition buildFarmAreaGroup() {
+        return FieldGroupDefinition.builder()
                 .fieldGroup(ProfileFieldGroup.FARM_AREA)
                 .groupLabel(ProfileFieldGroup.FARM_AREA.getLabel())
                 .fields(List.of(
@@ -146,10 +154,11 @@ public final class MandatoryFields {
                         createItem("farmArea.cropType", "Chủng loại cây trồng chủ lực"),
                         createItem("farmArea.isActive", "Trạng thái kích hoạt vận hành của vùng trồng")
                 ))
-                .build());
+                .build();
+    }
 
-        // 3. PRODUCTION_LOT
-        catalog.add(FieldGroupDefinition.builder()
+    private static FieldGroupDefinition buildProductionLotGroup() {
+        return FieldGroupDefinition.builder()
                 .fieldGroup(ProfileFieldGroup.PRODUCTION_LOT)
                 .groupLabel(ProfileFieldGroup.PRODUCTION_LOT.getLabel())
                 .fields(List.of(
@@ -162,10 +171,11 @@ public final class MandatoryFields {
                         createItem("productionLot.actualQuantity", "Sản lượng thu hoạch thực tế"),
                         createItem("productionLot.status", "Trạng thái vận hành của lô sản xuất")
                 ))
-                .build());
+                .build();
+    }
 
-        // 4. SHIPMENT
-        catalog.add(FieldGroupDefinition.builder()
+    private static FieldGroupDefinition buildShipmentGroup() {
+        return FieldGroupDefinition.builder()
                 .fieldGroup(ProfileFieldGroup.SHIPMENT)
                 .groupLabel(ProfileFieldGroup.SHIPMENT.getLabel())
                 .fields(List.of(
@@ -175,10 +185,11 @@ public final class MandatoryFields {
                         createItem("shipment.status", "Trạng thái vận hành của lô hàng"),
                         createItem("shipment.createdAt", "Thời điểm tạo lô hàng")
                 ))
-                .build());
+                .build();
+    }
 
-        // 5. FARM_LOG
-        catalog.add(FieldGroupDefinition.builder()
+    private static FieldGroupDefinition buildFarmLogGroup() {
+        return FieldGroupDefinition.builder()
                 .fieldGroup(ProfileFieldGroup.FARM_LOG)
                 .groupLabel(ProfileFieldGroup.FARM_LOG.getLabel())
                 .fields(List.of(
@@ -190,10 +201,11 @@ public final class MandatoryFields {
                         createItem("farmLog.notes", "Ghi chú kỹ thuật canh tác"),
                         createItem("farmLog.attachments", "Tệp hóa đơn, ảnh chứng từ đính kèm")
                 ))
-                .build());
+                .build();
+    }
 
-        // 6. INSPECTION
-        catalog.add(FieldGroupDefinition.builder()
+    private static FieldGroupDefinition buildInspectionGroup() {
+        return FieldGroupDefinition.builder()
                 .fieldGroup(ProfileFieldGroup.INSPECTION)
                 .groupLabel(ProfileFieldGroup.INSPECTION.getLabel())
                 .fields(List.of(
@@ -204,10 +216,11 @@ public final class MandatoryFields {
                         createItem("inspection.resultDate", "Ngày phòng kiểm nghiệm trả kết quả"),
                         createItem("inspection.expiryDate", "Hạn hiệu lực của phiếu phân tích")
                 ))
-                .build());
+                .build();
+    }
 
-        // 7. CERTIFICATION
-        catalog.add(FieldGroupDefinition.builder()
+    private static FieldGroupDefinition buildCertificationGroup() {
+        return FieldGroupDefinition.builder()
                 .fieldGroup(ProfileFieldGroup.CERTIFICATION)
                 .groupLabel(ProfileFieldGroup.CERTIFICATION.getLabel())
                 .fields(List.of(
@@ -218,10 +231,11 @@ public final class MandatoryFields {
                         createItem("certification.expiryDate", "Ngày hết hạn hiệu lực chứng chỉ"),
                         createItem("certification.certifier", "Đơn vị đánh giá và cấp chứng chỉ")
                 ))
-                .build());
+                .build();
+    }
 
-        // 8. CHAIN_EVENT
-        catalog.add(FieldGroupDefinition.builder()
+    private static FieldGroupDefinition buildChainEventGroup() {
+        return FieldGroupDefinition.builder()
                 .fieldGroup(ProfileFieldGroup.CHAIN_EVENT)
                 .groupLabel(ProfileFieldGroup.CHAIN_EVENT.getLabel())
                 .fields(List.of(
@@ -231,9 +245,7 @@ public final class MandatoryFields {
                         createItem("chainEvent.location", "Tọa độ địa điểm nơi diễn ra sự kiện"),
                         createItem("chainEvent.eventData", "Dữ liệu chi tiết đặc thù của sự kiện")
                 ))
-                .build());
-
-        return catalog;
+                .build();
     }
 
     private static FieldItemDefinition createItem(String fieldKey, String description) {

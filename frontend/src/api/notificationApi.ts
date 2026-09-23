@@ -10,7 +10,7 @@ interface ApiDataResponse<T> {
   data: T;
 }
 
-// GET /api/v1/notifications
+/** Lấy danh sách thông báo theo bộ lọc. */
 export const getNotifications = async (
   params: GetNotificationsParams = {},
 ): Promise<NotificationListResponse> => {
@@ -21,7 +21,7 @@ export const getNotifications = async (
   return response.data.data;
 };
 
-// GET /api/v1/notifications/unread-count
+/** Lấy số lượng thông báo chưa đọc. */
 export const getUnreadCount = async (): Promise<UnreadCountResponse> => {
   const response = await apiClient.get<ApiDataResponse<UnreadCountResponse>>(
     '/notifications/unread-count',
@@ -29,7 +29,7 @@ export const getUnreadCount = async (): Promise<UnreadCountResponse> => {
   return response.data.data;
 };
 
-// PATCH /api/v1/notifications/{notificationId}/read
+/** Đánh dấu một thông báo là đã đọc. */
 export const markNotificationAsRead = async (
   notificationId: string,
 ): Promise<MarkReadResponse> => {

@@ -1,11 +1,5 @@
 package vn.nguongocso.farm.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import vn.nguongocso.farm.entity.ProductionLot;
-import vn.nguongocso.farm.enums.ProductionLotStatus;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -13,57 +7,39 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.farm.enums.ProductionLotStatus;
+
 /**
  * Repository thao tác dữ liệu lô sản xuất.
- */
+*/
 public interface ProductionLotRepository extends JpaRepository<ProductionLot, UUID> {
-
-    /**
-     * Tìm tất cả các lô sản xuất theo ID tổ chức.
-     *
-     * @param organizationId ID của tổ chức.
-     * @return Danh sách các lô sản xuất thuộc tổ chức.
-     */
+    /** Tìm các lô sản xuất theo ID tổ chức. */
     List<ProductionLot> findByOrganization_OrganizationId(UUID organizationId);
 
-    /**
-     * Tìm tất cả các lô sản xuất theo ID tổ chức và trạng thái.
-     *
-     * @param organizationId ID của tổ chức.
-     * @param status         Trạng thái của lô sản xuất.
-     * @return Danh sách các lô sản xuất thuộc tổ chức và trạng thái.
-     */
+    /** Tìm các lô sản xuất theo ID tổ chức và trạng thái. */
     List<ProductionLot> findByOrganization_OrganizationIdAndStatus(UUID organizationId, ProductionLotStatus status);
 
+    /** Tìm các lô sản xuất theo tổ chức và danh sách trạng thái. */
     List<ProductionLot> findByOrganization_OrganizationIdAndStatusIn(UUID organizationId, Collection<ProductionLotStatus> statuses);
 
-    /**
-     * Tìm tất cả các lô sản xuất theo trạng thái.
-     *
-     * @param status Trạng thái của lô sản xuất.
-     * @return Danh sách các lô sản xuất có trạng thái tương ứng.
-     */
+    /** Tìm các lô sản xuất theo trạng thái. */
     List<ProductionLot> findByStatus(ProductionLotStatus status);
 
+    /** Tìm các lô sản xuất theo danh sách trạng thái. */
     List<ProductionLot> findByStatusIn(Collection<ProductionLotStatus> statuses);
 
-    /**
-     * Tìm tất cả các lô sản xuất theo ID vùng trồng.
-     *
-     * @param farmAreaId ID của vùng trồng.
-     * @return Danh sách các lô sản xuất thuộc vùng trồng.
-     */
+    /** Tìm các lô sản xuất theo ID vùng trồng. */
     List<ProductionLot> findByFarmAreaId(UUID farmAreaId);
 
-    /**
-     * Đếm số lô sản xuất liên quan tới vùng trồng.
-     */
+    /** Đếm số lô sản xuất liên quan tới vùng trồng. */
     long countByFarmAreaId(UUID farmAreaId);
 
-    /**
-     * Truy vấn tổng hợp số lô, sản lượng thực tế và dự kiến theo trạng thái của tổ
-     * chức.
-     */
+    /** Truy vấn tổng hợp số lô và sản lượng theo trạng thái của tổ chức. */
     @Query("""
                 SELECT pl.status, COUNT(pl), SUM(pl.expectedQuantity), SUM(pl.actualQuantity)
                 FROM ProductionLot pl
@@ -77,10 +53,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
-    /**
-     * Lấy các lô sản xuất có ngày xuống giống khác null để phục vụ gom nhóm theo
-     * chu kỳ thời gian trên Java.
-     */
+    /** Lấy các lô sản xuất có ngày xuống giống để gom nhóm theo thời gian. */
     @Query("""
                 SELECT pl.plantingDate, pl.expectedQuantity, pl.actualQuantity
                 FROM ProductionLot pl
@@ -97,11 +70,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
-    /**
-     * Truy vấn danh sách các lô sản xuất phục vụ phân tích theo vùng trồng và mùa
-     * vụ.
-     * Sử dụng JOIN FETCH để tải trước các thực thể liên quan, tránh N+1 Query.
-     */
+    /** Lấy danh sách lô sản xuất phục vụ phân tích theo vùng trồng và mùa vụ. */
     @Query("""
                 SELECT pl
                 FROM ProductionLot pl
@@ -122,10 +91,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("productCategoryId") UUID productCategoryId,
             @Param("organizationId") UUID organizationId);
 
-    /**
-     * Như {@link #findLotsForAnalysis} nhưng giới hạn cứng trong danh sách tổ
-     * chức cho phép (lọc địa bàn VT-05 / bộ lọc unitIds của NCL-743).
-     */
+    /** Lấy danh sách lô sản xuất phục vụ phân tích trong danh sách tổ chức. */
     @Query("""
                 SELECT pl
                 FROM ProductionLot pl
@@ -146,9 +112,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("productCategoryId") UUID productCategoryId,
             @Param("orgIds") Collection<UUID> orgIds);
 
-    /**
-     * Lấy các lô sản xuất phục vụ so sánh sản lượng giữa nhiều mùa vụ.
-     */
+    /** Lấy các lô sản xuất phục vụ so sánh sản lượng giữa nhiều mùa vụ. */
     @Query("""
             SELECT pl
             FROM ProductionLot pl
@@ -168,10 +132,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("productCategoryId") UUID productCategoryId,
             @Param("organizationId") UUID organizationId);
 
-    /**
-     * Như {@link #findLotsForSeasonYieldComparison} nhưng giới hạn cứng trong
-     * danh sách tổ chức cho phép (lọc địa bàn VT-05 / bộ lọc unitIds).
-     */
+    /** Lấy các lô sản xuất so sánh sản lượng trong danh sách tổ chức. */
     @Query("""
             SELECT pl
             FROM ProductionLot pl
@@ -191,12 +152,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("productCategoryId") UUID productCategoryId,
             @Param("orgIds") Collection<UUID> orgIds);
 
-    /**
-     * Lấy danh sách lô sản xuất đủ điều kiện xuất dữ liệu mở (QTN-11).
-     * Bao gồm các lô thuộc các tổ chức trong danh sách, trong khoảng thời gian,
-     * và có trạng thái thuộc danh sách cho phép.
-     * Sử dụng JOIN FETCH để tải các quan hệ cần thiết, tránh N+1.
-     */
+    /** Lấy danh sách lô sản xuất đủ điều kiện xuất dữ liệu mở. */
     @Query("""
                 SELECT DISTINCT pl
                 FROM ProductionLot pl
@@ -214,16 +170,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("toDate") LocalDate toDate,
             @Param("statuses") List<ProductionLotStatus> statuses);
 
-    /**
-     * Tìm lô sản xuất theo ID lô và ID tổ chức.
-     *
-     * Dùng để đảm bảo người dùng chỉ được thao tác
-     * trên lô thuộc tổ chức hiện tại.
-     *
-     * @param lotId          ID lô sản xuất
-     * @param organizationId ID tổ chức hiện tại
-     * @return lô sản xuất nếu thuộc tổ chức
-     */
+    /** Tìm lô sản xuất theo ID lô và ID tổ chức. */
     @Query("""
         SELECT pl
         FROM ProductionLot pl
@@ -234,11 +181,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("lotId") UUID lotId,
             @Param("organizationId") UUID organizationId);
 
-    /**
-     * Truy vấn hồ sơ lô sản xuất đầy đủ cho cổng dữ liệu đối tác bên thứ ba.
-     * Sử dụng JOIN FETCH để nạp trước Organization, FarmArea, ProductCategory và Certifications
-     * đồng thời thực thi bảo mật Cách ly dữ liệu tổ chức (Tenant Isolation - TC-04).
-     */
+    /** Lấy hồ sơ lô sản xuất đầy đủ cho cổng dữ liệu đối tác. */
     @Query("""
         SELECT DISTINCT pl
         FROM ProductionLot pl
@@ -255,9 +198,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("lotId") UUID lotId,
             @Param("organizationId") UUID organizationId);
 
-    /**
-     * Tìm tất cả lô sản xuất theo danh sách tổ chức, nạp trước Organization, FarmArea, ProductCategory (NCL-07-CN-006).
-     */
+    /** Tìm các lô sản xuất theo danh sách tổ chức kèm thông tin liên quan. */
     @Query("""
         SELECT DISTINCT pl
         FROM ProductionLot pl
@@ -268,9 +209,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
         """)
     List<ProductionLot> findAllInOrganizationsWithDetails(@Param("orgIds") Collection<UUID> orgIds);
 
-    /**
-     * Tìm tất cả lô sản xuất trên toàn hệ thống (dành cho VT-01), nạp trước các quan hệ liên quan.
-     */
+    /** Tìm các lô sản xuất trên toàn hệ thống kèm thông tin liên quan. */
     @Query("""
         SELECT DISTINCT pl
         FROM ProductionLot pl
@@ -280,9 +219,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
         """)
     List<ProductionLot> findAllWithDetails();
 
-    /**
-     * Tìm chi tiết một lô sản xuất kèm Organization, FarmArea, ProductCategory (NCL-07-CN-006).
-     */
+    /** Tìm chi tiết một lô sản xuất kèm thông tin liên quan. */
     @Query("""
         SELECT pl
         FROM ProductionLot pl
@@ -293,15 +230,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
         """)
     Optional<ProductionLot> findByIdWithDetails(@Param("id") UUID id);
 
-    /**
-     * Đếm số lô sản xuất tạo mới theo từng tổ chức trong khoảng thời gian
-     * (NCL-07-CN-008). Dùng {@code createdAt} (thời điểm tạo bản ghi), không
-     * dùng {@code plantingDate} (ngày xuống giống nghiệp vụ).
-     *
-     * @param from mốc bắt đầu khoảng thời gian
-     * @param to   mốc kết thúc khoảng thời gian
-     * @return danh sách [organizationId, số lượng]
-     */
+    /** Đếm số lô sản xuất tạo mới theo từng tổ chức trong khoảng thời gian. */
     @Query("""
         SELECT pl.organization.organizationId, COUNT(pl)
         FROM ProductionLot pl
@@ -312,12 +241,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
 
-    /**
-     * Lấy thời điểm tạo lô mới nhất của từng tổ chức (NCL-07-CN-008,
-     * phục vụ tính lastActivityAt).
-     *
-     * @return danh sách [organizationId, createdAt lớn nhất]
-     */
+    /** Lấy thời điểm tạo lô mới nhất của từng tổ chức. */
     @Query("""
         SELECT pl.organization.organizationId, MAX(pl.createdAt)
         FROM ProductionLot pl

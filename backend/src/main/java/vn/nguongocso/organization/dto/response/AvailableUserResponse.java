@@ -1,12 +1,11 @@
 package vn.nguongocso.organization.dto.response;
 
-import lombok.Builder;
-import lombok.Data;
 import java.util.UUID;
 
-/**
- * Phản hồi khi truy vấn danh sách người dùng có sẵn để thêm vào tổ chức.
- */
+import lombok.Builder;
+import lombok.Data;
+
+/** Phản hồi khi truy vấn danh sách người dùng có sẵn để thêm vào tổ chức. */
 @Data
 @Builder
 public class AvailableUserResponse {

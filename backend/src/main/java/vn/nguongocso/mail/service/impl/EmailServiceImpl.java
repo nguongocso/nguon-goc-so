@@ -4,7 +4,9 @@ import java.io.UnsupportedEncodingException;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -15,33 +17,31 @@ import org.springframework.stereotype.Service;
 import vn.nguongocso.mail.service.EmailService;
 
 /**
- * Triển khai dịch vụ gửi email thông báo và xác thực qua Gmail SMTP bất đồng bộ.
- */
+ * Triển khai dịch vụ gửi email thông báo và xác thực trong hệ thống.
+*/
 @Slf4j
 @Service
 public class EmailServiceImpl implements EmailService {
-
     private static final String DEFAULT_CHARSET = "UTF-8";
     private static final String SYSTEM_SENDER_NAME = "Nguồn Gốc Số - Hệ Thống Truy Xuất Nguồn Gốc";
     private static final String RESET_PASSWORD_SUBJECT = "Yêu cầu đặt lại mật khẩu - Nguồn Gốc Số";
-
+    private static final String INVITATION_SUBJECT_TEMPLATE = "Lời mời tham gia tổ chức %s - Nguồn Gốc Số";
     private final JavaMailSender mailSender;
+    private static final String INSPECTION_SUBJECT_TEMPLATE =
+        "Liên kết nhập kết quả kiểm nghiệm lô %s - Nguồn Gốc Số";
 
     @Value("${spring.mail.username:}")
     private String fromEmail;
 
+    /**
+     * Khởi tạo dịch vụ gửi email.
+     */
     public EmailServiceImpl(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
     /**
-     * Gửi thư mời tham gia tổ chức bất đồng bộ qua Gmail HTML.
-     *
-     * @param toEmail          địa chỉ email người nhận
-     * @param organizationName tên tổ chức/HTX mời
-     * @param roleName         tên vai trò được phân công
-     * @param joinUrl          đường dẫn xác nhận tham gia chứa token
-     * @param expiryDays       thời hạn hiệu lực (ngày)
+     * Gửi thư mời tham gia tổ chức bất đồng bộ.
      */
     @Async
     @Override
@@ -64,7 +64,7 @@ public class EmailServiceImpl implements EmailService {
 
             helper.setFrom(fromEmail, SYSTEM_SENDER_NAME);
             helper.setTo(toEmail);
-            helper.setSubject("Lời mời tham gia tổ chức " + organizationName + " - Nguồn Gốc Số");
+            helper.setSubject(INVITATION_SUBJECT_TEMPLATE.formatted(organizationName));
 
             String htmlContent = buildInvitationHtmlTemplate(organizationName, roleName, joinUrl, expiryDays);
             helper.setText(htmlContent, true);
@@ -72,17 +72,12 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("Đã gửi email thư mời thành công tới {}", toEmail);
         } catch (MessagingException | UnsupportedEncodingException | MailException e) {
-            log.error("Gửi email thư mời tới {} thất bại: {}. Link thay thế: {}", toEmail, e.getMessage(), joinUrl);
+            log.error("Gửi email thư mời tới {} thất bại", toEmail, e);
         }
     }
 
     /**
-     * Gửi email hướng dẫn đặt lại mật khẩu bất đồng bộ (NCL-01-CN-008).
-     *
-     * @param toEmail       địa chỉ email người nhận
-     * @param fullName      họ và tên người nhận
-     * @param resetUrl      đường dẫn đặt lại mật khẩu chứa token
-     * @param expiryMinutes thời hạn hiệu lực (phút)
+     * Gửi email hướng dẫn đặt lại mật khẩu bất đồng bộ.
      */
     @Async
     @Override
@@ -107,18 +102,36 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("Đã gửi email đặt lại mật khẩu thành công tới {}", toEmail);
         } catch (MessagingException | UnsupportedEncodingException | MailException e) {
-            log.error("Gửi email đặt lại mật khẩu tới {} thất bại: {}. Link: {}", toEmail, e.getMessage(), resetUrl);
+            log.error("Gửi email đặt lại mật khẩu tới {} thất bại", toEmail, e);
         }
     }
 
+    /**
+     * Kiểm tra cấu hình email gửi có đầy đủ hay không.
+     */
     private boolean isEmailConfigMissing(String fallbackUrl) {
         if (fromEmail == null || fromEmail.isBlank()) {
-            log.warn("[MAIL FALLBACK] Chưa cấu hình spring.mail.username. Giả lập qua log. Link: {}", fallbackUrl);
+            log.warn("[MAIL FALLBACK] Chưa cấu hình spring.mail.username. Giả lập qua log. Link: {}",
+                    maskUrl(fallbackUrl));
             return true;
         }
         return false;
     }
 
+    /**
+     * Che phần tham số truy vấn của đường dẫn để không ghi token vào log.
+     */
+    private static String maskUrl(String url) {
+        if (url == null) {
+            return null;
+        }
+        int queryIndex = url.indexOf('?');
+        return queryIndex >= 0 ? url.substring(0, queryIndex) : url;
+    }
+
+    /**
+     * Dựng nội dung HTML cho email thư mời tham gia tổ chức.
+     */
     private String buildInvitationHtmlTemplate(
             String organizationName,
             String roleName,
@@ -181,6 +194,9 @@ public class EmailServiceImpl implements EmailService {
                 .replace("{{joinUrl}}", joinUrl);
     }
 
+    /**
+     * Dựng nội dung HTML cho email đặt lại mật khẩu.
+     */
     private String buildPasswordResetHtmlTemplate(String fullName, String resetUrl, int expiryMinutes) {
         String greetingName = (fullName != null && !fullName.isBlank()) ? fullName : "Quý khách";
         return """
@@ -237,14 +253,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     /**
-     * Gửi email liên kết cổng nhập kết quả cho đơn vị kiểm nghiệm bất đồng bộ (NCL-11-CN-007).
-     *
-     * @param toEmail          địa chỉ email đơn vị kiểm nghiệm nhận liên kết
-     * @param organizationName tên hợp tác xã yêu cầu
-     * @param testingUnitName  tên đơn vị kiểm nghiệm
-     * @param lotCode          mã lô sản xuất
-     * @param entryUrl         đường dẫn cổng nhập kết quả chứa token bí mật
-     * @param expiryDays       thời hạn hiệu lực (ngày)
+     * Gửi email liên kết cổng nhập kết quả cho đơn vị kiểm nghiệm bất đồng bộ.
      */
     @Async
     @Override
@@ -258,8 +267,7 @@ public class EmailServiceImpl implements EmailService {
     ) {
         log.info("Đang xử lý gửi email liên kết cổng kiểm nghiệm bất đồng bộ tới: {}", toEmail);
 
-        if (fromEmail == null || fromEmail.isBlank()) {
-            log.warn("[MAIL FALLBACK] Chưa cấu hình spring.mail.username. Bỏ qua gửi email thực tế tới: {}", toEmail);
+        if (isEmailConfigMissing(entryUrl)) {
             return;
         }
 
@@ -269,7 +277,7 @@ public class EmailServiceImpl implements EmailService {
 
             helper.setFrom(fromEmail, SYSTEM_SENDER_NAME);
             helper.setTo(toEmail);
-            helper.setSubject("Liên kết nhập kết quả kiểm nghiệm lô " + lotCode + " - Nguồn Gốc Số");
+            helper.setSubject(INSPECTION_SUBJECT_TEMPLATE.formatted(lotCode));
 
             String htmlContent = buildInspectionResultEntryHtmlTemplate(
                     organizationName, testingUnitName, lotCode, entryUrl, expiryDays);
@@ -278,10 +286,13 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("Đã gửi email liên kết cổng kiểm nghiệm thành công tới {}", toEmail);
         } catch (MessagingException | UnsupportedEncodingException | MailException e) {
-            log.error("Gửi email liên kết cổng kiểm nghiệm tới {} thất bại: {}", toEmail, e.getMessage());
+            log.error("Gửi email liên kết cổng kiểm nghiệm lô {} tới {} thất bại", lotCode, toEmail, e);
         }
     }
 
+    /**
+     * Dựng nội dung HTML cho email liên kết cổng nhập kết quả kiểm nghiệm.
+     */
     private String buildInspectionResultEntryHtmlTemplate(
             String organizationName,
             String testingUnitName,

@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * DTO yêu cầu tạo mới loại nông sản.
- */
+ * Yêu cầu tạo mới loại nông sản.
+*/
 @Getter
 @Setter
 @Builder
