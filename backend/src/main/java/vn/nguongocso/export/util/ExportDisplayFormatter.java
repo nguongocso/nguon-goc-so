@@ -19,7 +19,6 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 
 /** Tiện ích Việt hóa các giá trị Enum và dữ liệu hồ sơ xuất (PDF, CSV, JSON). */
 public final class ExportDisplayFormatter {
-
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final Map<ProductionLotStatus, String> LOT_STATUS_MAP = createLotStatusMap();

@@ -15,7 +15,6 @@ import vn.nguongocso.event.dto.response.WarehouseReceiptResponse;
  * @author Team
  */
 public interface WarehouseReceiptService {
-
     /**
      * Ghi nhận sự kiện nhập kho và đối chiếu số lượng.
      *

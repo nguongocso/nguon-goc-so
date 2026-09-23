@@ -22,7 +22,6 @@ import java.util.UUID;
  * Team WEB 1
  */
 public interface ChainEventService {
-
 	/**
 	 * Ghi nhận sự kiện thu hoạch.
 	 */

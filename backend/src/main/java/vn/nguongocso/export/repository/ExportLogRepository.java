@@ -12,7 +12,6 @@ import java.util.UUID;
  */
 @Repository
 public interface ExportLogRepository extends JpaRepository<ExportLog, UUID> {
-
     /**
      * Lấy danh sách lịch sử xuất của một lô hàng theo thời gian giảm dần.
      */

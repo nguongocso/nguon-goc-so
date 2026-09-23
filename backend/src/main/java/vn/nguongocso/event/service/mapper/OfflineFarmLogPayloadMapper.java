@@ -17,7 +17,6 @@ import vn.nguongocso.farm.enums.FarmActivityType;
  */
 @Component
 public class OfflineFarmLogPayloadMapper {
-
     /**
      * Chuyển đổi và xác thực sự kiện ngoại tuyến FARM_LOG sang CreateFarmLogRequest.
      *

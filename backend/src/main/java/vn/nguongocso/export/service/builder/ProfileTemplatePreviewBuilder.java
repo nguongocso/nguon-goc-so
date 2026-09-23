@@ -42,7 +42,6 @@ import vn.nguongocso.trace.entity.Shipment;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProfileTemplatePreviewBuilder {
-
     private final FarmLogRepository farmLogRepository;
     private final FarmLogAttachmentRepository farmLogAttachmentRepository;
     private final ProductionLotCertificationRepository productionLotCertificationRepository;

@@ -12,7 +12,6 @@ import java.util.UUID;
  */
 @Repository
 public interface ProfileTemplateFieldRepository extends JpaRepository<ProfileTemplateField, UUID> {
-
     /**
      * Lấy danh sách các trường thuộc mẫu theo thứ tự sắp xếp.
      */

@@ -36,7 +36,6 @@ import vn.nguongocso.export.service.ProfileTemplateService;
 @RequestMapping("/api/v1/organizations/{orgId}/profile-templates")
 @RequiredArgsConstructor
 public class ProfileTemplateController {
-
     private final ProfileTemplateService profileTemplateService;
 
     /**

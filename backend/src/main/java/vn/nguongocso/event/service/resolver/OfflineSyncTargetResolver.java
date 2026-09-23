@@ -22,7 +22,6 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 @Component
 @RequiredArgsConstructor
 public class OfflineSyncTargetResolver {
-
     private final ProductionLotRepository productionLotRepository;
     private final ShipmentRepository shipmentRepository;
     private final TraceCodeRepository traceCodeRepository;

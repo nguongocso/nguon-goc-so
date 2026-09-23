@@ -24,7 +24,6 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 @Component
 @RequiredArgsConstructor
 public class ProcurementShipmentResolver {
-
     private final ShipmentRepository shipmentRepository;
     private final ShipmentHandoverRepository shipmentHandoverRepository;
     private final ChainEventRepository chainEventRepository;

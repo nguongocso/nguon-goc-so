@@ -43,7 +43,6 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 @Component
 @RequiredArgsConstructor
 public class WarehouseReceiptProcessor {
-
     private static final double DISCREPANCY_THRESHOLD_PERCENT = 2.0;
 
     private final TraceCodeRepository traceCodeRepository;

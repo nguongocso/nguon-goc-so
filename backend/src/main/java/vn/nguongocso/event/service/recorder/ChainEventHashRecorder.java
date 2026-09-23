@@ -18,7 +18,6 @@ import vn.nguongocso.event.service.EventHashService;
 @Component
 @RequiredArgsConstructor
 public class ChainEventHashRecorder {
-
     private final ChainEventRepository chainEventRepository;
     private final EventHashService eventHashService;
 

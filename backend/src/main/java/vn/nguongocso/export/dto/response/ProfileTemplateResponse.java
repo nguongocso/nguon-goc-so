@@ -18,7 +18,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class ProfileTemplateResponse {
-
     /** Khóa chính định danh mẫu hồ sơ */
     private UUID id;
 

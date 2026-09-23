@@ -9,7 +9,6 @@ import vn.nguongocso.exception.BusinessException;
  * HTTP Status: 403 Forbidden.
  */
 public class TemplateNotOwnedException extends BusinessException {
-
     public TemplateNotOwnedException() {
         super(HttpStatus.FORBIDDEN, "Từ chối thao tác: Bạn không có quyền truy cập dữ liệu của tổ chức khác.");
     }

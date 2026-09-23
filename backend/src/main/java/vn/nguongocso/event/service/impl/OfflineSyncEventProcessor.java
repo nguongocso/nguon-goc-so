@@ -42,7 +42,6 @@ import vn.nguongocso.exception.BusinessException;
 @Service
 @RequiredArgsConstructor
 public class OfflineSyncEventProcessor {
-
     private final OfflineSyncLogRepository offlineSyncLogRepository;
     private final UserRepository userRepository;
     private final ChainEventService chainEventService;

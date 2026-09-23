@@ -42,7 +42,6 @@ import vn.nguongocso.farm.repository.ProductionLotRepository;
 @Component
 @RequiredArgsConstructor
 public class HarvestEventProcessor {
-
     private final ProductionLotRepository productionLotRepository;
     private final ChainEventRepository chainEventRepository;
     private final UserRepository userRepository;

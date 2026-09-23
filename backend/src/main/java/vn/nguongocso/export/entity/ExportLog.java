@@ -35,7 +35,6 @@ import vn.nguongocso.trace.entity.Shipment;
 @AllArgsConstructor
 @Builder
 public class ExportLog {
-
     /** Khóa chính của bản ghi nhật ký */
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

@@ -22,7 +22,6 @@ import vn.nguongocso.trace.entity.Shipment;
 @Component
 @RequiredArgsConstructor
 public class ExportLogRecorder {
-
     private final ExportLogRepository exportLogRepository;
     private final UserRepository userRepository;
 

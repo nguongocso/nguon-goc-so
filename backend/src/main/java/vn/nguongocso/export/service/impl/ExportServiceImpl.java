@@ -38,7 +38,6 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ExportServiceImpl implements ExportService {
-
     private final ShipmentRepository shipmentRepository;
     private final ProfileTemplateRepository profileTemplateRepository;
     private final ProfileTemplateService profileTemplateService;

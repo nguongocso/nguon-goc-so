@@ -11,7 +11,6 @@ import java.util.List;
  * HTTP Status: 422 Unprocessable Entity.
  */
 public class MandatoryFieldsViolationException extends BusinessException {
-
     public MandatoryFieldsViolationException(List<String> missingFields) {
         super(HttpStatus.UNPROCESSABLE_ENTITY,
                 "Không thể lưu mẫu hồ sơ: Thiếu các trường bắt buộc theo quy định.",

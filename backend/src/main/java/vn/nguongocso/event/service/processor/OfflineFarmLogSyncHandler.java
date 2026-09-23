@@ -16,7 +16,6 @@ import vn.nguongocso.permission.service.PermissionChecker;
 @Component
 @RequiredArgsConstructor
 public class OfflineFarmLogSyncHandler {
-
     private final PermissionChecker permissionChecker;
     private final OfflineFarmLogPayloadMapper offlineFarmLogPayloadMapper;
     private final FarmLogService farmLogService;

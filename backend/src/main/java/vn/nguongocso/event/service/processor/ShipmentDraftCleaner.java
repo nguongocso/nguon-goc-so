@@ -27,7 +27,6 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 @Component
 @RequiredArgsConstructor
 public class ShipmentDraftCleaner {
-
     private final ShipmentRepository shipmentRepository;
     private final ChainEventRepository chainEventRepository;
     private final TraceCodeRepository traceCodeRepository;

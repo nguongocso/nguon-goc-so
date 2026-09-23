@@ -16,7 +16,6 @@ import vn.nguongocso.export.enums.ProfileFieldGroup;
 @AllArgsConstructor
 @Builder
 public class FieldSelectionDto {
-
     /** Mã định danh trường (ví dụ: organization.name) */
     @NotBlank(message = "Mã trường (fieldKey) không được để trống")
     private String fieldKey;

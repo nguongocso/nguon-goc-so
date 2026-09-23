@@ -16,7 +16,6 @@ import java.util.UUID;
  */
 @Repository
 public interface OfflineSyncLogRepository extends JpaRepository<OfflineSyncLog, UUID> {
-
     // Tìm kiếm log theo ID sự kiện ngoại tuyến để phục vụ kiểm tra trùng
     Optional<OfflineSyncLog> findByOfflineEventId(UUID offlineEventId);
 

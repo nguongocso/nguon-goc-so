@@ -36,7 +36,6 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class EventValidationServiceImpl implements EventValidationService {
-
     private final ProductionLotRepository productionLotRepository;
     private final ShipmentRepository shipmentRepository;
     private final FailedEventLogRepository failedEventLogRepository;

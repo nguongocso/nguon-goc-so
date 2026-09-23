@@ -24,7 +24,6 @@ import vn.nguongocso.event.entity.ChainEvent;
  * Kết quả hash là chuỗi hex 64 ký tự.</p>
  */
 public interface EventHashService {
-
     /** Tên thuật toán băm theo API contract. */
     String HASH_ALGORITHM = "SHA-256";
 

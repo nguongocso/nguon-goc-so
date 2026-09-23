@@ -25,7 +25,6 @@ import vn.nguongocso.exception.BusinessException;
 @Service
 @RequiredArgsConstructor
 public class EventHashServiceImpl implements EventHashService {
-
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     private final ObjectMapper objectMapper;

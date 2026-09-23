@@ -21,7 +21,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class UpdateProfileTemplateRequest {
-
     /** Tên mẫu hồ sơ */
     @NotBlank(message = "Tên mẫu hồ sơ không được để trống")
     @Size(max = 255, message = "Tên mẫu hồ sơ không được vượt quá 255 ký tự")

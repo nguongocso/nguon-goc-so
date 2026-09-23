@@ -25,7 +25,6 @@ import vn.nguongocso.trace.entity.Shipment;
 @Component
 @RequiredArgsConstructor
 public class WarehouseDiscrepancyNotifier {
-
     private static final double DISCREPANCY_THRESHOLD_PERCENT = 2.0;
 
     private final OrganizationUserRepository organizationUserRepository;

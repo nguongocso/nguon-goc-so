@@ -33,7 +33,6 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 @Component
 @RequiredArgsConstructor
 public class CoopTransportEventProcessor {
-
     private final TraceCodeRepository traceCodeRepository;
     private final UserRepository userRepository;
     private final ChainEventHashRecorder chainEventHashRecorder;

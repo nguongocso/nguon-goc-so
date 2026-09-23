@@ -41,7 +41,6 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 @Component
 @RequiredArgsConstructor
 public class ChainScanLookupResolver {
-
     private final TraceCodeRepository traceCodeRepository;
     private final ChainEventRepository chainEventRepository;
     private final OrganizationUserRepository organizationUserRepository;

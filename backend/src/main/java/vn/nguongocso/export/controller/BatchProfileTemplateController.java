@@ -31,7 +31,6 @@ import vn.nguongocso.export.service.ProfileTemplateService;
 @RequestMapping("/api/v1/organizations/batch")
 @RequiredArgsConstructor
 public class BatchProfileTemplateController {
-
     private final ProfileTemplateService profileTemplateService;
 
     /**

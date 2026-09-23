@@ -35,7 +35,6 @@ import vn.nguongocso.event.service.WarehouseReceiptService;
 @RequestMapping("/api/v1/chain-events")
 @RequiredArgsConstructor
 public class WarehouseReceiptController {
-
     private final WarehouseReceiptService warehouseReceiptService;
 
     /**

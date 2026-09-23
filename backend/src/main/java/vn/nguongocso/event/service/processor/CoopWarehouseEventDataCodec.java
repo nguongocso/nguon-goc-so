@@ -12,7 +12,6 @@ import vn.nguongocso.exception.BusinessException;
 
 /** Đọc và tuần tự hóa dữ liệu JSON của sự kiện kho HTX. */
 final class CoopWarehouseEventDataCodec {
-
     private CoopWarehouseEventDataCodec() {}
 
     static String toJson(ObjectMapper objectMapper, Map<String, Object> data) {

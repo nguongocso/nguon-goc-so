@@ -19,7 +19,6 @@ import java.time.LocalDate;
 @Getter
 @Setter
 public class CorrectPreprocessingEventRequest {
-
     @NotNull(message = "Vui lòng nhập khối lượng đưa vào sơ chế")
     @Positive(message = "Khối lượng vào sơ chế phải lớn hơn 0")
     private Double inputQuantity;

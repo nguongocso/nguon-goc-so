@@ -46,7 +46,6 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 @Component
 @RequiredArgsConstructor
 public class OpenDataExportProcessor {
-
     private final ShipmentRepository shipmentRepository;
     private final ChainEventRepository chainEventRepository;
     private final FarmLogRepository farmLogRepository;

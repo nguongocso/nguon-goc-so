@@ -33,7 +33,6 @@ import vn.nguongocso.export.service.ProfileTemplateService;
 @RequestMapping("/api/v1/export")
 @RequiredArgsConstructor
 public class ExportController {
-
     private final ExportService exportService;
     private final ProfileTemplateService profileTemplateService;
 

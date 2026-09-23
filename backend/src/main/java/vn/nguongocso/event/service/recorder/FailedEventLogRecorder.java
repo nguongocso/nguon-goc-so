@@ -25,7 +25,6 @@ import vn.nguongocso.exception.BusinessException;
 @Component
 @RequiredArgsConstructor
 public class FailedEventLogRecorder {
-
     private final UserRepository userRepository;
     private final FailedEventLogRepository failedEventLogRepository;
 

@@ -13,7 +13,6 @@ import java.util.UUID;
  */
 @Repository
 public interface ProfileTemplateRepository extends JpaRepository<ProfileTemplate, UUID> {
-
     /**
      * Lấy danh sách mẫu hồ sơ thuộc một tổ chức, sắp xếp theo tên (QTN-01, TC-04).
      */

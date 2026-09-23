@@ -15,7 +15,6 @@ import java.util.UUID;
  * @author Triệu Văn Đại
  */
 public interface EventValidationService {
-
     // Kiểm tra tính hợp lệ của lô trước khi tạo sự kiện.
     LotValidationResponse validateLot(UUID lotId, ChainEventType eventType, CustomUserDetails currentUser);
 

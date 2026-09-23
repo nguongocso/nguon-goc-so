@@ -15,7 +15,6 @@ import java.util.UUID;
  * Service quản lý cấu hình mẫu hồ sơ truy xuất nguồn gốc theo đối tác.
  */
 public interface ProfileTemplateService {
-
     /**
      * Tạo mới mẫu hồ sơ truy xuất (TC-01, TC-02).
      */

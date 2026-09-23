@@ -46,7 +46,6 @@ import vn.nguongocso.exception.BusinessException;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ChainEventServiceImpl implements ChainEventService {
-
     private final ChainEventRepository chainEventRepository;
     private final ChainEventHashRecorder chainEventHashRecorder;
     private final HarvestEventProcessor harvestEventProcessor;

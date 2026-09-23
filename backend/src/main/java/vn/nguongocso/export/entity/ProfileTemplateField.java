@@ -32,7 +32,6 @@ import vn.nguongocso.export.enums.ProfileFieldGroup;
 @AllArgsConstructor
 @Builder
 public class ProfileTemplateField {
-
     /** Khóa chính của trường cấu hình */
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

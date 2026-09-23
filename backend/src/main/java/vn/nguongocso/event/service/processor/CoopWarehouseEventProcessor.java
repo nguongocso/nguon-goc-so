@@ -59,7 +59,6 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 @Component
 @RequiredArgsConstructor
 public class CoopWarehouseEventProcessor {
-
     private final ProductionLotRepository productionLotRepository;
     private final ShipmentRepository shipmentRepository;
     private final ChainEventRepository chainEventRepository;

@@ -38,7 +38,6 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class WarehouseReceiptServiceImpl implements WarehouseReceiptService {
-
     private final WarehouseReceiptProcessor warehouseReceiptProcessor;
     private final ChainEventRepository chainEventRepository;
     private final TraceCodeRepository traceCodeRepository;

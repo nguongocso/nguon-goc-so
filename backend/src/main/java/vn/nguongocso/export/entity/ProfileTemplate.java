@@ -40,7 +40,6 @@ import vn.nguongocso.organization.entity.Organization;
 @AllArgsConstructor
 @Builder
 public class ProfileTemplate {
-
     /** Khóa chính định danh mẫu hồ sơ */
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

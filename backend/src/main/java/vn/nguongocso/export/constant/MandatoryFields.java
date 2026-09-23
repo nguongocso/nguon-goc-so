@@ -14,7 +14,6 @@ import vn.nguongocso.export.enums.ProfileFieldGroup;
 
 /** Định nghĩa danh mục trường và danh sách các trường bắt buộc theo QTN-11. */
 public final class MandatoryFields {
-
     private MandatoryFields() {
         throw new UnsupportedOperationException("Utility class");
     }
