@@ -12,7 +12,10 @@ import lombok.Setter;
 @Builder
 public class ThresholdInfo {
     private Double tempMin;
+
     private Double tempMax;
+
     private Double humidityMin;
+
     private Double humidityMax;
 }

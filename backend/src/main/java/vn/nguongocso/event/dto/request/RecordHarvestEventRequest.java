@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.UUID;
 
 /** DTO ghi nhận sự kiện thu hoạch. */
-
 @Getter
 @Setter
 public class RecordHarvestEventRequest {
@@ -33,6 +32,6 @@ public class RecordHarvestEventRequest {
     /** Nguồn thiết bị ghi sự kiện, mặc định "WEB". */
     private String deviceSource = "WEB";
 
-    /** Lý do thu hoạch trước thời gian cách ly (bắt buộc đối với VT-02 / VT-01 khi thu hoạch sớm). */
+    /** Lý do thu hoạch trước thời gian cách ly. */
     private String earlyHarvestReason;
 }

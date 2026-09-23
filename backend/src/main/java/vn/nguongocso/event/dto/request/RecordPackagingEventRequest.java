@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.UUID;
 
 /** DTO ghi nhận sự kiện đóng gói. */
-
 @Getter
 @Setter
 public class RecordPackagingEventRequest {

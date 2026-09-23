@@ -9,7 +9,6 @@ import lombok.Setter;
 import java.time.LocalDate;
 
 /** DTO yêu cầu đính chính (sửa lỗi) sự kiện đóng gói. */
-
 @Getter
 @Setter
 public class CorrectPackagingEventRequest {

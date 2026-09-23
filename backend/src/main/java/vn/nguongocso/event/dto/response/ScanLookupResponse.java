@@ -11,51 +11,35 @@ import java.util.UUID;
 @Getter
 @Builder
 public class ScanLookupResponse {
-    /** Mã có hợp lệ và có thể mở biểu mẫu ghi sự kiện hay không. */
     private Boolean valid;
 
-    /** Thông báo lỗi nếu không thể mở biểu mẫu. */
     private String message;
 
-    /** Giá trị mã truy xuất đã quét. */
     private String traceCode;
 
-    /** ID lô hàng. */
     private UUID shipmentId;
 
-    /** Tên lô hàng. */
     private String shipmentName;
 
-    /** Trạng thái hiện tại của lô hàng. */
     private String shipmentStatus;
 
-    /** ID lô sản xuất. */
     private UUID productionLotId;
 
-    /** Tên loại nông sản. */
     private String productCategoryName;
 
-    /** Tên vùng trồng. */
     private String farmAreaName;
 
-    /** ID tổ chức sở hữu lô hàng. */
     private UUID organizationId;
 
-    /** Tên tổ chức sở hữu lô hàng. */
     private String organizationName;
 
-    /** Danh sách loại sự kiện có thể ghi tiếp theo. */
     private List<String> allowedEventTypes;
 
-    /** Loại sự kiện gần nhất đã ghi nhận. */
     private String lastEventType;
 
-    /** Thời điểm ghi nhận sự kiện gần nhất. */
     private LocalDateTime lastEventRecordedAt;
 
-    /** Tổng số lượng khai báo của lô hàng. */
     private Long totalQuantity;
 
-    /** Lô hàng đủ điều kiện ghi mốc bảo quản hay không (VT-03 cùng tổ chức: đã có TRANSPORT; VT-04: đã thu mua lô). */
     private Boolean storageEligible;
 }

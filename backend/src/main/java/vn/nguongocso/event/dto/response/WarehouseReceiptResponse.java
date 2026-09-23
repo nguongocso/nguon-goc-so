@@ -17,20 +17,36 @@ import java.util.UUID;
 @Builder
 public class WarehouseReceiptResponse {
     private UUID id;
+
     private ChainEventType eventType;
+
     private UUID shipmentId;
+
     private String shipmentName;
+
     private String traceCode;
+
     private Double declaredQuantity;
+
     private Double receivedQuantity;
+
     private Double discrepancy;
+
     private Double discrepancyPercent;
+
     private Boolean isDiscrepancyExceeded;
+
     private Boolean reasonRequired;
+
     private String reason;
+
     private String conditionNote;
+
     private LocalDate receiptDate;
+
     private LocalDateTime recordedAt;
+
     private String recordedBy;
+
     private Boolean notificationSent;
 }

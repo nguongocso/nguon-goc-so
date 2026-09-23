@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.UUID;
 
 /** DTO ghi nhận sự kiện sơ chế và phân loại. */
-
 @Getter
 @Setter
 public class RecordPreprocessingEventRequest {

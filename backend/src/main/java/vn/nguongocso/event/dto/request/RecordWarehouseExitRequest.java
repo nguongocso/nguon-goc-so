@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.UUID;
 
 /** DTO yêu cầu ghi sự kiện xuất kho tại hợp tác xã (HTX). */
-
 @Getter
 @Setter
 public class RecordWarehouseExitRequest {

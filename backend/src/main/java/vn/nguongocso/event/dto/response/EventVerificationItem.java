@@ -16,11 +16,18 @@ import lombok.Setter;
 @Builder
 public class EventVerificationItem {
     private Integer index;
+
     private UUID eventId;
+
     private String eventType;
+
     private LocalDateTime recordedAt;
+
     private String hash;
+
     private String previousHash;
+
     private Boolean isValid;
-    private String expectedHash; // chỉ có khi isValid = false
+
+    private String expectedHash;
 }

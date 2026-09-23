@@ -40,7 +40,6 @@ import vn.nguongocso.event.service.OfflineSyncService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
 /** Controller REST quản lý các sự kiện trong chuỗi cung ứng. */
-
 @RestController
 @RequestMapping("/api/v1/chain-events")
 @RequiredArgsConstructor

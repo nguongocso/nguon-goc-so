@@ -17,14 +17,24 @@ import lombok.Setter;
 @Builder
 public class ChainVerificationResponse {
     private UUID shipmentId;
+
     private String shipmentName;
+
     private Integer totalEvents;
+
     private Boolean isIntegrityVerified;
-    private String verificationStatus; // "INTACT", "BROKEN"
+
+    private String verificationStatus;
+
     private Integer failedEventIndex;
+
     private UUID failedEventId;
+
     private String failureReason;
+
     private LocalDateTime verifiedAt;
+
     private String hashAlgorithm;
+
     private List<EventVerificationItem> events;
 }

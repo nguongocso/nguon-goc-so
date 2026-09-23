@@ -22,8 +22,10 @@ public class LotValidationResponse {
     @Data
     @Builder
     public static class LotDetails {
-        private String lotType; // "PRODUCTION_LOT" or "SHIPMENT"
+        private String lotType;
+
         private String currentStatus;
+
         private UUID organizationId;
     }
 }

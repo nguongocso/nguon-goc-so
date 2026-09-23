@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.UUID;
 
 /** DTO yêu cầu ghi sự kiện nhập kho tại hợp tác xã (HTX). */
-
 @Getter
 @Setter
 public class RecordWarehouseEntryRequest {

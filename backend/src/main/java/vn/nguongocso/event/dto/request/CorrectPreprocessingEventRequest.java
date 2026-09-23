@@ -11,7 +11,6 @@ import lombok.Setter;
 import java.time.LocalDate;
 
 /** DTO yêu cầu đính chính (sửa lỗi) sự kiện sơ chế và phân loại. */
-
 @Getter
 @Setter
 public class CorrectPreprocessingEventRequest {
