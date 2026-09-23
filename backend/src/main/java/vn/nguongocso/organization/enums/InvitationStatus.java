@@ -1,12 +1,13 @@
 package vn.nguongocso.organization.enums;
 
-/**
- * Trạng thái của lời mời tham gia tổ chức.
- */
+/** Trạng thái của lời mời tham gia tổ chức. */
 public enum InvitationStatus {
-    PENDING, // Đang chờ
+    /** Đang chờ chấp nhận. */
+    PENDING,
 
-    ACCEPTED, // Đã chấp nhận
+    /** Đã chấp nhận. */
+    ACCEPTED,
 
-    EXPIRED // Hết hạn
+    /** Hết hạn. */
+    EXPIRED
 }

@@ -13,7 +13,6 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
-
 import {
   getPublicPortalData,
   submitPortalResults,
@@ -72,13 +71,13 @@ export const InspectionResultEntryPage: React.FC = () => {
           } else {
             setPageStatus('EXPIRED');
             setErrorMessage(
-              msg || 'Liên kết nhập kết quả đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp liên kết mới.'
+              msg || 'Liên kết nhập kết quả đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp liên kết mới.',
             );
           }
         } else if (status === 404) {
           setPageStatus('NOT_FOUND');
           setErrorMessage(
-            msg || 'Liên kết không tồn tại hoặc đã bị thu hồi do cấp mới liên kết khác.'
+            msg || 'Liên kết không tồn tại hoặc đã bị thu hồi do cấp mới liên kết khác.',
           );
         } else {
           setPageStatus('ERROR');
@@ -115,7 +114,7 @@ export const InspectionResultEntryPage: React.FC = () => {
           msg ||
             (goneStatus === 'USED'
               ? 'Liên kết này đã được sử dụng để nhập kết quả trước đó.'
-              : 'Liên kết nhập kết quả đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp liên kết mới.')
+              : 'Liên kết nhập kết quả đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp liên kết mới.'),
         );
       } else {
         toast.error(msg);
@@ -129,7 +128,6 @@ export const InspectionResultEntryPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-foreground py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header thương hiệu và bảo mật */}
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold shadow-sm">
@@ -156,7 +154,6 @@ export const InspectionResultEntryPage: React.FC = () => {
           </div>
         </header>
 
-        {/* Trạng thái: Đang tải */}
         {pageStatus === 'LOADING' && (
           <div className="py-24 text-center space-y-4">
             <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-primary border-r-transparent align-[-0.125em]" />
@@ -166,7 +163,6 @@ export const InspectionResultEntryPage: React.FC = () => {
           </div>
         )}
 
-        {/* Trạng thái: Hết hạn (HTTP 410) */}
         {pageStatus === 'EXPIRED' && (
           <Card className="border-warning/30 bg-warning/10 shadow-card">
             <CardHeader className="text-center pb-2">
@@ -189,7 +185,6 @@ export const InspectionResultEntryPage: React.FC = () => {
           </Card>
         )}
 
-        {/* Trạng thái: Đã sử dụng (HTTP 410 - Double Submit) */}
         {pageStatus === 'USED' && (
           <Card className="border-primary/30 bg-primary/10 shadow-card">
             <CardHeader className="text-center pb-2">
@@ -212,7 +207,6 @@ export const InspectionResultEntryPage: React.FC = () => {
           </Card>
         )}
 
-        {/* Trạng thái: Không tồn tại hoặc đã thu hồi (HTTP 404) */}
         {pageStatus === 'NOT_FOUND' && (
           <Card className="border-destructive/30 bg-destructive/10 shadow-card">
             <CardHeader className="text-center pb-2">
@@ -235,7 +229,6 @@ export const InspectionResultEntryPage: React.FC = () => {
           </Card>
         )}
 
-        {/* Trạng thái: Lỗi chung */}
         {pageStatus === 'ERROR' && (
           <Card className="border-destructive/30 bg-destructive/10 shadow-card">
             <CardHeader className="text-center pb-2">
@@ -252,7 +245,6 @@ export const InspectionResultEntryPage: React.FC = () => {
           </Card>
         )}
 
-        {/* Trạng thái: Nộp thành công */}
         {pageStatus === 'SUBMITTED' && (
           <Card className="border-border bg-card shadow-card py-6">
             <CardContent className="text-center space-y-5">
@@ -267,7 +259,7 @@ export const InspectionResultEntryPage: React.FC = () => {
                   Hệ thống Nguồn Gốc Số đã tiếp nhận toàn bộ kết quả kiểm nghiệm từ đơn vị của Quý
                   khách. Nguồn dữ liệu đã được xác nhận với định danh{' '}
                   <strong className="text-primary font-semibold">
-                    "Đơn vị kiểm nghiệm khai"
+                    &quot;Đơn vị kiểm nghiệm khai&quot;
                   </strong>
                   .
                 </p>
@@ -293,10 +285,8 @@ export const InspectionResultEntryPage: React.FC = () => {
           </Card>
         )}
 
-        {/* Trạng thái: ACTIVE - Hiển thị thông tin và Form nhập */}
         {pageStatus === 'ACTIVE' && portalData && (
           <div className="space-y-6">
-            {/* Banner tóm tắt thông tin lô và đơn vị */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card className="border-border bg-card shadow-card">
                 <CardContent className="p-4 flex items-center gap-3">
@@ -355,7 +345,6 @@ export const InspectionResultEntryPage: React.FC = () => {
               </Card>
             </div>
 
-            {/* Hướng dẫn ngắn */}
             <div className="p-4 bg-muted/30 border border-border rounded-xl flex items-start gap-3 text-xs text-muted-foreground">
               <HelpCircle className="h-4 w-4 shrink-0 text-primary mt-0.5" />
               <div className="space-y-1 leading-relaxed">
@@ -369,7 +358,6 @@ export const InspectionResultEntryPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Form nhập kết quả kiểm nghiệm */}
             <InspectionResultEntryForm
               criteria={portalData.criteria}
               sampleSentDate={portalData.sampleSentDate}
@@ -384,3 +372,5 @@ export const InspectionResultEntryPage: React.FC = () => {
     </div>
   );
 };
+
+export default InspectionResultEntryPage;

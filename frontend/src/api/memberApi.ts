@@ -12,14 +12,7 @@ import type {
 
 const MEMBER_ENDPOINT = '/organization/members';
 
-/**
- * Lấy danh sách thành viên của tổ chức hiện tại theo trạng thái membership.
- *
- * - `undefined` → backend trả về danh sách ACTIVE (hành vi cũ, giữ tương thích).
- * - `''` (chuỗi rỗng) → trả về tất cả (ACTIVE + INACTIVE) — dùng cho màn
- *   hình vô hiệu hóa/kích hoạt lại thành viên.
- * - `'ACTIVE'` | `'INACTIVE'` → lọc theo trạng thái membership.
- */
+/** Lấy danh sách thành viên của tổ chức hiện tại theo trạng thái membership. */
 export const getOrganizationMembers = async (
   status?: '' | MemberStatus,
 ): Promise<OrganizationMember[]> => {
@@ -31,11 +24,7 @@ export const getOrganizationMembers = async (
   return response.data.data;
 };
 
-/**
- * Vô hiệu hóa thành viên: thu hồi quyền, chấm dứt phiên và ghi audit log
- * (QTN-32). Luồng chuyển giao lô (replacement) đã được gỡ bỏ vì hệ thống
- * chưa có phân quyền ghi sự kiện theo lô (D-4).
- */
+/** Vô hiệu hóa thành viên: thu hồi quyền, chấm dứt phiên và ghi audit log. */
 export const deactivateMember = async (
   userId: string,
   request: DeactivateMemberRequest,
@@ -78,5 +67,5 @@ export const assignMemberRole = async (
 
 export const addMember = async (request: AddMemberRequest): Promise<OrganizationMember> => {
   const response = await apiClient.post<ApiResult<OrganizationMember>>(MEMBER_ENDPOINT, request);
-  return response.data.data
+  return response.data.data;
 };

@@ -8,17 +8,10 @@ import lombok.Builder;
 import lombok.Getter;
 import vn.nguongocso.farm.dto.request.LatLngDto;
 
-/**
- * Thông tin ranh giới vùng trồng hiển thị công khai trên trang tra cứu tem.
- * <p>
- * Chỉ phơi bày các trường an toàn theo QTN-12: tên vùng trồng, diện tích
- * tính toán và danh sách tọa độ để vẽ polygon. Không lộ ID người quản lý,
- * ghi chú nội bộ hay dữ liệu quản trị tổ chức.
- */
+/** Thông tin ranh giới vùng trồng hiển thị công khai trên trang tra cứu tem. */
 @Getter
 @Builder
 public class PublicFarmAreaBoundaryDto {
-
     /** ID vùng trồng (dùng làm key trên UI). */
     private UUID id;
 
@@ -28,9 +21,6 @@ public class PublicFarmAreaBoundaryDto {
     /** Diện tích tính toán từ ranh giới, đơn vị hecta. */
     private BigDecimal calculatedArea;
 
-    /**
-     * Danh sách tọa độ đỉnh polygon theo thứ tự nối vòng.
-     * Rỗng khi vùng trồng chưa được khoanh ranh giới.
-     */
+    /** Danh sách tọa độ đỉnh polygon theo thứ tự nối vòng. */
     private List<LatLngDto> points;
 }
