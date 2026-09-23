@@ -33,8 +33,8 @@ Key points:
   from `/config.js` (default `/api/v1`), so no rebuild is needed per environment.
 - The backend reads all configuration from environment variables injected via
   a `ConfigMap` (non-secret) and a `Secret` (credentials).
-- Use Amazon RDS or the included `k8s/mysql.yaml` for a self-hosted MySQL.
-  For production we recommend RDS.
+- The Kubernetes manifests expect an external MySQL database such as Amazon RDS.
+  This repository does not include an active self-hosted MySQL manifest.
 
 ## 2. EC2 Setup
 
@@ -111,8 +111,9 @@ kubectl -n nguongocso create secret tls nguongocso-tls \
 
 ## 3. Configure Secrets
 
-The `k8s/secrets.yaml` and `k8s/mysql.yaml` files contain **placeholder**
-base64 values only. Before deploying, replace them with real values:
+The `k8s/secrets.yaml` file contains **placeholder** base64 values only. Do not
+apply it to a real environment. Create `backend-secrets` through a secret
+manager or directly in the target namespace:
 
 ```bash
 echo -n 'your_db_password'   | base64
@@ -129,52 +130,55 @@ echo -n 'your_locationiq_key'| base64
 
 ### Option A: Automated (GitHub Actions)
 
-Push to `develop` (staging) or `main` (production). The `ci-cd.yml` workflow:
+Push to `develop` deploys staging. Production is started with
+`workflow_dispatch` from `main`, a required SemVer `release_version`, and approval on the
+GitHub `production` Environment. The `ci-cd.yml` workflow:
 
-1. Tests the backend (H2 profile) and builds/lints the frontend.
+1. Tests the backend (H2 profile), then lints, tests, and builds the frontend.
 2. Builds multi-stage Docker images and pushes them to GHCR.
-3. Applies `k8s/*.yaml` via `kubectl` using `KUBECONFIG_B64`.
+3. Deploys commit-SHA images and runs rollout plus smoke checks.
 
 Required repository secrets / GitHub environments:
 
 | Secret | Environment | Purpose |
 | --- | --- | --- |
 | `KUBECONFIG_B64` | staging, production | base64-encoded kubeconfig |
-| `KUBE_NAMESPACE` | staging, production | namespace (default `nguongocso`) |
-| `GHCR_TOKEN` | (automatic) | push images to GHCR |
+| `KUBE_NAMESPACE` | staging, production | optional; defaults to environment name |
+| `GITHUB_TOKEN` | automatic | push images to GHCR |
 
-> The images referenced by the manifests are tagged `:latest` on main and
-> `:edge` on develop. For production, pin the `type=sha` tag in each Deployment.
+> Every deployment uses the immutable `github.sha` image tag. Mutable tags
+> `develop`, `staging`, and `production` are convenience tags only.
 
 ### Option B: Manual
 
+Create `backend-secrets` and `ghcr-secret` in the target namespace using your
+secret manager or `kubectl`. Do not apply the placeholder values from
+`k8s/secrets.yaml` to a real environment.
+
 ```bash
 kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/secrets.yaml -n nguongocso
-kubectl apply -f k8s/configmap.yaml -n nguongocso
-kubectl apply -f k8s/mysql.yaml -n nguongocso   # skip if using RDS
-kubectl apply -f k8s/persistent-volumes.yaml -n nguongocso
-kubectl apply -f k8s/backend-service.yaml -n nguongocso
-kubectl apply -f k8s/backend-deployment.yaml -n nguongocso
-kubectl apply -f k8s/frontend-service.yaml -n nguongocso
-kubectl apply -f k8s/frontend-deployment.yaml -n nguongocso
-kubectl apply -f k8s/ingress.yaml -n nguongocso
+kubectl apply -f k8s/configmap.yaml -n staging
+kubectl apply -f k8s/persistent-volumes.yaml -n staging
+kubectl apply -f k8s/backend-service.yaml -n staging
+kubectl apply -f k8s/backend-deployment.yaml -n staging
+kubectl apply -f k8s/frontend-service.yaml -n staging
+kubectl apply -f k8s/frontend-deployment.yaml -n staging
+kubectl apply -f k8s/ingress-staging.yaml -n staging
 ```
 
 Verify:
 
 ```bash
-kubectl -n nguongocso get pods
-kubectl -n nguongocso rollout status deployment/backend
-kubectl -n nguongocso rollout status deployment/frontend
-kubectl -n nguongocso get ingress
+kubectl -n staging get pods
+kubectl -n staging rollout status deployment/backend
+kubectl -n staging rollout status deployment/frontend
+kubectl -n staging get ingress
 ```
 
 ## 5. Using Amazon RDS (recommended) or ECR/EKS
 
 - **RDS**: Create a MySQL 8.x instance, note the endpoint, and update
   `k8s/configmap.yaml` `DB_HOST` to `your-rds-endpoint` and `DB_PORT` to `3306`.
-  Skip applying `k8s/mysql.yaml`.
 - **ECR**: To push to Amazon ECR instead of GHCR, change the workflow's
   `docker/login-action` to use `aws-actions/amazon-ecr-login` and tag images with
   `${{ steps.login-ecr.outputs.registry }}/...`.
