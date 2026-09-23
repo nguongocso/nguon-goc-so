@@ -105,8 +105,6 @@ Sau khi khởi động:
 
 - Frontend: `http://localhost:3000`
 - Backend API: `http://localhost:8080`
-- Swagger UI (cần backend chạy): `http://localhost:8080/swagger-ui/index.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
 - Health check: `http://localhost:8080/actuator/health`
 
 > Backend sẽ tự chạy Flyway migration khi khởi động (xem [mục 7 — Database](#7-database)).
