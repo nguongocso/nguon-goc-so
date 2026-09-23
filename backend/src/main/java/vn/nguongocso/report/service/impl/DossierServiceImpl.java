@@ -478,6 +478,9 @@ public class DossierServiceImpl implements DossierService {
 
     /** Nạp danh sách yêu cầu kiểm nghiệm của lô sản xuất tương ứng. */
     private List<InspectionRequest> loadInspectionRequests(Shipment shipment) {
+        if (shipment == null) {
+            return Collections.emptyList();
+        }
         ProductionLot lot = shipment.getProductionLot();
         if (lot == null || lot.getId() == null) {
             return Collections.emptyList();
@@ -671,6 +674,10 @@ public class DossierServiceImpl implements DossierService {
         Font boldFont,
         Font normalFont) throws Exception {
 
+        if (shipment == null) {
+            shipment = buildMockShipmentForPreview();
+        }
+
         Paragraph title = new Paragraph("HỒ SƠ TRUY XUẤT NGUỒN GỐC SẢN PHẨM", titleFont);
         title.setAlignment(Element.ALIGN_CENTER);
         title.setSpacingAfter(6);
@@ -686,15 +693,15 @@ public class DossierServiceImpl implements DossierService {
             document.add(tplPara);
         }
 
-        Paragraph subtitle = new Paragraph("Mã lô hàng: " + (shipment.getId() != null ? shipment.getId().toString() : "N/A"), normalFont);
+        Paragraph subtitle = new Paragraph("Mã định danh lô hàng: " + (shipment != null && shipment.getId() != null ? shipment.getId().toString() : "SHIP-MOCK-2026-DEMO"), normalFont);
         subtitle.setAlignment(Element.ALIGN_CENTER);
         subtitle.setSpacingAfter(10);
         document.add(subtitle);
 
         document.add(new Paragraph(" "));
 
-        ProductionLot lot = shipment.getProductionLot();
-        Organization org = shipment.getOrganization() != null
+        ProductionLot lot = shipment != null ? shipment.getProductionLot() : null;
+        Organization org = shipment != null && shipment.getOrganization() != null
             ? shipment.getOrganization()
             : (lot != null ? lot.getOrganization() : null);
         FarmArea farmArea = lot != null ? lot.getFarmArea() : null;
@@ -830,25 +837,26 @@ public class DossierServiceImpl implements DossierService {
 
             if (selectedFieldKeys == null || selectedFieldKeys.contains("shipment.name")) {
                 addTableCell(shipmentTable, "Tên lô hàng vận chuyển:", boldFont);
-                addTableCell(shipmentTable, shipment.getName() != null ? shipment.getName() : "N/A", normalFont);
+                addTableCell(shipmentTable, (shipment != null && shipment.getName() != null) ? shipment.getName() : "Lô hàng mẫu kiểm thử", normalFont);
             }
             if (selectedFieldKeys == null || selectedFieldKeys.contains("shipment.totalQuantity")) {
                 addTableCell(shipmentTable, "Số lượng lô hàng:", boldFont);
-                addTableCell(shipmentTable, shipment.getTotalQuantity() + " sản phẩm", normalFont);
+                addTableCell(shipmentTable, (shipment != null ? shipment.getTotalQuantity() : 2000) + " sản phẩm", normalFont);
             }
             if (selectedFieldKeys == null || selectedFieldKeys.contains("shipment.packagingInfo")) {
                 addTableCell(shipmentTable, "Thông tin đóng gói:", boldFont);
-                addTableCell(shipmentTable, shipment.getPackagingInfo() != null ? shipment.getPackagingInfo() : "N/A",
+                addTableCell(shipmentTable, (shipment != null && shipment.getPackagingInfo() != null) ? shipment.getPackagingInfo() : "Thùng carton 10kg, dán tem QR GS1",
                     normalFont);
             }
             if (selectedFieldKeys == null || selectedFieldKeys.contains("shipment.status")) {
                 addTableCell(shipmentTable, "Trạng thái vận hành:", boldFont);
-                addTableCell(shipmentTable, shipment.getStatus() != null ? formatShipmentStatus(shipment.getStatus()) : "N/A", normalFont);
+                addTableCell(shipmentTable, (shipment != null && shipment.getStatus() != null) ? formatShipmentStatus(shipment.getStatus()) : "Đã kích hoạt", normalFont);
             }
             if (selectedFieldKeys == null || selectedFieldKeys.contains("shipment.createdAt")) {
                 addTableCell(shipmentTable, "Thời điểm tạo lô hàng:", boldFont);
-                String createdStr = shipment.getCreatedAt() != null
-                    ? shipment.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : "N/A";
+                String createdStr = (shipment != null && shipment.getCreatedAt() != null)
+                    ? shipment.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                    : LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                 addTableCell(shipmentTable, createdStr, normalFont);
             }
 
@@ -940,6 +948,20 @@ public class DossierServiceImpl implements DossierService {
                             addTableCell(certTable, c.getIssuedBy() != null ? c.getIssuedBy() : "N/A", normalFont);
                         }
                     }
+                } else if (shipment != null && shipment.getId() == null) {
+                    if (colName) addTableCell(certTable, "Chứng nhận tiêu chuẩn VietGAP Trồng trọt", normalFont);
+                    if (colStd) addTableCell(certTable, "VietGAP", normalFont);
+                    if (colCode) addTableCell(certTable, "VG-2026-LD-0018", normalFont);
+                    if (colIssue) addTableCell(certTable, "2026-01-10", normalFont);
+                    if (colExpiry) addTableCell(certTable, "2028-01-10", normalFont);
+                    if (colCertifier) addTableCell(certTable, "Trung tâm Chứng nhận Phù hợp Quacert", normalFont);
+
+                    if (colName) addTableCell(certTable, "Chứng nhận Chuỗi Cung ứng Thực phẩm An toàn", normalFont);
+                    if (colStd) addTableCell(certTable, "Chuỗi ATTP", normalFont);
+                    if (colCode) addTableCell(certTable, "ATTP-LD-2026-089", normalFont);
+                    if (colIssue) addTableCell(certTable, "2026-02-15", normalFont);
+                    if (colExpiry) addTableCell(certTable, "2029-02-15", normalFont);
+                    if (colCertifier) addTableCell(certTable, "Chi cục Trồng trọt & BVTV Lâm Đồng", normalFont);
                 } else {
                     PdfPCell emptyCell = new PdfPCell(new Phrase("Chưa có chứng nhận tiêu chuẩn cho lô sản xuất này.", normalFont));
                     emptyCell.setColspan(headers.size());
@@ -1039,6 +1061,42 @@ public class DossierServiceImpl implements DossierService {
                             addTableCell(logTable, filesStr.toString().isEmpty() ? "Không có" : filesStr.toString(), normalFont);
                         }
                     }
+                } else if (shipment != null && shipment.getId() == null) {
+                    if (colDate) addTableCell(logTable, "2026-06-15", normalFont);
+                    if (colAct) addTableCell(logTable, "Gieo giống / Xuống giống", normalFont);
+                    if (colMat) addTableCell(logTable, "Giống cà rốt F1 Kuroda (2.5 gói)", normalFont);
+                    if (colNotes) addTableCell(logTable, "Gieo hạt vụ thu đông, độ ẩm đất 75%, xử lý vi sinh Trichoderma", normalFont);
+                    if (colAtt) addTableCell(logTable, "BienBan_GieoGiong_2026.pdf", normalFont);
+
+                    if (colDate) addTableCell(logTable, "2026-07-02", normalFont);
+                    if (colAct) addTableCell(logTable, "Tưới tiêu", normalFont);
+                    if (colMat) addTableCell(logTable, "Nước giếng khoan kiểm nghiệm (50 m3)", normalFont);
+                    if (colNotes) addTableCell(logTable, "Tưới phun mưa tự động duy trì độ ẩm 70%, làm sạch cỏ luống", normalFont);
+                    if (colAtt) addTableCell(logTable, "KetQua_NuocTuoi_2026.pdf", normalFont);
+
+                    if (colDate) addTableCell(logTable, "2026-07-10", normalFont);
+                    if (colAct) addTableCell(logTable, "Bón phân", normalFont);
+                    if (colMat) addTableCell(logTable, "Phân trùn quế vi sinh (500 kg)", normalFont);
+                    if (colNotes) addTableCell(logTable, "Bón thúc lần 1 giai đoạn cây phát triển thân lá và rễ củ", normalFont);
+                    if (colAtt) addTableCell(logTable, "HoaDon_VatTu_TrunQue.pdf", normalFont);
+
+                    if (colDate) addTableCell(logTable, "2026-07-28", normalFont);
+                    if (colAct) addTableCell(logTable, "Phòng trừ sâu bệnh", normalFont);
+                    if (colMat) addTableCell(logTable, "Chế phẩm Neem Oil thảo mộc (10 lít)", normalFont);
+                    if (colNotes) addTableCell(logTable, "Phun phòng ngừa sâu tơ và rệp muội định kỳ theo quy trình VietGAP", normalFont);
+                    if (colAtt) addTableCell(logTable, "NhatKy_ChePhamSinhHoc.pdf", normalFont);
+
+                    if (colDate) addTableCell(logTable, "2026-08-15", normalFont);
+                    if (colAct) addTableCell(logTable, "Bón phân", normalFont);
+                    if (colMat) addTableCell(logTable, "Phân Kali hữu cơ khoáng (300 kg)", normalFont);
+                    if (colNotes) addTableCell(logTable, "Bón thúc lần 2 nuôi củ, tăng tích lũy đường và màu sắc tự nhiên", normalFont);
+                    if (colAtt) addTableCell(logTable, "PhieuXuatKho_PhanBon.pdf", normalFont);
+
+                    if (colDate) addTableCell(logTable, "2026-08-30", normalFont);
+                    if (colAct) addTableCell(logTable, "Chăm sóc", normalFont);
+                    if (colMat) addTableCell(logTable, "Không sử dụng vật tư (Cách ly 15 ngày)", normalFont);
+                    if (colNotes) addTableCell(logTable, "Kiểm tra độ chín đồng đều và đảm bảo cách ly an toàn trước thu hoạch", normalFont);
+                    if (colAtt) addTableCell(logTable, "BienBan_KiemTraCachLy.pdf", normalFont);
                 } else {
                     PdfPCell emptyLogCell = new PdfPCell(new Phrase("Chưa có nhật ký canh tác cho lô này.", normalFont));
                     emptyLogCell.setColspan(headers.size());
@@ -1174,10 +1232,40 @@ public class DossierServiceImpl implements DossierService {
                 }
 
                 if (!hasAnyData) {
-                    PdfPCell emptyCell = new PdfPCell(new Phrase("Chưa có dữ liệu kiểm nghiệm cho lô sản xuất này.", normalFont));
-                    emptyCell.setColspan(headers.size());
-                    emptyCell.setPadding(6);
-                    inspectionTable.addCell(emptyCell);
+                    if (shipment != null && shipment.getId() == null) {
+                        if (colDate) addTableCell(inspectionTable, "2026-09-05", normalFont);
+                        if (colUnit) addTableCell(inspectionTable, "Trung tâm Phân tích Quatest 3", normalFont);
+                        if (colCrit) addTableCell(inspectionTable, "Kim loại nặng trong đất & nước (Pb, Cd)", normalFont);
+                        if (colPass) addTableCell(inspectionTable, "Đạt", normalFont);
+                        if (colResDate) addTableCell(inspectionTable, "2026-09-06", normalFont);
+                        if (colExpDate) addTableCell(inspectionTable, "2027-03-06", normalFont);
+
+                        if (colDate) addTableCell(inspectionTable, "2026-09-08", normalFont);
+                        if (colUnit) addTableCell(inspectionTable, "Trung tâm Phân tích Quatest 3", normalFont);
+                        if (colCrit) addTableCell(inspectionTable, "Dư lượng Nitrat (NO3-) trên nông sản", normalFont);
+                        if (colPass) addTableCell(inspectionTable, "Đạt", normalFont);
+                        if (colResDate) addTableCell(inspectionTable, "2026-09-09", normalFont);
+                        if (colExpDate) addTableCell(inspectionTable, "2027-03-09", normalFont);
+
+                        if (colDate) addTableCell(inspectionTable, "2026-09-08", normalFont);
+                        if (colUnit) addTableCell(inspectionTable, "Trung tâm Phân tích Quatest 3", normalFont);
+                        if (colCrit) addTableCell(inspectionTable, "Dư lượng thuốc BVTV (Cypermethrin, Chlorpyrifos)", normalFont);
+                        if (colPass) addTableCell(inspectionTable, "Đạt (Không phát hiện)", normalFont);
+                        if (colResDate) addTableCell(inspectionTable, "2026-09-09", normalFont);
+                        if (colExpDate) addTableCell(inspectionTable, "2027-03-09", normalFont);
+
+                        if (colDate) addTableCell(inspectionTable, "2026-09-08", normalFont);
+                        if (colUnit) addTableCell(inspectionTable, "Trung tâm Phân tích Quatest 3", normalFont);
+                        if (colCrit) addTableCell(inspectionTable, "Vi sinh vật gây hại (Salmonella, E.coli)", normalFont);
+                        if (colPass) addTableCell(inspectionTable, "Đạt", normalFont);
+                        if (colResDate) addTableCell(inspectionTable, "2026-09-09", normalFont);
+                        if (colExpDate) addTableCell(inspectionTable, "2027-03-09", normalFont);
+                    } else {
+                        PdfPCell emptyCell = new PdfPCell(new Phrase("Chưa có dữ liệu kiểm nghiệm cho lô sản xuất này.", normalFont));
+                        emptyCell.setColspan(headers.size());
+                        emptyCell.setPadding(6);
+                        inspectionTable.addCell(emptyCell);
+                    }
                 }
                 document.add(inspectionTable);
             }
@@ -1262,6 +1350,54 @@ public class DossierServiceImpl implements DossierService {
                             addTableCell(eventTable, recordedByName, normalFont);
                         }
                     }
+                } else if (shipment != null && shipment.getId() == null) {
+                    if (colTime) addTableCell(eventTable, "2026-09-10 07:30:00", normalFont);
+                    if (colType) addTableCell(eventTable, "Thu hoạch", normalFont);
+                    if (colLoc) addTableCell(eventTable, "11.8345, 108.4567", normalFont);
+                    if (colData) addTableCell(eventTable, "Sản lượng: 2500 kg; Thu hoạch thủ công sáng sớm, sơ tuyển củ loại 1", normalFont);
+                    if (colUser) addTableCell(eventTable, "Nguyễn Văn Quản Lý", normalFont);
+
+                    if (colTime) addTableCell(eventTable, "2026-09-10 11:00:00", normalFont);
+                    if (colType) addTableCell(eventTable, "Vận chuyển nội bộ", normalFont);
+                    if (colLoc) addTableCell(eventTable, "11.8348, 108.4569", normalFont);
+                    if (colData) addTableCell(eventTable, "Vận chuyển về trạm sơ chế bằng xe chuyên dụng 49C-123.45; Nhiệt độ: 20°C", normalFont);
+                    if (colUser) addTableCell(eventTable, "Lê Văn Vận Chuyển", normalFont);
+
+                    if (colTime) addTableCell(eventTable, "2026-09-10 14:30:00", normalFont);
+                    if (colType) addTableCell(eventTable, "Sơ chế & Làm sạch", normalFont);
+                    if (colLoc) addTableCell(eventTable, "11.8350, 108.4570", normalFont);
+                    if (colData) addTableCell(eventTable, "Rửa sạch sục khí Ozone diệt khuẩn, làm ráo tự nhiên; Phân loại củ 16-20cm", normalFont);
+                    if (colUser) addTableCell(eventTable, "Phạm Thị Sơ Chế", normalFont);
+
+                    if (colTime) addTableCell(eventTable, "2026-09-11 09:00:00", normalFont);
+                    if (colType) addTableCell(eventTable, "Kiểm tra chất lượng (QC)", normalFont);
+                    if (colLoc) addTableCell(eventTable, "11.8350, 108.4570", normalFont);
+                    if (colData) addTableCell(eventTable, "Kiểm tra cảm quan độ giòn tươi và test nhanh tồn dư nitrate; Đạt 100% chuẩn xuất hàng", normalFont);
+                    if (colUser) addTableCell(eventTable, "Đỗ Văn Kiểm Phẩm", normalFont);
+
+                    if (colTime) addTableCell(eventTable, "2026-09-12 10:00:00", normalFont);
+                    if (colType) addTableCell(eventTable, "Đóng gói", normalFont);
+                    if (colLoc) addTableCell(eventTable, "11.8350, 108.4570", normalFont);
+                    if (colData) addTableCell(eventTable, "Số thùng: 200; Quy cách: Thùng carton chuyên dụng 10kg, bọc màng PE thoáng khí, dán tem QR GS1", normalFont);
+                    if (colUser) addTableCell(eventTable, "Trần Thị Đóng Gói", normalFont);
+
+                    if (colTime) addTableCell(eventTable, "2026-09-12 14:00:00", normalFont);
+                    if (colType) addTableCell(eventTable, "Kích hoạt tem truy xuất", normalFont);
+                    if (colLoc) addTableCell(eventTable, "11.8350, 108.4570", normalFont);
+                    if (colData) addTableCell(eventTable, "Kích hoạt 200 mã định danh tem QR GS1 công khai trên Cổng thông tin Nguồn Gốc Số", normalFont);
+                    if (colUser) addTableCell(eventTable, "Nguyễn Văn Quản Lý", normalFont);
+
+                    if (colTime) addTableCell(eventTable, "2026-09-12 16:30:00", normalFont);
+                    if (colType) addTableCell(eventTable, "Xuất kho vận chuyển", normalFont);
+                    if (colLoc) addTableCell(eventTable, "11.8352, 108.4572", normalFont);
+                    if (colData) addTableCell(eventTable, "Bàn giao xe container lạnh 49A-888.99 giao Đại siêu thị Go! Đà Lạt; Nhiệt độ thùng: 8°C - 12°C", normalFont);
+                    if (colUser) addTableCell(eventTable, "Hoàng Văn Kho", normalFont);
+
+                    if (colTime) addTableCell(eventTable, "2026-09-13 06:30:00", normalFont);
+                    if (colType) addTableCell(eventTable, "Tiếp nhận & Phân phối", normalFont);
+                    if (colLoc) addTableCell(eventTable, "11.9404, 108.4583", normalFont);
+                    if (colData) addTableCell(eventTable, "Đại siêu thị Go! Đà Lạt nghiệm thu quét mã QR, xác nhận nhập kho 200 thùng và phân phối lên kệ", normalFont);
+                    if (colUser) addTableCell(eventTable, "Quản lý Tiếp nhận Siêu thị", normalFont);
                 } else {
                     PdfPCell emptyEventCell = new PdfPCell(new Phrase("Chưa ghi nhận sự kiện luân chuyển nào.", normalFont));
                     emptyEventCell.setColspan(headers.size());
@@ -1318,6 +1454,9 @@ public class DossierServiceImpl implements DossierService {
 
     /** Lấy danh sách sự kiện kèm dòng họ lô hàng cha. */
     private List<ChainEvent> getShipmentEventsWithLineage(Shipment shipment) {
+        if (shipment == null || shipment.getId() == null) {
+            return Collections.emptyList();
+        }
         List<ChainEvent> events = new ArrayList<>();
         if (shipment.getParentShipment() != null) {
             LocalDateTime splitAt = shipment.getSplitAt();
@@ -1790,5 +1929,92 @@ public class DossierServiceImpl implements DossierService {
                 .build());
         }
         return result;
+    }
+
+    /** Xây dựng dữ liệu lô hàng giả lập chuẩn cho bản xem trước mẫu hồ sơ (SHIP-MOCK-2026-DEMO). */
+    private Shipment buildMockShipmentForPreview() {
+        Organization org = Organization.builder()
+                .name("Hợp tác xã Nông nghiệp Xanh Lâm Đồng")
+                .code("HTX-LAMDONG-01")
+                .type(vn.nguongocso.organization.enums.OrganizationType.COOPERATIVE)
+                .status(vn.nguongocso.organization.enums.OrganizationStatus.ACTIVE)
+                .address("Thôn 3, Xã Đạ Ròn, Huyện Đơn Dương, Tỉnh Lâm Đồng")
+                .phone("0263.3888.999")
+                .email("lienhe@htxxanh.vn")
+                .build();
+
+        FarmArea farmArea = FarmArea.builder()
+                .name("Vùng chuyên canh Cà Rốt Đơn Dương")
+                .area(new java.math.BigDecimal("5.2"))
+                .areaUnit(vn.nguongocso.farm.enums.AreaUnit.HA)
+                .isActive(true)
+                .cropType(vn.nguongocso.farm.entity.ProductCategory.builder().name("Cà rốt F1").build())
+                .location(new org.locationtech.jts.geom.GeometryFactory().createPoint(
+                        new org.locationtech.jts.geom.Coordinate(108.4567, 11.8345)))
+                .build();
+
+        ProductionLot lot = ProductionLot.builder()
+                .name("Lô Cà Rốt hữu cơ VietGAP 2026")
+                .productCategory(vn.nguongocso.farm.entity.ProductCategory.builder().name("Rau củ quả tươi").build())
+                .plantingDate(java.time.LocalDate.of(2026, 6, 15))
+                .harvestDate(java.time.LocalDate.of(2026, 9, 10))
+                .expectedQuantity(12500.0)
+                .expectedQuantityUnit("kg")
+                .actualQuantity(12800.0)
+                .status(vn.nguongocso.farm.enums.ProductionLotStatus.PACKAGED)
+                .organization(org)
+                .farmArea(farmArea)
+                .build();
+
+        Shipment shipment = new Shipment();
+        shipment.setId(null);
+        shipment.setName("Chuyến hàng xuất siêu thị Go! - Đà Lạt");
+        shipment.setTotalQuantity(2000L);
+        shipment.setPackagingInfo("Thùng carton 10kg, dán tem QR GS1");
+        shipment.setStatus(vn.nguongocso.trace.enums.ShipmentStatus.ACTIVATED);
+        shipment.setCreatedAt(java.time.LocalDateTime.of(2026, 9, 12, 8, 0, 0));
+        shipment.setOrganization(org);
+        shipment.setProductionLot(lot);
+        return shipment;
+    }
+
+    /**
+     * Xuất tệp PDF xem trước mẫu hồ sơ truy xuất theo cấu hình trường (sử dụng dữ liệu SHIP-MOCK-2026-DEMO).
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportPreviewPdf(
+            UUID orgId,
+            String templateName,
+            String partnerName,
+            Set<String> selectedFieldKeys,
+            UUID shipmentId) {
+
+        // Luôn sử dụng dữ liệu mẫu kiểm thử chuẩn SHIP-MOCK-2026-DEMO khi tạo mẫu hồ sơ mới
+        Shipment shipment = buildMockShipmentForPreview();
+
+        ProfileTemplate template = ProfileTemplate.builder()
+                .name(templateName != null && !templateName.isBlank() ? templateName : "Mẫu hồ sơ mới")
+                .partnerName(partnerName)
+                .build();
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4, 36, 36, 36, 36);
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            Font titleFont = loadFont("fonts/Roboto-Bold.ttf", 16, Font.BOLD);
+            Font headerFont = loadFont("fonts/Roboto-Bold.ttf", 12, Font.BOLD);
+            Font boldFont = loadFont("fonts/Roboto-Bold.ttf", 10, Font.BOLD);
+            Font normalFont = loadFont("fonts/Roboto-Regular.ttf", 10, Font.NORMAL);
+
+            renderShipmentDossierPdf(document, shipment, template, selectedFieldKeys, titleFont, headerFont, boldFont, normalFont);
+
+            document.close();
+            return out.toByteArray();
+        } catch (Exception e) {
+            log.error("Lỗi khi sinh bản xem trước PDF theo mẫu: {}", e.getMessage(), e);
+            throw new BusinessException("Lỗi hệ thống khi sinh bản xem trước PDF hồ sơ: " + e.getMessage());
+        }
     }
 }

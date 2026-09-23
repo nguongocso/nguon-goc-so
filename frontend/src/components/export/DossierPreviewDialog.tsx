@@ -26,9 +26,11 @@ import {
   Minimize2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 import { exportDossier } from '@/api/dossierApi';
 import { exportShipmentWithTemplate } from '@/api/exportApi';
-import { getOpenDataPreview } from '@/api/profileTemplateApi';
+import { getOpenDataPreview, previewTemplatePdf } from '@/api/profileTemplateApi';
+import { convertDossierDataToCsv } from '@/utils/dossierCsvConverter';
 
 export interface DossierPreviewDialogProps {
   open: boolean;
@@ -39,6 +41,8 @@ export interface DossierPreviewDialogProps {
   templateName?: string;
   activeFormat?: 'pdf' | 'json' | 'csv';
   initialData?: Record<string, unknown> | null;
+  selectedFieldKeys?: string[];
+  partnerName?: string | null;
 }
 
 interface CsvParsedRow {
@@ -56,7 +60,12 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
   templateName,
   activeFormat = 'pdf',
   initialData,
+  selectedFieldKeys,
+  partnerName,
 }) => {
+  const { user } = useAuth();
+  const organizationId = user?.organizationId || '';
+
   const [format, setFormat] = useState<'pdf' | 'json' | 'csv'>(activeFormat);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -173,13 +182,13 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
       return;
     }
 
-    // Nếu là chế độ thiết kế mẫu hồ sơ (chưa có shipmentId, có initialData)
-    if (initialData && !shipmentId) {
+    // Thiết lập dữ liệu tĩnh JSON và CSV nếu có initialData
+    if (initialData) {
       setJsonString(JSON.stringify(initialData, null, 2));
-      return;
+      const csv = convertDossierDataToCsv(initialData);
+      setCsvContent(csv);
+      setCsvParsed(parseCsvText(csv));
     }
-
-    if (!shipmentId) return;
 
     let isMounted = true;
 
@@ -189,8 +198,20 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
 
       try {
         if (format === 'pdf') {
-          // Lấy đúng file PDF thực tế do backend tạo ra
-          const blob = await exportDossier(shipmentId, templateId);
+          let blob: Blob;
+          if (shipmentId) {
+            // Lấy đúng file PDF thực tế của lô hàng do backend tạo ra
+            blob = await exportDossier(shipmentId, templateId);
+          } else {
+            // Chế độ thiết kế mẫu hồ sơ: nạp PDF xem trước từ backend theo các trường đã chọn
+            blob = await previewTemplatePdf(organizationId, {
+              name: templateName || 'Mẫu hồ sơ mới',
+              partnerName: partnerName || undefined,
+              selectedFieldKeys,
+              shipmentId,
+            });
+          }
+
           if (!isMounted) return;
 
           if (currentPdfUrlRef.current) {
@@ -201,19 +222,23 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
           setPdfBlob(blob);
           setPdfUrl(url);
         } else if (format === 'csv') {
-          // Lấy đúng file CSV thực tế
-          const blob = await exportShipmentWithTemplate(shipmentId, templateId, 'csv');
-          if (!isMounted) return;
+          if (!csvContent && shipmentId) {
+            // Lấy đúng file CSV thực tế
+            const blob = await exportShipmentWithTemplate(shipmentId, templateId, 'csv');
+            if (!isMounted) return;
 
-          const text = await blob.text();
-          setCsvContent(text);
-          setCsvParsed(parseCsvText(text));
+            const text = await blob.text();
+            setCsvContent(text);
+            setCsvParsed(parseCsvText(text));
+          }
         } else {
-          // Lấy dữ liệu JSON chuẩn
-          const res = await getOpenDataPreview(shipmentId, templateId);
-          if (!isMounted) return;
+          // Lấy dữ liệu JSON chuẩn nếu chưa có initialData
+          if (!initialData && shipmentId) {
+            const res = await getOpenDataPreview(shipmentId, templateId);
+            if (!isMounted) return;
 
-          setJsonString(JSON.stringify(res, null, 2));
+            setJsonString(JSON.stringify(res, null, 2));
+          }
         }
       } catch (err: unknown) {
         if (!isMounted) return;
@@ -232,26 +257,37 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [open, shipmentId, templateId, format, initialData]);
+  }, [open, shipmentId, templateId, format, initialData, organizationId, partnerName, selectedFieldKeys, templateName]);
 
   // Xử lý tải file trực tiếp từ modal
   const handleDownloadCurrent = () => {
-    if (format === 'pdf' && pdfBlob) {
-      const url = URL.createObjectURL(pdfBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Ho_so_truy_xuat_${shipmentName || shipmentId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success('Đã tải tệp PDF về máy');
+    const rawTemplateName = (templateName || shipmentName || shipmentId || 'mau_ho_so').replace(/\s+/g, '_');
+    if (format === 'pdf') {
+      if (pdfBlob) {
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Ho_so_truy_xuat_${rawTemplateName}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('Đã tải tệp PDF về máy');
+      } else if (pdfUrl) {
+        const a = document.createElement('a');
+        a.href = pdfUrl;
+        a.download = `Ho_so_truy_xuat_${rawTemplateName}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        toast.success('Đã tải tệp PDF về máy');
+      }
     } else if (format === 'csv' && csvContent) {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `dossier_profile_${shipmentName || shipmentId}.csv`;
+      a.download = `dossier_profile_${rawTemplateName}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -262,7 +298,7 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `dossier_profile_${shipmentName || shipmentId}.json`;
+      a.download = `dossier_profile_${rawTemplateName}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -310,9 +346,13 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                 </div>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                   Mẫu áp dụng: <strong className="text-foreground">{templateName || 'Mặc định'}</strong>
-                  {shipmentName && (
+                  {shipmentName ? (
                     <>
                       {' '}&bull; Lô hàng: <span className="font-semibold text-foreground">{shipmentName}</span>
+                    </>
+                  ) : (
+                    <>
+                      {' '}&bull; Lô hàng: <span className="font-semibold text-foreground">SHIP-MOCK-2026-DEMO</span>
                     </>
                   )}
                 </DialogDescription>
@@ -321,45 +361,43 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
 
             {/* Bộ chuyển đổi định dạng xem trước & nút toàn màn hình */}
             <div className="flex items-center gap-2">
-              {!initialData && (
-                <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-lg border text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setFormat('pdf')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${format === 'pdf'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                  >
-                    <FileText className="size-3.5 text-emerald-600" />
-                    <span>Bản in PDF</span>
-                  </button>
+              <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-lg border text-xs">
+                <button
+                  type="button"
+                  onClick={() => setFormat('pdf')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${format === 'pdf'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                >
+                  <FileText className="size-3.5 text-emerald-600" />
+                  <span>Bản in PDF</span>
+                </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setFormat('csv')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${format === 'csv'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                  >
-                    <FileSpreadsheet className="size-3.5 text-emerald-600" />
-                    <span>Bảng CSV</span>
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => setFormat('csv')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${format === 'csv'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                >
+                  <FileSpreadsheet className="size-3.5 text-emerald-600" />
+                  <span>Bảng CSV</span>
+                </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setFormat('json')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${format === 'json'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                  >
-                    <FileJson className="size-3.5 text-emerald-600" />
-                    <span>Dữ liệu JSON</span>
-                  </button>
-                </div>
-              )}
+                <button
+                  type="button"
+                  onClick={() => setFormat('json')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${format === 'json'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                >
+                  <FileJson className="size-3.5 text-emerald-600" />
+                  <span>Dữ liệu JSON</span>
+                </button>
+              </div>
 
               {/* Nút phóng to / thu nhỏ toàn màn hình */}
               <Button
@@ -406,22 +444,23 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                 Thử tải lại
               </Button>
             </div>
-          ) : format === 'pdf' && !initialData ? (
-            /* =================== XEM TRƯỚC PDF THẬT 100% =================== */
-            <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-lg border overflow-hidden bg-slate-200 dark:bg-slate-900 shadow-inner">
-              {pdfUrl ? (
+          ) : format === 'pdf' ? (
+            /* =================== XEM TRƯỚC PDF THẬT 100% ĐỒNG BỘ =================== */
+            pdfUrl ? (
+              <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-lg border overflow-hidden bg-slate-200 dark:bg-slate-900 shadow-inner">
                 <iframe
                   src={`${pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
                   className="w-full h-full min-h-[520px] border-0 flex-1 rounded-lg"
                   title="Bản in PDF hồ sơ truy xuất"
                 />
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">
-                  Chưa tải được tệp PDF
-                </div>
-              )}
-            </div>
-          ) : format === 'csv' && !initialData ? (
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="size-6 animate-spin text-emerald-600" />
+                <span>Đang kết xuất bản in PDF...</span>
+              </div>
+            )
+          ) : format === 'csv' ? (
             /* =================== XEM TRƯỚC CSV THẬT 100% =================== */
             <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-lg border overflow-hidden bg-background">
               {/* Thanh công cụ xem CSV */}
@@ -581,19 +620,17 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
               </Button>
             )}
 
-            {/* Nút tải file trực tiếp từ bản xem trước */}
-            {!initialData && shipmentId && (
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleDownloadCurrent}
-                disabled={loading}
-                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
-              >
-                <Download className="size-3.5" />
-                <span>Tải tệp này về máy ({format.toUpperCase()})</span>
-              </Button>
-            )}
+            {/* Nút tải file trực tiếp từ bản xem trước - hiển thị đầy đủ cả khi xuất lô lẫn tạo mẫu */}
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleDownloadCurrent}
+              disabled={loading || (format === 'pdf' && !pdfBlob && !pdfUrl)}
+              className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+            >
+              <Download className="size-3.5" />
+              <span>Tải tệp này về máy ({format.toUpperCase()})</span>
+            </Button>
 
             <Button type="button" variant="outline" size="sm" onClick={onClose} className="gap-1 text-xs">
               <X className="size-3.5" />

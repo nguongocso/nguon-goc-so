@@ -3,7 +3,9 @@ package vn.nguongocso.export.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -11,12 +13,16 @@ import org.springframework.web.bind.annotation.*;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.export.dto.request.CreateProfileTemplateRequest;
+import vn.nguongocso.export.dto.request.PreviewTemplatePdfRequest;
 import vn.nguongocso.export.dto.request.UpdateProfileTemplateRequest;
 import vn.nguongocso.export.dto.response.FieldGroupDefinition;
 import vn.nguongocso.export.dto.response.ProfileTemplateResponse;
 import vn.nguongocso.export.service.ProfileTemplateService;
+import vn.nguongocso.report.service.DossierService;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -31,6 +37,7 @@ import java.util.UUID;
 public class ProfileTemplateController {
 
     private final ProfileTemplateService profileTemplateService;
+    private final DossierService dossierService;
 
     /**
      * Lấy danh mục tất cả các trường dữ liệu hệ thống hỗ trợ cấu hình.
@@ -139,6 +146,41 @@ public class ProfileTemplateController {
         profileTemplateService.deleteTemplate(orgId, templateId, currentUser);
         log.info("Xóa mẫu hồ sơ thành công: orgId={}, templateId={}", orgId, templateId);
         return ResponseEntity.ok(ApiResult.success(null));
+    }
+
+    /**
+     * Xem trước bản in PDF theo mẫu cấu hình trường đối tác (đồng bộ với form xuất lô hàng).
+     */
+    @PostMapping("/preview-pdf")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
+    public ResponseEntity<byte[]> previewTemplatePdf(
+            @PathVariable UUID orgId,
+            @RequestBody PreviewTemplatePdfRequest request) {
+        log.info("Nhận yêu cầu xem trước PDF mẫu hồ sơ: orgId={}, templateName={}", orgId, request.getName());
+
+        Set<String> selectedFieldKeys = new HashSet<>();
+        if (request.getSelectedFieldKeys() != null) {
+            selectedFieldKeys.addAll(request.getSelectedFieldKeys());
+        }
+        if (request.getSelectedFields() != null) {
+            request.getSelectedFields().forEach(f -> {
+                if (f.getFieldKey() != null) {
+                    selectedFieldKeys.add(f.getFieldKey());
+                }
+            });
+        }
+
+        byte[] pdfBytes = dossierService.exportPreviewPdf(
+                orgId,
+                request.getName(),
+                request.getPartnerName(),
+                selectedFieldKeys,
+                request.getShipmentId());
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"preview_dossier.pdf\"")
+                .body(pdfBytes);
     }
 
 }

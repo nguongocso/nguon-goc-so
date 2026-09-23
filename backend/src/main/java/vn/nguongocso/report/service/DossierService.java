@@ -75,4 +75,15 @@ public interface DossierService {
     List<BatchDossierHistoryDto> getBatchExportHistory(
         CustomUserDetails currentUser
     );
+
+    /**
+     * Xuất tệp PDF xem trước mẫu hồ sơ truy xuất theo cấu hình trường.
+     */
+    byte[] exportPreviewPdf(
+        UUID orgId,
+        String templateName,
+        String partnerName,
+        java.util.Set<String> selectedFieldKeys,
+        UUID shipmentId
+    );
 }

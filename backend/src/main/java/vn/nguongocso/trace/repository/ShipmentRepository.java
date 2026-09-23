@@ -38,6 +38,9 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
     /** Lấy danh sách lô hàng theo tổ chức và danh sách trạng thái. */
     List<Shipment> findByOrganization_OrganizationIdAndStatusIn(UUID organizationId, Collection<ShipmentStatus> statuses);
 
+    /** Lấy tất cả lô hàng theo tổ chức. */
+    List<Shipment> findByOrganization_OrganizationId(UUID organizationId);
+
     /** Lấy danh sách lô hàng theo ID lô sản xuất có phân trang. */
     Page<Shipment> findByProductionLotId(UUID productionLotId, Pageable pageable);
 
