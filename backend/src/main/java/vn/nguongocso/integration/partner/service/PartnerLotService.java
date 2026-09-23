@@ -75,7 +75,8 @@ public class PartnerLotService {
 
         // 1. Kiểm tra lô sản xuất tồn tại không
         ProductionLot lot = productionLotRepository.findById(lotId)
-                .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin lô sản xuất"));
+                .orElseThrow(() -> new BusinessException(org.springframework.http.HttpStatus.NOT_FOUND,
+                        "Không tìm thấy lô sản xuất yêu cầu"));
 
         // 2. Kiểm tra Cách ly dữ liệu Tổ chức (TC-04): Lô có thuộc HTX của API Key hay
         // không

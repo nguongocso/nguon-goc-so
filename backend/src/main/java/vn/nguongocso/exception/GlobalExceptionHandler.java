@@ -316,7 +316,7 @@ public class GlobalExceptionHandler {
 
                 return build(
                                 HttpStatus.INTERNAL_SERVER_ERROR,
-                                "Đã xảy ra lỗi hệ thống",
+                                "Lỗi máy chủ nội bộ. Vui lòng liên hệ quản trị.",
                                 null,
                                 request);
         }

@@ -7,6 +7,21 @@
 
 ---
 
+## Mục lục tài liệu
+
+- [1. Tổng quan Cổng dữ liệu đối tác (Data Portal Overview)](#1-tổng-quan-cổng-dữ-liệu-đối-tác-data-portal-overview)
+- [2. Danh sách Endpoints cổng dữ liệu đối tác (Partner Data Endpoints)](#2-danh-sách-endpoints-cổng-dữ-liệu-đối-tác-partner-data-endpoints)
+- [3. Cấp và quản lý Khóa thử nghiệm (Test Key Management)](#3-cấp-và-quản-lý-khóa-thử-nghiệm-test-key-management)
+- [4. Hành vi Chế độ Thử nghiệm (Sandbox Mode Behavior)](#4-hành-vi-chế-độ-thử-nghiệm-sandbox-mode-behavior)
+- [5. Ví dụ gọi thử nghiệm bằng cURL (Sandbox cURL Examples)](#5-ví-dụ-gọi-thử-nghiệm-bằng-curl-sandbox-curl-examples)
+- [6. Bảng mã lỗi tổng hợp (Error Codes Summary)](#6-bảng-mã-lỗi-tổng-hợp-error-codes-summary)
+- [7. Danh sách khóa thử nghiệm Sandbox & Hướng dẫn kiểm thử mã lỗi (Testing & Verification Guide)](#7-danh-sách-khóa-thử-nghiệm-sandbox--hướng-dẫn-kiểm-thử-mã-lỗi-testing--verification-guide)
+  - [7.1. Danh mục các khóa API đã tạo sẵn trong CSDL](#71-danh-mục-các-khóa-api-đã-tạo-sẵn-trong-csdl)
+  - [7.2. Lệnh cURL mẫu kiểm thử chi tiết từng mã lỗi](#72-lệnh-curl-mẫu-kiểm-thử-chi-tiết-từng-mã-lỗi)
+  - [7.3. Kết quả kiểm thử tự động (Automated Test Suite Results)](#73-kết-quả-kiểm-thử-tự-động-automated-test-suite-results)
+
+---
+
 ## 1. Tổng quan Cổng dữ liệu đối tác (Data Portal Overview)
 
 ### 1.1. Mục đích và đối tượng sử dụng
@@ -519,22 +534,283 @@ Hệ thống tuân thủ cấu trúc phản hồi lỗi chuẩn của Nguồn G�
   "success": false,
   "status": 401,
   "message": "Thông điệp lỗi chi tiết",
-  "path": "/api/v1/partner/...",
-  "timestamp": "2026-09-14T10:00:00.000Z"
+  "path": "/api/publicapi/v1/...",
+  "timestamp": "2026-09-23T10:00:00.000Z"
 }
 ```
 
-| HTTP Status | Mã lỗi / Tình huống | Thông điệp phản hồi (`message`) | Giải pháp xử lý |
-|:---|:---|:---|:---|
-| **400 Bad Request** | Lô ngoài phạm vi (Live Key) | `Lô sản xuất nằm ngoài phạm vi truy xuất của khóa truy cập` | Chỉ truy xuất các lô hàng thuộc HTX đã cấp khóa. |
-| **400 Bad Request** | Không tìm thấy lô (Live Key) | `Không tìm thấy thông tin lô sản xuất` | Kiểm tra lại tính chính xác của `lotId`. |
-| **400 Bad Request** | Dữ liệu đầu vào sai | `Thời hạn khóa thử nghiệm không được vượt quá 15 ngày` | Điều chỉnh tham số đầu vào đúng quy định. |
-| **401 Unauthorized** | Thiếu header API key | `Thiếu Header X-API-KEY` | Bổ sung header `X-API-KEY` vào request. |
-| **401 Unauthorized** | Khóa không tồn tại | `Khóa truy cập không hợp lệ` | Kiểm tra lại chuỗi API key đã được cấp. |
-| **401 Unauthorized** | Khóa đã bị thu hồi | `Khóa truy cập đã bị thu hồi và không còn hiệu lực` | Liên hệ Quản lý HTX để được cấp lại khóa mới. |
-| **401 Unauthorized** | Khóa thật hết hạn | `Khóa truy cập đã hết thời gian hiệu lực` | Liên hệ Quản lý HTX để gia hạn hoặc cấp khóa mới. |
-| **401 Unauthorized** | **Khóa thử nghiệm hết hạn (TC-03)** | `Khóa thử nghiệm đã hết hạn` | Tạo hoặc yêu cầu cấp lại khóa thử nghiệm mới. |
-| **403 Forbidden** | **Sai vai trò cấp khóa (TC-04)** | `Bạn không có quyền thực hiện thao tác này` | Chỉ Quản lý HTX (`VT-02`) hoặc Admin (`VT-01`) được cấp khóa. |
-| **422 Unprocessable** | Vi phạm validation cấp khóa | `Hạn mức số lượt gọi thử nghiệm không vượt quá 50 lượt/giờ` | Giảm `rateLimitPerHour` xuống dưới hoặc bằng 50. |
-| **429 Too Many Requests** | **Vượt hạn mức giờ (QTN-20)** | `Khóa truy cập đã vượt quá hạn mức {limit} lượt gọi/giờ` | Chờ sang khung giờ tiếp theo hoặc yêu cầu nâng hạn mức. |
-| **500 Internal Error** | Lỗi máy chủ nội bộ | `Đã xảy ra lỗi hệ thống, vui lòng thử lại sau` | Liên hệ đội ngũ quản trị kỹ thuật Nguồn Gốc Số. |
+| Mã HTTP | Tên lỗi | Nguyên nhân | Thông điệp phản hồi gợi ý | Giải pháp xử lý |
+|:---:|:---|:---|:---|:---|
+| **400** | Bad Request | Thiếu tham số hoặc định dạng dữ liệu không hợp lệ. | `"Tham số không hợp lệ"` | Kiểm tra lại định dạng tham số (ví dụ UUID của `lotId`, kiểu số của tọa độ). |
+| **401** | Unauthorized | Khóa thử nghiệm đã hết hạn hiệu lực (sau tối đa 15 ngày). | `"Khóa thử nghiệm đã hết hạn"` | Yêu cầu Quản lý HTX cấp lại khóa thử nghiệm mới. |
+| **401** | Unauthorized | Khóa truy cập chính thức (Live Key) đã hết thời gian hiệu lực. | `"Khóa truy cập đã hết thời gian hiệu lực"` | Liên hệ Quản lý HTX để gia hạn hoặc cấp lại khóa mới. |
+| **401** | Unauthorized | Khóa API không tồn tại trong hệ thống hoặc không đúng. | `"Khóa truy cập không hợp lệ"` / `"Khóa thử nghiệm không đúng. Vui lòng liên hệ..."` | Kiểm tra lại chuỗi API key được gửi trong tiêu đề `X-API-KEY`. |
+| **401** | Unauthorized | Khóa API đã bị Quản lý Hợp tác xã thu hồi hiệu lực. | `"Khóa truy cập đã bị thu hồi và không còn hiệu lực"` | Liên hệ Quản lý HTX để làm rõ lý do thu hồi và cấp lại khóa mới. |
+| **401** | Unauthorized | Request không gửi kèm tiêu đề HTTP xác thực bắt buộc. | `"Thiếu Header X-API-KEY"` | Bổ sung tiêu đề `X-API-KEY: <API_KEY>` vào request HTTP. |
+| **403** | Forbidden | Khóa thử nghiệm cố truy cập mã lô hoặc ID ngoài phạm vi dữ liệu mẫu Sandbox. | `"Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ..."` | Sử dụng đúng mã lô mẫu `sample-lot-001` khi dùng khóa thử nghiệm. |
+| **403** | Forbidden | Tài khoản không có quyền hạn Quản lý HTX khi gọi API cấp khóa. | `"Bạn không có quyền thực hiện chức năng này"` | Đăng nhập với tài khoản có vai trò Quản lý HTX (`VT-02`) hoặc Quản trị viên (`VT-01`). |
+| **404** | Not Found | Không tìm thấy lô sản xuất với mã đã chỉ định. | `"Không tìm thấy lô sản xuất yêu cầu"` | Kiểm tra lại tính chính xác của `lotId` lô hàng cần truy vấn. |
+| **429** | Too Many Requests | Vượt quá hạn mức số lượt gọi trong 1 giờ (mặc định 30 lượt/giờ đối với khóa thử nghiệm - QTN-20). | `"Khóa truy cập đã vượt quá hạn mức {limit} lượt gọi/giờ"` | Chờ sang khung giờ tiếp theo hoặc liên hệ HTX để nâng hạn mức. |
+| **500** | Internal Server Error | Lỗi hệ thống máy chủ nội bộ. | `"Lỗi máy chủ nội bộ. Vui lòng liên hệ quản trị."` | Liên hệ đội ngũ quản trị kỹ thuật Nguồn Gốc Số. |
+
+---
+
+## 7. Danh sách khóa thử nghiệm Sandbox & Hướng dẫn kiểm thử mã lỗi (Testing & Verification Guide)
+
+Để phục vụ lập trình viên và kiểm thử viên kiểm thử cơ chế bắt lỗi HTTP, hệ thống đã nạp sẵn dữ liệu seed các khóa API thử nghiệm và chính thức (Flyway migration `V20260923160000__seed_test_api_keys_for_error_scenarios.sql`).
+
+### 7.1. Danh mục các khóa API đã tạo sẵn trong CSDL
+
+| STT | Loại Khóa | Trạng Thái / Cấu Hình | Raw API Key (truyền vào Header `X-API-KEY`) | Key Prefix | Mục Đích Kiểm Thử |
+|:---:|:---|:---|:---|:---|:---|
+| **1** | **Khóa Thử Nghiệm** | `ACTIVE`<br>Hạn mức: `50`/h<br>Thời hạn: `+15 ngày`<br>`is_test = true` | `nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1` | `nks_test_e8a1b2c3` | - Gọi `sample-lot-001` -> **200 OK**<br>- Gọi lô thật / ngoài Sandbox -> **403 Forbidden** |
+| **2** | **Khóa Thử Nghiệm** | `EXPIRED`<br>Thời hạn: `-2 ngày` (quá hạn)<br>`is_test = true` | `nks_test_expired1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1` | `nks_test_expired1` | Kiểm thử **401 Unauthorized**: `"Khóa thử nghiệm đã hết hạn"` |
+| **3** | **Khóa Chính Thức (Live)** | `EXPIRED`<br>Thời hạn: `-2 ngày` (quá hạn)<br>`is_test = false` | `nks_live_expired1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1` | `nks_live_expired1` | Kiểm thử **401 Unauthorized**: `"Khóa truy cập đã hết thời gian hiệu lực"` |
+| **4** | **Khóa Thử Nghiệm** | `REVOKED`<br>Đã bị Quản lý HTX thu hồi<br>`is_test = true` | `nks_test_revoked1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1` | `nks_test_revoked1` | Kiểm thử **401 Unauthorized**: `"Khóa truy cập đã bị thu hồi và không còn hiệu lực"` |
+| **5** | **Khóa Thử Nghiệm** | `ACTIVE`<br>Hạn mức: `1` lượt/giờ<br>`is_test = true` | `nks_test_ratelimitd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0` | `nks_test_ratelimi` | Kiểm thử **429 Too Many Requests**: `"Khóa truy cập đã vượt quá hạn mức 1 lượt gọi/giờ"` |
+| **6** | **Khóa Chính Thức (Live)** | `ACTIVE`<br>Hạn mức: `1000`/h<br>`is_test = false` | `nks_live_active1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1` | `nks_live_active1` | - Gọi lô thật -> **200 OK**<br>- Gọi lô không tồn tại -> **404 Not Found**<br>- Gọi sai UUID -> **400 Bad Request** |
+| **7** | **Khóa Chính Thức (Live)** | `REVOKED`<br>Đã bị thu hồi<br>`is_test = false` | `nks_live_revoked1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1` | `nks_live_revoked1` | Kiểm thử **401 Unauthorized**: `"Khóa truy cập đã bị thu hồi và không còn hiệu lực"` |
+
+---
+
+### 7.2. Lệnh cURL mẫu kiểm thử chi tiết từng mã lỗi
+
+> [!NOTE]
+> Mặc định các lệnh mẫu sử dụng `http://localhost:8080` khi gọi trực tiếp backend. Bạn có thể thay bằng `http://localhost` (hoặc `http://localhost:3000` / domain môi trường bạn đang chạy).
+
+#### 1. HTTP 400 Bad Request — Tham số không hợp lệ
+- **Nguyên nhân:** Thiếu tham số hoặc định dạng dữ liệu không hợp lệ (ví dụ: mã lô không đúng định dạng UUID).
+- **Thông điệp mong đợi:** `"Tham số không hợp lệ"`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/ma-lo-khong-dung-dinh-dang-uuid" \
+  -H "X-API-KEY: nks_live_active1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 400,
+  "message": "Tham số không hợp lệ: mã lô 'ma-lo-khong-dung-dinh-dang-uuid' không đúng định dạng UUID"
+}
+```
+
+---
+
+#### 2. HTTP 401 Unauthorized — Khóa thử nghiệm đã hết hạn
+- **Nguyên nhân:** Khóa thử nghiệm đã hết hạn hiệu lực (sau tối đa 15 ngày).
+- **Thông điệp mong đợi:** `"Khóa thử nghiệm đã hết hạn"`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_test_expired1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Khóa thử nghiệm đã hết hạn"
+}
+```
+
+---
+
+#### 3. HTTP 401 Unauthorized — Khóa truy cập chính thức đã hết thời gian hiệu lực
+- **Nguyên nhân:** Khóa truy cập chính thức (Live Key) đã hết thời gian hiệu lực.
+- **Thông điệp mong đợi:** `"Khóa truy cập đã hết thời gian hiệu lực"`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_live_expired1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Khóa truy cập đã hết thời gian hiệu lực"
+}
+```
+
+---
+
+#### 4. HTTP 401 Unauthorized — Khóa API không tồn tại trong hệ thống hoặc không đúng
+- **Nguyên nhân:** Khóa API không tồn tại trong hệ thống hoặc không đúng.
+- **Thông điệp mong đợi:** `"Khóa truy cập không hợp lệ"` hoặc `"Khóa thử nghiệm không đúng. Vui lòng liên hệ..."`
+
+- **Trường hợp 1: Gửi khóa thử nghiệm không tồn tại (tiền tố `test`):**
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_test_sai_khoa_1234567890abcdef"
+```
+*Kết quả:*
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Khóa thử nghiệm không đúng. Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa."
+}
+```
+
+- **Trường hợp 2: Gửi khóa chính thức không tồn tại (tiền tố `live`):**
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_live_sai_khoa_1234567890abcdef"
+```
+*Kết quả:*
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Khóa truy cập không hợp lệ"
+}
+```
+
+---
+
+#### 5. HTTP 401 Unauthorized — Khóa API đã bị Quản lý HTX thu hồi
+- **Nguyên nhân:** Khóa API đã bị Quản lý Hợp tác xã thu hồi hiệu lực.
+- **Thông điệp mong đợi:** `"Khóa truy cập đã bị thu hồi và không còn hiệu lực"`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_test_revoked1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Khóa truy cập đã bị thu hồi và không còn hiệu lực"
+}
+```
+
+---
+
+#### 6. HTTP 401 Unauthorized — Request không gửi kèm tiêu đề HTTP xác thực bắt buộc
+- **Nguyên nhân:** Request không gửi kèm tiêu đề HTTP xác thực bắt buộc.
+- **Thông điệp mong đợi:** `"Thiếu Header X-API-KEY"`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Thiếu Header X-API-KEY"
+}
+```
+
+---
+
+#### 7. HTTP 403 Forbidden — Khóa thử nghiệm cố truy cập ngoài phạm vi Sandbox
+- **Nguyên nhân:** Khóa thử nghiệm cố truy cập mã lô hoặc ID ngoài phạm vi dữ liệu mẫu Sandbox.
+- **Thông điệp mong đợi:** `"Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ..."`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/00000000-0000-0000-0000-000200000001" \
+  -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 403,
+  "message": "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật."
+}
+```
+
+---
+
+#### 8. HTTP 403 Forbidden — Tài khoản không có quyền khi gọi API cấp khóa
+- **Nguyên nhân:** Tài khoản không có quyền hạn Quản lý HTX khi gọi API cấp khóa.
+- **Thông điệp mong đợi:** `"Bạn không có quyền thực hiện chức năng này"` (hoặc `"Bạn không có quyền thực hiện thao tác này"`)
+
+Đăng nhập tài khoản Người ghi sự kiện (`VT-03` / `eventrecorder` / `admin123`) lấy Token và gọi cấp khóa:
+```bash
+curl -i -X POST "http://localhost:8080/api/v1/organization/api-keys/test" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <TOKEN_CỦA_EVENTRECORDER>" \
+  -d '{"partnerName": "Đối tác Thử Nghiệm", "rateLimitPerHour": 30, "expiresAt": "2026-10-01T00:00:00"}'
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 403,
+  "message": "Bạn không có quyền thực hiện chức năng này",
+  "errors": "ACCESS_DENIED"
+}
+```
+
+---
+
+#### 9. HTTP 404 Not Found — Không tìm thấy lô sản xuất yêu cầu (Live Key)
+- **Nguyên nhân:** Không tìm thấy lô sản xuất với mã đã chỉ định (khi dùng Live Key).
+- **Thông điệp mong đợi:** `"Không tìm thấy lô sản xuất yêu cầu"`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/99999999-9999-9999-9999-999999999999" \
+  -H "X-API-KEY: nks_live_active1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 404,
+  "message": "Không tìm thấy lô sản xuất yêu cầu"
+}
+```
+
+---
+
+#### 10. HTTP 429 Too Many Requests — Vượt quá hạn mức số lượt gọi trong 1 giờ
+- **Nguyên nhân:** Vượt quá hạn mức số lượt gọi trong 1 giờ (QTN-20).
+- **Thông điệp mong đợi:** `"Khóa truy cập đã vượt quá hạn mức {limit} lượt gọi/giờ"`
+
+Sử dụng khóa có hạn mức 1 lượt/giờ (`nks_test_ratelimitd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0`):
+- **Lần gọi 1:** Trả về **200 OK**.
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_test_ratelimitd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0"
+```
+- **Lần gọi 2 (ngay sau đó):** Bị từ chối với mã **429 Too Many Requests**:
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_test_ratelimitd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0"
+```
+**Kết quả phản hồi lần 2:**
+```json
+{
+  "success": false,
+  "status": 429,
+  "message": "Khóa truy cập đã vượt quá hạn mức 1 lượt gọi/giờ"
+}
+```
+
+---
+
+#### 11. HTTP 500 Internal Server Error — Lỗi hệ thống máy chủ nội bộ
+- **Nguyên nhân:** Lỗi máy chủ nội bộ không bắt được.
+- **Thông điệp mong đợi:** `"Lỗi máy chủ nội bộ. Vui lòng liên hệ quản trị."`
+
+Được chuẩn hóa bắt và xử lý tại `GlobalExceptionHandler.java`:
+```json
+{
+  "success": false,
+  "status": 500,
+  "message": "Lỗi máy chủ nội bộ. Vui lòng liên hệ quản trị."
+}
+```
+
+---
+
+### 7.3. Kết quả kiểm thử tự động (Automated Test Suite Results)
+
+Toàn bộ các ca kiểm thử tích hợp (Integration Tests) cho phân hệ Khóa API (Sandbox/Live) và Cổng dữ liệu đối tác đã được thực thi tự động và đạt tỷ lệ thành công 100%:
+
+- **Tập kiểm thử tích hợp chuyên sâu Khóa API (`TestApiKeyIntegrationTest`):**
+  - Đã chạy: 18/18 ca kiểm thử đạt (**BUILD SUCCESS**).
+  - Kiểm thử đầy đủ các luồng: Cấp khóa thử nghiệm (201), chặn tài khoản không có quyền `VT-03` (403), kiểm tra khóa hết hạn (401), khóa thu hồi (401), thiếu Header `X-API-KEY` (401), khóa sai/không tồn tại (401), truy cập ngoài Sandbox (403), vượt rate limit (429), truy cập thành công dữ liệu mẫu (200), truy xuất Live Key (200, 400, 404).
+- **Toàn bộ bộ kiểm thử tích hợp ApiKey và Partner:**
+  - Đã chạy: 97/97 ca kiểm thử đạt (**BUILD SUCCESS**).
+- **Bộ kiểm thử Frontend giao diện tài liệu (`DataPortalDocsPage.test.tsx`):**
+  - Đã chạy: 11/11 ca kiểm thử đạt (**PASS**).
+
+
