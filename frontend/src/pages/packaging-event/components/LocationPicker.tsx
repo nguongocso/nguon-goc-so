@@ -24,17 +24,13 @@ L.Icon.Default.mergeOptions({
     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-/**
- * Tọa độ địa lý trên bản đồ
- */
+/** Tọa độ địa lý trên bản đồ */
 interface MapPosition {
   lat: number;
   lng: number;
 }
 
-/**
- * Thuộc tính của component chọn tọa độ vị trí LocationPicker
- */
+/** Thuộc tính của component chọn tọa độ vị trí LocationPicker */
 interface LocationPickerProps {
   onLocationSelect: (
     latitude: number,

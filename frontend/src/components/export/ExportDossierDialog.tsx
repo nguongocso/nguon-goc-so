@@ -24,10 +24,7 @@ export interface ExportDossierDialogProps {
   cooperativeOrganizationId?: string;
 }
 
-/**
- * Hộp thoại xuất hồ sơ truy xuất nguồn gốc cho lô hàng nông sản (PDF, JSON, CSV).
- * Hỗ trợ chọn mẫu hồ sơ tùy chỉnh theo tổ chức hoặc mẫu mặc định hệ thống.
- */
+/** Xuất hồ sơ PDF, JSON hoặc CSV theo mẫu của tổ chức hay mẫu mặc định. */
 export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
   open,
   onOpenChange,

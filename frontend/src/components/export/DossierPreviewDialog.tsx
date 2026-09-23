@@ -18,10 +18,7 @@ export interface DossierPreviewDialogProps {
   initialData?: Record<string, unknown> | null;
 }
 
-/**
- * Hộp thoại xem trước hồ sơ truy xuất nguồn gốc (PDF iframe, bảng/raw CSV, định dạng JSON).
- * Hỗ trợ phóng to toàn màn hình, sao chép dữ liệu và tải tệp trực tiếp.
- */
+/** Hiển thị bản xem trước hồ sơ PDF, CSV hoặc JSON và các thao tác liên quan. */
 export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
   open,
   onClose,

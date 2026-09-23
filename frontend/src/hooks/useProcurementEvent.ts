@@ -4,9 +4,7 @@ import { toast } from 'sonner';
 import { recordProcurementEvent } from '@/api/procurementEventApi';
 import type { RecordProcurementEventRequest, ChainEventResponse } from '@/types/procurementEvent';
 
-/**
- * Kết quả trả về từ hook useProcurementEvent
- */
+/** Kết quả trả về từ hook useProcurementEvent */
 interface UseProcurementEventResult {
   data: ChainEventResponse | null;
   isLoading: boolean;
@@ -15,9 +13,7 @@ interface UseProcurementEventResult {
   reset: () => void;
 }
 
-/**
- * Hook quản lý trạng thái và gửi yêu cầu ghi nhận sự kiện thu mua
- */
+/** Hook quản lý trạng thái và gửi yêu cầu ghi nhận sự kiện thu mua */
 export const useProcurementEvent = (): UseProcurementEventResult => {
   const [data, setData] = useState<ChainEventResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);

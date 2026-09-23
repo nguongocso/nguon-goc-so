@@ -26,9 +26,7 @@ export interface WarehouseReceiptCreateDialogProps {
   onCreated: () => void;
 }
 
-/**
- * Hộp thoại tra cứu mã truy xuất và xác nhận ghi nhận nhập kho.
- */
+/** Hộp thoại tra cứu mã truy xuất và xác nhận ghi nhận nhập kho. */
 export function WarehouseReceiptCreateDialog({
   open,
   onOpenChange,

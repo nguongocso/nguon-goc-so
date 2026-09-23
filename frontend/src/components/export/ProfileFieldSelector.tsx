@@ -37,10 +37,7 @@ export const getGroupKey = (g: FieldGroupDefinition): string =>
 export const getGroupLabel = (g: FieldGroupDefinition): string =>
   g.groupLabel || getGroupKey(g);
 
-/**
- * Component lựa chọn các trường dữ liệu cho mẫu hồ sơ xuất khẩu.
- * Cho phép người dùng bật/tắt các trường tùy chọn, cố định trường bắt buộc theo QTN-11.
- */
+/** Chọn trường dữ liệu cho mẫu hồ sơ và giữ cố định các trường bắt buộc theo QTN-11. */
 export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
   availableGroups,
   selectedFields,

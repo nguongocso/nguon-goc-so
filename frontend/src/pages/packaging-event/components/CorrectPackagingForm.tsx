@@ -14,9 +14,7 @@ import { LocationPicker } from '@/pages/packaging-event/components/LocationPicke
 import { Button } from '@/components/ui/button';
 import { getLocalDateString } from '@/utils/dateTime';
 
-/**
- * Biểu mẫu đính chính thông tin sự kiện đóng gói
- */
+/** Biểu mẫu đính chính thông tin sự kiện đóng gói */
 export function CorrectPackagingForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -107,7 +105,6 @@ export function CorrectPackagingForm() {
         </CardContent>
         <CardFooter className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => navigate(-1)}>Hủy</Button>
-          {/* CHANGED: thêm variant="edit" */}
           <Button type="submit" disabled={isSubmitting} variant="edit">
             {isSubmitting ? 'Đang xử lý...' : 'Đính chính'}
           </Button>

@@ -1,9 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DossierPreviewDialog } from '../DossierPreviewDialog';
-import * as dossierApi from '@/api/dossierApi';
-import * as exportApi from '@/api/exportApi';
-import * as profileTemplateApi from '@/api/profileTemplateApi';
+import { exportDossier } from '@/api/dossierApi';
+import { exportShipmentWithTemplate } from '@/api/exportApi';
+import { getOpenDataPreview } from '@/api/profileTemplateApi';
 
 vi.mock('@/api/dossierApi', () => ({
   exportDossier: vi.fn(),
@@ -26,7 +26,7 @@ describe('DossierPreviewDialog Component Tests', () => {
 
   it('renders PDF preview with iframe when activeFormat is pdf', async () => {
     const mockPdfBlob = new Blob(['%PDF-1.4 mock content'], { type: 'application/pdf' });
-    vi.mocked(dossierApi.exportDossier).mockResolvedValue(mockPdfBlob);
+    vi.mocked(exportDossier).mockResolvedValue(mockPdfBlob);
 
     render(
       <DossierPreviewDialog
@@ -39,7 +39,7 @@ describe('DossierPreviewDialog Component Tests', () => {
     );
 
     expect(await screen.findByTitle('Bản in PDF hồ sơ truy xuất')).toBeInTheDocument();
-    expect(dossierApi.exportDossier).toHaveBeenCalledWith('ship-100', undefined);
+    expect(exportDossier).toHaveBeenCalledWith('ship-100', undefined);
     expect(global.URL.createObjectURL).toHaveBeenCalledWith(mockPdfBlob);
   });
 
@@ -49,7 +49,7 @@ describe('DossierPreviewDialog Component Tests', () => {
       shipmentName: 'Lô dâu tây Đà Lạt',
       status: 'ACTIVATED',
     };
-    vi.mocked(profileTemplateApi.getOpenDataPreview).mockResolvedValue(mockJsonData);
+    vi.mocked(getOpenDataPreview).mockResolvedValue(mockJsonData);
 
     render(
       <DossierPreviewDialog
@@ -63,13 +63,13 @@ describe('DossierPreviewDialog Component Tests', () => {
 
     expect(await screen.findByText(/application\/json/i)).toBeInTheDocument();
     expect(await screen.findByText(/"status": "ACTIVATED"/i)).toBeInTheDocument();
-    expect(profileTemplateApi.getOpenDataPreview).toHaveBeenCalledWith('ship-100', undefined);
+    expect(getOpenDataPreview).toHaveBeenCalledWith('ship-100', undefined);
   });
 
   it('renders CSV preview table when activeFormat is csv', async () => {
     const csvContent = '# THÔNG TIN CHUNG\nSTT,Trường dữ liệu,Giá trị\n1,Mã lô,LO-001\n';
     const mockCsvBlob = new Blob([csvContent], { type: 'text/csv' });
-    vi.mocked(exportApi.exportShipmentWithTemplate).mockResolvedValue(mockCsvBlob);
+    vi.mocked(exportShipmentWithTemplate).mockResolvedValue(mockCsvBlob);
 
     render(
       <DossierPreviewDialog
@@ -84,11 +84,11 @@ describe('DossierPreviewDialog Component Tests', () => {
     expect(await screen.findByText('THÔNG TIN CHUNG')).toBeInTheDocument();
     expect(screen.getByText('Trường dữ liệu')).toBeInTheDocument();
     expect(screen.getByText('LO-001')).toBeInTheDocument();
-    expect(exportApi.exportShipmentWithTemplate).toHaveBeenCalledWith('ship-100', undefined, 'csv');
+    expect(exportShipmentWithTemplate).toHaveBeenCalledWith('ship-100', undefined, 'csv');
   });
 
   it('displays error message when API call fails', async () => {
-    vi.mocked(dossierApi.exportDossier).mockRejectedValue(new Error('Lỗi kết nối máy chủ'));
+    vi.mocked(exportDossier).mockRejectedValue(new Error('Lỗi kết nối máy chủ'));
 
     render(
       <DossierPreviewDialog
@@ -106,7 +106,7 @@ describe('DossierPreviewDialog Component Tests', () => {
 
   it('cleans up object URL when modal is closed or unmounted', async () => {
     const mockPdfBlob = new Blob(['%PDF-1.4 mock content'], { type: 'application/pdf' });
-    vi.mocked(dossierApi.exportDossier).mockResolvedValue(mockPdfBlob);
+    vi.mocked(exportDossier).mockResolvedValue(mockPdfBlob);
 
     const { unmount } = render(
       <DossierPreviewDialog

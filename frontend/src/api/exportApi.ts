@@ -2,9 +2,7 @@ import { isAxiosError } from 'axios';
 import apiClient from './axiosConfig';
 import type { ExportOpenDataRequest } from '@/types/export';
 
-/**
- * Cấu trúc bao bọc ApiResult trả về từ backend Spring Boot.
- */
+/** Cấu trúc bao bọc ApiResult trả về từ backend Spring Boot. */
 interface ApiResult<T> {
   code?: number;
   status?: string;
@@ -12,9 +10,7 @@ interface ApiResult<T> {
   message?: string;
 }
 
-/**
- * Trích xuất an toàn thuộc tính data từ đối tượng ApiResult hoặc chính payload thô.
- */
+/** Trích xuất an toàn thuộc tính data từ đối tượng ApiResult hoặc chính payload thô. */
 function extractData<T>(resData: ApiResult<T> | T): T {
   if (resData && typeof resData === 'object' && 'data' in (resData as Record<string, unknown>)) {
     return (resData as ApiResult<T>).data;
@@ -22,12 +18,7 @@ function extractData<T>(resData: ApiResult<T> | T): T {
   return resData as T;
 }
 
-/**
- * Kết xuất dữ liệu mở dưới dạng tệp tin nhị phân (Blob).
- *
- * @param data Tham số lọc kết xuất dữ liệu mở.
- * @returns Promise chứa dữ liệu nhị phân của tệp kết xuất (JSON, CSV hoặc XML).
- */
+/** Kết xuất dữ liệu mở dưới dạng tệp tin nhị phân (Blob). */
 export const exportOpenData = async (
   data: ExportOpenDataRequest,
 ): Promise<Blob> => {
@@ -37,13 +28,7 @@ export const exportOpenData = async (
   return response.data;
 };
 
-/**
- * Lấy dữ liệu xem trước của hồ sơ xuất theo mẫu.
- *
- * @param shipmentId Mã định danh lô hàng cần xem trước.
- * @param templateId Mã mẫu hồ sơ áp dụng (tùy chọn).
- * @returns Promise chứa dữ liệu xem trước dạng JSON object.
- */
+/** Lấy dữ liệu xem trước của hồ sơ xuất theo mẫu. */
 export const getExportPreview = async (
   shipmentId: string,
   templateId?: string,
@@ -59,14 +44,7 @@ export const getExportPreview = async (
   return extractData(response.data);
 };
 
-/**
- * Tải tệp hồ sơ xuất theo mẫu đối tác định dạng JSON, CSV hoặc PDF.
- *
- * @param shipmentId Mã định danh lô hàng cần xuất.
- * @param templateId Mã mẫu hồ sơ áp dụng.
- * @param format Định dạng tệp xuất ('json' | 'csv' | 'pdf'). Mặc định là 'json'.
- * @returns Promise chứa dữ liệu Blob của tệp xuất.
- */
+/** Tải tệp hồ sơ xuất theo mẫu đối tác định dạng JSON, CSV hoặc PDF. */
 export const exportShipmentWithTemplate = async (
   shipmentId: string,
   templateId?: string,

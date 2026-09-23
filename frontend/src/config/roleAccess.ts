@@ -1,16 +1,9 @@
-/**
- * Định nghĩa vai trò người dùng và ma trận phân quyền truy cập chức năng trong hệ thống.
- * Cung cấp các tiện ích kiểm tra vai trò và tra cứu nhãn hiển thị vai trò.
- */
+/** Định nghĩa vai trò và ma trận quyền truy cập chức năng. */
 
-/**
- * Mã định danh vai trò người dùng đã xác thực (VT-01 đến VT-05).
- */
+/** Mã định danh vai trò người dùng đã xác thực (VT-01 đến VT-05). */
 export type AuthenticatedRoleCode = 'VT-01' | 'VT-02' | 'VT-03' | 'VT-04' | 'VT-05';
 
-/**
- * Danh sách toàn bộ các vai trò người dùng đã xác thực.
- */
+/** Danh sách toàn bộ các vai trò người dùng đã xác thực. */
 export const AUTHENTICATED_ROLE_CODES: AuthenticatedRoleCode[] = [
   'VT-01',
   'VT-02',
@@ -19,9 +12,7 @@ export const AUTHENTICATED_ROLE_CODES: AuthenticatedRoleCode[] = [
   'VT-05',
 ];
 
-/**
- * Ma trận phân quyền truy cập màn hình và chức năng theo vai trò người dùng.
- */
+/** Ma trận phân quyền truy cập màn hình và chức năng theo vai trò người dùng. */
 export const ROLE_ACCESS = {
   dashboard: AUTHENTICATED_ROLE_CODES,
   organizationCreate: ['VT-01'],
@@ -137,13 +128,7 @@ export const ROLE_ACCESS = {
   userProfile: AUTHENTICATED_ROLE_CODES,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;
 
-/**
- * Kiểm tra người dùng có ít nhất một vai trò thuộc danh sách vai trò cho phép hay không.
- *
- * @param userRole Mã vai trò hiện tại của người dùng.
- * @param allowedRoles Danh sách các mã vai trò được phép truy cập.
- * @returns `true` nếu người dùng có vai trò hợp lệ trong danh sách cho phép, ngược lại `false`.
- */
+/** Kiểm tra người dùng có ít nhất một vai trò thuộc danh sách vai trò cho phép hay không. */
 export function hasAnyRole(
   userRole: string | undefined,
   allowedRoles: readonly AuthenticatedRoleCode[],
@@ -152,12 +137,7 @@ export function hasAnyRole(
   return (allowedRoles as readonly string[]).includes(userRole);
 }
 
-/**
- * Lấy nhãn mô tả tiếng Việt tương ứng cho mã vai trò.
- *
- * @param roleCode Mã vai trò cần tra cứu (ví dụ: 'VT-01', 'VT-02'...).
- * @returns Tên hiển thị tiếng Việt của vai trò hoặc 'Người dùng' nếu không tìm thấy.
- */
+/** Lấy nhãn mô tả tiếng Việt tương ứng cho mã vai trò. */
 export function getRoleLabel(roleCode?: string): string {
   const map: Record<string, string> = {
     'VT-01': 'Quản trị viên hệ thống',

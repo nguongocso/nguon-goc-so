@@ -25,9 +25,7 @@ export interface DossierPreviewHeaderProps {
   setIsFullscreen: (fn: (prev: boolean) => boolean) => void;
 }
 
-/**
- * Hiển thị tiêu đề, đối tượng, định dạng và chế độ toàn màn hình.
- */
+/** Hiển thị tiêu đề, đối tượng, định dạng và chế độ toàn màn hình. */
 export const DossierPreviewHeader: React.FC<DossierPreviewHeaderProps> = ({
   format,
   setFormat,

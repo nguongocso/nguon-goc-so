@@ -1,10 +1,6 @@
-/**
- * Định nghĩa kiểu dữ liệu cho chức năng Xuất dữ liệu mở và Hồ sơ truy xuất (NCL-07-CN-007).
- */
+/** Định nghĩa kiểu dữ liệu cho chức năng Xuất dữ liệu mở và Hồ sơ truy xuất (NCL-07-CN-007). */
 
-/**
- * Tham số yêu cầu kết xuất dữ liệu mở theo bộ lọc.
- */
+/** Tham số yêu cầu kết xuất dữ liệu mở theo bộ lọc. */
 export interface ExportOpenDataRequest {
   organizationId?: string;
   fromDate?: string; // ISO datetime
@@ -18,9 +14,7 @@ export interface ExportOpenDataRequest {
   templateId?: string;
 }
 
-/**
- * Cấu trúc phản hồi kết quả xuất dữ liệu mở.
- */
+/** Cấu trúc phản hồi kết quả xuất dữ liệu mở. */
 export interface ExportOpenDataResponse {
   success: boolean;
   status: number;

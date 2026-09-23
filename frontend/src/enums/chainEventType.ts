@@ -1,7 +1,4 @@
-/**
- * Tập hợp các loại sự kiện trong chuỗi cung ứng truy xuất nguồn gốc nông sản.
- * Sử dụng object `as const` thay cho enum để tương thích với erasableSyntaxOnly.
- */
+/** Định nghĩa loại sự kiện chuỗi cung ứng bằng object hằng. */
 export const ChainEventType = {
   HARVEST: 'HARVEST',
   PREPROCESSING: 'PREPROCESSING',

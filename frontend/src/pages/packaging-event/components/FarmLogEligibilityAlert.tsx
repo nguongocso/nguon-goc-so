@@ -31,9 +31,7 @@ export interface FarmLogEligibilityAlertProps {
   onRetry?: () => void;
 }
 
-/**
- * Component hiển thị thông báo trạng thái kiểm tra mốc canh tác cho lô sản xuất
- */
+/** Component hiển thị thông báo trạng thái kiểm tra mốc canh tác cho lô sản xuất */
 export function FarmLogEligibilityAlert({
   status,
   productionLotName,

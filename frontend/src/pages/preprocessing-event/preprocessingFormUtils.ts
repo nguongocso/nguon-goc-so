@@ -11,9 +11,7 @@ export const MAX_PREPROCESSING_IMAGES = 5;
 /** Giới hạn dung lượng tối đa cho mỗi tệp ảnh (5 MB) */
 export const MAX_PREPROCESSING_IMAGE_SIZE = 5 * 1024 * 1024;
 
-/**
- * Chuyển đổi File ảnh sang chuỗi base64 DataURL
- */
+/** Chuyển đổi File ảnh sang chuỗi base64 DataURL */
 export const fileToBase64 = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -22,9 +20,7 @@ export const fileToBase64 = (file: File): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
-/**
- * Trích xuất thông báo lỗi phù hợp từ phản hồi API hoặc lỗi mạng
- */
+/** Trích xuất thông báo lỗi phù hợp từ phản hồi API hoặc lỗi mạng */
 export const getPreprocessingErrorMessage = (
   error: unknown,
   fallback: string,
@@ -61,9 +57,7 @@ export const getPreprocessingErrorMessage = (
   return fallback;
 };
 
-/**
- * Chuẩn hóa chuỗi văn bản không bắt buộc (chuyển chuỗi rỗng sau trim thành undefined)
- */
+/** Chuẩn hóa chuỗi văn bản không bắt buộc (chuyển chuỗi rỗng sau trim thành undefined) */
 export const toOptionalText = (value?: string): string | undefined => {
   const normalized = value?.trim();
   return normalized ? normalized : undefined;

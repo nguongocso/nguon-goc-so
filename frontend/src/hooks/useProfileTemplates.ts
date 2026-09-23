@@ -15,12 +15,7 @@ import type {
   UpdateProfileTemplateRequest,
 } from '@/types/profileTemplate';
 
-/**
- * Custom hook quản lý danh sách, danh mục trường và thao tác CRUD cho mẫu hồ sơ truy xuất.
- *
- * @param organizationId Mã định danh tổ chức sở hữu mẫu hồ sơ.
- * @returns Trạng thái dữ liệu, cờ loading, error và các hàm thao tác mẫu hồ sơ.
- */
+/** Custom hook quản lý danh sách, danh mục trường và thao tác CRUD cho mẫu hồ sơ truy xuất. */
 export const useProfileTemplates = (organizationId?: string) => {
   const [templates, setTemplates] = useState<ProfileTemplate[]>([]);
   const [availableFields, setAvailableFields] = useState<FieldGroupDefinition[]>([]);

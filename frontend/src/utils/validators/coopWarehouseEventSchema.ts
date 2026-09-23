@@ -1,8 +1,6 @@
 import { z } from 'zod';
 
-/**
- * Schema xác thực dữ liệu sự kiện nhập kho HTX
- */
+/** Schema xác thực dữ liệu sự kiện nhập kho HTX */
 export const recordWarehouseEntrySchema = z.object({
   shipmentId: z.string().min(1, 'Vui lòng chọn lô hàng'),
   entryTime: z.string().min(1, 'Vui lòng nhập thời điểm nhập kho'),
@@ -24,14 +22,10 @@ export const recordWarehouseEntrySchema = z.object({
   longitude: z.number().optional(),
 });
 
-/**
- * Kiểu dữ liệu form ghi nhận nhập kho HTX
- */
+/** Kiểu dữ liệu form ghi nhận nhập kho HTX */
 export type RecordWarehouseEntryFormValues = z.infer<typeof recordWarehouseEntrySchema>;
 
-/**
- * Schema xác thực dữ liệu sự kiện xuất kho HTX
- */
+/** Schema xác thực dữ liệu sự kiện xuất kho HTX */
 export const recordWarehouseExitSchema = z.object({
   shipmentId: z.string().min(1, 'Vui lòng chọn lô hàng'),
   exitTime: z.string().min(1, 'Vui lòng nhập thời điểm xuất kho'),
@@ -49,7 +43,5 @@ export const recordWarehouseExitSchema = z.object({
   longitude: z.number().optional(),
 });
 
-/**
- * Kiểu dữ liệu form ghi nhận xuất kho HTX
- */
+/** Kiểu dữ liệu form ghi nhận xuất kho HTX */
 export type RecordWarehouseExitFormValues = z.infer<typeof recordWarehouseExitSchema>;

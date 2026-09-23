@@ -1,6 +1,4 @@
-/**
- * Payload yêu cầu ghi nhận sự kiện vận chuyển lô hàng.
- */
+/** Payload yêu cầu ghi nhận sự kiện vận chuyển lô hàng. */
 export interface RecordTransportEventPayload {
   codeValue: string;
   fromLocation: string;
@@ -8,17 +6,13 @@ export interface RecordTransportEventPayload {
   transportTime: string;
 }
 
-/**
- * Cấu trúc dữ liệu chi tiết của sự kiện vận chuyển.
- */
+/** Cấu trúc dữ liệu chi tiết của sự kiện vận chuyển. */
 export interface TransportEventData {
   fromLocation: string;
   toLocation: string;
 }
 
-/**
- * Đối tượng sự kiện vận chuyển trong chuỗi cung ứng.
- */
+/** Đối tượng sự kiện vận chuyển trong chuỗi cung ứng. */
 export interface TransportEvent {
   id: string;
   shipmentId: string;
@@ -29,9 +23,7 @@ export interface TransportEvent {
   createdAt: string;
 }
 
-/**
- * Phản hồi chi tiết sau khi ghi nhận sự kiện vận chuyển.
- */
+/** Phản hồi chi tiết sau khi ghi nhận sự kiện vận chuyển. */
 export interface TransportEventResponse {
   success: boolean;
   status: number;

@@ -26,10 +26,7 @@ const profileTemplateSchema = z.object({
   isDefault: z.boolean(),
 });
 
-/**
- * Trang tạo mới hoặc chỉnh sửa mẫu hồ sơ truy xuất nguồn gốc theo đối tác.
- * Cho phép thiết lập tên, đối tác, trạng thái mặc định và lựa chọn các trường dữ liệu.
- */
+/** Tạo mới hoặc chỉnh sửa mẫu hồ sơ truy xuất theo đối tác. */
 export const ProfileTemplateFormPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();

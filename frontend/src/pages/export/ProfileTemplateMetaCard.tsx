@@ -34,9 +34,7 @@ export interface ProfileTemplateMetaCardProps {
   mandatoryValidationErr: string | null;
 }
 
-/**
- * Nhập tên mẫu, đối tác áp dụng và trạng thái mẫu mặc định.
- */
+/** Nhập tên mẫu, đối tác áp dụng và trạng thái mẫu mặc định. */
 export const ProfileTemplateMetaCard: React.FC<ProfileTemplateMetaCardProps> = ({
   control,
   setValue,

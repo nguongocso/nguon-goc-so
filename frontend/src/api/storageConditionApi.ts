@@ -1,10 +1,7 @@
 import apiClient from './axiosConfig';
 import type { StorageConditionRequest, StorageConditionResponse } from '@/types/storageCondition';
 
-/**
- * Ghi nhận điều kiện bảo quản / nhiệt độ, độ ẩm của lô hàng
- * POST /api/v1/chain-events/storage-condition
- */
+/** Ghi nhận điều kiện bảo quản / nhiệt độ, độ ẩm của lô hàng POST /api/v1/chain-events/storage-condition */
 export const recordStorageCondition = async (
   data: StorageConditionRequest
 ): Promise<StorageConditionResponse> => {

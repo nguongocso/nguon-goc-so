@@ -13,9 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-/**
- * Chi tiết lỗi thiếu sự kiện hoặc chứng từ theo quy định QTN-11 của từng lô hàng.
- */
+/** Chi tiết lỗi thiếu sự kiện hoặc chứng từ theo quy định QTN-11 của từng lô hàng. */
 export interface Qtn11ErrorDetail {
   id?: string;
   name?: string;
@@ -25,22 +23,14 @@ export interface Qtn11ErrorDetail {
   missingDocDetails?: string[];
 }
 
-/**
- * Thuộc tính của modal thông báo lỗi không đủ điều kiện xuất dữ liệu (QTN-11).
- */
+/** Thuộc tính của modal thông báo lỗi không đủ điều kiện xuất dữ liệu (QTN-11). */
 interface Qtn11ErrorModalProps {
   open: boolean;
   onClose: () => void;
   errors: Qtn11ErrorDetail[];
 }
 
-/**
- * Hiển thị các lô hàng vi phạm điều kiện xuất dữ liệu theo QTN-11
- * (thiếu sự kiện chuỗi cung ứng hoặc thiếu chứng từ / nhật ký nông hộ bắt buộc).
- *
- * @param props Các thuộc tính kiểm soát hiển thị và danh sách lỗi QTN-11.
- * @returns Khối JSX của Dialog cảnh báo vi phạm điều kiện xuất.
- */
+/** Hiển thị các lô hàng chưa đủ điều kiện xuất dữ liệu theo QTN-11. */
 export const Qtn11ErrorModal: React.FC<Qtn11ErrorModalProps> = ({
   open,
   onClose,

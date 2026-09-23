@@ -11,9 +11,7 @@ import { verifyChainIntegrity } from '@/api/eventChainVerificationApi';
 import { HelpButton } from '@/components/help/HelpButton';
 import type { ChainVerificationResponse } from '@/types/eventChainVerification';
 
-/**
- * Trang kiểm chứng tính toàn vẹn chuỗi băm các sự kiện của lô hàng
- */
+/** Trang kiểm chứng tính toàn vẹn chuỗi băm các sự kiện của lô hàng */
 export default function EventChainVerificationPage() {
   const [shipmentId, setShipmentId] = useState('');
   const [loading, setLoading] = useState(false);

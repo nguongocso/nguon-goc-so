@@ -13,9 +13,7 @@ export interface PreprocessingImagesSectionProps {
   onRemoveImage: (index: number) => void;
 }
 
-/**
- * Component hiển thị khu vực tải lên và xem trước ảnh thực địa cho sự kiện sơ chế
- */
+/** Component hiển thị khu vực tải lên và xem trước ảnh thực địa cho sự kiện sơ chế */
 export function PreprocessingImagesSection({
   imageFiles,
   imagePreviews,

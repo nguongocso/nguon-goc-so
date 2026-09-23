@@ -14,9 +14,7 @@ export interface ProfileTemplateTableRowProps {
   onDelete: (template: ProfileTemplate) => void;
 }
 
-/**
- * Component hiển thị một hàng trong bảng danh sách mẫu hồ sơ truy xuất.
- */
+/** Component hiển thị một hàng trong bảng danh sách mẫu hồ sơ truy xuất. */
 export const ProfileTemplateTableRow: React.FC<ProfileTemplateTableRowProps> = ({
   template,
   index,

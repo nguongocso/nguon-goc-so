@@ -1,18 +1,14 @@
 import { isAxiosError } from 'axios';
 import apiClient from './axiosConfig';
 
-/**
- * Kết quả kiểm tra tính đầy đủ hồ sơ của lô hàng theo quy định QTN-11.
- */
+/** Kết quả kiểm tra tính đầy đủ hồ sơ của lô hàng theo quy định QTN-11. */
 export interface DossierCheckResponse {
   shipmentId: string;
   eligible: boolean;
   missingDocuments: string[];
 }
 
-/**
- * Trích xuất thông điệp lỗi dạng văn bản từ phản hồi Blob JSON khi xảy ra lỗi tải tệp.
- */
+/** Trích xuất thông điệp lỗi dạng văn bản từ phản hồi Blob JSON khi xảy ra lỗi tải tệp. */
 async function extractBlobErrorMessage(
   error: unknown,
   fallbackMessage: string,
@@ -34,12 +30,7 @@ async function extractBlobErrorMessage(
   return fallbackMessage;
 }
 
-/**
- * Kiểm tra điều kiện xuất hồ sơ của một lô hàng theo quy định QTN-11.
- *
- * @param shipmentId Mã định danh lô hàng.
- * @returns Kết quả kiểm tra tính hợp lệ và danh sách chứng từ thiếu nếu có.
- */
+/** Kiểm tra điều kiện xuất hồ sơ của một lô hàng theo quy định QTN-11. */
 export const checkDossierEligibility = async (
   shipmentId: string,
 ): Promise<DossierCheckResponse> => {
@@ -71,13 +62,7 @@ export const checkDossierEligibility = async (
   }
 };
 
-/**
- * Xuất và tải về tệp hồ sơ truy xuất nguồn gốc định dạng PDF.
- *
- * @param shipmentId Mã định danh lô hàng.
- * @param templateId Mã mẫu hồ sơ áp dụng.
- * @returns Dữ liệu Blob PDF của hồ sơ.
- */
+/** Xuất và tải về tệp hồ sơ truy xuất nguồn gốc định dạng PDF. */
 export const exportDossier = async (
   shipmentId: string,
   templateId?: string,
@@ -150,15 +135,7 @@ export interface Gs1DossierExportResponse {
   schemaDescription: string;
 }
 
-/**
- * Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng (JSON hoặc XML).
- * Dành cho VT-02 (Quản lý HTX) và VT-04 (Doanh nghiệp thu mua).
- *
- * @param shipmentId Mã định danh lô hàng.
- * @param format Định dạng 'json' | 'xml' (mặc định 'json').
- * @param includeMapping Có kèm bảng ánh xạ schema hay không.
- * @returns Đối tượng chứa dữ liệu Blob và tên tệp tin đề xuất.
- */
+/** Xuất hồ sơ GS1 mô phỏng dạng JSON hoặc XML cho vai trò VT-02 và VT-04. */
 export const exportGs1Dossier = async (
   shipmentId: string,
   format: 'json' | 'xml' = 'json',
@@ -231,12 +208,7 @@ export interface BatchDossierHistoryDto {
   templateId?: string | null;
 }
 
-/**
- * Kiểm tra điều kiện xuất hồ sơ hàng loạt cho danh sách lô theo quy định QTN-11 và QTN-01.
- *
- * @param shipmentIds Danh sách ID các lô hàng cần kiểm tra.
- * @returns Báo cáo số lượng và danh sách các lô đủ và không đủ điều kiện.
- */
+/** Kiểm tra điều kiện xuất hồ sơ hàng loạt cho danh sách lô theo quy định QTN-11 và QTN-01. */
 export const checkBatchDossierEligibility = async (
   shipmentIds: string[],
 ): Promise<BatchDossierCheckResponse> => {
@@ -247,12 +219,7 @@ export const checkBatchDossierEligibility = async (
   return response.data.data;
 };
 
-/**
- * Xuất bộ hồ sơ PDF hợp nhất cho các lô đủ điều kiện trong danh sách chọn.
- *
- * @param request Dữ liệu yêu cầu xuất bộ hồ sơ hàng loạt.
- * @returns Dữ liệu Blob PDF của bộ hồ sơ hợp nhất.
- */
+/** Xuất bộ hồ sơ PDF hợp nhất cho các lô đủ điều kiện trong danh sách chọn. */
 export const exportBatchDossier = async (
   request: BatchDossierExportRequest,
 ): Promise<Blob> => {
@@ -271,11 +238,7 @@ export const exportBatchDossier = async (
   }
 };
 
-/**
- * Lấy lịch sử xuất bộ hồ sơ truy xuất hàng loạt của tổ chức.
- *
- * @returns Danh sách lịch sử các lần xuất bộ hồ sơ truy xuất.
- */
+/** Lấy lịch sử xuất bộ hồ sơ truy xuất hàng loạt của tổ chức. */
 export const getBatchDossierExportHistory = async (): Promise<BatchDossierHistoryDto[]> => {
   const response = await apiClient.get<{ data: BatchDossierHistoryDto[] }>(
     '/shipments/dossiers/batch-history',

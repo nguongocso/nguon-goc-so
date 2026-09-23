@@ -6,9 +6,7 @@ export interface DossierPdfPreviewProps {
   pdfUrl: string | null;
 }
 
-/**
- * Component hiển thị bản in PDF hồ sơ truy xuất nguồn gốc trong iframe.
- */
+/** Component hiển thị bản in PDF hồ sơ truy xuất nguồn gốc trong iframe. */
 export const DossierPdfPreview: React.FC<DossierPdfPreviewProps> = ({ pdfUrl }) => {
   return (
     <div

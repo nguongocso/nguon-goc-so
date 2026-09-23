@@ -1,10 +1,6 @@
-/**
- * Định nghĩa kiểu dữ liệu cho Mẫu hồ sơ truy xuất theo đối tác (NCL-07-CN-007).
- */
+/** Định nghĩa kiểu dữ liệu cho Mẫu hồ sơ truy xuất theo đối tác (NCL-07-CN-007). */
 
-/**
- * Chi tiết cấu hình một trường dữ liệu trong mẫu hồ sơ.
- */
+/** Chi tiết cấu hình một trường dữ liệu trong mẫu hồ sơ. */
 export interface ProfileTemplateField {
   id?: string;
   fieldKey: string;
@@ -13,9 +9,7 @@ export interface ProfileTemplateField {
   sortOrder?: number;
 }
 
-/**
- * Đối tượng mẫu hồ sơ truy xuất của tổ chức.
- */
+/** Đối tượng mẫu hồ sơ truy xuất của tổ chức. */
 export interface ProfileTemplate {
   id: string;
   organizationId: string;
@@ -29,9 +23,7 @@ export interface ProfileTemplate {
   createdBy?: string;
 }
 
-/**
- * Mục trường được chọn khi tạo hoặc cập nhật mẫu hồ sơ.
- */
+/** Mục trường được chọn khi tạo hoặc cập nhật mẫu hồ sơ. */
 export interface FieldSelectionItem {
   fieldKey: string;
   fieldGroup: string;
@@ -39,9 +31,7 @@ export interface FieldSelectionItem {
   sortOrder?: number;
 }
 
-/**
- * Dữ liệu yêu cầu tạo mới mẫu hồ sơ truy xuất.
- */
+/** Dữ liệu yêu cầu tạo mới mẫu hồ sơ truy xuất. */
 export interface CreateProfileTemplateRequest {
   name: string;
   partnerName?: string;
@@ -49,9 +39,7 @@ export interface CreateProfileTemplateRequest {
   selectedFields: FieldSelectionItem[];
 }
 
-/**
- * Dữ liệu yêu cầu cập nhật mẫu hồ sơ truy xuất.
- */
+/** Dữ liệu yêu cầu cập nhật mẫu hồ sơ truy xuất. */
 export interface UpdateProfileTemplateRequest {
   name: string;
   partnerName?: string;
@@ -59,9 +47,7 @@ export interface UpdateProfileTemplateRequest {
   selectedFields: FieldSelectionItem[];
 }
 
-/**
- * Thông tin một trường dữ liệu khả dụng trong catalog hệ thống.
- */
+/** Thông tin một trường dữ liệu khả dụng trong catalog hệ thống. */
 export interface AvailableFieldItem {
   fieldKey: string;
   displayName: string;
@@ -73,9 +59,7 @@ export interface AvailableFieldItem {
   isMandatory: boolean;
 }
 
-/**
- * Định nghĩa một nhóm trường dữ liệu khả dụng.
- */
+/** Định nghĩa một nhóm trường dữ liệu khả dụng. */
 export interface FieldGroupDefinition {
   fieldGroup: string;
   groupLabel: string;

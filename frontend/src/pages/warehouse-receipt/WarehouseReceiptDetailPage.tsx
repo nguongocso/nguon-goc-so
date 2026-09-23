@@ -12,9 +12,7 @@ import {
   formatWarehouseReceiptDateTime,
 } from './warehouseReceiptFormatters';
 
-/**
- * Trang chi tiết sự kiện nhập kho và đối chiếu số lượng khai báo, thực nhận.
- */
+/** Trang chi tiết sự kiện nhập kho và đối chiếu số lượng khai báo, thực nhận. */
 export default function WarehouseReceiptDetailPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const { detail, isLoadingDetail, error, fetchDetail } = useWarehouseReceipt();

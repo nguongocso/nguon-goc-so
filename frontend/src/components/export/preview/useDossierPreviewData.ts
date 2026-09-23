@@ -13,9 +13,7 @@ export interface UseDossierPreviewDataParams {
   initialData?: Record<string, unknown> | null;
 }
 
-/**
- * Hook quản lý việc tải và lưu trữ dữ liệu xem trước hồ sơ theo định dạng PDF/CSV/JSON.
- */
+/** Hook quản lý việc tải và lưu trữ dữ liệu xem trước hồ sơ theo định dạng PDF/CSV/JSON. */
 export function useDossierPreviewData({
   open,
   shipmentId,

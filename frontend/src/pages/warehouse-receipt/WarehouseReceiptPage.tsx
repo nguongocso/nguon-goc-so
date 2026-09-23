@@ -20,9 +20,7 @@ import {
 
 const PAGE_SIZE = 10;
 
-/**
- * Trang danh sách sự kiện nhập kho nông sản.
- */
+/** Trang danh sách sự kiện nhập kho nông sản. */
 export default function WarehouseReceiptPage() {
   const { list, isLoadingList, error, fetchList } = useWarehouseReceipt();
   const [createOpen, setCreateOpen] = useState(false);

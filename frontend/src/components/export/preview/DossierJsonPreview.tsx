@@ -6,9 +6,7 @@ export interface DossierJsonPreviewProps {
   jsonString: string;
 }
 
-/**
- * Component hiển thị cấu trúc dữ liệu JSON hồ sơ truy xuất nguồn gốc.
- */
+/** Component hiển thị cấu trúc dữ liệu JSON hồ sơ truy xuất nguồn gốc. */
 export const DossierJsonPreview: React.FC<DossierJsonPreviewProps> = ({ jsonString }) => {
   return (
     <div

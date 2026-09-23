@@ -9,9 +9,7 @@ export type ChainEventDataValue =
   | undefined
   | readonly (string | number | boolean | null)[];
 
-/**
- * Payload yêu cầu ghi nhận sự kiện từ ứng dụng di động (Mobile).
- */
+/** Payload yêu cầu ghi nhận sự kiện từ ứng dụng di động (Mobile). */
 export interface RecordMobileEventRequest {
   productionLotId: string;
   eventType: ChainEventType;
@@ -28,9 +26,7 @@ export interface RecordMobileEventRequest {
   };
 }
 
-/**
- * Dữ liệu phản hồi chi tiết của một sự kiện trong chuỗi cung ứng.
- */
+/** Dữ liệu phản hồi chi tiết của một sự kiện trong chuỗi cung ứng. */
 export interface ChainEventResponse {
   id: string;
   eventType: ChainEventType;

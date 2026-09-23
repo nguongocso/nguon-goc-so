@@ -20,9 +20,7 @@ export interface ExportOrganizationFilterProps {
   errorMessage?: string;
 }
 
-/**
- * Component lựa chọn tổ chức xuất dữ liệu dành riêng cho Quản trị viên hệ thống (VT-01).
- */
+/** Component lựa chọn tổ chức xuất dữ liệu dành riêng cho Quản trị viên hệ thống (VT-01). */
 export const ExportOrganizationFilter: React.FC<ExportOrganizationFilterProps> = ({
   control,
   organizations,

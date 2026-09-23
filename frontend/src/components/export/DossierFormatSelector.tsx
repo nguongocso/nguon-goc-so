@@ -12,9 +12,7 @@ export interface DossierFormatSelectorProps {
   disabled?: boolean;
 }
 
-/**
- * Component lựa chọn định dạng tệp xuất hồ sơ (PDF, JSON, CSV).
- */
+/** Component lựa chọn định dạng tệp xuất hồ sơ (PDF, JSON, CSV). */
 export const DossierFormatSelector: React.FC<DossierFormatSelectorProps> = ({
   selectedFormat,
   onSelectFormat,

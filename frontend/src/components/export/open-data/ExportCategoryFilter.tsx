@@ -25,9 +25,7 @@ export interface ExportCategoryFilterProps {
   errorMessage?: string;
 }
 
-/**
- * Component lựa chọn nhiều danh mục sản phẩm với giao diện badge trực quan và nút xóa nhanh.
- */
+/** Component lựa chọn nhiều danh mục sản phẩm với giao diện badge trực quan và nút xóa nhanh. */
 export const ExportCategoryFilter: React.FC<ExportCategoryFilterProps> = ({
   categories,
   control,

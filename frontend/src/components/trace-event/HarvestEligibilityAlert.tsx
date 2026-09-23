@@ -2,9 +2,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle2, Info, LoaderCircle } from 'lucide-react';
 import type { HarvestEligibilityResponse } from '@/types/farmLog';
 
-/**
- * Thuộc tính của component HarvestEligibilityAlert
- */
+/** Thuộc tính của component HarvestEligibilityAlert */
 interface HarvestEligibilityAlertProps {
   loading: boolean;
   eligibility: HarvestEligibilityResponse | null;
@@ -13,9 +11,7 @@ interface HarvestEligibilityAlertProps {
   selectedHarvestDate: string;
 }
 
-/**
- * Hiển thị cảnh báo và trạng thái kiểm tra thời gian cách ly thuốc BVTV trước khi thu hoạch
- */
+/** Hiển thị cảnh báo và trạng thái kiểm tra thời gian cách ly thuốc BVTV trước khi thu hoạch */
 export const HarvestEligibilityAlert = ({
   loading,
   eligibility,

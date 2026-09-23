@@ -12,9 +12,7 @@ export interface ExportFormatSectionProps {
   errorMessage?: string;
 }
 
-/**
- * Component lựa chọn định dạng tệp xuất dữ liệu mở (JSON, CSV, XML).
- */
+/** Component lựa chọn định dạng tệp xuất dữ liệu mở (JSON, CSV, XML). */
 export const ExportFormatSection: React.FC<ExportFormatSectionProps> = ({
   control,
   selectedFormat,

@@ -1,14 +1,6 @@
 import type { FieldSelectionItem } from '@/types/profileTemplate';
 
-/**
- * Xây dựng dữ liệu mẫu theo cấu trúc các trường đã chọn
- * để truyền vào DossierPreviewDialog khi người dùng bấm "Xem trước hồ sơ".
- *
- * @param templateName Tên mẫu hồ sơ đang nhập trên form.
- * @param isDefault Trạng thái đặt làm mặc định.
- * @param selectedFields Danh sách các trường được chọn.
- * @returns Đối tượng chứa dữ liệu xem trước phân cấp.
- */
+/** Xây dựng dữ liệu xem trước theo các trường đã chọn. */
 export function buildProfileTemplateMockData(
   templateName: string,
   isDefault: boolean,

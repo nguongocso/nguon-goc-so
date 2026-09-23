@@ -13,9 +13,7 @@ export interface ProfileFieldItemCardProps {
   onToggle: () => void;
 }
 
-/**
- * Component hiển thị từng thẻ trường dữ liệu hồ sơ (checkbox, nhãn, badge bắt buộc).
- */
+/** Component hiển thị từng thẻ trường dữ liệu hồ sơ (checkbox, nhãn, badge bắt buộc). */
 export const ProfileFieldItemCard: React.FC<ProfileFieldItemCardProps> = ({
   fieldKey,
   fieldLabel,

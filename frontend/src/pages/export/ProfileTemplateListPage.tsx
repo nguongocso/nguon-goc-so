@@ -18,10 +18,7 @@ import type { ProfileTemplate } from '@/types/profileTemplate';
 import { toast } from 'sonner';
 import { ProfileTemplateTableRow } from './ProfileTemplateTableRow';
 
-/**
- * Trang danh sách các mẫu hồ sơ truy xuất nguồn gốc theo đối tác của tổ chức HTX.
- * Cho phép tìm kiếm, xem chi tiết, điều hướng tạo mới hoặc xóa mẫu.
- */
+/** Quản lý danh sách mẫu hồ sơ truy xuất theo đối tác của tổ chức HTX. */
 export const ProfileTemplateListPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -70,7 +67,6 @@ export const ProfileTemplateListPage: React.FC = () => {
       await deleteTemplate(deleteTarget.id);
       setDeleteTarget(null);
     } catch {
-      // Error handled by hook
     } finally {
       setDeleting(false);
     }

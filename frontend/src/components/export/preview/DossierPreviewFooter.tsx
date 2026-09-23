@@ -25,9 +25,7 @@ export interface DossierPreviewFooterProps {
   onClose: () => void;
 }
 
-/**
- * Hiển thị bảo chứng và các thao tác của hộp thoại xem trước hồ sơ.
- */
+/** Hiển thị bảo chứng và các thao tác của hộp thoại xem trước hồ sơ. */
 export const DossierPreviewFooter: React.FC<DossierPreviewFooterProps> = ({
   format,
   pdfUrl,

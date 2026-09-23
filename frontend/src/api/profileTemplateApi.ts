@@ -9,9 +9,7 @@ import type {
 
 export type { ProfileTemplate };
 
-/**
- * Cấu trúc bao bọc chuẩn ApiResult từ backend Spring Boot.
- */
+/** Cấu trúc bao bọc chuẩn ApiResult từ backend Spring Boot. */
 interface ApiResult<T> {
   code?: number;
   status?: string;
@@ -19,9 +17,7 @@ interface ApiResult<T> {
   message?: string;
 }
 
-/**
- * Trích xuất an toàn thuộc tính data từ đối tượng ApiResult hoặc chính payload thô.
- */
+/** Trích xuất an toàn thuộc tính data từ đối tượng ApiResult hoặc chính payload thô. */
 function extractData<T>(resData: ApiResult<T> | T): T {
   if (resData && typeof resData === 'object' && 'data' in (resData as Record<string, unknown>)) {
     return (resData as ApiResult<T>).data;
@@ -29,12 +25,7 @@ function extractData<T>(resData: ApiResult<T> | T): T {
   return resData as T;
 }
 
-/**
- * Chuẩn hóa đối tượng ProfileTemplate đảm bảo trường isDefault luôn là boolean chính xác.
- *
- * @param template Đối tượng mẫu hồ sơ thô từ backend.
- * @returns Đối tượng ProfileTemplate đã được chuẩn hóa.
- */
+/** Chuẩn hóa đối tượng ProfileTemplate đảm bảo trường isDefault luôn là boolean chính xác. */
 export const normalizeProfileTemplate = (template: unknown): ProfileTemplate => {
   if (!template || typeof template !== 'object') {
     return template as ProfileTemplate;
@@ -47,12 +38,7 @@ export const normalizeProfileTemplate = (template: unknown): ProfileTemplate => 
   };
 };
 
-/**
- * Lấy danh mục các trường dữ liệu khả dụng theo nhóm và cờ bắt buộc QTN-11.
- *
- * @param organizationId Mã định danh tổ chức.
- * @returns Danh sách các nhóm trường dữ liệu khả dụng đã chuẩn hóa.
- */
+/** Lấy danh mục các trường dữ liệu khả dụng theo nhóm và cờ bắt buộc QTN-11. */
 export const getAvailableFields = async (
   organizationId: string,
 ): Promise<FieldGroupDefinition[]> => {
@@ -94,12 +80,7 @@ export const getAvailableFields = async (
   });
 };
 
-/**
- * Lấy danh sách các mẫu hồ sơ truy xuất của tổ chức.
- *
- * @param organizationId Mã định danh tổ chức.
- * @returns Danh sách mẫu hồ sơ truy xuất.
- */
+/** Lấy danh sách các mẫu hồ sơ truy xuất của tổ chức. */
 export const getProfileTemplates = async (
   organizationId: string,
 ): Promise<ProfileTemplate[]> => {
@@ -110,13 +91,7 @@ export const getProfileTemplates = async (
   return Array.isArray(data) ? data.map(normalizeProfileTemplate) : [];
 };
 
-/**
- * Lấy thông tin chi tiết một mẫu hồ sơ theo ID.
- *
- * @param organizationId Mã định danh tổ chức.
- * @param templateId Mã định danh mẫu hồ sơ.
- * @returns Chi tiết mẫu hồ sơ đã được chuẩn hóa.
- */
+/** Lấy thông tin chi tiết một mẫu hồ sơ theo ID. */
 export const getProfileTemplateById = async (
   organizationId: string,
   templateId: string,
@@ -127,12 +102,7 @@ export const getProfileTemplateById = async (
   return normalizeProfileTemplate(extractData(response.data));
 };
 
-/**
- * Lấy mẫu hồ sơ mặc định của tổ chức.
- *
- * @param organizationId Mã định danh tổ chức.
- * @returns Mẫu hồ sơ mặc định của tổ chức.
- */
+/** Lấy mẫu hồ sơ mặc định của tổ chức. */
 export const getDefaultProfileTemplate = async (
   organizationId: string,
 ): Promise<ProfileTemplate> => {
@@ -142,13 +112,7 @@ export const getDefaultProfileTemplate = async (
   return normalizeProfileTemplate(extractData(response.data));
 };
 
-/**
- * Tạo mới một mẫu hồ sơ truy xuất cho tổ chức.
- *
- * @param organizationId Mã định danh tổ chức.
- * @param data Dữ liệu thông tin mẫu hồ sơ cần tạo.
- * @returns Mẫu hồ sơ vừa được tạo thành công.
- */
+/** Tạo mới một mẫu hồ sơ truy xuất cho tổ chức. */
 export const createProfileTemplate = async (
   organizationId: string,
   data: CreateProfileTemplateRequest,
@@ -160,14 +124,7 @@ export const createProfileTemplate = async (
   return normalizeProfileTemplate(extractData(response.data));
 };
 
-/**
- * Cập nhật thông tin một mẫu hồ sơ truy xuất hiện có.
- *
- * @param organizationId Mã định danh tổ chức.
- * @param templateId Mã định danh mẫu hồ sơ cần cập nhật.
- * @param data Dữ liệu cập nhật của mẫu hồ sơ.
- * @returns Mẫu hồ sơ sau khi được cập nhật thành công.
- */
+/** Cập nhật thông tin một mẫu hồ sơ truy xuất hiện có. */
 export const updateProfileTemplate = async (
   organizationId: string,
   templateId: string,
@@ -180,12 +137,7 @@ export const updateProfileTemplate = async (
   return normalizeProfileTemplate(extractData(response.data));
 };
 
-/**
- * Xóa một mẫu hồ sơ truy xuất của tổ chức.
- *
- * @param organizationId Mã định danh tổ chức.
- * @param templateId Mã định danh mẫu hồ sơ cần xóa.
- */
+/** Xóa một mẫu hồ sơ truy xuất của tổ chức. */
 export const deleteProfileTemplate = async (
   organizationId: string,
   templateId: string,
@@ -195,13 +147,7 @@ export const deleteProfileTemplate = async (
   );
 };
 
-/**
- * Xem trước dữ liệu hồ sơ truy xuất theo mẫu dưới định dạng JSON object.
- *
- * @param shipmentId Mã định danh lô hàng.
- * @param templateId Mã định danh mẫu hồ sơ áp dụng.
- * @returns Dữ liệu xem trước dạng JSON object.
- */
+/** Xem trước dữ liệu hồ sơ truy xuất theo mẫu dưới định dạng JSON object. */
 export const getOpenDataPreview = async (
   shipmentId: string,
   templateId?: string,
@@ -217,12 +163,7 @@ export const getOpenDataPreview = async (
   return extractData(response.data);
 };
 
-/**
- * Lấy danh sách mẫu hồ sơ tổng hợp từ nhiều tổ chức (dành cho vai trò VT-04 xuất batch).
- *
- * @param organizationIds Danh sách các mã định danh tổ chức.
- * @returns Danh sách các mẫu hồ sơ truy xuất từ các tổ chức.
- */
+/** Lấy danh sách mẫu hồ sơ tổng hợp từ nhiều tổ chức (dành cho vai trò VT-04 xuất batch). */
 export const getBatchProfileTemplates = async (
   organizationIds: string[],
 ): Promise<ProfileTemplate[]> => {

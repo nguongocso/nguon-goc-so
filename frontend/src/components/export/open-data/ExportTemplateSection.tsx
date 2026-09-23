@@ -24,10 +24,7 @@ export interface ExportTemplateSectionProps {
   onOpenPreview: () => void;
 }
 
-/**
- * Component lựa chọn mẫu hồ sơ truy xuất theo đối tác (NCL-07-CN-007).
- * Cung cấp liên kết quản lý mẫu cho VT-02 và nút xem trước cấu trúc mẫu.
- */
+/** Chọn mẫu hồ sơ theo đối tác và hỗ trợ xem trước cấu trúc mẫu. */
 export const ExportTemplateSection: React.FC<ExportTemplateSectionProps> = ({
   control,
   profileTemplates,

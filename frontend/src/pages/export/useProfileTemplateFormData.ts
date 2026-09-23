@@ -19,9 +19,7 @@ export interface UseProfileTemplateFormDataParams {
   onSetFormValues: (data: { name: string; partnerName: string; isDefault: boolean }) => void;
 }
 
-/**
- * Quản lý khởi tạo, kiểm tra QTN-11 và lưu mẫu hồ sơ.
- */
+/** Quản lý khởi tạo, kiểm tra QTN-11 và lưu mẫu hồ sơ. */
 export function useProfileTemplateFormData({
   orgId,
   id,

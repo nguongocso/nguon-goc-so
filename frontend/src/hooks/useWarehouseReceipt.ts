@@ -5,9 +5,7 @@ import { recordWarehouseReceipt, getWarehouseReceipts, getWarehouseReceiptDetail
 import type { WarehouseReceiptRequest, WarehouseReceiptResponse } from '@/types/warehouseReceipt';
 import type { PageResponse } from '@/types/common';
 
-/**
- * Trích xuất thông điệp lỗi an toàn từ response hoặc fallback
- */
+/** Trích xuất thông điệp lỗi an toàn từ response hoặc fallback */
 function extractErrorMessage(err: unknown, fallback: string, noServerFallback?: string): string {
   if (isAxiosError(err)) {
     const data = err.response?.data as { message?: string } | undefined;
@@ -19,46 +17,30 @@ function extractErrorMessage(err: unknown, fallback: string, noServerFallback?: 
   return fallback;
 }
 
-/**
- * Kết quả trả về từ hook useWarehouseReceipt
- */
+/** Kết quả trả về từ hook useWarehouseReceipt */
 interface UseWarehouseReceiptResult {
-  // List
   list: WarehouseReceiptResponse[];
   pageData: PageResponse<WarehouseReceiptResponse> | null;
   isLoadingList: boolean;
   error: string | null;
-
-  // Create
   createResult: WarehouseReceiptResponse | null;
   isSubmitting: boolean;
-
-  // Detail
   detail: WarehouseReceiptResponse | null;
   isLoadingDetail: boolean;
-
-  // Actions
   fetchList: (page?: number, size?: number) => Promise<void>;
   submitReceipt: (request: WarehouseReceiptRequest) => Promise<boolean>;
   fetchDetail: (eventId: string) => Promise<void>;
   resetCreateResult: () => void;
 }
 
-/**
- * Hook quản lý nghiệp vụ nhập kho HTX (danh sách, chi tiết, ghi nhận)
- */
+/** Hook quản lý nghiệp vụ nhập kho HTX (danh sách, chi tiết, ghi nhận) */
 export const useWarehouseReceipt = (): UseWarehouseReceiptResult => {
-  // List state
   const [list, setList] = useState<WarehouseReceiptResponse[]>([]);
   const [pageData, setPageData] = useState<PageResponse<WarehouseReceiptResponse> | null>(null);
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Create state
   const [createResult, setCreateResult] = useState<WarehouseReceiptResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Detail state
   const [detail, setDetail] = useState<WarehouseReceiptResponse | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 

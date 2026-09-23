@@ -1,11 +1,6 @@
-/**
- * Bảng ánh xạ nhãn hiển thị và màu sắc trạng thái cho các hành động trong hệ thống.
- * Cung cấp hàm tiện ích lấy nhãn và lớp CSS tương ứng theo mã hành động.
- */
+/** Ánh xạ mã hành động sang nhãn hiển thị và lớp màu trạng thái. */
 
-/**
- * Nhãn tiếng Việt tương ứng cho từng mã hành động nghiệp vụ.
- */
+/** Nhãn tiếng Việt tương ứng cho từng mã hành động nghiệp vụ. */
 export const ACTION_LABELS: Record<string, string> = {
   // Thao tác dữ liệu cơ bản
   CREATE: 'Tạo mới',
@@ -48,9 +43,7 @@ export const ACTION_LABELS: Record<string, string> = {
   JOIN_ORGANIZATION: 'Tham gia tổ chức',
 };
 
-/**
- * Lớp CSS Tailwind màu sắc tương ứng cho từng mã hành động.
- */
+/** Lớp CSS Tailwind màu sắc tương ứng cho từng mã hành động. */
 export const ACTION_COLORS: Record<string, string> = {
   CREATE: 'bg-success-bg text-success',
   UPDATE: 'bg-info-bg text-info',
@@ -87,22 +80,12 @@ export const ACTION_COLORS: Record<string, string> = {
   JOIN_ORGANIZATION: 'bg-success-bg text-success',
 };
 
-/**
- * Lấy nhãn hiển thị tiếng Việt của hành động.
- *
- * @param action Mã hành động cần tra cứu.
- * @returns Nhãn tiếng Việt hoặc chính mã hành động nếu không tìm thấy.
- */
+/** Lấy nhãn hiển thị tiếng Việt của hành động. */
 export const getActionLabel = (action: string): string => {
   return ACTION_LABELS[action] || action;
 };
 
-/**
- * Lấy lớp CSS màu sắc badge của hành động.
- *
- * @param action Mã hành động cần tra cứu.
- * @returns Chuỗi lớp CSS tương ứng hoặc lớp mặc định muted.
- */
+/** Lấy lớp CSS màu sắc badge của hành động. */
 export const getActionColor = (action: string): string => {
   return ACTION_COLORS[action] || 'bg-muted text-muted-foreground';
 };

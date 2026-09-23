@@ -9,9 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useProcurementEvent } from '@/hooks/useProcurementEvent';
 import { procurementEventSchema, type ProcurementEventFormValues } from '@/utils/procurementEventSchema';
 
-/**
- * Form ghi nhận sự kiện thu mua nông sản
- */
+/** Form ghi nhận sự kiện thu mua nông sản */
 export function ProcurementEventForm() {
   const [shipmentId, setShipmentId] = useState('');
   const [receivedQuantity, setReceivedQuantity] = useState('');

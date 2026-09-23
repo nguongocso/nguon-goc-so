@@ -28,9 +28,7 @@ export interface ProfileFieldGroupItemProps {
   onDeselectOptionalInGroup: (group: FieldGroupDefinition) => void;
 }
 
-/**
- * Hiển thị nhóm trường dữ liệu, nút chọn nhanh và danh sách trường.
- */
+/** Hiển thị nhóm trường dữ liệu, nút chọn nhanh và danh sách trường. */
 export const ProfileFieldGroupItem: React.FC<ProfileFieldGroupItemProps> = ({
   group,
   selectedMap,

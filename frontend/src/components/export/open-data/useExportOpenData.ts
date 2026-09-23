@@ -11,9 +11,7 @@ export interface UseExportOpenDataParams {
   unitIds: string[];
 }
 
-/**
- * Hook quản lý trạng thái và thao tác xuất dữ liệu mở (gọi API, tải blob, xử lý lỗi QTN-11).
- */
+/** Hook quản lý trạng thái và thao tác xuất dữ liệu mở (gọi API, tải blob, xử lý lỗi QTN-11). */
 export function useExportOpenData({ canFilterByUnit, unitIds }: UseExportOpenDataParams) {
   const [submitting, setSubmitting] = useState(false);
   const [qtn11ErrorModalOpen, setQtn11ErrorModalOpen] = useState(false);

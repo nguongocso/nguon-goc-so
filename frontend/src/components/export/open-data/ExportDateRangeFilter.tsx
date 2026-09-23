@@ -25,9 +25,7 @@ export interface ExportDateRangeFilterProps {
   };
 }
 
-/**
- * Lọc thời gian theo mốc nhanh hoặc khoảng ngày tùy chọn.
- */
+/** Lọc thời gian theo mốc nhanh hoặc khoảng ngày tùy chọn. */
 export const ExportDateRangeFilter: React.FC<ExportDateRangeFilterProps> = ({
   control,
   setValue,

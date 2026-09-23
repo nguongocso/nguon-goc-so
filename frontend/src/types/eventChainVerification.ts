@@ -1,6 +1,4 @@
-/**
- * Chi tiết trạng thái xác minh băm của từng mắt xích sự kiện trong chuỗi.
- */
+/** Chi tiết trạng thái xác minh băm của từng mắt xích sự kiện trong chuỗi. */
 export interface EventVerificationItem {
   index: number;
   eventId: string;
@@ -12,9 +10,7 @@ export interface EventVerificationItem {
   expectedHash?: string;
 }
 
-/**
- * Kết quả xác minh tính toàn vẹn chuỗi sự kiện truy xuất nguồn gốc (Merkle / Hash Chain).
- */
+/** Kết quả xác minh tính toàn vẹn chuỗi sự kiện truy xuất nguồn gốc (Merkle / Hash Chain). */
 export interface ChainVerificationResponse {
   shipmentId: string;
   shipmentName: string;

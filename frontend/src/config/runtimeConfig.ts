@@ -1,12 +1,6 @@
-/**
- * Bộ giải quyết cấu hình môi trường runtime cho ứng dụng frontend.
- * Hỗ trợ nạp động cấu hình từ window.__RUNTIME_CONFIG__, biến môi trường Vite build-time,
- * hoặc fallback về reverse proxy cùng origin (/api/v1).
- */
+/** Nạp cấu hình runtime, biến môi trường Vite hoặc API cùng origin. */
 
-/**
- * Định nghĩa cấu trúc các biến cấu hình runtime của ứng dụng.
- */
+/** Định nghĩa cấu trúc các biến cấu hình runtime của ứng dụng. */
 export interface RuntimeConfig {
   API_BASE_URL: string;
   ASSET_BASE_URL: string;
@@ -18,12 +12,7 @@ declare global {
   }
 }
 
-/**
- * Kiểm tra giá trị cấu hình không rỗng và không phải placeholder.
- *
- * @param value Giá trị chuỗi cần kiểm tra.
- * @returns `true` nếu giá trị chuỗi hợp lệ và đã được thiết lập.
- */
+/** Kiểm tra giá trị cấu hình không rỗng và không phải placeholder. */
 function isConfigured(value: string | undefined): value is string {
   return (
     !!value &&
@@ -33,11 +22,7 @@ function isConfigured(value: string | undefined): value is string {
   );
 }
 
-/**
- * Lấy URL gốc cho API client (đảm bảo luôn kết thúc bằng /api/v1).
- *
- * @returns Đường dẫn gốc API chuẩn hoá.
- */
+/** Lấy URL gốc cho API client (đảm bảo luôn kết thúc bằng /api/v1). */
 export function getApiBaseUrl(): string {
   const fromWindow = window.__RUNTIME_CONFIG__?.API_BASE_URL;
   if (isConfigured(fromWindow)) {
@@ -54,11 +39,7 @@ export function getApiBaseUrl(): string {
   return normalizeApiBaseUrl('/api/v1');
 }
 
-/**
- * Lấy URL gốc cho các tài nguyên tĩnh hoặc file tải xuống (ví dụ: hình ảnh mã QR).
- *
- * @returns Đường dẫn gốc của tài nguyên tĩnh đã loại bỏ dấu gạch chéo cuối.
- */
+/** Lấy URL gốc cho các tài nguyên tĩnh hoặc file tải xuống (ví dụ: hình ảnh mã QR). */
 export function getAssetBaseUrl(): string {
   const fromWindow = window.__RUNTIME_CONFIG__?.ASSET_BASE_URL;
   if (isConfigured(fromWindow)) {
@@ -75,12 +56,7 @@ export function getAssetBaseUrl(): string {
   return apiBase.replace(/\/api(?:\/v1)?\/?$/, '').replace(/\/$/, '');
 }
 
-/**
- * Tạo URL đầy đủ cho đường dẫn tài nguyên (ví dụ: /uploads/avatar/sample.png).
- *
- * @param url Đường dẫn tương đối hoặc tuyệt đối của tài nguyên.
- * @returns URL hoàn chỉnh để truy cập tài nguyên hoặc undefined nếu url rỗng.
- */
+/** Tạo URL đầy đủ cho đường dẫn tài nguyên (ví dụ: /uploads/avatar/sample.png). */
 export function getAssetUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
   if (
@@ -97,12 +73,7 @@ export function getAssetUrl(url?: string | null): string | undefined {
   return `${assetBase}${cleanUrl}`;
 }
 
-/**
- * Chuẩn hoá đường dẫn gốc API để luôn kết thúc bằng /api/v1.
- *
- * @param raw Chuỗi URL thô ban đầu.
- * @returns Chuỗi URL chuẩn hoá kết thúc bằng /api/v1.
- */
+/** Chuẩn hoá đường dẫn gốc API để luôn kết thúc bằng /api/v1. */
 function normalizeApiBaseUrl(raw: string): string {
   const value = raw.trim();
   if (/\/api\/v1\/?$/.test(value)) {

@@ -17,9 +17,7 @@ export interface DossierPreviewContentProps {
   onRetry: () => void;
 }
 
-/**
- * Hiển thị trạng thái tải, lỗi hoặc bản xem trước PDF, CSV và JSON.
- */
+/** Hiển thị trạng thái tải, lỗi hoặc bản xem trước PDF, CSV và JSON. */
 export const DossierPreviewContent: React.FC<DossierPreviewContentProps> = ({
   loading,
   error,

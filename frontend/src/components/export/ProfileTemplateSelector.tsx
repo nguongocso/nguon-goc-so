@@ -31,10 +31,7 @@ export interface ProfileTemplateSelectorProps {
   triggerId?: string;
 }
 
-/**
- * Component chọn mẫu hồ sơ áp dụng dùng chung cho ExportDossierDialog và BatchDossierExportPage.
- * Tự quản lý state, tự chọn mẫu mặc định và thông báo qua callback onTemplateChange.
- */
+/** Chọn mẫu hồ sơ dùng chung cho luồng xuất đơn lẻ và xuất nhiều lô. */
 export const ProfileTemplateSelector: React.FC<ProfileTemplateSelectorProps> = ({
   organizationId,
   open = true,

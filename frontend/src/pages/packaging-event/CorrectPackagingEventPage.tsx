@@ -1,9 +1,7 @@
 import { CorrectPackagingForm } from './components/CorrectPackagingForm';
 import { HelpButton } from '@/components/help/HelpButton';
 
-/**
- * Trang đính chính sự kiện đóng gói lô sản xuất
- */
+/** Trang đính chính sự kiện đóng gói lô sản xuất */
 export default function CorrectPackagingEventPage() {
   return (
     <div className="space-y-6">

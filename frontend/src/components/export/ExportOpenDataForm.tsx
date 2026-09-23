@@ -33,10 +33,7 @@ import { ExportTemplateSection } from './open-data/ExportTemplateSection';
 import { ExportFormatSection } from './open-data/ExportFormatSection';
 import { useExportOpenData } from './open-data/useExportOpenData';
 
-/**
- * Biểu mẫu cấu hình và thực hiện xuất dữ liệu mở theo lược đồ chuẩn quốc gia.
- * Hỗ trợ lọc theo tổ chức, địa bàn, thời gian, danh mục và mẫu hồ sơ theo đối tác thu mua.
- */
+/** Cấu hình bộ lọc và xuất dữ liệu mở theo lược đồ chuẩn quốc gia. */
 export const ExportOpenDataForm: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.roleCode === 'VT-01';

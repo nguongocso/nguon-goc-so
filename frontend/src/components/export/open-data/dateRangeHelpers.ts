@@ -1,9 +1,4 @@
-/**
- * Chuyển đổi đối tượng Date sang chuỗi datetime-local (YYYY-MM-DDTHH:mm).
- *
- * @param date Thời điểm cần định dạng.
- * @param endOfDay Nếu là true, giờ:phút sẽ là 23:59.
- */
+/** Chuyển đổi đối tượng Date sang chuỗi datetime-local (YYYY-MM-DDTHH:mm). */
 export const toDateTimeLocal = (date: Date, endOfDay = false): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -19,9 +14,7 @@ export const toDateTimeLocal = (date: Date, endOfDay = false): string => {
 
 export type QuickRangeKey = '7days' | '30days' | 'week' | 'month' | 'year' | null;
 
-/**
- * Xác định khóa khoảng thời gian nhanh dựa trên ngày bắt đầu và kết thúc.
- */
+/** Xác định khóa khoảng thời gian nhanh dựa trên ngày bắt đầu và kết thúc. */
 export const detectActiveQuickRange = (fromDate?: string, toDate?: string): QuickRangeKey => {
   if (!fromDate || !toDate) return null;
 
