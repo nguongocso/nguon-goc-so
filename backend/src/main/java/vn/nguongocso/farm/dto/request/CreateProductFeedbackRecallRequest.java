@@ -4,13 +4,16 @@ import java.util.UUID;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * Yêu cầu tạo đề xuất thu hồi từ phản hồi sản phẩm.
+*/
 @Getter
 @Setter
 public class CreateProductFeedbackRecallRequest {
-
     private UUID shipmentId;
 
     @NotBlank(message = "Lý do thu hồi không được để trống")

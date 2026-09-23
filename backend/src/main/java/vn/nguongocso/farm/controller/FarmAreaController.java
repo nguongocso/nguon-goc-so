@@ -1,33 +1,47 @@
 package vn.nguongocso.farm.controller;
 
+import java.util.List;
+import java.util.UUID;
+
 import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.farm.dto.request.CreateFarmAreaRequest;
 import vn.nguongocso.farm.dto.request.UpdateFarmAreaBoundaryRequest;
+import vn.nguongocso.farm.dto.request.UpdateFarmAreaRequest;
 import vn.nguongocso.farm.dto.response.FarmAreaBoundaryResponse;
 import vn.nguongocso.farm.dto.response.FarmAreaResponse;
 import vn.nguongocso.farm.enums.AreaUnit;
-import vn.nguongocso.farm.service.FarmAreaService;
 import vn.nguongocso.farm.service.FarmAreaBoundaryService;
+import vn.nguongocso.farm.service.FarmAreaService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
-import java.util.List;
-
-import java.util.UUID;
-import vn.nguongocso.farm.dto.request.UpdateFarmAreaRequest;
-
+/**
+ * Quản lý vùng trồng.
+ */
 @RestController
 @RequestMapping("/api/v1/farm-areas")
 @RequiredArgsConstructor
-/** Quản lý vùng trồng. */
 public class FarmAreaController {
-
     private final FarmAreaService farmAreaService;
+
     private final FarmAreaBoundaryService farmAreaBoundaryService;
+
     private final PermissionChecker permissionChecker;
 
     /** Lấy danh sách vùng trồng. */
@@ -75,7 +89,7 @@ public class FarmAreaController {
         return ResponseEntity.ok(ApiResult.success(farmAreaService.create(request)));
     }
 
-    /** Cập nhật thông tin vùng trồng (US NCL-02-CN-005). */
+    /** Cập nhật thông tin vùng trồng. */
     @PutMapping("/{id}")
     public ResponseEntity<ApiResult<FarmAreaResponse>> updateFarmArea(
             @PathVariable UUID id,
@@ -84,7 +98,7 @@ public class FarmAreaController {
         return ResponseEntity.ok(ApiResult.success(farmAreaService.update(id, request)));
     }
 
-    /** Đổi trạng thái kích hoạt / ngừng sử dụng vùng trồng (US NCL-02-CN-005). */
+    /** Đổi trạng thái kích hoạt vùng trồng. */
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResult<FarmAreaResponse>> toggleFarmAreaStatus(
             @PathVariable UUID id,
@@ -93,7 +107,7 @@ public class FarmAreaController {
         return ResponseEntity.ok(ApiResult.success(farmAreaService.toggleStatus(id, isActive)));
     }
 
-    /** Xóa vùng trồng (US NCL-02-CN-005). */
+    /** Xóa vùng trồng. */
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResult<Void>> deleteFarmArea(@PathVariable UUID id) {
         permissionChecker.check("FARM_AREA", "DELETE");

@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import lombok.RequiredArgsConstructor;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -21,100 +23,29 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import lombok.RequiredArgsConstructor;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.enums.FarmActivityType;
 
 /**
- * Implementation đọc file Excel nhập lô sản xuất.
- *
- * <p>
- * File Excel được tạo bởi:
- * {@link ProductionLotImportExcelGenerator}
- *
- * <p>
- * Cấu trúc cột:
- *
- * <pre>
- * A - ten_lo
- * B - ma_loai_nong_san
- * C - ma_vung_trong
- * D - san_luong_du_kien
- * E - san_luong_thuc_thu
- * F - ngay_gieo_trong
- * G - ngay_thu_hoach
- * H - hoat_dong_canh_tac
- * I - vat_tu
- * J - so_luong
- * K - don_vi
- * L - ngay_thuc_hien
- * M - ghi_chu
- * </pre>
- *
- * <p>
- * Kiểu dữ liệu:
- *
- * <pre>
- * D - Double
- * E - Double
- * J - Double
- * F - LocalDate
- * G - LocalDate
- * L - LocalDate
- * H - FarmActivityType
- * </pre>
- */
+ * Đọc tệp Excel nhập lô sản xuất.
+*/
 @Component
 @RequiredArgsConstructor
 public class ProductionLotImportFileParserImpl
         implements ProductionLotImportFileParser {
 
-    /**
-     * Tên sheet Excel chính.
-     */
     private static final String SHEET_NAME =
             "Nhap_lo_san_xuat";
 
-    /**
-     * Định dạng ngày chuẩn.
-     *
-     * <p>
-     * Người dùng nhập:
-     *
-     * <pre>
-     * 28/09/2026
-     * </pre>
-     *
-     * Không sử dụng:
-     *
-     * <pre>
-     * 9/28/2026
-     * </pre>
-     */
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter
                     .ofPattern("dd/MM/uuuu")
                     .withResolverStyle(ResolverStyle.STRICT);
 
-    /**
-     * DataFormatter của Apache POI.
-     *
-     * <p>
-     * Dùng để đọc nội dung cell theo giá trị hiển thị của Excel.
-     */
     private final DataFormatter dataFormatter =
             new DataFormatter(Locale.US);
 
-    // =========================================================
-    // PARSE FILE
-    // =========================================================
-
-    /**
-     * Parse file Excel.
-     *
-     * @param file file Excel .xlsx
-     * @return danh sách dòng dữ liệu
-     */
+    /** Kiểm tra và phân tích tệp Excel nhập lô sản xuất. */
     @Override
     public List<ProductionLotImportRow> parse(
             MultipartFile file) {
@@ -141,10 +72,6 @@ public class ProductionLotImportFileParserImpl
                         new XSSFWorkbook(inputStream)
         ) {
 
-            // =================================================
-            // LẤY SHEET
-            // =================================================
-
             Sheet sheet =
                     workbook.getSheet(SHEET_NAME);
 
@@ -156,15 +83,7 @@ public class ProductionLotImportFileParserImpl
                                 + "'.");
             }
 
-            // =================================================
-            // VALIDATE HEADER
-            // =================================================
-
             validateHeader(sheet);
-
-            // =================================================
-            // PARSE DATA
-            // =================================================
 
             return parseRows(sheet);
 
@@ -175,13 +94,7 @@ public class ProductionLotImportFileParserImpl
         }
     }
 
-    // =========================================================
-    // VALIDATE FILE
-    // =========================================================
-
-    /**
-     * Kiểm tra file đầu vào.
-     */
+    /** Kiểm tra tệp nhập lô sản xuất không rỗng. */
     private void validateFile(
             MultipartFile file) {
 
@@ -193,16 +106,7 @@ public class ProductionLotImportFileParserImpl
         }
     }
 
-    // =========================================================
-    // HEADER
-    // =========================================================
-
-    /**
-     * Kiểm tra header của file Excel.
-     *
-     * <p>
-     * Header phải đúng thứ tự với file mẫu.
-     */
+    /** Kiểm tra thứ tự 13 cột tiêu đề theo tệp mẫu. */
     private void validateHeader(
             Sheet sheet) {
 
@@ -255,24 +159,7 @@ public class ProductionLotImportFileParserImpl
         }
     }
 
-    // =========================================================
-    // PARSE ROWS
-    // =========================================================
-
-    /**
-     * Đọc toàn bộ các dòng dữ liệu.
-     *
-     * <p>
-     * Dòng 1 Excel là header.
-     *
-     * <p>
-     * POI:
-     *
-     * <pre>
-     * index 0 = Excel row 1
-     * index 1 = Excel row 2
-     * </pre>
-     */
+    /** Đọc các dòng nhập lô sản xuất, bỏ qua dòng trống. */
     private List<ProductionLotImportRow> parseRows(
             Sheet sheet) {
 
@@ -286,17 +173,10 @@ public class ProductionLotImportFileParserImpl
             Row excelRow =
                     sheet.getRow(rowIndex);
 
-            // Bỏ qua dòng hoàn toàn rỗng
             if (isEmptyRow(excelRow)) {
                 continue;
             }
 
-            /*
-             * rowNumber là số dòng Excel thực tế.
-             *
-             * POI index 1
-             * -> Excel row 2
-             */
             int rowNumber =
                     rowIndex + 1;
 
@@ -311,22 +191,12 @@ public class ProductionLotImportFileParserImpl
         return rows;
     }
 
-    // =========================================================
-    // PARSE SINGLE ROW
-    // =========================================================
-
-    /**
-     * Parse một dòng Excel.
-     */
+    /** Chuyển một dòng Excel thành dòng nhập lô sản xuất. */
     private ProductionLotImportRow parseRow(
             Row row,
             int rowNumber) {
 
         return ProductionLotImportRow.builder()
-
-                // =================================================
-                // A - ten_lo
-                // =================================================
 
                 .rowNumber(rowNumber)
 
@@ -334,26 +204,13 @@ public class ProductionLotImportFileParserImpl
                         getCellString(
                                 row.getCell(0)))
 
-                // =================================================
-                // B - ma_loai_nong_san
-                // =================================================
-
                 .productCategoryId(
                         getCellString(
                                 row.getCell(1)))
 
-                // =================================================
-                // C - ma_vung_trong
-                // =================================================
-
                 .farmAreaId(
                         getCellString(
                                 row.getCell(2)))
-
-                // =================================================
-                // D - san_luong_du_kien
-                // Double
-                // =================================================
 
                 .expectedQuantity(
                         getDouble(
@@ -361,21 +218,11 @@ public class ProductionLotImportFileParserImpl
                                 "san_luong_du_kien",
                                 rowNumber))
 
-                // =================================================
-                // E - san_luong_thuc_thu
-                // Double
-                // =================================================
-
                 .actualQuantity(
                         getDouble(
                                 row.getCell(4),
                                 "san_luong_thuc_thu",
                                 rowNumber))
-
-                // =================================================
-                // F - ngay_gieo_trong
-                // LocalDate
-                // =================================================
 
                 .plantingDate(
                         getDate(
@@ -383,39 +230,20 @@ public class ProductionLotImportFileParserImpl
                                 "ngay_gieo_trong",
                                 rowNumber))
 
-                // =================================================
-                // G - ngay_thu_hoach
-                // LocalDate
-                // =================================================
-
                 .harvestDate(
                         getDate(
                                 row.getCell(6),
                                 "ngay_thu_hoach",
                                 rowNumber))
 
-                // =================================================
-                // H - hoat_dong_canh_tac
-                // FarmActivityType
-                // =================================================
-
                 .activityType(
                         getActivityType(
                                 row.getCell(7),
                                 rowNumber))
 
-                // =================================================
-                // I - vat_tu
-                // =================================================
-
                 .material(
                         getCellString(
                                 row.getCell(8)))
-
-                // =================================================
-                // J - so_luong
-                // Double
-                // =================================================
 
                 .quantity(
                         getDouble(
@@ -423,28 +251,15 @@ public class ProductionLotImportFileParserImpl
                                 "so_luong",
                                 rowNumber))
 
-                // =================================================
-                // K - don_vi
-                // =================================================
-
                 .unit(
                         getCellString(
                                 row.getCell(10)))
-
-                // =================================================
-                // L - ngay_thuc_hien
-                // LocalDate
-                // =================================================
 
                 .executedDate(
                         getDate(
                                 row.getCell(11),
                                 "ngay_thuc_hien",
                                 rowNumber))
-
-                // =================================================
-                // M - ghi_chu
-                // =================================================
 
                 .note(
                         getCellString(
@@ -453,16 +268,7 @@ public class ProductionLotImportFileParserImpl
                 .build();
     }
 
-    // =========================================================
-    // STRING
-    // =========================================================
-
-    /**
-     * Đọc cell dạng String.
-     *
-     * @param cell cell Excel
-     * @return String hoặc null nếu rỗng
-     */
+    /** Đọc ô Excel theo giá trị hiển thị, rỗng trả về null. */
     private String getCellString(
             Cell cell) {
 
@@ -488,38 +294,7 @@ public class ProductionLotImportFileParserImpl
         return value.trim();
     }
 
-    // =========================================================
-    // DOUBLE
-    // =========================================================
-
-    /**
-     * Đọc số dạng Double từ Excel.
-     *
-     * <p>
-     * Hỗ trợ:
-     *
-     * <pre>
-     * 10
-     * 10.5
-     * 100.25
-     * </pre>
-     *
-     * <p>
-     * Không hỗ trợ:
-     *
-     * <pre>
-     * abc
-     * 10abc
-     * </pre>
-     *
-     * <p>
-     * Nếu Excel lưu cell là NUMERIC thì lấy trực tiếp
-     * {@code getNumericCellValue()}.
-     *
-     * <p>
-     * Nếu Excel lưu cell là STRING thì parse bằng
-     * {@link Double#parseDouble(String)}.
-     */
+    /** Chuyển ô Excel thành số, sai ghi rõ số dòng. */
     private Double getDouble(
             Cell cell,
             String fieldName,
@@ -533,10 +308,6 @@ public class ProductionLotImportFileParserImpl
         }
 
         try {
-
-            // =================================================
-            // EXCEL NUMERIC
-            // =================================================
 
             if (cell.getCellType()
                     == CellType.NUMERIC) {
@@ -553,10 +324,6 @@ public class ProductionLotImportFileParserImpl
                 return value;
             }
 
-            // =================================================
-            // STRING
-            // =================================================
-
             String value =
                     getCellString(cell);
 
@@ -566,16 +333,6 @@ public class ProductionLotImportFileParserImpl
                 return null;
             }
 
-            /*
-             * Không tự động thay "," thành "."
-             *
-             * Ví dụ:
-             *
-             * 10.5 -> hợp lệ
-             * 100.25 -> hợp lệ
-             *
-             * 10,5 -> không tự động chuyển.
-             */
             double result =
                     Double.parseDouble(
                             value.trim());
@@ -599,40 +356,7 @@ public class ProductionLotImportFileParserImpl
         }
     }
 
-    // =========================================================
-    // DATE
-    // =========================================================
-
-    /**
-     * Đọc ngày từ Excel.
-     *
-     * <p>
-     * Hỗ trợ hai trường hợp:
-     *
-     * <ol>
-     *     <li>
-     *         Excel lưu ngày dưới dạng numeric date.
-     *     </li>
-     *     <li>
-     *         Người dùng nhập text:
-     *         {@code dd/MM/yyyy}.
-     *     </li>
-     * </ol>
-     *
-     * <p>
-     * Ví dụ hợp lệ:
-     *
-     * <pre>
-     * 28/09/2026
-     * </pre>
-     *
-     * <p>
-     * Không yêu cầu:
-     *
-     * <pre>
-     * 9/28/2026
-     * </pre>
-     */
+    /** Chuyển ô Excel thành ngày, sai ghi rõ số dòng. */
     private LocalDate getDate(
             Cell cell,
             String fieldName,
@@ -647,26 +371,12 @@ public class ProductionLotImportFileParserImpl
 
         try {
 
-            // =================================================
-            // TRƯỜNG HỢP EXCEL DATE / NUMERIC
-            // =================================================
-
             if (cell.getCellType()
                     == CellType.NUMERIC) {
 
                 double numericValue =
                         cell.getNumericCellValue();
 
-                /*
-                 * Các cột F/G/L là cột ngày.
-                 *
-                 * Excel thường lưu ngày dưới dạng:
-                 *
-                 * 463... -> serial date
-                 *
-                 * Không phụ thuộc việc cell có đang được
-                 * format Date hay không.
-                 */
                 if (DateUtil.isValidExcelDate(
                         numericValue)) {
 
@@ -682,10 +392,6 @@ public class ProductionLotImportFileParserImpl
                         0);
             }
 
-            // =================================================
-            // TRƯỜNG HỢP STRING
-            // =================================================
-
             String value =
                     getCellString(cell);
 
@@ -695,21 +401,6 @@ public class ProductionLotImportFileParserImpl
                 return null;
             }
 
-            /*
-             * Chỉ chấp nhận đúng:
-             *
-             * dd/MM/yyyy
-             *
-             * Ví dụ:
-             *
-             * 28/09/2026
-             *
-             * Không chấp nhận:
-             *
-             * 9/28/2026
-             * 28-09-2026
-             * 2026/09/28
-             */
             return LocalDate.parse(
                     value.trim(),
                     DATE_FORMATTER);
@@ -725,16 +416,7 @@ public class ProductionLotImportFileParserImpl
         }
     }
 
-    // =========================================================
-    // ACTIVITY TYPE
-    // =========================================================
-
-    /**
-     * Đọc hoạt động canh tác.
-     *
-     * <p>
-     * Giá trị phải tồn tại trong FarmActivityType.
-     */
+    /** Chuyển ô Excel thành loại hoạt động canh tác. */
     private FarmActivityType getActivityType(
             Cell cell,
             int rowNumber) {
@@ -742,9 +424,6 @@ public class ProductionLotImportFileParserImpl
         String value =
                 getCellString(cell);
 
-        /*
-         * Không nhập hoạt động thì cho phép null.
-         */
         if (value == null
                 || value.isBlank()) {
 
@@ -768,17 +447,7 @@ public class ProductionLotImportFileParserImpl
         }
     }
 
-    // =========================================================
-    // EMPTY ROW
-    // =========================================================
-
-    /**
-     * Kiểm tra một dòng có hoàn toàn rỗng hay không.
-     *
-     * <p>
-     * File mẫu có thể có nhiều dòng trống phía dưới,
-     * vì vậy chỉ xử lý những dòng có dữ liệu.
-     */
+    /** Kiểm tra dòng Excel rỗng trên cả 13 cột. */
     private boolean isEmptyRow(
             Row row) {
 
@@ -786,11 +455,6 @@ public class ProductionLotImportFileParserImpl
             return true;
         }
 
-        /*
-         * File có 13 cột:
-         *
-         * A -> M
-         */
         for (int i = 0; i < 13; i++) {
 
             Cell cell =
@@ -819,24 +483,7 @@ public class ProductionLotImportFileParserImpl
         return true;
     }
 
-    // =========================================================
-    // EXCEL COLUMN
-    // =========================================================
-
-    /**
-     * Chuyển column index thành tên cột Excel.
-     *
-     * <pre>
-     * 0  -> A
-     * 1  -> B
-     * 2  -> C
-     * 25 -> Z
-     * 26 -> AA
-     * </pre>
-     *
-     * @param columnIndex index 0-based
-     * @return tên cột Excel
-     */
+    /** Chuyển chỉ số cột thành tên cột Excel. */
     private String getExcelColumnName(
             int columnIndex) {
 

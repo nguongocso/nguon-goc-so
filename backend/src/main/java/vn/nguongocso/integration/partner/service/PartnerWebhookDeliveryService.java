@@ -15,15 +15,16 @@ import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.RequiredArgsConstructor;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
@@ -36,19 +37,13 @@ import vn.nguongocso.integration.partner.repository.PartnerWebhookNotificationRe
 import vn.nguongocso.trace.entity.Shipment;
 
 /**
- * Service xử lý tạo bản ghi và thực thi phân phối Webhook tới đối tác bên thứ ba (NCL-12-CN-006).
- * <p>
- * Được tách thành Bean riêng biệt để đảm bảo các phương thức đánh dấu {@link Transactional}
- * chạy qua Spring CGLIB Proxy khi được gọi từ {@link PartnerRecallWebhookDispatcher}.
- */
+ * Service xử lý tạo bản ghi và thực thi phân phối Webhook tới đối tác bên thứ ba.
+*/
 @Service
 @RequiredArgsConstructor
 public class PartnerWebhookDeliveryService {
-
     private static final Logger log = LoggerFactory.getLogger(PartnerWebhookDeliveryService.class);
-
     private static final int[] RETRY_INTERVAL_MINUTES = {1, 5, 15, 30, 60};
-
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
@@ -78,12 +73,11 @@ public class PartnerWebhookDeliveryService {
                 .findDistinctPartnerApiKeyIdsByShipmentOrProductionLot(shipment.getId(), productionLotId, since);
 
         if (candidateApiKeyIds.isEmpty()) {
-            log.info("Không có đối tác bên thứ ba nào truy xuất dữ liệu của lô {} trong cửa sổ cấu hình - bỏ qua (TC-03).",
+            log.info("Không có đối tác bên thứ ba nào truy xuất dữ liệu của lô {} trong cửa sổ cấu hình.",
                     shipment.getName());
             return;
         }
 
-        // 2. Lọc các khóa đủ điều kiện: ACTIVE, chưa hết hạn, có webhookUrl HTTPS, bật nhận tin, không phải test (TC-04)
         List<PartnerApiKey> eligibleKeys = partnerApiKeyRepository
                 .findEligibleWebhookKeys(candidateApiKeyIds, LocalDateTime.now());
 
@@ -97,9 +91,8 @@ public class PartnerWebhookDeliveryService {
                 eligibleKeys.size(), shipment.getName());
 
         for (PartnerApiKey apiKey : eligibleKeys) {
-            // Kiểm tra trạng thái khóa: nếu đã bị thu hồi thì ngừng gửi (TC-04)
             if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
-                log.warn("Khóa của đối tác '{}' đã bị thu hồi - không gửi thông báo (TC-04).", apiKey.getPartnerName());
+                log.warn("Khóa của đối tác '{}' đã bị thu hồi.", apiKey.getPartnerName());
                 continue;
             }
 
@@ -108,7 +101,7 @@ public class PartnerWebhookDeliveryService {
     }
 
     /**
-     * Khởi tạo bản ghi thông báo và thực hiện lượt gửi đầu tiên (có kiểm tra Idempotency).
+     * Khởi tạo bản ghi thông báo và thực hiện lượt gửi đầu tiên.
      */
     @Transactional
     public void createAndSendNotification(
@@ -118,7 +111,6 @@ public class PartnerWebhookDeliveryService {
             String publicReason,
             String remediationSummary) {
 
-        // Kiểm tra Idempotency: Ngăn chặn gửi thông báo trùng lặp cho cùng một trạng thái
         if (partnerWebhookNotificationRepository.existsByPartnerApiKey_IdAndShipment_IdAndNewStatus(
                 apiKey.getId(), shipment.getId(), newStatus)) {
             log.info("Bỏ qua thông báo trùng lặp: đối tác apiKeyId={} đã được gửi thông báo cho lô shipmentId={} trạng thái={}",
@@ -138,7 +130,8 @@ public class PartnerWebhookDeliveryService {
                 ? shipment.getProductionLot().getId()
                 : null;
 
-        String productName = (shipment.getProductionLot() != null && shipment.getProductionLot().getProductCategory() != null)
+        String productName = (shipment.getProductionLot() != null
+                        && shipment.getProductionLot().getProductCategory() != null)
                 ? shipment.getProductionLot().getProductCategory().getName()
                 : (shipment.getProductionLot() != null ? shipment.getProductionLot().getName() : "Sản phẩm");
 
@@ -176,23 +169,21 @@ public class PartnerWebhookDeliveryService {
 
         PartnerWebhookNotification saved = partnerWebhookNotificationRepository.save(notification);
 
-        // Thực thi gửi HTTP POST ngay lần 1
         executeWebhookDelivery(saved, apiKey.getWebhookSecret());
     }
 
     /**
-     * Thực thi một lượt gửi HTTP Webhook POST kèm chữ ký số HMAC-SHA256 và ghi nhận kết quả.
+     * Thực thi một lượt gửi HTTP Webhook kèm chữ ký số và ghi nhận kết quả.
      */
     @Transactional
     public void executeWebhookDelivery(PartnerWebhookNotification notification, String webhookSecret) {
-        // Kiểm tra điều kiện ngắt: Khóa đã bị thu hồi -> Hủy bỏ gửi ngay lập tức (TC-04)
         PartnerApiKey apiKey = notification.getPartnerApiKey();
         if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
             notification.setDeliveryStatus(WebhookDeliveryStatus.CANCELLED);
             notification.setLastErrorMessage("Đã hủy gửi thông báo: Khóa truy cập đối tác đã bị thu hồi (TC-04).");
             notification.setCompletedAt(LocalDateTime.now());
             partnerWebhookNotificationRepository.save(notification);
-            log.info("Đã hủy lượt gửi webhook deliveryId={} do khóa apiKeyId={} đã bị REVOKED (TC-04)",
+            log.info("Đã hủy lượt gửi webhook deliveryId={} do khóa apiKeyId={} đã bị thu hồi.",
                     notification.getId(), apiKey.getId());
             return;
         }
@@ -218,7 +209,8 @@ public class PartnerWebhookDeliveryService {
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8));
 
             HttpRequest httpRequest = reqBuilder.build();
-            HttpResponse<String> response = HTTP_CLIENT.send(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            HttpResponse<String> response = HTTP_CLIENT.send(httpRequest,
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             long durationMs = Duration.ofNanos(System.nanoTime() - startNano).toMillis();
 
             int statusCode = response.statusCode();
@@ -230,7 +222,8 @@ public class PartnerWebhookDeliveryService {
             boolean isSuccess = (statusCode >= 200 && statusCode < 300);
             String errorMsg = isSuccess ? null : ("Máy chủ đối tác phản hồi HTTP " + statusCode);
 
-            recordAttemptResult(notification, currentAttempt, statusCode, responseBody, errorMsg, durationMs, isSuccess);
+            recordAttemptResult(notification, currentAttempt, statusCode, responseBody, errorMsg, durationMs,
+                    isSuccess);
 
         } catch (Exception e) {
             long durationMs = Duration.ofNanos(System.nanoTime() - startNano).toMillis();
@@ -274,13 +267,11 @@ public class PartnerWebhookDeliveryService {
         notification.setLastErrorMessage(errorMessage);
 
         if (success) {
-            // Thành công (TC-01)
             notification.setDeliveryStatus(WebhookDeliveryStatus.SUCCESS);
             notification.setNextRetryAt(null);
             notification.setCompletedAt(LocalDateTime.now());
             log.info("Bắn webhook thành công tới {} (lần thử {})", notification.getTargetUrl(), attemptNumber);
         } else {
-            // Thất bại -> Lập lịch thử lại giãn dần (TC-02)
             if (attemptNumber >= notification.getMaxAttempts()) {
                 notification.setDeliveryStatus(WebhookDeliveryStatus.FAILED);
                 notification.setNextRetryAt(null);
@@ -288,7 +279,8 @@ public class PartnerWebhookDeliveryService {
                 log.warn("Bắn webhook thất bại vĩnh viễn tới {} sau {} lần thử",
                         notification.getTargetUrl(), attemptNumber);
             } else {
-                int delayMinutes = RETRY_INTERVAL_MINUTES[Math.min(attemptNumber - 1, RETRY_INTERVAL_MINUTES.length - 1)];
+                int delayMinutes = RETRY_INTERVAL_MINUTES[Math.min(attemptNumber - 1,
+                        RETRY_INTERVAL_MINUTES.length - 1)];
                 notification.setDeliveryStatus(WebhookDeliveryStatus.PENDING_RETRY);
                 notification.setNextRetryAt(LocalDateTime.now().plusMinutes(delayMinutes));
                 log.info("Lên lịch thử lại lần {} tới {} sau {} phút",
@@ -300,7 +292,7 @@ public class PartnerWebhookDeliveryService {
     }
 
     /**
-     * Tính toán chữ ký HMAC-SHA256 chuẩn mã hóa Hex viết thường.
+     * Tính toán chữ ký của dữ liệu gửi webhook.
      */
     public static String computeHmacSha256(String data, String secret) {
         if (secret == null || secret.isBlank()) {
@@ -326,6 +318,9 @@ public class PartnerWebhookDeliveryService {
         }
     }
 
+    /**
+     * Chuyển đổi payload thông báo sang chuỗi JSON.
+     */
     private String serializePayload(PartnerRecallPayloadDto dto) {
         try {
             return objectMapper.writeValueAsString(dto);
@@ -334,6 +329,9 @@ public class PartnerWebhookDeliveryService {
         }
     }
 
+    /**
+     * Chuyển đổi danh sách các lần thử gửi sang chuỗi JSON.
+     */
     private String serializeAttemptsLog(List<PartnerWebhookAttemptDto> attempts) {
         try {
             return objectMapper.writeValueAsString(attempts);
@@ -342,6 +340,9 @@ public class PartnerWebhookDeliveryService {
         }
     }
 
+    /**
+     * Phân tích danh sách các lần thử gửi từ chuỗi JSON.
+     */
     public List<PartnerWebhookAttemptDto> parseAttemptsLog(String json) {
         if (json == null || json.isBlank()) {
             return new ArrayList<>();

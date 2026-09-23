@@ -15,12 +15,9 @@ import vn.nguongocso.farm.enums.MaterialGroup;
 
 /**
  * Repository thao tác dữ liệu danh mục vật tư đầu vào.
- */
+*/
 public interface InputMaterialRepository extends JpaRepository<InputMaterial, UUID> {
-
-	/**
-	 * Kiểm tra xem đã tồn tại vật tư trùng cả tên và hoạt chất hay chưa.
-	 */
+	/** Kiểm tra tồn tại vật tư trùng tên và hoạt chất. */
 	@Query("""
 			SELECT COUNT(im) > 0 FROM InputMaterial im
 			WHERE LOWER(TRIM(im.name)) = LOWER(TRIM(:name))
@@ -31,9 +28,7 @@ public interface InputMaterialRepository extends JpaRepository<InputMaterial, UU
 			@Param("name") String name,
 			@Param("activeIngredient") String activeIngredient);
 
-	/**
-	 * Kiểm tra xem đã tồn tại vật tư trùng tên và hoạt chất (ngoại trừ ID hiện tại).
-	 */
+	/** Kiểm tra tồn tại vật tư trùng tên và hoạt chất ngoại trừ ID hiện tại. */
 	@Query("""
 			SELECT COUNT(im) > 0 FROM InputMaterial im
 			WHERE im.id != :id
@@ -46,9 +41,7 @@ public interface InputMaterialRepository extends JpaRepository<InputMaterial, UU
 			@Param("name") String name,
 			@Param("activeIngredient") String activeIngredient);
 
-	/**
-	 * Tìm kiếm vật tư theo từ khóa, nhóm vật tư / danh sách nhóm và trạng thái active.
-	 */
+	/** Tìm kiếm vật tư theo từ khóa, nhóm và trạng thái. */
 	@Query("""
 			SELECT DISTINCT im FROM InputMaterial im
 			LEFT JOIN FETCH im.applicableCropTypes
@@ -65,15 +58,11 @@ public interface InputMaterialRepository extends JpaRepository<InputMaterial, UU
 			@Param("isActive") Boolean isActive,
 			Pageable pageable);
 
-	/**
-	 * Lấy chi tiết vật tư kèm theo danh sách loại nông sản áp dụng.
-	 */
+	/** Lấy chi tiết vật tư kèm danh sách loại nông sản áp dụng. */
 	@Query("SELECT im FROM InputMaterial im LEFT JOIN FETCH im.applicableCropTypes WHERE im.id = :id")
 	Optional<InputMaterial> findByIdWithCropTypes(@Param("id") UUID id);
 
-	/**
-	 * Tìm danh sách vật tư theo tên (không phân biệt hoa thường và khoảng trắng).
-	 */
+	/** Tìm danh sách vật tư theo tên không phân biệt hoa thường. */
 	@Query("""
 			SELECT im FROM InputMaterial im
 			WHERE LOWER(TRIM(im.name)) = LOWER(TRIM(:name))

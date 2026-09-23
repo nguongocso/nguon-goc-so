@@ -1,6 +1,11 @@
 package vn.nguongocso.farm.controller;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -8,25 +13,32 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.farm.dto.response.AttachmentResponse;
 import vn.nguongocso.farm.service.AttachmentService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
-import java.util.List;
-import java.util.UUID;
-
+/**
+ * Quản lý tệp đính kèm của nhật ký canh tác.
+*/
 @RestController
 @RequestMapping("/api/v1/farm-logs")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
-/** Quản lý tệp đính kèm của nhật ký canh tác. */
 public class FarmLogAttachmentController {
 
     private final AttachmentService attachmentService;
+
     private final PermissionChecker permissionChecker;
 
     /** Tải lên tệp đính kèm cho nhật ký. */
@@ -36,7 +48,6 @@ public class FarmLogAttachmentController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "description", required = false) String description,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-
         permissionChecker.check("FARM_LOG", "UPDATE");
         AttachmentResponse response = attachmentService.uploadAttachment(logId, file, description, userDetails);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(response));
@@ -69,7 +80,8 @@ public class FarmLogAttachmentController {
         permissionChecker.check("FARM_LOG", "READ");
         var pair = attachmentService.getAttachmentForView(attachmentId, userDetails);
         Resource resource = pair.getKey();
-        MediaType contentType = pair.getValue();
+        MediaType contentType = Objects.requireNonNull(pair.getValue(),
+                "Loại nội dung của tệp đính kèm không được bỏ trống");
         return ResponseEntity.ok()
                 .contentType(contentType)
                 .body(resource);

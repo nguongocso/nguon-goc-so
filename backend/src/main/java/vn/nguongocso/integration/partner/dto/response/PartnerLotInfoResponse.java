@@ -7,8 +7,12 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 
+/**
+ * DTO thông tin lô sản xuất trong hồ sơ truy xuất của đối tác.
+*/
 @Getter
 @Setter
 @Builder
@@ -16,12 +20,20 @@ import vn.nguongocso.farm.enums.ProductionLotStatus;
 @AllArgsConstructor
 public class PartnerLotInfoResponse {
     private String lotId;
+
     private String lotName;
+
     private String productCategoryName;
+
     private Double expectedQuantity;
+
     private Double actualQuantity;
+
     private String quantityUnit;
+
     private LocalDate plantingDate;
+
     private LocalDate harvestDate;
+
     private ProductionLotStatus status;
 }
