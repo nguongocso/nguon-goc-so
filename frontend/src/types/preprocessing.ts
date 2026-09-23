@@ -1,4 +1,4 @@
-/** Payload yêu cầu ghi nhận sự kiện sơ chế và phân loại nông sản. */
+/** Dữ liệu yêu cầu yêu cầu ghi nhận sự kiện sơ chế và phân loại nông sản. */
 export interface RecordPreprocessingRequest {
   productionLotId: string;
   inputQuantity: number;
@@ -12,7 +12,7 @@ export interface RecordPreprocessingRequest {
   deviceSource?: 'WEB' | 'MOBILE';
 }
 
-/** Payload yêu cầu đính chính sự kiện sơ chế đã ghi nhận. */
+/** Dữ liệu yêu cầu yêu cầu đính chính sự kiện sơ chế đã ghi nhận. */
 export interface CorrectPreprocessingRequest {
   inputQuantity: number;
   outputQuantity: number;

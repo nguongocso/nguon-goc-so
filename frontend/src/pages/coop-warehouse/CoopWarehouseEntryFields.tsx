@@ -1,12 +1,15 @@
 import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 import { AlertCircle, Building2, Calendar, FileText, MapPin, Thermometer } from 'lucide-react';
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
-import type { RecordWarehouseEntryFormValues } from '@/utils/validators/coopWarehouseEventSchema';
-import type { ShipmentStatusItem } from './coopWarehouseUtils';
 import { CoopWarehouseShipmentSection } from './CoopWarehouseShipmentSection';
+
+import type { RecordWarehouseEntryFormValues } from '@/utils/validators/coopWarehouseEventSchema';
+
+import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
+import type { ShipmentStatusItem } from './coopWarehouseUtils';
 
 interface CoopWarehouseEntryFieldsProps {
   register: UseFormRegister<RecordWarehouseEntryFormValues>;

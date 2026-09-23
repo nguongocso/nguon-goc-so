@@ -1,4 +1,5 @@
 import { isAxiosError } from 'axios';
+
 import apiClient from './axiosConfig';
 
 /** Kết quả kiểm tra tính đầy đủ hồ sơ của lô hàng theo quy định QTN-11. */
@@ -188,7 +189,7 @@ export interface BatchDossierExportRequest {
   shipmentIds: string[];
   title?: string;
   note?: string;
-  /** Mẫu hồ sơ áp dụng (NCL-07-CN-007) */
+  /** Mẫu hồ sơ áp dụng (NCL-07-CN-007). */
   templateId?: string;
 }
 

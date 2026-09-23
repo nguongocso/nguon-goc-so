@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 import { MAX_PREPROCESSING_IMAGES } from '../preprocessingFormUtils';
 
-/** Thuộc tính cho phần quản lý hình ảnh sơ chế thực địa */
+/** Thuộc tính cho phần quản lý hình ảnh sơ chế thực địa. */
 export interface PreprocessingImagesSectionProps {
   imageFiles: File[];
   imagePreviews: string[];
@@ -13,7 +13,7 @@ export interface PreprocessingImagesSectionProps {
   onRemoveImage: (index: number) => void;
 }
 
-/** Component hiển thị khu vực tải lên và xem trước ảnh thực địa cho sự kiện sơ chế */
+/** Thành phần hiển thị khu vực tải lên và xem trước ảnh thực địa cho sự kiện sơ chế. */
 export function PreprocessingImagesSection({
   imageFiles,
   imagePreviews,

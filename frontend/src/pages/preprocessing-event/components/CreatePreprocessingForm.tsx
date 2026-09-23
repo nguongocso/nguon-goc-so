@@ -1,4 +1,5 @@
 import { AlertTriangle, LoaderCircle, Wheat } from 'lucide-react';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +14,7 @@ import { CreatePreprocessingFields } from './CreatePreprocessingFields';
 import { PreprocessingImagesSection } from './PreprocessingImagesSection';
 import { useCreatePreprocessingForm } from './useCreatePreprocessingForm';
 
-/** Form ghi nhận sự kiện sơ chế nông sản từ lô đã thu hoạch. */
+/** Biểu mẫu ghi nhận sự kiện sơ chế nông sản từ lô đã thu hoạch. */
 export function CreatePreprocessingForm() {
   const controller = useCreatePreprocessingForm();
   const {

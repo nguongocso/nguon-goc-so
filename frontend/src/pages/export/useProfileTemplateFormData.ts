@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+
+import { useProfileTemplates } from '@/hooks/useProfileTemplates';
+import type { ProfileTemplateFormData } from './ProfileTemplateMetaCard';
+
 import {
   getProfileTemplateById,
   getAvailableFields,
 } from '@/api/profileTemplateApi';
-import { useProfileTemplates } from '@/hooks/useProfileTemplates';
 import type {
   FieldGroupDefinition,
   FieldSelectionItem,
 } from '@/types/profileTemplate';
-import type { ProfileTemplateFormData } from './ProfileTemplateMetaCard';
 
 export interface UseProfileTemplateFormDataParams {
   orgId?: string;

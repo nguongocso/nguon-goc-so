@@ -1,4 +1,5 @@
 import { MapPin, Percent, Scale } from 'lucide-react';
+
 import { LotValidationStatus } from '@/components/event-validation/LotValidationStatus';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,10 +10,12 @@ import {
   SelectTrigger,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
+import type { CreatePreprocessingController } from './useCreatePreprocessingForm';
+
 import { getLocalDateString } from '@/utils/dateTime';
 import { preventMouseUpCollapse, selectAllOnFocus } from '@/utils/inputUtils';
-import type { CreatePreprocessingController } from './useCreatePreprocessingForm';
+
+import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
 
 /** Các trường nghiệp vụ của biểu mẫu tạo sự kiện sơ chế. */
 export function CreatePreprocessingFields({

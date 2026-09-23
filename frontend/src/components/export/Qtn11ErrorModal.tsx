@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, FileX, CalendarX, X } from 'lucide-react';
+
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+
 import { cn } from '@/lib/utils';
 
 /** Chi tiết lỗi thiếu sự kiện hoặc chứng từ theo quy định QTN-11 của từng lô hàng. */
@@ -23,7 +25,7 @@ export interface Qtn11ErrorDetail {
   missingDocDetails?: string[];
 }
 
-/** Thuộc tính của modal thông báo lỗi không đủ điều kiện xuất dữ liệu (QTN-11). */
+/** Thuộc tính của hộp thoại thông báo lỗi không đủ điều kiện xuất dữ liệu (QTN-11). */
 interface Qtn11ErrorModalProps {
   open: boolean;
   onClose: () => void;
@@ -94,8 +96,6 @@ export const Qtn11ErrorModal: React.FC<Qtn11ErrorModalProps> = ({
                     </div>
                   </div>
                 )}
-
-                {/* Danh sách chứng từ / nhật ký còn thiếu */}
                 {((item.missingDocDetails && item.missingDocDetails.length > 0) || item.missingDocs) && (
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5 text-xs font-medium text-red-700 dark:text-red-400">

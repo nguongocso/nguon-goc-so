@@ -3,7 +3,7 @@ import React from 'react';
 /** Tên hiển thị tiếng Việt của mẫu hồ sơ mặc định do hệ thống cung cấp. */
 export const DEFAULT_TEMPLATE_DISPLAY_NAME = 'Mẫu tiêu chuẩn HTX (Mặc định hệ thống)';
 
-/** Thuộc tính của component TemplateOptionContent. */
+/** Thuộc tính của thành phần TemplateOptionContent. */
 interface TemplateOptionContentProps {
   name: string;
   partnerName?: string | null;

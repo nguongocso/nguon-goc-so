@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { recordPreprocessingEvent } from '@/api/preprocessingApi';
-import { getProductionLots } from '@/api/productionLotApi';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import { useAutoGeolocation } from '@/hooks/useAutoGeolocation';
 import { useLotValidation } from '@/hooks/useLotValidation';
+
+import { recordPreprocessingEvent } from '@/api/preprocessingApi';
+import { getProductionLots } from '@/api/productionLotApi';
 import type { ProductionLot } from '@/types/productionLot';
 import { getLocalDateString } from '@/utils/dateTime';
 import {
   recordPreprocessingSchema,
   type RecordPreprocessingFormValues,
 } from '@/utils/validators/preprocessingEventSchema';
+
 import {
   fileToBase64,
   getPreprocessingErrorMessage,

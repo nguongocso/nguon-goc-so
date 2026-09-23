@@ -1,6 +1,8 @@
 import { isAxiosError } from 'axios';
-import apiClient from './axiosConfig';
+
 import type { ExportOpenDataRequest } from '@/types/export';
+
+import apiClient from './axiosConfig';
 
 /** Cấu trúc bao bọc ApiResult trả về từ backend Spring Boot. */
 interface ApiResult<T> {
@@ -76,7 +78,7 @@ export const exportShipmentWithTemplate = async (
           message = errJson.message;
         }
       } catch {
-        // Giữ nguyên text nếu không phải JSON
+        // Giữ nguyên văn bản nếu phản hồi không phải JSON.
       }
       throw new Error(message);
     }

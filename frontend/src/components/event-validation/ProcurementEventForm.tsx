@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LoaderCircle, Send, MapPin } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,9 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { useProcurementEvent } from '@/hooks/useProcurementEvent';
+
 import { procurementEventSchema, type ProcurementEventFormValues } from '@/utils/procurementEventSchema';
 
-/** Form ghi nhận sự kiện thu mua nông sản */
+/** Biểu mẫu ghi nhận sự kiện thu mua nông sản. */
 export function ProcurementEventForm() {
   const [shipmentId, setShipmentId] = useState('');
   const [receivedQuantity, setReceivedQuantity] = useState('');
@@ -136,7 +138,12 @@ export function ProcurementEventForm() {
       )}
 
       <div className="flex gap-2">
-        <Button type="submit" variant="view" disabled={isLoading} className="flex-1">
+        <Button
+          type="submit"
+          variant="view"
+          disabled={isLoading}
+          className="flex-1"
+        >
           {isLoading ? (
             <LoaderCircle className="size-4 animate-spin" />
           ) : (
@@ -144,7 +151,12 @@ export function ProcurementEventForm() {
           )}
           {isLoading ? 'Đang ghi nhận...' : 'Ghi sự kiện thu mua'}
         </Button>
-        <Button type="button" variant="outline" onClick={handleReset} disabled={isLoading}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleReset}
+          disabled={isLoading}
+        >
           Làm mới
         </Button>
       </div>

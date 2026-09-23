@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, PlusCircle } from 'lucide-react';
+import { toast } from 'sonner';
+
 import { TableHead } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { ListPageHeader } from '@/components/common/ListPageHeader';
@@ -14,9 +16,9 @@ import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermission } from '@/hooks/usePermission';
 import { useProfileTemplates } from '@/hooks/useProfileTemplates';
-import type { ProfileTemplate } from '@/types/profileTemplate';
-import { toast } from 'sonner';
 import { ProfileTemplateTableRow } from './ProfileTemplateTableRow';
+
+import type { ProfileTemplate } from '@/types/profileTemplate';
 
 /** Quản lý danh sách mẫu hồ sơ truy xuất theo đối tác của tổ chức HTX. */
 export const ProfileTemplateListPage: React.FC = () => {
@@ -42,8 +44,6 @@ export const ProfileTemplateListPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<ProfileTemplate | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  // Lọc client side theo tên mẫu hoặc tên đối tác
   const filteredTemplates = useMemo(() => {
     if (!search.trim()) return safeTemplates;
     const q = search.toLowerCase().trim();

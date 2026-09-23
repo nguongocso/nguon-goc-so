@@ -1,4 +1,4 @@
-/** Định nghĩa loại sự kiện chuỗi cung ứng bằng object hằng. */
+/** Định nghĩa loại sự kiện chuỗi cung ứng bằng đối tượng hằng. */
 export const ChainEventType = {
   HARVEST: 'HARVEST',
   PREPROCESSING: 'PREPROCESSING',
@@ -15,10 +15,10 @@ export const ChainEventType = {
   FARM_LOG: 'FARM_LOG',
 } as const;
 
-/** Kiểu dữ liệu tương ứng với các giá trị sự kiện chuỗi cung ứng */
+/** Kiểu dữ liệu tương ứng với các giá trị sự kiện chuỗi cung ứng. */
 export type ChainEventType = (typeof ChainEventType)[keyof typeof ChainEventType];
 
-/** Nhãn hiển thị tiếng Việt của từng loại sự kiện chuỗi cung ứng */
+/** Nhãn hiển thị tiếng Việt của từng loại sự kiện chuỗi cung ứng. */
 export const ChainEventTypeLabel: Record<ChainEventType, string> = {
   [ChainEventType.HARVEST]: 'Thu hoạch',
   [ChainEventType.PREPROCESSING]: 'Sơ chế và phân loại',
@@ -35,7 +35,7 @@ export const ChainEventTypeLabel: Record<ChainEventType, string> = {
   [ChainEventType.FARM_LOG]: 'Nhật ký canh tác',
 };
 
-/** Nhãn hiển thị tiếng Anh của từng loại sự kiện chuỗi cung ứng */
+/** Nhãn hiển thị tiếng Anh của từng loại sự kiện chuỗi cung ứng. */
 export const ChainEventTypeEnLabel: Record<ChainEventType, string> = {
   [ChainEventType.HARVEST]: 'Harvesting',
   [ChainEventType.PREPROCESSING]: 'Preprocessing and grading',

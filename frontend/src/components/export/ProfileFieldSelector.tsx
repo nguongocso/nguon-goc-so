@@ -1,16 +1,18 @@
 import React, { useMemo } from 'react';
+import { CheckCircle2 } from 'lucide-react';
+
 import { Badge } from '@/components/ui/badge';
 import { Accordion } from '@/components/ui/accordion';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2 } from 'lucide-react';
 import { ProfileFieldGroupItem } from './ProfileFieldGroupItem';
+
 import type {
   FieldGroupDefinition,
   FieldSelectionItem,
   AvailableFieldItem,
 } from '@/types/profileTemplate';
 
-/** Thuộc tính props đầu vào cho component chọn trường hồ sơ */
+/** Thuộc tính của chọn trường hồ sơ. */
 export interface ProfileFieldSelectorProps {
   availableGroups: FieldGroupDefinition[];
   selectedFields: FieldSelectionItem[];
@@ -18,22 +20,22 @@ export interface ProfileFieldSelectorProps {
   disabled?: boolean;
 }
 
-/** Helper trích xuất khóa định danh trường */
+/** Hàm trích xuất khóa định danh trường. */
 export const getFieldKey = (f: AvailableFieldItem): string => f.fieldKey || f.key || '';
 
-/** Helper trích xuất tên hiển thị tiếng Việt của trường */
+/** Hàm trích xuất tên hiển thị tiếng Việt của trường. */
 export const getFieldLabel = (f: AvailableFieldItem): string =>
   f.displayName || f.label || getFieldKey(f);
 
-/** Helper kiểm tra trường có bắt buộc theo QTN-11 không */
+/** Hàm kiểm tra trường có bắt buộc theo QTN-11 không. */
 export const getFieldMandatory = (f: AvailableFieldItem): boolean =>
   Boolean(f.mandatory ?? f.isMandatory);
 
-/** Helper trích xuất mã nhóm trường */
+/** Hàm trích xuất mã nhóm trường. */
 export const getGroupKey = (g: FieldGroupDefinition): string =>
   g.fieldGroup || g.group || '';
 
-/** Helper trích xuất tên nhóm trường */
+/** Hàm trích xuất tên nhóm trường. */
 export const getGroupLabel = (g: FieldGroupDefinition): string =>
   g.groupLabel || getGroupKey(g);
 
@@ -44,7 +46,6 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
   onChange,
   disabled = false,
 }) => {
-  // Map lưu trữ fieldKey -> FieldSelectionItem đã chọn
   const selectedMap = useMemo(() => {
     const map = new Map<string, FieldSelectionItem>();
     selectedFields.forEach((f) => {
@@ -54,8 +55,6 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
     });
     return map;
   }, [selectedFields]);
-
-  // Đếm thống kê số lượng trường bắt buộc và tùy chọn
   const { mandatoryCount, optionalCount, totalCount } = useMemo(() => {
     let mandatory = 0;
     let optional = 0;
@@ -79,8 +78,6 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
       totalCount: mandatory + optional,
     };
   }, [availableGroups, selectedMap]);
-
-  // Xử lý bật/tắt chọn một trường
   const handleToggleField = (
     fieldKey: string,
     fieldGroup: string,
@@ -106,8 +103,6 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
       onChange(next);
     }
   };
-
-  // Chọn toàn bộ trường trong một nhóm
   const handleSelectAllInGroup = (group: FieldGroupDefinition) => {
     if (disabled) return;
     const currentKeys = new Set(selectedFields.map((f) => f.fieldKey));
@@ -132,8 +127,6 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
       onChange([...selectedFields, ...newItems]);
     }
   };
-
-  // Bỏ chọn các trường tùy chọn trong nhóm (giữ lại trường bắt buộc)
   const handleDeselectOptionalInGroup = (group: FieldGroupDefinition) => {
     if (disabled || !Array.isArray(group.fields)) return;
 
@@ -146,7 +139,6 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Banner tóm tắt số lượng trường */}
       <Card className="border-border bg-muted/30">
         <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -170,8 +162,6 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
           </div>
         </CardContent>
       </Card>
-
-      {/* Accordion các nhóm trường */}
       <Accordion
         defaultValue={availableGroups.map((g) => getGroupKey(g))}
         className="w-full space-y-3"

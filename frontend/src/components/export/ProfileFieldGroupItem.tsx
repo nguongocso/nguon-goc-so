@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { Badge } from '@/components/ui/badge';
 import {
   AccordionContent,
@@ -6,10 +7,6 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { ProfileFieldItemCard } from './ProfileFieldItemCard';
-import type {
-  FieldGroupDefinition,
-  FieldSelectionItem,
-} from '@/types/profileTemplate';
 import {
   getFieldKey,
   getFieldLabel,
@@ -18,7 +15,12 @@ import {
   getGroupLabel,
 } from './ProfileFieldSelector';
 
-/** Props cho từng nhóm trường trong accordion */
+import type {
+  FieldGroupDefinition,
+  FieldSelectionItem,
+} from '@/types/profileTemplate';
+
+/** Thuộc tính cho từng nhóm trường trong nhóm thu gọn. */
 export interface ProfileFieldGroupItemProps {
   group: FieldGroupDefinition;
   selectedMap: Map<string, FieldSelectionItem>;

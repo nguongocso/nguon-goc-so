@@ -1,24 +1,27 @@
 import { useCallback } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { LogOut } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { ListPageHeader } from '@/components/common/ListPageHeader';
 import { HelpButton } from '@/components/help/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import {
-  recordWarehouseExitSchema,
-  type RecordWarehouseExitFormValues,
-} from '@/utils/validators/coopWarehouseEventSchema';
 import { CoopWarehouseExitFields } from './CoopWarehouseExitFields';
-import { submitCoopWarehouseExit } from './coopWarehouseSubmitters';
-import { getCurrentDatetimeString } from './coopWarehouseUtils';
 import {
   useCoopWarehouseLocation,
   useCoopWarehouseShipmentState,
 } from './useCoopWarehousePageState';
+
+import {
+  recordWarehouseExitSchema,
+  type RecordWarehouseExitFormValues,
+} from '@/utils/validators/coopWarehouseEventSchema';
+
+import { submitCoopWarehouseExit } from './coopWarehouseSubmitters';
+import { getCurrentDatetimeString } from './coopWarehouseUtils';
 
 /** Trang ghi nhận sự kiện xuất kho hợp tác xã cho các lô hàng. */
 export default function CreateCoopWarehouseExitPage() {
@@ -113,7 +116,12 @@ export default function CreateCoopWarehouseExitPage() {
             />
           </CardContent>
           <CardFooter className="flex justify-end gap-3 rounded-b-xl border-t bg-slate-50/50 p-4">
-            <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(-1)}
+              disabled={isSubmitting}
+            >
               Hủy
             </Button>
             <Button

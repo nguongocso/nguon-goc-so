@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-/** Schema xác thực dữ liệu sự kiện thu mua nông sản */
+/** Lược đồ xác thực dữ liệu sự kiện thu mua nông sản. */
 export const procurementEventSchema = z.object({
   shipmentId: z.string().min(1, 'Vui lòng nhập mã lô hàng').uuid('Mã lô hàng không hợp lệ (UUID)'),
   receivedQuantity: z.coerce.number().positive('Số lượng thực nhận phải lớn hơn 0'),
@@ -9,5 +9,5 @@ export const procurementEventSchema = z.object({
   longitude: z.coerce.number().min(-180).max(180).optional(),
 });
 
-/** Kiểu dữ liệu form sự kiện thu mua nông sản */
+/** Kiểu dữ liệu form sự kiện thu mua nông sản. */
 export type ProcurementEventFormValues = z.infer<typeof procurementEventSchema>;

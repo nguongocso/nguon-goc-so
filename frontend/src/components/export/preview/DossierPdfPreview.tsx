@@ -1,12 +1,13 @@
 import React from 'react';
+
 import { cn } from '@/lib/utils';
 
-/** Props cho component xem trước file PDF */
+/** Thuộc tính cho thành phần xem trước tệp PDF. */
 export interface DossierPdfPreviewProps {
   pdfUrl: string | null;
 }
 
-/** Component hiển thị bản in PDF hồ sơ truy xuất nguồn gốc trong iframe. */
+/** Thành phần hiển thị bản in PDF hồ sơ truy xuất nguồn gốc trong iframe. */
 export const DossierPdfPreview: React.FC<DossierPdfPreviewProps> = ({ pdfUrl }) => {
   return (
     <div

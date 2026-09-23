@@ -1,4 +1,5 @@
 import { LoaderCircle, Send } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
 
@@ -16,10 +17,19 @@ export function WarehouseReceiptDialogFooter({
 }: WarehouseReceiptDialogFooterProps) {
   return (
     <DialogFooter>
-      <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onCancel}
+        disabled={isSubmitting}
+      >
         Hủy
       </Button>
-      <Button type="submit" variant="view" disabled={isSubmitting || !canSubmit}>
+      <Button
+        type="submit"
+        variant="view"
+        disabled={isSubmitting || !canSubmit}
+      >
         {isSubmitting ? (
           <>
             <LoaderCircle className="size-4 animate-spin" />

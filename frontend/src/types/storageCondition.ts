@@ -1,4 +1,4 @@
-/** Yêu cầu ghi nhận điều kiện lưu trữ / bảo quản */
+/** Yêu cầu ghi nhận điều kiện lưu trữ / bảo quản. */
 export interface StorageConditionRequest {
   codeValue: string;
   temperature: number;
@@ -6,7 +6,7 @@ export interface StorageConditionRequest {
   recordedAt?: string;
 }
 
-/** Thông tin ngưỡng nhiệt độ và độ ẩm cho phép */
+/** Thông tin ngưỡng nhiệt độ và độ ẩm cho phép. */
 export interface ThresholdInfo {
   tempMin?: number;
   tempMax?: number;
@@ -14,7 +14,7 @@ export interface ThresholdInfo {
   humidityMax?: number;
 }
 
-/** Phản hồi sau khi ghi nhận điều kiện lưu trữ */
+/** Phản hồi sau khi ghi nhận điều kiện lưu trữ. */
 export interface StorageConditionResponse {
   id: string;
   eventType: 'STORAGE_CONDITION';

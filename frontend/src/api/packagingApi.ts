@@ -1,8 +1,9 @@
-import apiClient from './axiosConfig';
 import type { ChainEventResponse, CorrectPackagingRequest, RecordPackagingRequest } from '@/types/packaging';
 import type { ProductionLot } from '@/types/productionLot';
 
-/** Ghi nhận sự kiện đóng gói POST /api/v1/chain-events/packaging */
+import apiClient from './axiosConfig';
+
+/** Ghi nhận sự kiện đóng gói. */
 export const recordPackagingEvent = async (
   data: RecordPackagingRequest
 ): Promise<ChainEventResponse> => {
@@ -10,7 +11,7 @@ export const recordPackagingEvent = async (
   return response.data.data;
 };
 
-/** Đính chính sự kiện đóng gói đã ghi nhận POST /api/v1/chain-events/packaging/{originalEventId}/correct */
+/** Đính chính sự kiện đóng gói đã ghi nhận. */
 export const correctPackagingEvent = async (
   originalEventId: string,
   data: CorrectPackagingRequest
@@ -22,7 +23,7 @@ export const correctPackagingEvent = async (
   return response.data.data;
 };
 
-/** Lấy danh sách lô sản xuất đủ điều kiện đóng gói (đã thu hoạch hoặc đã sơ chế) GET /api/v1/production-lots */
+/** Lấy danh sách lô sản xuất đủ điều kiện đóng gói (đã thu hoạch hoặc đã sơ chế). */
 export const getHarvestedProductionLots = async (): Promise<ProductionLot[]> => {
   const response = await apiClient.get<{ data: ProductionLot[] }>('/production-lots');
   const lots = response.data.data;

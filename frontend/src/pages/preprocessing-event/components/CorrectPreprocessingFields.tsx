@@ -1,10 +1,13 @@
 import { MapPin, Percent, Scale } from 'lucide-react';
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
-import { getLocalDateString } from '@/utils/dateTime';
 import type { CorrectPreprocessingController } from './useCorrectPreprocessingForm';
+
+import { getLocalDateString } from '@/utils/dateTime';
+
+import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
 
 /** Các trường nghiệp vụ của biểu mẫu đính chính sơ chế. */
 export function CorrectPreprocessingFields({

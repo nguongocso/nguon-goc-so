@@ -1,18 +1,19 @@
 import React from 'react';
-import { Label } from '@/components/ui/label';
 import { FileText, FileCode, FileSpreadsheet } from 'lucide-react';
 
-/** Kiểu định dạng xuất hồ sơ truy xuất */
+import { Label } from '@/components/ui/label';
+
+/** Kiểu định dạng xuất hồ sơ truy xuất. */
 export type DossierExportFormat = 'pdf' | 'json' | 'csv';
 
-/** Props cho component lựa chọn định dạng tệp hồ sơ */
+/** Thuộc tính cho thành phần lựa chọn định dạng tệp hồ sơ. */
 export interface DossierFormatSelectorProps {
   selectedFormat: DossierExportFormat;
   onSelectFormat: (format: DossierExportFormat) => void;
   disabled?: boolean;
 }
 
-/** Component lựa chọn định dạng tệp xuất hồ sơ (PDF, JSON, CSV). */
+/** Thành phần lựa chọn định dạng tệp xuất hồ sơ (PDF, JSON, CSV). */
 export const DossierFormatSelector: React.FC<DossierFormatSelectorProps> = ({
   selectedFormat,
   onSelectFormat,

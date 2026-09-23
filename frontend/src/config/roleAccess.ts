@@ -1,5 +1,3 @@
-/** Định nghĩa vai trò và ma trận quyền truy cập chức năng. */
-
 /** Mã định danh vai trò người dùng đã xác thực (VT-01 đến VT-05). */
 export type AuthenticatedRoleCode = 'VT-01' | 'VT-02' | 'VT-03' | 'VT-04' | 'VT-05';
 

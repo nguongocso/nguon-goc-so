@@ -1,5 +1,3 @@
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import {
   CheckCircle2,
   ClipboardCheck,
@@ -8,9 +6,14 @@ import {
   TriangleAlert,
   XCircle,
 } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+
+import { cn } from '@/lib/utils';
+
 import { FARM_LOG_ELIGIBILITY_STYLES } from './farmLogEligibilityStyles';
 
-/** Trạng thái kiểm tra mốc canh tác trước khi đóng gói */
+/** Trạng thái kiểm tra mốc canh tác trước khi đóng gói. */
 export type FarmLogEligibilityStatus =
   | 'unselected'
   | 'idle'
@@ -19,7 +22,7 @@ export type FarmLogEligibilityStatus =
   | 'ineligible'
   | 'error';
 
-/** Thuộc tính cấu hình hiển thị cảnh báo mốc canh tác */
+/** Thuộc tính cấu hình hiển thị cảnh báo mốc canh tác. */
 export interface FarmLogEligibilityAlertProps {
   status: FarmLogEligibilityStatus;
   productionLotName?: string;
@@ -31,7 +34,7 @@ export interface FarmLogEligibilityAlertProps {
   onRetry?: () => void;
 }
 
-/** Component hiển thị thông báo trạng thái kiểm tra mốc canh tác cho lô sản xuất */
+/** Thành phần hiển thị thông báo trạng thái kiểm tra mốc canh tác cho lô sản xuất. */
 export function FarmLogEligibilityAlert({
   status,
   productionLotName,
@@ -144,7 +147,11 @@ export function FarmLogEligibilityAlert({
           {(onAction || onRetry) && (
             <div className="mt-4 flex flex-wrap gap-2">
               {onAction && actionLabel && (
-                <Button type="button" size="sm" onClick={onAction}>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={onAction}
+                >
                   {actionLabel}
                 </Button>
               )}

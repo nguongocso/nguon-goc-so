@@ -1,4 +1,4 @@
-/** Payload yêu cầu ghi nhận sự kiện vận chuyển lô hàng. */
+/** Dữ liệu yêu cầu yêu cầu ghi nhận sự kiện vận chuyển lô hàng. */
 export interface RecordTransportEventPayload {
   codeValue: string;
   fromLocation: string;

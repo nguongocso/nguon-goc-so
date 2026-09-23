@@ -1,10 +1,12 @@
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import type { Control } from 'react-hook-form';
+
 import { Label } from '@/components/ui/label';
+
 import type { ExportOpenDataFormValues } from '@/utils/validators';
 
-/** Props cho phần lựa chọn định dạng file xuất */
+/** Thuộc tính cho phần lựa chọn định dạng tệp xuất. */
 export interface ExportFormatSectionProps {
   control: Control<ExportOpenDataFormValues>;
   selectedFormat: string;
@@ -12,7 +14,7 @@ export interface ExportFormatSectionProps {
   errorMessage?: string;
 }
 
-/** Component lựa chọn định dạng tệp xuất dữ liệu mở (JSON, CSV, XML). */
+/** Thành phần lựa chọn định dạng tệp xuất dữ liệu mở (JSON, CSV, XML). */
 export const ExportFormatSection: React.FC<ExportFormatSectionProps> = ({
   control,
   selectedFormat,

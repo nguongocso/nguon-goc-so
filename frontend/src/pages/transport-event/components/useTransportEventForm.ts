@@ -1,12 +1,14 @@
 import { useState, type ChangeEvent } from 'react';
 import { isAxiosError } from 'axios';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+import { useOfflineSync } from '@/hooks/useOfflineSync';
+
 import { recordTransportEvent } from '@/api/transportEventApi';
 import { ChainEventType } from '@/enums/chainEventType';
-import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { addOfflineEvent } from '@/services/offlineQueue';
 import {
   transportEventSchema,

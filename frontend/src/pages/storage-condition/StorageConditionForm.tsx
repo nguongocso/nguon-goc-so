@@ -6,6 +6,7 @@ import {
   Send,
   Thermometer,
 } from 'lucide-react';
+
 import { LotLookupResult } from '@/components/common/LotLookupResult';
 import { ScanCodeField } from '@/components/common/ScanCodeField';
 import { getShipmentStatusLabel } from '@/components/shipment/ShipmentStatusBadge';
@@ -126,10 +127,19 @@ export function StorageConditionForm({ controller }: StorageConditionFormProps) 
             <Alert variant="destructive"><AlertDescription>{formError}</AlertDescription></Alert>
           )}
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={handleReset} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReset}
+              disabled={isSubmitting}
+            >
               Làm mới
             </Button>
-            <Button type="submit" variant="view" disabled={recordDisabled}>
+            <Button
+              type="submit"
+              variant="view"
+              disabled={recordDisabled}
+            >
               {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
               {isSubmitting ? 'Đang ghi nhận...' : 'Ghi nhận'}
             </Button>

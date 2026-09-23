@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { isAxiosError } from 'axios';
 import { LoaderCircle, ShieldCheck, ShieldAlert, CheckCircle2, XCircle, Eye } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { verifyChainIntegrity } from '@/api/eventChainVerificationApi';
 import { HelpButton } from '@/components/help/HelpButton';
+
+import { verifyChainIntegrity } from '@/api/eventChainVerificationApi';
 import type { ChainVerificationResponse } from '@/types/eventChainVerification';
 
-/** Trang kiểm chứng tính toàn vẹn chuỗi băm các sự kiện của lô hàng */
+/** Trang kiểm chứng tính toàn vẹn chuỗi băm các sự kiện của lô hàng. */
 export default function EventChainVerificationPage() {
   const [shipmentId, setShipmentId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,7 +40,6 @@ export default function EventChainVerificationPage() {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="space-y-6">
@@ -73,7 +74,11 @@ export default function EventChainVerificationPage() {
                 placeholder="9c8b7a6f-2222-4a2a-9f3d-1a2b3c4d5e6f"
               />
             </div>
-            <Button variant="view" onClick={handleVerify} disabled={loading}>
+            <Button
+              variant="view"
+              onClick={handleVerify}
+              disabled={loading}
+            >
               {loading ? <LoaderCircle className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
               {loading ? 'Đang kiểm chứng...' : 'Kiểm chứng'}
             </Button>

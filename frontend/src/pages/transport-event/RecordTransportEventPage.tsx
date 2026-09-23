@@ -1,10 +1,9 @@
 import { Truck } from 'lucide-react';
 
 import { HelpButton } from '@/components/help/HelpButton';
-
 import { TransportEventForm } from './components/TransportEventForm';
 
-/** Trang ghi nhận sự kiện vận chuyển nông sản */
+/** Trang ghi nhận sự kiện vận chuyển nông sản. */
 export default function RecordTransportEventPage() {
   return (
     <div className="space-y-6">

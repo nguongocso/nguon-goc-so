@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+
+import { useAutoGeolocation } from '@/hooks/useAutoGeolocation';
+
 import { getShipmentWarehouseStatus } from '@/api/coopWarehouseApi';
 import { getProductionLotById } from '@/api/productionLotApi';
 import { getShipmentById, getShipmentsByProductionLot } from '@/api/shipmentApi';
-import { useAutoGeolocation } from '@/hooks/useAutoGeolocation';
 import type { Shipment } from '@/types/shipment';
+
 import type { ShipmentStatusItem } from './coopWarehouseUtils';
 
 interface ShipmentStateOptions {

@@ -3,6 +3,7 @@ import { Controller } from 'react-hook-form';
 import type { Control } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { FileText, Settings, Eye } from 'lucide-react';
+
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,10 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
 import type { ProfileTemplate } from '@/types/profileTemplate';
 import type { ExportOpenDataFormValues } from '@/utils/validators';
 
-/** Props cho phần lựa chọn mẫu hồ sơ xuất khẩu */
+/** Thuộc tính cho phần lựa chọn mẫu hồ sơ xuất khẩu. */
 export interface ExportTemplateSectionProps {
   control: Control<ExportOpenDataFormValues>;
   profileTemplates: ProfileTemplate[];

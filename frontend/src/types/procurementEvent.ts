@@ -1,4 +1,4 @@
-/** Payload yêu cầu ghi nhận sự kiện thu mua nông sản từ HTX/Nông dân. */
+/** Dữ liệu yêu cầu yêu cầu ghi nhận sự kiện thu mua nông sản từ HTX/Nông dân. */
 export interface RecordProcurementEventRequest {
   shipmentId: string;
   receivedQuantity: number;

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+
 import { exportDossier } from '@/api/dossierApi';
 import { exportShipmentWithTemplate } from '@/api/exportApi';
 import { getOpenDataPreview } from '@/api/profileTemplateApi';
 import { toApiError } from '@/api/apiError';
 
-/** Tham số đầu vào cho hook nạp dữ liệu xem trước hồ sơ */
+/** Tham số đầu vào cho hook nạp dữ liệu xem trước hồ sơ. */
 export interface UseDossierPreviewDataParams {
   open: boolean;
   shipmentId?: string;
@@ -13,7 +14,7 @@ export interface UseDossierPreviewDataParams {
   initialData?: Record<string, unknown> | null;
 }
 
-/** Hook quản lý việc tải và lưu trữ dữ liệu xem trước hồ sơ theo định dạng PDF/CSV/JSON. */
+/** Quản lý việc tải và lưu trữ dữ liệu xem trước hồ sơ theo định dạng PDF/CSV/JSON. */
 export function useDossierPreviewData({
   open,
   shipmentId,
@@ -32,7 +33,7 @@ export function useDossierPreviewData({
 
   const currentPdfUrlRef = useRef<string | null>(null);
 
-  // Dọn dẹp URL blob khi component unmount
+  // Thu hồi URL Blob khi thành phần bị gỡ để tránh rò rỉ bộ nhớ.
   useEffect(() => {
     return () => {
       if (currentPdfUrlRef.current) {

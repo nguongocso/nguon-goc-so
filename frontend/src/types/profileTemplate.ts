@@ -1,5 +1,3 @@
-/** Định nghĩa kiểu dữ liệu cho Mẫu hồ sơ truy xuất theo đối tác (NCL-07-CN-007). */
-
 /** Chi tiết cấu hình một trường dữ liệu trong mẫu hồ sơ. */
 export interface ProfileTemplateField {
   id?: string;
@@ -47,7 +45,7 @@ export interface UpdateProfileTemplateRequest {
   selectedFields: FieldSelectionItem[];
 }
 
-/** Thông tin một trường dữ liệu khả dụng trong catalog hệ thống. */
+/** Thông tin một trường dữ liệu khả dụng trong danh mục hệ thống. */
 export interface AvailableFieldItem {
   fieldKey: string;
   displayName: string;

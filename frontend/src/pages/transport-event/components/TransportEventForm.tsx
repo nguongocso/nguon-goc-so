@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { TransportEventFields } from './TransportEventFields';
 import { useTransportEventForm } from './useTransportEventForm';
 
-/** Form ghi nhận sự kiện vận chuyển thực tế cho lô hàng. */
+/** Biểu mẫu ghi nhận sự kiện vận chuyển thực tế cho lô hàng. */
 export function TransportEventForm() {
   const navigate = useNavigate();
   const controller = useTransportEventForm();

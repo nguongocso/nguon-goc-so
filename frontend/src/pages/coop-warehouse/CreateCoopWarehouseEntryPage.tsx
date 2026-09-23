@@ -1,24 +1,27 @@
 import { useCallback } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { LogIn } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import { ListPageHeader } from '@/components/common/ListPageHeader';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { HelpButton } from '@/components/help/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import {
-  recordWarehouseEntrySchema,
-  type RecordWarehouseEntryFormValues,
-} from '@/utils/validators/coopWarehouseEventSchema';
 import { CoopWarehouseEntryFields } from './CoopWarehouseEntryFields';
-import { submitCoopWarehouseEntry } from './coopWarehouseSubmitters';
-import { getCurrentDatetimeString } from './coopWarehouseUtils';
 import {
   useCoopWarehouseLocation,
   useCoopWarehouseShipmentState,
 } from './useCoopWarehousePageState';
+
+import {
+  recordWarehouseEntrySchema,
+  type RecordWarehouseEntryFormValues,
+} from '@/utils/validators/coopWarehouseEventSchema';
+
+import { submitCoopWarehouseEntry } from './coopWarehouseSubmitters';
+import { getCurrentDatetimeString } from './coopWarehouseUtils';
 
 /** Trang ghi nhận sự kiện nhập kho hợp tác xã cho các lô hàng. */
 export default function CreateCoopWarehouseEntryPage() {
@@ -113,7 +116,12 @@ export default function CreateCoopWarehouseEntryPage() {
             />
           </CardContent>
           <CardFooter className="flex justify-end gap-3 rounded-b-xl border-t bg-slate-50/50 p-4">
-            <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(-1)}
+              disabled={isSubmitting}
+            >
               Hủy
             </Button>
             <Button

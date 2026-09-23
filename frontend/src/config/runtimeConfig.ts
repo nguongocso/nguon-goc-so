@@ -1,5 +1,3 @@
-/** Nạp cấu hình runtime, biến môi trường Vite hoặc API cùng origin. */
-
 /** Định nghĩa cấu trúc các biến cấu hình runtime của ứng dụng. */
 export interface RuntimeConfig {
   API_BASE_URL: string;
@@ -22,7 +20,7 @@ function isConfigured(value: string | undefined): value is string {
   );
 }
 
-/** Lấy URL gốc cho API client (đảm bảo luôn kết thúc bằng /api/v1). */
+/** Lấy URL gốc cho trình gọi API (đảm bảo luôn kết thúc bằng /api/v1). */
 export function getApiBaseUrl(): string {
   const fromWindow = window.__RUNTIME_CONFIG__?.API_BASE_URL;
   if (isConfigured(fromWindow)) {
@@ -39,7 +37,7 @@ export function getApiBaseUrl(): string {
   return normalizeApiBaseUrl('/api/v1');
 }
 
-/** Lấy URL gốc cho các tài nguyên tĩnh hoặc file tải xuống (ví dụ: hình ảnh mã QR). */
+/** Lấy URL gốc cho các tài nguyên tĩnh hoặc tệp tải xuống (ví dụ: hình ảnh mã QR). */
 export function getAssetBaseUrl(): string {
   const fromWindow = window.__RUNTIME_CONFIG__?.ASSET_BASE_URL;
   if (isConfigured(fromWindow)) {

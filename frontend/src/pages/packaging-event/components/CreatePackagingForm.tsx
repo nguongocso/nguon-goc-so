@@ -1,4 +1,5 @@
 import { AlertTriangle, LoaderCircle, PackageSearch } from 'lucide-react';
+
 import { LotValidationStatus } from '@/components/event-validation/LotValidationStatus';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -12,10 +13,11 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getLocalDateString } from '@/utils/dateTime';
 import { FarmLogEligibilityAlert } from './FarmLogEligibilityAlert';
 import { LocationPicker } from './LocationPicker';
 import { useCreatePackagingForm } from './useCreatePackagingForm';
+
+import { getLocalDateString } from '@/utils/dateTime';
 
 /** Biểu mẫu ghi nhận sự kiện đóng gói cho lô sản xuất. */
 export function CreatePackagingForm() {
@@ -157,7 +159,13 @@ export function CreatePackagingForm() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => navigate(-1)}>Hủy</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate(-1)}
+          >
+            Hủy
+          </Button>
           <Button
             type="submit"
             variant="create"

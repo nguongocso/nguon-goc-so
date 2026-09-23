@@ -1,11 +1,12 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 import { DossierPdfPreview } from './DossierPdfPreview';
 import { DossierCsvPreview } from './DossierCsvPreview';
 import { DossierJsonPreview } from './DossierJsonPreview';
 
-/** Props cho nội dung hiển thị trong hộp thoại xem trước */
+/** Thuộc tính cho nội dung hiển thị trong hộp thoại xem trước. */
 export interface DossierPreviewContentProps {
   loading: boolean;
   error: string | null;
@@ -52,7 +53,12 @@ export const DossierPreviewContent: React.FC<DossierPreviewContentProps> = ({
           <p className="text-sm font-semibold text-foreground">Không thể tạo bản xem trước</p>
           <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{error}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={onRetry} className="mt-2 text-xs">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRetry}
+          className="mt-2 text-xs"
+        >
           Thử tải lại
         </Button>
       </div>

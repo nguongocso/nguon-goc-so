@@ -1,26 +1,30 @@
 import { useEffect, useState } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { isAxiosError } from 'axios';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { getHarvestEligibility } from '@/api/farmLogApi';
-import { recordHarvestEvent } from '@/api/traceEventApi';
-import { ChainEventType } from '@/enums/chainEventType';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import { useAuth } from '@/hooks/useAuth';
 import { useAutoGeolocation } from '@/hooks/useAutoGeolocation';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
+import type { HarvestFormProps } from './HarvestForm';
+
+import { getHarvestEligibility } from '@/api/farmLogApi';
+import { recordHarvestEvent } from '@/api/traceEventApi';
+import { ChainEventType } from '@/enums/chainEventType';
 import { addOfflineEvent } from '@/services/offlineQueue';
 import type { HarvestEligibilityResponse } from '@/types/farmLog';
 import { getLocalDateString } from '@/utils/dateTime';
-import type { HarvestFormProps } from './HarvestForm';
 
 const MAX_IMAGES = 5;
+
 interface BackendErrorData {
   status?: number;
   message?: string;
   errors?: Record<string, string>;
 }
+
 const formSchema = z.object({
   harvestDate: z.string().min(1, 'Vui lòng chọn ngày thu hoạch'),
   quantity: z.number({
@@ -31,6 +35,7 @@ const formSchema = z.object({
   longitude: z.number().min(-180).max(180).optional(),
   earlyHarvestReason: z.string().optional(),
 });
+
 type FormValues = z.infer<typeof formSchema>;
 
 /** Quản lý dữ liệu và hành vi của biểu mẫu thu hoạch. */

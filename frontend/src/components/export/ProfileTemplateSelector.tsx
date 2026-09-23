@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { CheckCircle2, Sparkles } from 'lucide-react';
+
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import {
@@ -8,26 +10,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CheckCircle2, Sparkles } from 'lucide-react';
 import { useProfileTemplates } from '@/hooks/useProfileTemplates';
 import { TemplateOptionContent, DEFAULT_TEMPLATE_DISPLAY_NAME } from './TemplateOptionContent';
+
 import type { ProfileTemplate } from '@/types/profileTemplate';
 
-/** Props truyền vào ProfileTemplateSelector */
+/** Thuộc tính truyền vào ProfileTemplateSelector. */
 export interface ProfileTemplateSelectorProps {
-  /** ID tổ chức (lấy từ user.organizationId) */
   organizationId: string;
-  /** Trạng thái mở/đóng của dialog. Khi false, selector không fetch mẫu. */
   open?: boolean;
-  /** Callback được gọi mỗi khi người dùng (hoặc tự động) chọn một mẫu. */
   onTemplateChange?: (templateId: string, template: ProfileTemplate | null) => void;
-  /** Vô hiệu hoá selector (ví dụ: đang xuất) */
   disabled?: boolean;
-  /** Có hiển thị đoạn thông tin giải thích dưới select hay không */
   showInfoText?: boolean;
-  /** Class CSS tùy chỉnh cho SelectTrigger */
   triggerClassName?: string;
-  /** HTML id của SelectTrigger — dùng để gán Label htmlFor */
   triggerId?: string;
 }
 
@@ -44,18 +39,14 @@ export const ProfileTemplateSelector: React.FC<ProfileTemplateSelectorProps> = (
   const { templates, refresh, loading: loadingTemplates } = useProfileTemplates(organizationId);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('default');
 
-  // Dùng ref để luôn gọi callback mới nhất mà không gây re-render hay vòng lặp
+  // Giữ callback mới nhất mà không gây kết xuất lại hoặc vòng lặp.
   const onTemplateChangeRef = useRef(onTemplateChange);
   onTemplateChangeRef.current = onTemplateChange;
-
-  // Làm mới danh sách mẫu mỗi khi mở lại selector
   useEffect(() => {
     if (open && organizationId) {
       void refresh();
     }
   }, [open, organizationId, refresh]);
-
-  // Tự động chọn mẫu mặc định của tổ chức sau khi danh sách mẫu đã tải
   useEffect(() => {
     if (!open || loadingTemplates) return;
 
@@ -70,7 +61,7 @@ export const ProfileTemplateSelector: React.FC<ProfileTemplateSelectorProps> = (
     const defaultTpl = templates.find((t) => t.isDefault);
     const newId = defaultTpl?.id || 'default';
 
-    // Chỉ cập nhật nếu khác giá trị hiện tại để tránh re-render không cần thiết
+    // Chỉ cập nhật khi giá trị thay đổi để tránh kết xuất lại không cần thiết.
     if (newId !== selectedTemplateId) {
       setSelectedTemplateId(newId);
       onTemplateChangeRef.current?.(newId, defaultTpl || null);
@@ -79,8 +70,6 @@ export const ProfileTemplateSelector: React.FC<ProfileTemplateSelectorProps> = (
   }, [open, templates, loadingTemplates]);
 
   const activeTemplate = templates.find((t) => t.id === selectedTemplateId);
-
-  // Nội dung hiển thị trên SelectTrigger (giá trị đang được chọn)
   const selectedTemplateContent = useMemo(() => {
     if (activeTemplate) {
       return (
@@ -103,7 +92,6 @@ export const ProfileTemplateSelector: React.FC<ProfileTemplateSelectorProps> = (
 
   return (
     <div className="space-y-2">
-      {/* Nhãn + badge đối tác */}
       <div className="flex items-center justify-between">
         <Label
           htmlFor={triggerId}
@@ -121,8 +109,6 @@ export const ProfileTemplateSelector: React.FC<ProfileTemplateSelectorProps> = (
           </Badge>
         )}
       </div>
-
-      {/* Select chọn mẫu */}
       <Select
         value={selectedTemplateId}
         onValueChange={handleTemplateChange}
@@ -156,8 +142,6 @@ export const ProfileTemplateSelector: React.FC<ProfileTemplateSelectorProps> = (
           ))}
         </SelectContent>
       </Select>
-
-      {/* Thông tin giải thích về mẫu đang chọn */}
       {showInfoText && (
         <div
           className={

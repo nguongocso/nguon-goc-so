@@ -1,4 +1,5 @@
 import { LoaderCircle, Sprout } from 'lucide-react';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -64,7 +65,11 @@ export function HarvestForm(props: HarvestFormProps) {
         </CardContent>
         <CardFooter className="flex justify-end gap-3">
           {props.onCancel && (
-            <Button type="button" variant="outline" onClick={props.onCancel}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={props.onCancel}
+            >
               Hủy
             </Button>
           )}

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { DossierPreviewHeader } from './preview/DossierPreviewHeader';
 import { DossierPreviewContent } from './preview/DossierPreviewContent';
 import { DossierPreviewFooter } from './preview/DossierPreviewFooter';
 import { useDossierPreviewData } from './preview/useDossierPreviewData';
 
-/** Props truyền vào modal xem trước hồ sơ truy xuất */
+/** Thuộc tính truyền vào hộp thoại xem trước hồ sơ truy xuất. */
 export interface DossierPreviewDialogProps {
   open: boolean;
   onClose: () => void;

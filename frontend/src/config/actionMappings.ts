@@ -1,5 +1,3 @@
-/** Ánh xạ mã hành động sang nhãn hiển thị và lớp màu trạng thái. */
-
 /** Nhãn tiếng Việt tương ứng cho từng mã hành động nghiệp vụ. */
 export const ACTION_LABELS: Record<string, string> = {
   // Thao tác dữ liệu cơ bản
@@ -85,7 +83,7 @@ export const getActionLabel = (action: string): string => {
   return ACTION_LABELS[action] || action;
 };
 
-/** Lấy lớp CSS màu sắc badge của hành động. */
+/** Lấy lớp CSS màu sắc nhãn của hành động. */
 export const getActionColor = (action: string): string => {
   return ACTION_COLORS[action] || 'bg-muted text-muted-foreground';
 };

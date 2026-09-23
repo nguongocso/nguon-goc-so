@@ -1,4 +1,3 @@
-import apiClient from './axiosConfig';
 import type {
   ProfileTemplate,
   CreateProfileTemplateRequest,
@@ -6,6 +5,8 @@ import type {
   FieldGroupDefinition,
   AvailableFieldItem,
 } from '@/types/profileTemplate';
+
+import apiClient from './axiosConfig';
 
 export type { ProfileTemplate };
 
@@ -147,7 +148,7 @@ export const deleteProfileTemplate = async (
   );
 };
 
-/** Xem trước dữ liệu hồ sơ truy xuất theo mẫu dưới định dạng JSON object. */
+/** Xem trước dữ liệu hồ sơ truy xuất theo mẫu dưới định dạng JSON. */
 export const getOpenDataPreview = async (
   shipmentId: string,
   templateId?: string,
@@ -163,7 +164,7 @@ export const getOpenDataPreview = async (
   return extractData(response.data);
 };
 
-/** Lấy danh sách mẫu hồ sơ tổng hợp từ nhiều tổ chức (dành cho vai trò VT-04 xuất batch). */
+/** Lấy danh sách mẫu hồ sơ tổng hợp từ nhiều tổ chức (dành cho vai trò VT-04 xuất hàng loạt). */
 export const getBatchProfileTemplates = async (
   organizationIds: string[],
 ): Promise<ProfileTemplate[]> => {

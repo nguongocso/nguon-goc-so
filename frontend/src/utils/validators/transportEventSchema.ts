@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-/** Schema xác thực dữ liệu sự kiện vận chuyển */
+/** Lược đồ xác thực dữ liệu sự kiện vận chuyển. */
 export const transportEventSchema = z.object({
   codeValue: z
     .string()
@@ -22,5 +22,5 @@ export const transportEventSchema = z.object({
     .min(1, 'Vui lòng chọn thời gian vận chuyển.'),
 });
 
-/** Kiểu dữ liệu form ghi nhận sự kiện vận chuyển */
+/** Kiểu dữ liệu form ghi nhận sự kiện vận chuyển. */
 export type TransportEventFormValues = z.infer<typeof transportEventSchema>;

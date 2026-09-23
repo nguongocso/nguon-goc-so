@@ -1,17 +1,18 @@
-import apiClient from './axiosConfig';
 import type {
   RecordWarehouseEntryFormValues,
   RecordWarehouseExitFormValues,
 } from '@/utils/validators/coopWarehouseEventSchema';
 
-/** Cấu trúc phản hồi API chung */
+import apiClient from './axiosConfig';
+
+/** Cấu trúc phản hồi API chung. */
 export interface ApiResult<T> {
   success?: boolean;
   message?: string;
   data?: T;
 }
 
-/** Phản hồi chi tiết sự kiện kho HTX */
+/** Phản hồi chi tiết sự kiện kho HTX. */
 export interface CoopWarehouseEventResponse {
   id: string;
   shipmentId: string;
@@ -37,7 +38,7 @@ export interface CoopWarehouseEventResponse {
   createdAt?: string;
 }
 
-/** Mục sự kiện trong chuỗi sự kiện lô hàng */
+/** Mục sự kiện trong chuỗi sự kiện lô hàng. */
 export interface ChainEventItem {
   id: string;
   eventType: string;
@@ -45,7 +46,7 @@ export interface ChainEventItem {
   eventData?: string;
 }
 
-/** Ghi nhận sự kiện nhập kho HTX POST /api/v1/chain-events/coop-warehouse/entry */
+/** Ghi nhận sự kiện nhập kho HTX. */
 export async function recordWarehouseEntry(
   data: RecordWarehouseEntryFormValues
 ): Promise<ApiResult<CoopWarehouseEventResponse>> {
@@ -56,7 +57,7 @@ export async function recordWarehouseEntry(
   return response.data;
 }
 
-/** Ghi nhận sự kiện xuất kho HTX POST /api/v1/chain-events/coop-warehouse/exit */
+/** Ghi nhận sự kiện xuất kho HTX. */
 export async function recordWarehouseExit(
   data: RecordWarehouseExitFormValues
 ): Promise<ApiResult<CoopWarehouseEventResponse>> {
@@ -67,7 +68,7 @@ export async function recordWarehouseExit(
   return response.data;
 }
 
-/** Lấy danh sách sự kiện chuỗi của lô hàng GET /api/v1/shipments/{shipmentId}/chain-events */
+/** Lấy danh sách sự kiện chuỗi của lô hàng. */
 export async function getShipmentChainEvents(
   shipmentId: string
 ): Promise<ChainEventItem[]> {
@@ -81,7 +82,7 @@ export async function getShipmentChainEvents(
   }
 }
 
-/** Xác định trạng thái lưu kho HTX hiện tại của lô hàng */
+/** Xác định trạng thái lưu kho HTX hiện tại của lô hàng. */
 export async function getShipmentWarehouseStatus(
   shipmentId: string
 ): Promise<'IN_WAREHOUSE' | 'NOT_IN_WAREHOUSE'> {

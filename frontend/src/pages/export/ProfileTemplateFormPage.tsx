@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Save, Eye, Loader2 } from 'lucide-react';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import { Button } from '@/components/ui/button';
 import {
   Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
@@ -13,10 +14,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { ProfileFieldSelector } from '@/components/export/ProfileFieldSelector';
 import { DossierPreviewDialog } from '@/components/export/DossierPreviewDialog';
 import { ProfileTemplateMetaCard, type ProfileTemplateFormData } from './ProfileTemplateMetaCard';
-import { buildProfileTemplateMockData } from './profileTemplateMockData';
 import { useProfileTemplateFormData } from './useProfileTemplateFormData';
 
-// Zod schema kiểm tra dữ liệu form
+import { buildProfileTemplateMockData } from './profileTemplateMockData';
+
 const profileTemplateSchema = z.object({
   name: z
     .string()
@@ -163,7 +164,12 @@ export const ProfileTemplateFormPage: React.FC = () => {
                 <span>Xem trước</span>
               </Button>
 
-              <Button type="submit" variant="create" disabled={submitting} className="gap-2">
+              <Button
+                type="submit"
+                variant="create"
+                disabled={submitting}
+                className="gap-2"
+              >
                 {submitting ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />

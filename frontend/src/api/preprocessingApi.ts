@@ -1,15 +1,16 @@
-import apiClient from './axiosConfig';
 import type {
   CorrectPreprocessingRequest,
   PreprocessingEventResponse,
   RecordPreprocessingRequest,
 } from '@/types/preprocessing';
 
+import apiClient from './axiosConfig';
+
 interface ApiDataResponse<T> {
   data: T;
 }
 
-/** Ghi nhận sự kiện sơ chế và phân loại POST /api/v1/chain-events/preprocessing */
+/** Ghi nhận sự kiện sơ chế và phân loại. */
 export const recordPreprocessingEvent = async (
   payload: RecordPreprocessingRequest,
 ): Promise<PreprocessingEventResponse> => {
@@ -20,7 +21,7 @@ export const recordPreprocessingEvent = async (
   return response.data.data;
 };
 
-/** Đính chính sự kiện sơ chế đã ghi nhận POST /api/v1/chain-events/preprocessing/{originalEventId}/correct */
+/** Đính chính sự kiện sơ chế đã ghi nhận. */
 export const correctPreprocessingEvent = async (
   originalEventId: string,
   payload: CorrectPreprocessingRequest,

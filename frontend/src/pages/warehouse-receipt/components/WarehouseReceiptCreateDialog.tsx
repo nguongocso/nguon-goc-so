@@ -1,4 +1,5 @@
 import { LoaderCircle, Package, ScanLine } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,10 +15,11 @@ import {
 import { ScanCodeField } from '@/components/common/ScanCodeField';
 import { LotLookupResult } from '@/components/common/LotLookupResult';
 import { getShipmentStatusLabel } from '@/components/shipment/ShipmentStatusBadge';
-import { selectAllOnFocus, preventMouseUpCollapse } from '@/utils/inputUtils';
 import { WarehouseReceiptDiscrepancy } from './WarehouseReceiptDiscrepancy';
 import { WarehouseReceiptDialogFooter } from './WarehouseReceiptDialogFooter';
 import { useWarehouseReceiptCreateForm } from './useWarehouseReceiptCreateForm';
+
+import { selectAllOnFocus, preventMouseUpCollapse } from '@/utils/inputUtils';
 
 /** Thuộc tính cho hộp thoại tạo phiếu nhập kho. */
 export interface WarehouseReceiptCreateDialogProps {

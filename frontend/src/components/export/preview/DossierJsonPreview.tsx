@@ -1,12 +1,13 @@
 import React from 'react';
+
 import { cn } from '@/lib/utils';
 
-/** Props cho component xem trước dữ liệu JSON */
+/** Thuộc tính cho thành phần xem trước dữ liệu JSON. */
 export interface DossierJsonPreviewProps {
   jsonString: string;
 }
 
-/** Component hiển thị cấu trúc dữ liệu JSON hồ sơ truy xuất nguồn gốc. */
+/** Thành phần hiển thị cấu trúc dữ liệu JSON hồ sơ truy xuất nguồn gốc. */
 export const DossierJsonPreview: React.FC<DossierJsonPreviewProps> = ({ jsonString }) => {
   return (
     <div

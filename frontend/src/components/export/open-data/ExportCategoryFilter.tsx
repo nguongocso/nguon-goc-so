@@ -1,6 +1,8 @@
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import type { Control, UseFormSetValue, UseFormWatch } from 'react-hook-form';
+import { X } from 'lucide-react';
+
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,11 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { X } from 'lucide-react';
+
 import type { ProductCategory } from '@/types/productCategory';
 import type { ExportOpenDataFormValues } from '@/utils/validators';
 
-/** Props cho bộ lọc danh mục sản phẩm */
+/** Thuộc tính cho bộ lọc danh mục sản phẩm. */
 export interface ExportCategoryFilterProps {
   categories: ProductCategory[];
   control: Control<ExportOpenDataFormValues>;
@@ -25,7 +27,7 @@ export interface ExportCategoryFilterProps {
   errorMessage?: string;
 }
 
-/** Component lựa chọn nhiều danh mục sản phẩm với giao diện badge trực quan và nút xóa nhanh. */
+/** Thành phần lựa chọn nhiều danh mục sản phẩm với giao diện nhãn trực quan và nút xóa nhanh. */
 export const ExportCategoryFilter: React.FC<ExportCategoryFilterProps> = ({
   categories,
   control,

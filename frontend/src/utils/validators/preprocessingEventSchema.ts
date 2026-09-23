@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { getLocalDateString } from '@/utils/dateTime';
 
 const inputQuantity = z
@@ -39,7 +40,7 @@ const validateQuantities = (
   }
 };
 
-/** Schema xác thực dữ liệu sự kiện sơ chế và phân loại */
+/** Lược đồ xác thực dữ liệu sự kiện sơ chế và phân loại. */
 export const recordPreprocessingSchema = z
   .object({
     productionLotId: z.string().uuid('Vui lòng chọn lô sản xuất'),
@@ -55,7 +56,7 @@ export const recordPreprocessingSchema = z
   })
   .superRefine(validateQuantities);
 
-/** Schema xác thực dữ liệu đính chính sự kiện sơ chế */
+/** Lược đồ xác thực dữ liệu đính chính sự kiện sơ chế. */
 export const correctPreprocessingSchema = z
   .object({
     inputQuantity,
@@ -75,12 +76,12 @@ export const correctPreprocessingSchema = z
   })
   .superRefine(validateQuantities);
 
-/** Kiểu dữ liệu form ghi nhận sơ chế */
+/** Kiểu dữ liệu form ghi nhận sơ chế. */
 export type RecordPreprocessingFormValues = z.infer<
   typeof recordPreprocessingSchema
 >;
 
-/** Kiểu dữ liệu form đính chính sơ chế */
+/** Kiểu dữ liệu form đính chính sơ chế. */
 export type CorrectPreprocessingFormValues = z.infer<
   typeof correctPreprocessingSchema
 >;

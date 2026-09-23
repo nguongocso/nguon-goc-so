@@ -1,11 +1,13 @@
 import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
+
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+
 import type { ProfileTemplate } from '@/types/profileTemplate';
 
-/** Props cho dòng dữ liệu mẫu hồ sơ trong bảng danh sách */
+/** Thuộc tính cho dòng dữ liệu mẫu hồ sơ trong bảng danh sách. */
 export interface ProfileTemplateTableRowProps {
   template: ProfileTemplate;
   index: number;
@@ -14,7 +16,7 @@ export interface ProfileTemplateTableRowProps {
   onDelete: (template: ProfileTemplate) => void;
 }
 
-/** Component hiển thị một hàng trong bảng danh sách mẫu hồ sơ truy xuất. */
+/** Thành phần hiển thị một hàng trong bảng danh sách mẫu hồ sơ truy xuất. */
 export const ProfileTemplateTableRow: React.FC<ProfileTemplateTableRowProps> = ({
   template,
   index,

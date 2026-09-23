@@ -1,8 +1,11 @@
 import { Eye } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { StatusBadge } from '@/components/common/StatusBadge';
+
 import type { WarehouseReceiptResponse } from '@/types/warehouseReceipt';
+
 import { formatWarehouseReceiptDate } from '../warehouseReceiptFormatters';
 
 interface WarehouseReceiptTableProps {

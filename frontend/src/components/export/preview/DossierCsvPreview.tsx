@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { Table as TableIcon, Code2 } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 
-/** Dòng dữ liệu sau khi phân tích từ CSV */
+/** Dòng dữ liệu sau khi phân tích từ CSV. */
 export interface CsvParsedRow {
   isHeader?: boolean;
   isSection?: boolean;
   cells: string[];
 }
 
-/** Props cho component xem trước file CSV */
+/** Thuộc tính cho thành phần xem trước tệp CSV. */
 export interface DossierCsvPreviewProps {
   csvContent: string | null;
 }

@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { FileText, Download, Eye, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { DossierPreviewDialog } from './DossierPreviewDialog';
+import { DossierFormatSelector, type DossierExportFormat } from './DossierFormatSelector';
+import { ProfileTemplateSelector } from './ProfileTemplateSelector';
+
 import { exportDossier } from '@/api/dossierApi';
 import { exportShipmentWithTemplate } from '@/api/exportApi';
 import { toApiError } from '@/api/apiError';
-import { DossierPreviewDialog } from './DossierPreviewDialog';
-import { DossierFormatSelector, type DossierExportFormat } from './DossierFormatSelector';
 import { getLocalDateString } from '@/utils/dateTime';
 import { cn } from '@/lib/utils';
-import { ProfileTemplateSelector } from './ProfileTemplateSelector';
 import type { ProfileTemplate } from '@/types/profileTemplate';
 
-/** Props truyền vào component ExportDossierDialog */
+/** Thuộc tính truyền vào thành phần ExportDossierDialog. */
 export interface ExportDossierDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;

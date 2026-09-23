@@ -1,6 +1,8 @@
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import type { WarehouseReceiptResponse } from '@/types/warehouseReceipt';
 
 const ALLOWED_THRESHOLD = 2;

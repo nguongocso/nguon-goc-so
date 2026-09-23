@@ -2,6 +2,7 @@ import React from 'react';
 import { Controller } from 'react-hook-form';
 import type { Control, UseFormSetValue, UseFormWatch } from 'react-hook-form';
 import { Building, AlertCircle, FileText } from 'lucide-react';
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -12,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+
 import { cn } from '@/lib/utils';
 
 export interface ProfileTemplateFormData {
@@ -20,7 +22,7 @@ export interface ProfileTemplateFormData {
   isDefault: boolean;
 }
 
-/** Props cho thẻ nhập thông tin cơ bản của mẫu hồ sơ */
+/** Thuộc tính cho thẻ nhập thông tin cơ bản của mẫu hồ sơ. */
 export interface ProfileTemplateMetaCardProps {
   control: Control<ProfileTemplateFormData>;
   setValue: UseFormSetValue<ProfileTemplateFormData>;

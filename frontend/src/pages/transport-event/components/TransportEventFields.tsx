@@ -1,4 +1,5 @@
 import { Camera } from 'lucide-react';
+
 import { ScanCodeField } from '@/components/common/ScanCodeField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,7 +79,11 @@ export function TransportEventFields({ controller }: TransportEventFieldsProps) 
           <div className="mt-2 flex flex-wrap gap-2">
             {imagePreviews.map((source, index) => (
               <div key={source} className="relative h-16 w-16 overflow-hidden rounded border">
-                <img src={source} alt={`preview-${index}`} className="h-full w-full object-cover" />
+                <img
+                  src={source}
+                  alt={`preview-${index}`}
+                  className="h-full w-full object-cover"
+                />
                 <button
                   type="button"
                   className={[

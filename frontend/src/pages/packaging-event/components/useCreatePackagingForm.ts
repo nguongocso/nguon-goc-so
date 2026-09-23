@@ -1,22 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { isAxiosError } from 'axios';
 import { useForm } from 'react-hook-form';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { getPackagingEligibility } from '@/api/cultivationMilestoneApi';
-import { recordPackagingEvent } from '@/api/packagingApi';
-import { getProductionLotById } from '@/api/productionLotApi';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import { useAuth } from '@/hooks/useAuth';
 import { useAutoGeolocation } from '@/hooks/useAutoGeolocation';
 import { useLotValidation } from '@/hooks/useLotValidation';
+import type { FarmLogEligibilityStatus } from './FarmLogEligibilityAlert';
+
+import { getPackagingEligibility } from '@/api/cultivationMilestoneApi';
+import { recordPackagingEvent } from '@/api/packagingApi';
+import { getProductionLotById } from '@/api/productionLotApi';
 import type { ProductionLot } from '@/types/productionLot';
 import { getLocalDateString } from '@/utils/dateTime';
 import {
   recordPackagingSchema,
   type RecordPackagingFormValues,
 } from '@/utils/validators/packagingEventSchema';
-import type { FarmLogEligibilityStatus } from './FarmLogEligibilityAlert';
 
 const getPackagingError = (error: unknown) => {
   if (!isAxiosError<{ message?: string }>(error)) {

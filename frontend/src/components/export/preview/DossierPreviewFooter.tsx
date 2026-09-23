@@ -1,6 +1,4 @@
 import React from 'react';
-import { DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import {
   Copy,
   Check,
@@ -10,7 +8,10 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
-/** Props cho footer của hộp thoại xem trước hồ sơ */
+import { DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+
+/** Thuộc tính cho phần chân của hộp thoại xem trước hồ sơ. */
 export interface DossierPreviewFooterProps {
   format: 'pdf' | 'json' | 'csv';
   pdfUrl: string | null;

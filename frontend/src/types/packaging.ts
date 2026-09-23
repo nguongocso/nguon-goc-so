@@ -1,6 +1,6 @@
 import type { ChainEventType } from '@/enums/chainEventType';
 
-/** Payload yêu cầu ghi nhận sự kiện đóng gói nông sản. */
+/** Dữ liệu yêu cầu yêu cầu ghi nhận sự kiện đóng gói nông sản. */
 export interface RecordPackagingRequest {
   productionLotId: string;
   packagingSpecification: string;
@@ -9,7 +9,7 @@ export interface RecordPackagingRequest {
   longitude?: number;
 }
 
-/** Payload yêu cầu đính chính thông tin sự kiện đóng gói đã ghi nhận. */
+/** Dữ liệu yêu cầu yêu cầu đính chính thông tin sự kiện đóng gói đã ghi nhận. */
 export interface CorrectPackagingRequest {
   packagingSpecification: string;
   packagingDate: string;
@@ -27,7 +27,7 @@ export type PackagingEventDataValue =
   | undefined
   | readonly (string | number | boolean | null)[];
 
-/** Dữ liệu linh hoạt của một sự kiện trong timeline lô hàng. */
+/** Dữ liệu linh hoạt của một sự kiện trong dòng thời gian lô hàng. */
 export interface ChainEventData
   extends Record<string, PackagingEventDataValue> {
   productionLotId?: string;

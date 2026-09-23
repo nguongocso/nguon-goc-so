@@ -1,15 +1,15 @@
 import { isAxiosError } from 'axios';
 
-/** Thông báo lỗi mặc định khi không thể kết nối tới máy chủ backend. */
+/** Thông báo lỗi mặc định khi không thể kết nối tới máy chủ. */
 export const DEFAULT_API_ERROR_MESSAGE = 'Không thể kết nối đến máy chủ.';
 
-/** Cấu trúc dữ liệu phản hồi lỗi từ API backend (theo ApiResult contract). */
+/** Cấu trúc dữ liệu phản hồi lỗi từ API backend (theo hợp đồng ApiResult). */
 interface ApiErrorPayload {
   message?: string;
   [key: string]: unknown;
 }
 
-/** Kiểm tra xem dữ liệu phản hồi có chứa trường message hợp lệ hay không. */
+/** Kiểm tra xem dữ liệu phản hồi có chứa trường `message` hợp lệ hay không. */
 function hasErrorMessage(data: unknown): data is ApiErrorPayload & { message: string } {
   return (
     typeof data === 'object' &&
@@ -20,7 +20,7 @@ function hasErrorMessage(data: unknown): data is ApiErrorPayload & { message: st
   );
 }
 
-/** Chuẩn hóa lỗi API thành Error với thông báo backend hoặc nội dung dự phòng. */
+/** Chuẩn hóa lỗi API thành đối tượng Error với thông báo từ máy chủ hoặc nội dung dự phòng. */
 export function toApiError(
   err: unknown,
   fallback: string = DEFAULT_API_ERROR_MESSAGE,

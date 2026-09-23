@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import type { Control, UseFormSetValue, UseFormWatch } from 'react-hook-form';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+
 import type { ExportOpenDataFormValues } from '@/utils/validators';
+
 import {
   toDateTimeLocal,
   detectActiveQuickRange,
@@ -13,7 +16,7 @@ import {
 
 export { toDateTimeLocal };
 
-/** Props cho bộ lọc khoảng thời gian xuất dữ liệu */
+/** Thuộc tính cho bộ lọc khoảng thời gian xuất dữ liệu. */
 export interface ExportDateRangeFilterProps {
   control: Control<ExportOpenDataFormValues>;
   setValue: UseFormSetValue<ExportOpenDataFormValues>;

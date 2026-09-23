@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertTriangle, LoaderCircle, Package, User, CalendarClock } from 'lucide-react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { HelpButton } from '@/components/help/HelpButton';
 import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
 import { WarehouseReceiptQuantityComparison } from './components/WarehouseReceiptQuantityComparison';
+
 import {
   formatWarehouseReceiptDate,
   formatWarehouseReceiptDateTime,

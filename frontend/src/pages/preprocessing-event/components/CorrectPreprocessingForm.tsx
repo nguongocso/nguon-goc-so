@@ -1,4 +1,5 @@
 import { AlertTriangle, FilePenLine, LoaderCircle } from 'lucide-react';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +13,7 @@ import {
 import { CorrectPreprocessingFields } from './CorrectPreprocessingFields';
 import { useCorrectPreprocessingForm } from './useCorrectPreprocessingForm';
 
-/** Form đính chính sự kiện sơ chế nông sản. */
+/** Biểu mẫu đính chính sự kiện sơ chế nông sản. */
 export function CorrectPreprocessingForm() {
   const controller = useCorrectPreprocessingForm();
   const {
@@ -76,7 +77,11 @@ export function CorrectPreprocessingForm() {
           >
             Hủy
           </Button>
-          <Button type="submit" variant="edit" disabled={isSubmitting || !id}>
+          <Button
+            type="submit"
+            variant="edit"
+            disabled={isSubmitting || !id}
+          >
             {isSubmitting && <LoaderCircle className="mr-2 size-4 animate-spin" />}
             {isSubmitting ? 'Đang đính chính...' : 'Tạo sự kiện đính chính'}
           </Button>

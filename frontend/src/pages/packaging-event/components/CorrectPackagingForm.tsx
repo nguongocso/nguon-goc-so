@@ -1,20 +1,23 @@
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import {
   Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
 } from '@/components/ui/card';
-import { correctPackagingSchema, type CorrectPackagingFormValues } from '@/utils/validators/packagingEventSchema';
-import { correctPackagingEvent } from '@/api/packagingApi';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
 import { Button } from '@/components/ui/button';
+
+import { correctPackagingSchema, type CorrectPackagingFormValues } from '@/utils/validators/packagingEventSchema';
+import { correctPackagingEvent } from '@/api/packagingApi';
 import { getLocalDateString } from '@/utils/dateTime';
 
-/** Biểu mẫu đính chính thông tin sự kiện đóng gói */
+import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
+
+/** Biểu mẫu đính chính thông tin sự kiện đóng gói. */
 export function CorrectPackagingForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -104,8 +107,18 @@ export function CorrectPackagingForm() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => navigate(-1)}>Hủy</Button>
-          <Button type="submit" disabled={isSubmitting} variant="edit">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate(-1)}
+          >
+            Hủy
+          </Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            variant="edit"
+          >
             {isSubmitting ? 'Đang xử lý...' : 'Đính chính'}
           </Button>
         </CardFooter>

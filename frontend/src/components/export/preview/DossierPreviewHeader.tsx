@@ -1,20 +1,22 @@
 import React from 'react';
 import {
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import {
   FileJson,
   FileText,
   FileSpreadsheet,
   Maximize2,
   Minimize2,
 } from 'lucide-react';
+
+import {
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+
 import { cn } from '@/lib/utils';
 
-/** Props cho header của hộp thoại xem trước hồ sơ */
+/** Thuộc tính cho phần đầu của hộp thoại xem trước hồ sơ. */
 export interface DossierPreviewHeaderProps {
   format: 'pdf' | 'json' | 'csv';
   setFormat: (format: 'pdf' | 'json' | 'csv') => void;

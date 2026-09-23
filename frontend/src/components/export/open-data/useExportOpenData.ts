@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
+
+import type { Qtn11ErrorDetail } from '../Qtn11ErrorModal';
+
 import { exportOpenData } from '@/api/exportApi';
 import { getLocalDateString } from '@/utils/dateTime';
 import type { ExportOpenDataFormValues } from '@/utils/validators';
-import type { Qtn11ErrorDetail } from '../Qtn11ErrorModal';
 
 export interface UseExportOpenDataParams {
   canFilterByUnit: boolean;
   unitIds: string[];
 }
 
-/** Hook quản lý trạng thái và thao tác xuất dữ liệu mở (gọi API, tải blob, xử lý lỗi QTN-11). */
+/** Quản lý trạng thái và thao tác xuất dữ liệu mở (gọi API, tải blob, xử lý lỗi QTN-11). */
 export function useExportOpenData({ canFilterByUnit, unitIds }: UseExportOpenDataParams) {
   const [submitting, setSubmitting] = useState(false);
   const [qtn11ErrorModalOpen, setQtn11ErrorModalOpen] = useState(false);

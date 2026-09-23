@@ -1,8 +1,10 @@
 import { AlertCircle, CheckCircle2, LoaderCircle } from 'lucide-react';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
 import { cn } from '@/lib/utils';
 
-/** Thuộc tính của component LotValidationStatus */
+/** Thuộc tính của thành phần LotValidationStatus. */
 interface LotValidationStatusProps {
   isValid: boolean | null;
   message: string;
@@ -10,8 +12,13 @@ interface LotValidationStatusProps {
   className?: string;
 }
 
-/** Hiển thị trạng thái kiểm tra tính hợp lệ của lô sản xuất */
-export const LotValidationStatus = ({ isValid, message, loading, className }: LotValidationStatusProps) => {
+/** Hiển thị trạng thái kiểm tra tính hợp lệ của lô sản xuất. */
+export const LotValidationStatus = ({
+  isValid,
+  message,
+  loading,
+  className,
+}: LotValidationStatusProps) => {
   if (loading) {
     return (
       <div className={cn('flex items-center gap-2 text-muted-foreground', className)}>

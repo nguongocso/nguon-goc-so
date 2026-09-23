@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
+
 import {
   getProfileTemplates,
   getAvailableFields,
@@ -15,7 +16,7 @@ import type {
   UpdateProfileTemplateRequest,
 } from '@/types/profileTemplate';
 
-/** Custom hook quản lý danh sách, danh mục trường và thao tác CRUD cho mẫu hồ sơ truy xuất. */
+/** Quản lý danh sách, danh mục trường và thao tác CRUD cho mẫu hồ sơ truy xuất. */
 export const useProfileTemplates = (organizationId?: string) => {
   const [templates, setTemplates] = useState<ProfileTemplate[]>([]);
   const [availableFields, setAvailableFields] = useState<FieldGroupDefinition[]>([]);

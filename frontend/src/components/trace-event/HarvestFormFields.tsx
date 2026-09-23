@@ -1,13 +1,16 @@
 import { Calendar, Camera } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
-import { cn } from '@/lib/utils';
-import { preventMouseUpCollapse, selectAllOnFocus } from '@/utils/inputUtils';
 import { HarvestEligibilityAlert } from './HarvestEligibilityAlert';
 import type { HarvestFormController } from './useHarvestForm';
+
+import { cn } from '@/lib/utils';
+import { preventMouseUpCollapse, selectAllOnFocus } from '@/utils/inputUtils';
+
+import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
 
 /** Các trường nghiệp vụ của biểu mẫu thu hoạch. */
 export function HarvestFormFields({

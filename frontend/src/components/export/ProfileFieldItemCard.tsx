@@ -1,9 +1,10 @@
 import React from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { ShieldAlert } from 'lucide-react';
 
-/** Props cho thẻ hiển thị trường thông tin hồ sơ */
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+
+/** Thuộc tính cho thẻ hiển thị trường thông tin hồ sơ. */
 export interface ProfileFieldItemCardProps {
   fieldKey: string;
   fieldLabel: string;
@@ -13,7 +14,7 @@ export interface ProfileFieldItemCardProps {
   onToggle: () => void;
 }
 
-/** Component hiển thị từng thẻ trường dữ liệu hồ sơ (checkbox, nhãn, badge bắt buộc). */
+/** Thành phần hiển thị từng thẻ trường dữ liệu hồ sơ (checkbox, nhãn, nhãn bắt buộc). */
 export const ProfileFieldItemCard: React.FC<ProfileFieldItemCardProps> = ({
   fieldKey,
   fieldLabel,

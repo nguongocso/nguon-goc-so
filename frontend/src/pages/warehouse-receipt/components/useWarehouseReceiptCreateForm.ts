@@ -1,8 +1,10 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { isAxiosError } from 'axios';
 import { z } from 'zod';
-import { scanLookupTraceCode } from '@/api/chainEventApi';
+
 import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
+
+import { scanLookupTraceCode } from '@/api/chainEventApi';
 import { getLocalDateString } from '@/utils/dateTime';
 
 const ALLOWED_THRESHOLD = 2;

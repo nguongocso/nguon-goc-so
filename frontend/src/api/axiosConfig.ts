@@ -1,4 +1,5 @@
 import axios from 'axios';
+
 import { getApiBaseUrl } from '@/config/runtimeConfig';
 import {
   getToken,
@@ -6,8 +7,6 @@ import {
   removeSelectionToken,
 } from '@/utils/storage';
 import { handleSessionExpiry } from '@/utils/session';
-
-/** Cấu hình Axios, gắn JWT theo loại endpoint và xử lý phiên hết hạn tập trung. */
 
 const baseURL = getApiBaseUrl();
 
@@ -18,25 +17,25 @@ const apiClient = axios.create({
   },
 });
 
-/** Danh sách các endpoint không được đính kèm Access Token trong Authorization header. */
+/** Danh sách các đường dẫn không được đính kèm Access Token trong tiêu đề Authorization. */
 const NO_ACCESS_TOKEN_ENDPOINTS: readonly string[] = [
   '/auth/login',
   '/public/inspection-result-entry',
 ];
 
-/** Danh sách các endpoint thuộc quy trình chọn tổ chức sử dụng Selection Token. */
+/** Danh sách các đường dẫn thuộc quy trình chọn tổ chức sử dụng Selection Token. */
 const SELECTION_TOKEN_ENDPOINTS: readonly string[] = [
   '/auth/organizations',
   '/auth/select-organization',
 ];
 
-/** Cấu trúc dữ liệu đại diện cho ApiResult của backend. */
+/** Cấu trúc dữ liệu đại diện cho ApiResult của máy chủ. */
 interface ApiResultLike {
   success: boolean;
   [key: string]: unknown;
 }
 
-/** Kiểm tra URL có phải là endpoint công khai không cần xác thực hay không. */
+/** Kiểm tra URL có phải là đường dẫn công khai không cần xác thực hay không. */
 const isPublicEndpoint = (url?: string): boolean => {
   if (!url) return false;
   return (
@@ -45,7 +44,7 @@ const isPublicEndpoint = (url?: string): boolean => {
   );
 };
 
-/** Kiểm tra URL request có thuộc nhóm không được đính kèm Access Token hay không. */
+/** Kiểm tra URL yêu cầu có thuộc nhóm không được đính kèm Access Token hay không. */
 const isNoAccessTokenRequest = (url?: string): boolean => {
   if (!url) return false;
   if (isPublicEndpoint(url)) return true;
@@ -58,7 +57,7 @@ const isNoAccessTokenRequest = (url?: string): boolean => {
   );
 };
 
-/** Kiểm tra URL request có thuộc quy trình chọn tổ chức sử dụng Selection Token hay không. */
+/** Kiểm tra URL yêu cầu có thuộc quy trình chọn tổ chức sử dụng Selection Token hay không. */
 const isSelectionTokenRequest = (url?: string): boolean => {
   if (!url) return false;
 
@@ -70,7 +69,7 @@ const isSelectionTokenRequest = (url?: string): boolean => {
   );
 };
 
-/** Kiểm tra body phản hồi lỗi có phải là đối tượng ApiResult chuẩn của backend hay không. */
+/** Kiểm tra nội dung phản hồi lỗi có phải là đối tượng ApiResult chuẩn của máy chủ hay không. */
 const isApiResultBody = (data: unknown): data is ApiResultLike => {
   return Boolean(
     data &&
@@ -79,7 +78,7 @@ const isApiResultBody = (data: unknown): data is ApiResultLike => {
   );
 };
 
-/** Request Interceptor: Tự động gán token xác thực tương ứng theo từng loại endpoint. */
+/** Bộ chặn yêu cầu tự động gán token xác thực theo từng loại đường dẫn. */
 apiClient.interceptors.request.use(
   (config) => {
     const url = config.url;

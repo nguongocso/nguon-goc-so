@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react';
 import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
+
 import { recordWarehouseReceipt, getWarehouseReceipts, getWarehouseReceiptDetail } from '@/api/warehouseReceiptApi';
 import type { WarehouseReceiptRequest, WarehouseReceiptResponse } from '@/types/warehouseReceipt';
 import type { PageResponse } from '@/types/common';
 
-/** Trích xuất thông điệp lỗi an toàn từ response hoặc fallback */
+/** Trích xuất thông điệp lỗi an toàn từ phản hồi hoặc nội dung dự phòng. */
 function extractErrorMessage(err: unknown, fallback: string, noServerFallback?: string): string {
   if (isAxiosError(err)) {
     const data = err.response?.data as { message?: string } | undefined;
@@ -17,7 +18,7 @@ function extractErrorMessage(err: unknown, fallback: string, noServerFallback?: 
   return fallback;
 }
 
-/** Kết quả trả về từ hook useWarehouseReceipt */
+/** Kết quả trả về từ hook useWarehouseReceipt. */
 interface UseWarehouseReceiptResult {
   list: WarehouseReceiptResponse[];
   pageData: PageResponse<WarehouseReceiptResponse> | null;
@@ -33,7 +34,7 @@ interface UseWarehouseReceiptResult {
   resetCreateResult: () => void;
 }
 
-/** Hook quản lý nghiệp vụ nhập kho HTX (danh sách, chi tiết, ghi nhận) */
+/** Quản lý nghiệp vụ nhập kho HTX (danh sách, chi tiết, ghi nhận). */
 export const useWarehouseReceipt = (): UseWarehouseReceiptResult => {
   const [list, setList] = useState<WarehouseReceiptResponse[]>([]);
   const [pageData, setPageData] = useState<PageResponse<WarehouseReceiptResponse> | null>(null);
