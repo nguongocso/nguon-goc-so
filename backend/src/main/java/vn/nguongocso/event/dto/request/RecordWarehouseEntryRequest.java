@@ -10,11 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO yêu cầu ghi sự kiện nhập kho tại hợp tác xã (HTX).
- *
- * @author Antigravity
- */
+/** DTO yêu cầu ghi sự kiện nhập kho tại hợp tác xã (HTX). */
 
 @Getter
 @Setter

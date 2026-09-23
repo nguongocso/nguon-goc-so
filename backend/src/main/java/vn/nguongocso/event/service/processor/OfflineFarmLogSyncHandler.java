@@ -20,12 +20,7 @@ public class OfflineFarmLogSyncHandler {
     private final OfflineFarmLogPayloadMapper offlineFarmLogPayloadMapper;
     private final FarmLogService farmLogService;
 
-    /**
-     * Xử lý nhật ký canh tác ghi khi ngoại tuyến (NCL-10-CN-012).
-     *
-     * @param eventDto sự kiện ngoại tuyến loại FARM_LOG
-     * @return ID bản ghi farm_logs vừa tạo
-     */
+    /** Xử lý nhật ký canh tác ghi khi ngoại tuyến (NCL-10-CN-012). */
     public UUID processFarmLogOffline(RecordOfflineEventDto eventDto) {
         permissionChecker.check("FARM_LOG", "CREATE");
         CreateFarmLogRequest farmLogRequest = offlineFarmLogPayloadMapper.toCreateFarmLogRequest(eventDto);

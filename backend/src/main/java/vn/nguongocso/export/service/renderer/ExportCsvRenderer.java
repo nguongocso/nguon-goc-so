@@ -8,20 +8,12 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-/**
- * Thành phần định dạng dữ liệu xem trước hồ sơ truy xuất sang tệp CSV.
- * Tuân thủ tiêu chuẩn UTF-8 BOM, cấu trúc bảng metadata và các bảng chi tiết.
- */
+/** Thành phần định dạng dữ liệu xem trước hồ sơ truy xuất sang tệp CSV. */
 @Component
 public class ExportCsvRenderer {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    /**
-     * Chuyển đổi dữ liệu xem trước hồ sơ sang chuỗi CSV hoàn chỉnh.
-     *
-     * @param preview Dữ liệu xem trước đã được lọc theo mẫu
-     * @return Chuỗi nội dung CSV có chứa ký tự BOM UTF-8
-     */
+    /** Chuyển đổi dữ liệu xem trước hồ sơ sang chuỗi CSV hoàn chỉnh. */
     public String renderPreviewToCsv(Map<String, Object> preview) {
         LocalDateTime exportTime = preview.get("exportedAt") instanceof LocalDateTime dt
                 ? dt
@@ -29,13 +21,7 @@ public class ExportCsvRenderer {
         return renderPreviewToCsv(preview, exportTime);
     }
 
-    /**
-     * Chuyển đổi dữ liệu xem trước hồ sơ sang chuỗi CSV hoàn chỉnh với thời điểm xuất cố định.
-     *
-     * @param preview    Dữ liệu xem trước đã được lọc theo mẫu
-     * @param exportTime Thời điểm xuất hồ sơ cần hiển thị ở phần đầu tệp
-     * @return Chuỗi nội dung CSV có chứa ký tự BOM UTF-8
-     */
+    /** Chuyển đổi dữ liệu xem trước hồ sơ sang chuỗi CSV hoàn chỉnh với thời điểm xuất cố định. */
     public String renderPreviewToCsv(Map<String, Object> preview, LocalDateTime exportTime) {
         StringBuilder sb = new StringBuilder("\uFEFF");
 

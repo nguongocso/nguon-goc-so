@@ -51,10 +51,7 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
-/**
- * Processor xử lý các sự kiện chuỗi cung ứng tại hợp tác xã:
- * Sơ chế, đóng gói, vận chuyển, nhập kho và xuất kho HTX.
- */
+    /** Xử lý sự kiện sơ chế, đóng gói, vận chuyển, nhập kho và xuất kho tại hợp tác xã. */
 @Slf4j
 @Component
 @RequiredArgsConstructor

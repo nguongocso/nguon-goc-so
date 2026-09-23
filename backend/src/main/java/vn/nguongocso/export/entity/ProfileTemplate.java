@@ -28,10 +28,7 @@ import org.hibernate.type.SqlTypes;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.organization.entity.Organization;
 
-/**
- * Thực thể đại diện cho Mẫu hồ sơ truy xuất nguồn gốc (Profile Template) được cấu hình theo yêu cầu đối tác.
- * User Story: NCL-07-CN-007.
- */
+/** Thực thể đại diện cho Mẫu hồ sơ truy xuất nguồn gốc (Profile Template) được cấu hình theo yêu cầu đối tác. */
 @Entity
 @Table(name = "profile_templates")
 @Getter

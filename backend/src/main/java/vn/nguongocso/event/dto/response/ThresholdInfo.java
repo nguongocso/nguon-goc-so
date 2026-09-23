@@ -5,9 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Thông tin ngưỡng bảo quản của loại nông sản.
- */
+/** Thông tin ngưỡng bảo quản của loại nông sản. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
 @Setter

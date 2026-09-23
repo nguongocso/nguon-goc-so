@@ -11,11 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO ghi nhận sự kiện sơ chế và phân loại.
- *
- * @author NGUON-GOC-SO Team
- */
+/** DTO ghi nhận sự kiện sơ chế và phân loại. */
 
 @Getter
 @Setter

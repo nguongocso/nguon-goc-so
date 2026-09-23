@@ -8,9 +8,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO chứa thông tin chi tiết các mục bị thiếu theo quy tắc QTN-11 của một lô hàng/shipment.
- */
+/** DTO chứa thông tin chi tiết các mục bị thiếu theo quy tắc QTN-11 của một lô hàng/shipment. */
 @Data
 @Builder
 @NoArgsConstructor

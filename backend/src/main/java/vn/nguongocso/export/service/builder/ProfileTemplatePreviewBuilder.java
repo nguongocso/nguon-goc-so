@@ -33,10 +33,7 @@ import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.entity.Shipment;
 
-/**
- * Thành phần chuyên trách truy vấn 6 domain repository và tổng hợp cây dữ liệu xem trước (preview snapshot).
- * Toàn bộ dữ liệu được materialize hoàn toàn sang Map/List trước khi rời transaction đọc.
- */
+/** Thành phần chuyên trách truy vấn 6 domain repository và tổng hợp cây dữ liệu xem trước (preview snapshot). */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -49,14 +46,7 @@ public class ProfileTemplatePreviewBuilder {
     private final InspectionCriterionResultRepository inspectionCriterionResultRepository;
     private final ChainEventRepository chainEventRepository;
 
-    /**
-     * Tổng hợp và định dạng toàn bộ cây dữ liệu xem trước hồ sơ truy xuất đã lọc theo mẫu.
-     *
-     * @param shipment          Lô hàng cần xem trước
-     * @param template          Mẫu hồ sơ áp dụng (hoặc null nếu dùng mặc định)
-     * @param selectedFieldKeys Tập hợp các mã trường dữ liệu được chọn hiển thị
-     * @return Map dữ liệu snapshot thuần túy đã materialize 100%
-     */
+    /** Tổng hợp và định dạng toàn bộ cây dữ liệu xem trước hồ sơ truy xuất đã lọc theo mẫu. */
     @Transactional(readOnly = true)
     public Map<String, Object> buildPreviewSnapshot(
             Shipment shipment,

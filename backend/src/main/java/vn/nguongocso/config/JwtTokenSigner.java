@@ -21,12 +21,7 @@ public class JwtTokenSigner {
     private final JwtTokenParser jwtTokenParser;
     private final JwtProperties jwtProperties;
 
-    /**
-     * Sinh mã JWT ngắn hạn phục vụ bước chọn tổ chức (thời hạn 5 phút).
-     *
-     * @param user người dùng đã xác thực thông tin đăng nhập
-     * @return chuỗi JWT đã ký
-     */
+    /** Sinh mã JWT ngắn hạn phục vụ bước chọn tổ chức (thời hạn 5 phút). */
     public String generateSelectionToken(User user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + getSelectionTokenExpirationInSeconds() * 1000L);
@@ -42,12 +37,7 @@ public class JwtTokenSigner {
                 .compact();
     }
 
-    /**
-     * Sinh mã JWT truy cập đầy đủ chứa ngữ cảnh tổ chức và quyền hạn.
-     *
-     * @param userDetails thông tin người dùng đã chọn tổ chức
-     * @return chuỗi JWT đã ký
-     */
+    /** Sinh mã JWT truy cập đầy đủ chứa ngữ cảnh tổ chức và quyền hạn. */
     public String generateAccessToken(CustomUserDetails userDetails) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtProperties.getExpiration());

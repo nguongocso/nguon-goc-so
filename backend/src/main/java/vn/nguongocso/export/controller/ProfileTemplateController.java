@@ -26,11 +26,7 @@ import vn.nguongocso.export.dto.response.FieldGroupDefinition;
 import vn.nguongocso.export.dto.response.ProfileTemplateResponse;
 import vn.nguongocso.export.service.ProfileTemplateService;
 
-/**
- * Controller quản lý cấu hình mẫu hồ sơ truy xuất nguồn gốc theo yêu cầu đối tác.
- * User Story: NCL-07-CN-007.
- * Phân quyền: Dành riêng cho Quản lý hợp tác xã (VT-02) trong phạm vi tổ chức của mình (QTN-01).
- */
+/** Controller quản lý cấu hình mẫu hồ sơ truy xuất nguồn gốc theo yêu cầu đối tác. */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/organizations/{orgId}/profile-templates")
@@ -38,10 +34,7 @@ import vn.nguongocso.export.service.ProfileTemplateService;
 public class ProfileTemplateController {
     private final ProfileTemplateService profileTemplateService;
 
-    /**
-     * Lấy danh mục tất cả các trường dữ liệu hệ thống hỗ trợ cấu hình.
-     * Hỗ trợ cả /catalog và /available-fields để đồng bộ với các phiên bản frontend.
-     */
+    /** Lấy danh mục tất cả các trường dữ liệu hệ thống hỗ trợ cấu hình. */
     @GetMapping({"/catalog", "/available-fields"})
     @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<List<FieldGroupDefinition>>> getCatalog(

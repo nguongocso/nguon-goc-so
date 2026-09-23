@@ -14,10 +14,7 @@ import vn.nguongocso.export.entity.ProfileTemplate;
 import vn.nguongocso.export.repository.ExportLogRepository;
 import vn.nguongocso.trace.entity.Shipment;
 
-/**
- * Thành phần chuyên trách mở write-transaction độc lập để ghi nhận nhật ký xuất hồ sơ (ExportLog).
- * Tách riêng khỏi tiến trình đọc snapshot và render tệp để tối ưu thời gian giữ transaction.
- */
+/** Thành phần chuyên trách mở write-transaction độc lập để ghi nhận nhật ký xuất hồ sơ (ExportLog). */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -25,14 +22,7 @@ public class ExportLogRecorder {
     private final ExportLogRepository exportLogRepository;
     private final UserRepository userRepository;
 
-    /**
-     * Ghi nhận nhật ký xuất hồ sơ trong một write-transaction ngắn độc lập.
-     * Chỉ được gọi sau khi tệp xuất đã được render thành công.
-     *
-     * @param shipment Lô hàng được xuất hồ sơ
-     * @param template Mẫu hồ sơ áp dụng (hoặc null nếu dùng mặc định)
-     * @param userId   ID của người dùng thực hiện xuất
-     */
+    /** Ghi nhận nhật ký xuất hồ sơ trong một write-transaction ngắn độc lập. */
     @Transactional
     public void recordExportLog(Shipment shipment, ProfileTemplate template, UUID userId) {
         User user = userId != null

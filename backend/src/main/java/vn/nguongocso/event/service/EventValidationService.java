@@ -9,11 +9,7 @@ import vn.nguongocso.event.enums.ChainEventType;
 
 import java.util.UUID;
 
-/**
- * Service xác thực sự kiện chuỗi cung ứng.
- *
- * @author Triệu Văn Đại
- */
+/** Service xác thực sự kiện chuỗi cung ứng. */
 public interface EventValidationService {
     // Kiểm tra tính hợp lệ của lô trước khi tạo sự kiện.
     LotValidationResponse validateLot(UUID lotId, ChainEventType eventType, CustomUserDetails currentUser);

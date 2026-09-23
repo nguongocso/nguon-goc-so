@@ -7,10 +7,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * Cấu hình phục vụ tài nguyên tệp tĩnh cho ứng dụng web.
- * Định tuyến đường dẫn mã QR và tệp người dùng tải lên từ hệ thống tệp.
- */
+/** Cấu hình phục vụ tài nguyên tệp tĩnh cho ứng dụng web. */
 @Configuration
 @RequiredArgsConstructor
 @EnableConfigurationProperties({QrImageStorageProperties.class, UploadProperties.class})

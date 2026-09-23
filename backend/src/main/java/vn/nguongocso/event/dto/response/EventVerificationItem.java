@@ -9,9 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Item kết quả kiểm chứng của từng sự kiện trong chuỗi.
- */
+/** Item kết quả kiểm chứng của từng sự kiện trong chuỗi. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
 @Setter

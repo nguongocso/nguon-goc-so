@@ -40,13 +40,7 @@ public class CoopTransportEventProcessor {
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
 
-    /**
-     * Ghi nhận sự kiện vận chuyển cho lô hàng.
-     *
-     * @param request     thông tin sự kiện vận chuyển
-     * @param currentUser thông tin người dùng thực hiện
-     * @return thông tin sự kiện chuỗi cung ứng đã lưu
-     */
+    /** Ghi nhận sự kiện vận chuyển cho lô hàng. */
     public ChainEventResponse recordTransportEvent(
             RecordTransportEventRequest request, CustomUserDetails currentUser) {
         if (!"VT-03".equals(currentUser.getRoleCode())) {

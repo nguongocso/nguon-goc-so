@@ -15,10 +15,7 @@ import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
-/**
- * Resolver hỗ trợ tra cứu thực thể liên quan (lô sản xuất, lô hàng, mã truy xuất)
- * phục vụ việc xử lý và ghi log đồng bộ sự kiện ngoại tuyến.
- */
+/** Tra cứu thực thể đích phục vụ xử lý và ghi log đồng bộ sự kiện ngoại tuyến. */
 @Component
 @RequiredArgsConstructor
 public class OfflineSyncTargetResolver {
@@ -26,12 +23,7 @@ public class OfflineSyncTargetResolver {
     private final ShipmentRepository shipmentRepository;
     private final TraceCodeRepository traceCodeRepository;
 
-    /**
-     * Tra cứu shipmentId từ DTO hoặc từ codeValue trong eventData.
-     *
-     * @param eventDto sự kiện ngoại tuyến
-     * @return shipmentId nếu tìm thấy, ngược lại null
-     */
+    /** Tra cứu shipmentId từ DTO hoặc từ codeValue trong eventData. */
     public UUID resolveShipmentId(RecordOfflineEventDto eventDto) {
         if (eventDto.getShipmentId() != null) {
             return eventDto.getShipmentId();
@@ -52,12 +44,7 @@ public class OfflineSyncTargetResolver {
         return null;
     }
 
-    /**
-     * Tra cứu thông tin đích (lotId và lotCode) để ghi nhận failed_event_logs.
-     *
-     * @param eventDto sự kiện ngoại tuyến
-     * @return đối tượng chứa lotId và lotCode tương ứng
-     */
+    /** Tra cứu thông tin đích (lotId và lotCode) để ghi nhận failed_event_logs. */
     public SyncTargetInfo resolveTargetInfo(RecordOfflineEventDto eventDto) {
         UUID lotId = null;
         String lotCode = null;

@@ -11,18 +11,10 @@ import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.dto.request.CreateFarmLogRequest;
 import vn.nguongocso.farm.enums.FarmActivityType;
 
-/**
- * Component chuyên trách phân tích và chuyển đổi payload sự kiện ngoại tuyến FARM_LOG
- * sang CreateFarmLogRequest cho dịch vụ nhật ký canh tác.
- */
+/** Chuyển đổi payload FARM_LOG ngoại tuyến sang CreateFarmLogRequest. */
 @Component
 public class OfflineFarmLogPayloadMapper {
-    /**
-     * Chuyển đổi và xác thực sự kiện ngoại tuyến FARM_LOG sang CreateFarmLogRequest.
-     *
-     * @param eventDto sự kiện ngoại tuyến
-     * @return CreateFarmLogRequest hợp lệ
-     */
+    /** Chuyển đổi và xác thực sự kiện ngoại tuyến FARM_LOG sang CreateFarmLogRequest. */
     public CreateFarmLogRequest toCreateFarmLogRequest(RecordOfflineEventDto eventDto) {
         validateFarmLogBasics(eventDto);
         Map<String, Object> eventData = eventDto.getEventData();

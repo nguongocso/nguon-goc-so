@@ -38,10 +38,7 @@ import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
-/**
- * Thành phần chuyên trách xử lý luồng xuất Open Data cho Cán bộ quản lý ngành (VT-05).
- * Đọc dữ liệu snapshot trong read-only transaction và render tệp ngoài transaction.
- */
+/** Thành phần chuyên trách xử lý luồng xuất Open Data cho Cán bộ quản lý ngành (VT-05). */
 @Slf4j
 @Component
 @RequiredArgsConstructor

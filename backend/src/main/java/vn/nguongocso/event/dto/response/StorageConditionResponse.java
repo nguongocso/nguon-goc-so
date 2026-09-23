@@ -9,9 +9,7 @@ import vn.nguongocso.event.enums.ChainEventType;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * DTO phản hồi cho sự kiện theo dõi điều kiện bảo quản.
- */
+/** DTO phản hồi cho sự kiện theo dõi điều kiện bảo quản. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
 @Setter

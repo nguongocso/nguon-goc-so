@@ -10,9 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Kết quả kiểm chứng tính toàn vẹn dòng sự kiện của một lô hàng.
- */
+/** Kết quả kiểm chứng tính toàn vẹn dòng sự kiện của một lô hàng. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
 @Setter

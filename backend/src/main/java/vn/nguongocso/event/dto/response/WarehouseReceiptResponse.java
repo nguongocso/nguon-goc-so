@@ -10,11 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * DTO phản hồi cho sự kiện nhập kho và đối chiếu số lượng.
- *
- * @author Team
- */
+/** DTO phản hồi cho sự kiện nhập kho và đối chiếu số lượng. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
 @Setter

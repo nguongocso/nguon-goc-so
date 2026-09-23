@@ -7,11 +7,7 @@ import lombok.Setter;
 
 import java.util.UUID;
 
-/**
- * DTO ghi nhận sự kiện thu mua.
- *
- * @author Team WEB 1
- */
+/** DTO ghi nhận sự kiện thu mua. */
 @Getter
 @Setter
 public class RecordProcurementEventRequest {

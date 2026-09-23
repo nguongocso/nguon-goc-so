@@ -62,15 +62,7 @@ public class ExportController {
                 .body(file);
     }
 
-    /**
-     * Xem trước nội dung hồ sơ truy xuất áp dụng mẫu cấu hình trước khi xuất.
-     * Hỗ trợ cả /shipments/{shipmentId}/preview và /open-data/shipments/{shipmentId}/preview.
-     *
-     * @param shipmentId  ID lô hàng
-     * @param templateId  ID mẫu hồ sơ (tùy chọn)
-     * @param currentUser Người dùng hiện tại
-     * @return Dữ liệu hồ sơ xem trước đã lọc theo trường của mẫu
-     */
+    /** Xem trước nội dung hồ sơ truy xuất áp dụng mẫu cấu hình trước khi xuất. */
     @GetMapping({"/shipments/{shipmentId}/preview", "/open-data/shipments/{shipmentId}/preview"})
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<Map<String, Object>>> previewProfileTemplate(
@@ -88,15 +80,7 @@ public class ExportController {
         return ResponseEntity.ok(ApiResult.success(previewData));
     }
 
-    /**
-     * Xuất hồ sơ truy xuất lô hàng theo mẫu đối tác đã cấu hình (NCL-07-CN-007).
-     *
-     * @param shipmentId  ID lô hàng
-     * @param templateId  ID mẫu hồ sơ (nếu null, dùng mẫu mặc định của tổ chức - TC-03)
-     * @param format      Định dạng tệp: json hoặc csv
-     * @param currentUser Người dùng hiện tại
-     * @return Tệp dữ liệu hồ sơ
-     */
+    /** Xuất hồ sơ truy xuất lô hàng theo mẫu đối tác đã cấu hình (NCL-07-CN-007). */
     @GetMapping("/shipments/{shipmentId}")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
     public ResponseEntity<Resource> exportWithTemplate(

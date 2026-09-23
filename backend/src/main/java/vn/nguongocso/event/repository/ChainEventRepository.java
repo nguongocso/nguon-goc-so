@@ -16,28 +16,13 @@ import org.springframework.stereotype.Repository;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 
-/**
- * Repository cho thực thể ChainEvent.
- *
- * @author Team WEB 1
- */
+/** Repository cho thực thể ChainEvent. */
 @Repository
 public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
-        /**
-         * Lấy danh sách sự kiện của một lô hàng, sắp xếp theo thời gian tăng dần.
-         *
-         * @param shipmentId ID lô hàng
-         * @return danh sách sự kiện
-         */
+        /** Lấy danh sách sự kiện của một lô hàng, sắp xếp theo thời gian tăng dần. */
         List<ChainEvent> findByShipment_IdOrderByRecordedAtAsc(UUID shipmentId);
 
-        /**
-         * Lấy danh sách các điểm hành trình (có tọa độ) của một lô hàng,
-         * sắp xếp theo thời gian tăng dần.
-         *
-         * @param shipmentId ID lô hàng
-         * @return danh sách sự kiện có tọa độ
-         */
+        /** Lấy danh sách các điểm hành trình (có tọa độ) của một lô hàng, sắp xếp theo thời gian tăng dần. */
         @Query("""
                         SELECT ce
                         FROM ChainEvent ce
@@ -48,74 +33,26 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                         """)
         List<ChainEvent> findJourneyPointsByShipmentId(@Param("shipmentId") UUID shipmentId);
 
-        /**
-         * Lấy danh sách sự kiện của một lô hàng, sắp xếp theo thời gian tăng dần.
-         *
-         * @param shipmentId ID lô hàng
-         * @return danh sách sự kiện
-         */
+        /** Lấy danh sách sự kiện của một lô hàng, sắp xếp theo thời gian tăng dần. */
         List<ChainEvent> findByShipmentIdOrderByRecordedAtAsc(UUID shipmentId);
 
-        /**
-         * Lấy danh sách sự kiện không thuộc bất kỳ lô hàng nào, với các loại sự kiện
-         * nhất định.
-         *
-         * @param eventTypes Danh sách loại sự kiện
-         * @return danh sách sự kiện
-         */
+        /** Lấy danh sách sự kiện không thuộc bất kỳ lô hàng nào, với các loại sự kiện nhất định. */
         List<ChainEvent> findByShipmentIsNullAndEventTypeIn(List<ChainEventType> eventTypes);
 
-        /**
-         * Lấy danh sách sự kiện theo loại, gắn với lô hàng thuộc một tổ chức.
-         *
-         * <p>Dùng cho NCL-04-CN-007: liệt kê sự kiện thu hoạch/sơ chế (bằng chứng
-         * sản lượng thực) của tổ chức để VT-02 chọn khi tạo yêu cầu cấp bổ sung
-         * dải mã.</p>
-         *
-         * @param eventTypes     Danh sách loại sự kiện (HARVEST, PREPROCESSING)
-         * @param organizationId ID tổ chức của lô hàng gắn kèm
-         * @return danh sách sự kiện
-         */
+        /** Lấy danh sách sự kiện theo loại, gắn với lô hàng thuộc một tổ chức. */
         List<ChainEvent> findByEventTypeInAndShipment_Organization_OrganizationId(
                         List<ChainEventType> eventTypes, UUID organizationId);
 
-        /**
-         * Lấy sự kiện gần nhất của một lô hàng.
-         *
-         * Phục vụ chức năng quét mã để xác định loại sự kiện
-         * hợp lệ tiếp theo khi mở biểu mẫu ghi sự kiện.
-         *
-         * @param shipmentId ID lô hàng
-         * @return sự kiện mới nhất nếu tồn tại
-         */
+        /** Lấy sự kiện gần nhất của một lô hàng. */
         Optional<ChainEvent> findTopByShipmentIdOrderByRecordedAtDesc(UUID shipmentId);
 
-        /**
-         * Lấy sự kiện được ghi gần nhất (createdAt) của một lô hàng.
-         *
-         * Dùng cho NCL-08 hash chain: thứ tự chuỗi mật mã phải dựa trên
-         * thứ tự bất biến mà máy chủ sinh ra (createdAt), KHÔNG dùng recordedAt
-         * (client cung cấp). Truy vấn này chỉ lấy 1 bản ghi, tránh tải toàn bộ.
-         *
-         * @param shipmentId ID lô hàng
-         * @return sự kiện được ghi gần nhất nếu tồn tại
-         */
+        /** Lấy sự kiện được ghi gần nhất (createdAt) của một lô hàng. */
         Optional<ChainEvent> findTopByShipmentIdOrderByCreatedAtDesc(UUID shipmentId);
 
-        /**
-         * Xóa tất cả sự kiện của một lô hàng.
-         *
-         * @param id ID lô hàng
-         */
+        /** Xóa tất cả sự kiện của một lô hàng. */
         void deleteByShipmentId(UUID id);
 
-        /**
-         * Đếm số lượng event theo loại cho từng shipment.
-         *
-         * @param shipmentIds   danh sách ID lô hàng
-         * @param requiredTypes danh sách loại sự kiện
-         * @return danh sách kết quả đếm
-         */
+        /** Đếm số lượng event theo loại cho từng shipment. */
         @Query("SELECT ce.shipment.id, ce.eventType, COUNT(ce) " +
                 "FROM ChainEvent ce " +
                 "WHERE ce.shipment.id IN :shipmentIds " +
@@ -125,37 +62,21 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
         List<Object[]> countEventsByShipmentAndTypes(@Param("shipmentIds") List<UUID> shipmentIds,
                                                      @Param("requiredTypes") List<ChainEventType> requiredTypes);
 
-        /**
-         * Lấy danh sách sự kiện (không phải đính chính) của nhiều lô hàng,
-         * sắp xếp theo thời gian tăng dần.
-         */
+        /** Lấy danh sách sự kiện (không phải đính chính) của nhiều lô hàng, sắp xếp theo thời gian tăng dần. */
         @Query("SELECT ce FROM ChainEvent ce " +
                 "WHERE ce.shipment.id IN :shipmentIds " +
                 "AND ce.isCorrection = false " +
                 "ORDER BY ce.recordedAt ASC")
         List<ChainEvent> findByShipmentIdInOrderByRecordedAtAsc(@Param("shipmentIds") List<UUID> shipmentIds);
 
-        /**
-         * Lấy danh sách sự kiện WAREHOUSE_RECEIPT của một tổ chức, phân trang.
-         */
+        /** Lấy danh sách sự kiện WAREHOUSE_RECEIPT của một tổ chức, phân trang. */
         Page<ChainEvent> findByEventTypeAndRecordedBy_UserIdOrderByRecordedAtDesc(
                 ChainEventType eventType, UUID userId, Pageable pageable);
 
-        /**
-         * Tìm một sự kiện WAREHOUSE_RECEIPT theo ID và loại sự kiện.
-         */
+        /** Tìm một sự kiện WAREHOUSE_RECEIPT theo ID và loại sự kiện. */
         Optional<ChainEvent> findByIdAndEventType(UUID id, ChainEventType eventType);
 
-        /**
-         * Lấy danh sách ID người dùng đã ghi sự kiện thu mua (PROCUREMENT)
-         * cho các lô hàng được chỉ định.
-         *
-         * <p>Dùng cho NCL-08-CN-008 để xác định doanh nghiệp thu mua (người mua)
-         * liên quan đến một lô sản xuất để gửi thông báo thu hồi.</p>
-         *
-         * @param shipmentIds danh sách ID lô hàng
-         * @return danh sách ID người dùng đã ghi nhận thu mua (không trùng lặp)
-         */
+        /** Lấy danh sách ID người dùng đã ghi sự kiện thu mua (PROCUREMENT) cho các lô hàng được chỉ định. */
         @Query("SELECT DISTINCT ce.recordedOrganizationId FROM ChainEvent ce " +
                 "WHERE ce.shipment.id IN :shipmentIds " +
                 "AND ce.eventType = vn.nguongocso.event.enums.ChainEventType.PROCUREMENT " +
@@ -164,12 +85,7 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
         List<UUID> findDistinctProcurementOrganizationIdsByShipmentIds(
                 @Param("shipmentIds") List<UUID> shipmentIds);
 
-        /**
-         * Kiểm tra sự tồn tại của sự kiện theo lotId với 2 trường hợp:
-         * 1) event gắn trực tiếp vào shipment của lot
-         * 2) event chưa gắn shipment nhưng lưu productionLotId trong eventData
-         *    (ví dụ HARVEST / PACKAGING do thiết kế hệ thống cũ).
-         */
+        /** Kiểm tra sự kiện theo lotId cho dữ liệu gắn shipment và dữ liệu legacy lưu productionLotId. */
         @Query("""
                             SELECT COUNT(ce) > 0
                             FROM ChainEvent ce
@@ -192,14 +108,7 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                         @Param("productionLotIdText") String productionLotIdText,
                         @Param("eventType") ChainEventType eventType);
 
-        /**
-         * Kiểm tra sự tồn tại của sự kiện thu mua (PROCUREMENT, không phải đính chính)
-         * của một lô hàng.
-         *
-         * @param shipmentId ID lô hàng
-         * @param eventType  loại sự kiện cần kiểm tra
-         * @return true nếu tồn tại ít nhất một sự kiện hợp lệ
-         */
+        /** Kiểm tra sự tồn tại của sự kiện thu mua (PROCUREMENT, không phải đính chính) của một lô hàng. */
         @Query("SELECT COUNT(ce) > 0 FROM ChainEvent ce " +
                 "WHERE ce.shipment.id = :shipmentId " +
                 "AND ce.eventType = :eventType " +
@@ -213,15 +122,7 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
         boolean existsByShipmentIdAndRecordedOrganizationIdAndEventType(
                 UUID shipmentId, UUID recordedOrganizationId, ChainEventType eventType);
 
-        /**
-         * Lấy danh sách ID lô hàng đã được tổ chức chỉ định ghi nhận các loại
-         * sự kiện (không tính sự kiện đính chính). Dùng cho NCL-05-CN-008/CN-009
-         * để doanh nghiệp thu mua chỉ thấy các lô đã thu mua hoặc đã nhập kho.
-         *
-         * @param orgId ID tổ chức ghi sự kiện
-         * @param types danh sách loại sự kiện (PROCUREMENT, WAREHOUSE_RECEIPT...)
-         * @return danh sách ID lô hàng liên quan
-         */
+        /** Lấy ID lô hàng đã được tổ chức ghi sự kiện, không gồm sự kiện đính chính. */
         @Query("SELECT DISTINCT ce.shipment.id FROM ChainEvent ce " +
                 "WHERE ce.recordedOrganizationId = :orgId " +
                 "AND ce.eventType IN :types " +
@@ -231,9 +132,7 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                 @Param("orgId") UUID orgId,
                 @Param("types") Collection<ChainEventType> types);
 
-        /**
-         * Lấy danh sách sự kiện theo productionLotId và eventType (sắp xếp giảm dần theo thời gian ghi nhận).
-         */
+        /** Lấy danh sách sự kiện theo productionLotId và eventType (sắp xếp giảm dần theo thời gian ghi nhận). */
         @Query("""
                 SELECT ce FROM ChainEvent ce
                 LEFT JOIN ce.shipment s
@@ -256,9 +155,7 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                 @Param("productionLotIdText") String productionLotIdText,
                 @Param("eventType") ChainEventType eventType);
 
-        /**
-         * Lấy danh sách sự kiện thu hoạch theo danh sách lô sản xuất (NCL-07-CN-006).
-         */
+        /** Lấy danh sách sự kiện thu hoạch theo danh sách lô sản xuất (NCL-07-CN-006). */
         @Query("""
                 SELECT ce FROM ChainEvent ce
                 LEFT JOIN ce.shipment s
@@ -277,14 +174,7 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
         List<ChainEvent> findHarvestEventsByLotIds(
                 @Param("lotIds") java.util.Collection<UUID> lotIds);
 
-        /**
-         * Đếm số sự kiện chuỗi (loại trừ đính chính) theo từng tổ chức sở hữu
-         * lô hàng trong khoảng thời gian (NCL-07-CN-008).
-         *
-         * @param from mốc bắt đầu khoảng thời gian
-         * @param to   mốc kết thúc khoảng thời gian
-         * @return danh sách [organizationId, số lượng]
-         */
+        /** Đếm sự kiện chuỗi theo tổ chức sở hữu lô hàng trong khoảng thời gian (NCL-07-CN-008). */
         @Query("""
                 SELECT s.organization.organizationId, COUNT(ce)
                 FROM ChainEvent ce
@@ -297,15 +187,7 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                 @Param("from") LocalDateTime from,
                 @Param("to") LocalDateTime to);
 
-        /**
-         * Đếm số sự kiện chuỗi chưa gắn lô hàng theo tổ chức đã ghi
-         * (NCL-07-CN-008). Bao phủ các sự kiện legacy lưu productionLotId
-         * trong eventData mà không có shipment.
-         *
-         * @param from mốc bắt đầu khoảng thời gian
-         * @param to   mốc kết thúc khoảng thời gian
-         * @return danh sách [recordedOrganizationId, số lượng]
-         */
+        /** Đếm số sự kiện chuỗi chưa gắn lô hàng theo tổ chức đã ghi (NCL-07-CN-008). */
         @Query("""
                 SELECT ce.recordedOrganizationId, COUNT(ce)
                 FROM ChainEvent ce
@@ -319,12 +201,7 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                 @Param("from") LocalDateTime from,
                 @Param("to") LocalDateTime to);
 
-        /**
-         * Lấy thời điểm ghi sự kiện mới nhất của từng tổ chức sở hữu lô hàng
-         * (NCL-07-CN-008, phục vụ tính lastActivityAt).
-         *
-         * @return danh sách [organizationId, createdAt lớn nhất]
-         */
+        /** Lấy thời điểm ghi sự kiện mới nhất của từng tổ chức sở hữu lô hàng. */
         @Query("""
                 SELECT s.organization.organizationId, MAX(ce.createdAt)
                 FROM ChainEvent ce
@@ -334,12 +211,7 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                 """)
         List<Object[]> maxEventCreatedAtGroupedByShipmentOrg();
 
-        /**
-         * Lấy thời điểm ghi sự kiện chưa gắn lô hàng mới nhất của từng tổ chức
-         * đã ghi (NCL-07-CN-008, phục vụ tính lastActivityAt).
-         *
-         * @return danh sách [recordedOrganizationId, createdAt lớn nhất]
-         */
+        /** Lấy thời điểm ghi sự kiện chưa gắn lô hàng mới nhất của từng tổ chức. */
         @Query("""
                 SELECT ce.recordedOrganizationId, MAX(ce.createdAt)
                 FROM ChainEvent ce

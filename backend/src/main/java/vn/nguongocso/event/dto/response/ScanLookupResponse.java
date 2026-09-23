@@ -7,22 +7,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Response tra cứu mã truy xuất khi quét mã để mở biểu mẫu ghi sự kiện.
- *
- * API này chỉ phục vụ bước tra cứu trước khi ghi nhận sự kiện,
- * không tạo mới ChainEvent.
- */
+/** Response tra cứu mã truy xuất khi quét mã để mở biểu mẫu ghi sự kiện. */
 @Getter
 @Builder
 public class ScanLookupResponse {
     /** Mã có hợp lệ và có thể mở biểu mẫu ghi sự kiện hay không. */
     private Boolean valid;
 
-    /**
-     * Thông báo lỗi nếu không thể mở biểu mẫu.
-     * Null khi valid = true.
-     */
+    /** Thông báo lỗi nếu không thể mở biểu mẫu. */
     private String message;
 
     /** Giá trị mã truy xuất đã quét. */
@@ -64,10 +56,6 @@ public class ScanLookupResponse {
     /** Tổng số lượng khai báo của lô hàng. */
     private Long totalQuantity;
 
-    /**
-     * Lô hàng đủ điều kiện ghi mốc bảo quản hay không
-     * (VT-03 cùng tổ chức: đã có TRANSPORT; VT-04: đã thu mua lô).
-     * Null với vai trò không ghi mốc bảo quản.
-     */
+    /** Lô hàng đủ điều kiện ghi mốc bảo quản hay không (VT-03 cùng tổ chức: đã có TRANSPORT; VT-04: đã thu mua lô). */
     private Boolean storageEligible;
 }

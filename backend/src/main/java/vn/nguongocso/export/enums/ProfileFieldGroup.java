@@ -2,9 +2,7 @@ package vn.nguongocso.export.enums;
 
 import lombok.Getter;
 
-/**
- * Nhóm trường dữ liệu trong hồ sơ truy xuất nguồn gốc.
- */
+/** Nhóm trường dữ liệu trong hồ sơ truy xuất nguồn gốc. */
 @Getter
 public enum ProfileFieldGroup {
     /** Nhóm thông tin tổ chức / Hợp tác xã */

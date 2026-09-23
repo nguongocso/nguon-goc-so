@@ -10,11 +10,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO ghi nhận sự kiện đóng gói.
- *
- * @author Team WEB 1
- */
+/** DTO ghi nhận sự kiện đóng gói. */
 
 @Getter
 @Setter

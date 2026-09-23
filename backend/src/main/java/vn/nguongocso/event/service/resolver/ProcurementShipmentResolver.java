@@ -29,13 +29,7 @@ public class ProcurementShipmentResolver {
     private final ChainEventRepository chainEventRepository;
     private final EventValidationService eventValidationService;
 
-    /**
-     * Tra cứu lô hàng và kiểm tra quyền tiếp nhận của tổ chức người dùng.
-     *
-     * @param shipmentId định danh lô hàng cần thu mua
-     * @param userOrgId  định danh tổ chức của người dùng thực hiện
-     * @return lô hàng hợp lệ
-     */
+    /** Tra cứu lô hàng và kiểm tra quyền tiếp nhận của tổ chức người dùng. */
     public Shipment resolveAndValidateShipment(UUID shipmentId, UUID userOrgId) {
         Shipment shipment = shipmentRepository.findById(shipmentId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy lô hàng."));
@@ -60,12 +54,7 @@ public class ProcurementShipmentResolver {
         return shipment;
     }
 
-    /**
-     * Kiểm tra trạng thái hoạt động của lô hàng thu mua và ghi log thất bại nếu không hợp lệ.
-     *
-     * @param shipment    lô hàng cần kiểm tra
-     * @param currentUser thông tin người dùng thực hiện
-     */
+    /** Kiểm tra trạng thái hoạt động của lô hàng thu mua và ghi log thất bại nếu không hợp lệ. */
     public void validateShipmentStatus(Shipment shipment, CustomUserDetails currentUser) {
         try {
             if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {

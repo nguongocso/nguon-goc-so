@@ -34,12 +34,7 @@ public class ShipmentDraftCleaner {
     private final CodeRangeRepository codeRangeRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    /**
-     * Hủy bản nháp lô hàng, xóa các dữ liệu liên quan và hoàn trả số lượng mã vào dải mã tổ chức.
-     *
-     * @param draftId     định danh bản nháp lô hàng cần hủy
-     * @param currentUser thông tin người dùng thực hiện thao tác
-     */
+    /** Hủy bản nháp lô hàng, xóa các dữ liệu liên quan và hoàn trả số lượng mã vào dải mã tổ chức. */
     @Transactional
     public void deleteDraft(UUID draftId, CustomUserDetails currentUser) {
         Shipment shipment = shipmentRepository.findById(draftId)

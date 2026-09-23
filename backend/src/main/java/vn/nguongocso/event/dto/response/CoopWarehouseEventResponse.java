@@ -10,11 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO phản hồi thông tin sự kiện kho hợp tác xã (nhập kho / xuất kho).
- *
- * @author Antigravity
- */
+/** DTO phản hồi thông tin sự kiện kho hợp tác xã (nhập kho / xuất kho). */
 
 @Data
 @Builder

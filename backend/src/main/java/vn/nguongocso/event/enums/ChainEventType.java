@@ -1,10 +1,6 @@
 package vn.nguongocso.event.enums;
 
-/**
- * Danh sách các loại sự kiện trong vòng đời chuỗi cung ứng.
- *
- * @author Triệu Văn Đại
- */
+/** Danh sách các loại sự kiện trong vòng đời chuỗi cung ứng. */
 public enum ChainEventType {
     HARVEST, // Thu hoạch
 
@@ -32,9 +28,6 @@ public enum ChainEventType {
 
     SPLIT, // Tách lô
 
-    /**
-     * Nhật ký canh tác ngoại tuyến, được đồng bộ qua {@code POST /chain-events/sync}
-     * và chuyển tiếp đến {@code FarmLogService}.
-     */
+    /** Nhật ký canh tác ngoại tuyến được đồng bộ đến FarmLogService. */
     FARM_LOG
 }

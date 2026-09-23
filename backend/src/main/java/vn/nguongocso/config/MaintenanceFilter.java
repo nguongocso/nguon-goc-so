@@ -18,11 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import vn.nguongocso.backup.service.RestoreService;
 import vn.nguongocso.common.ApiResult;
 
-/**
- * Bộ lọc kiểm tra trạng thái bảo trì hệ thống.
- * Trả về HTTP 503 cho các yêu cầu thông thường, ngoại trừ quản trị viên (VT-01)
- * và các đường dẫn quản trị phục hồi hoặc kiểm tra trạng thái hoạt động.
- */
+/** Bộ lọc kiểm tra trạng thái bảo trì hệ thống. */
 @Component
 public class MaintenanceFilter extends OncePerRequestFilter {
     private final ApplicationContext applicationContext;
