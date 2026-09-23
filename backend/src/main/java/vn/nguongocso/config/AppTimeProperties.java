@@ -10,5 +10,6 @@ import lombok.Setter;
 @Setter
 @ConfigurationProperties(prefix = "app")
 public class AppTimeProperties {
+
     private String timezone = "Asia/Ho_Chi_Minh";
 }
