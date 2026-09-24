@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   getLookupStatistics,
   getAbnormalScans,
@@ -7,6 +7,7 @@ import type {
   LookupStatisticsResponse,
   AbnormalScanResponse,
 } from '@/types/lookupStatistics';
+import { useDebounce } from '@/hooks/useDebounce';
 import { StatisticsSummary } from '@/components/report/StatisticsSummary';
 import { LocationChart } from '@/components/report/LocationChart';
 import { LotStatsTable } from '@/components/report/LotStatsTable';
@@ -69,6 +70,10 @@ export default function LookupStatisticsPage() {
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [groupBy, setGroupBy] = useState<GroupByType>('DAY');
 
+  // Trì hoãn 400ms khi gõ ngày để tránh spam truy vấn API
+  const debouncedStartDate = useDebounce(startDate, 400);
+  const debouncedEndDate = useDebounce(endDate, 400);
+
   // === Xác định preset nào đang active ===
   const activePreset = useMemo(() => {
     const today = getToday();
@@ -81,12 +86,12 @@ export default function LookupStatisticsPage() {
     return null;
   }, [startDate, endDate]);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getLookupStatistics({
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
+        startDate: debouncedStartDate || undefined,
+        endDate: debouncedEndDate || undefined,
         groupBy,
       });
       setStats(data);
@@ -96,14 +101,14 @@ export default function LookupStatisticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedStartDate, debouncedEndDate, groupBy]);
 
-  const fetchAbnormalScans = async () => {
+  const fetchAbnormalScans = useCallback(async () => {
     try {
       setAbnormalLoading(true);
       const data = await getAbnormalScans({
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
+        startDate: debouncedStartDate || undefined,
+        endDate: debouncedEndDate || undefined,
         page,
         size: 10,
       });
@@ -120,16 +125,16 @@ export default function LookupStatisticsPage() {
     } finally {
       setAbnormalLoading(false);
     }
-  };
+  }, [debouncedStartDate, debouncedEndDate, page]);
 
   // Tự động fetch khi thay đổi bộ lọc
   useEffect(() => {
-    fetchStats();
-  }, [startDate, endDate, groupBy]);
+    void fetchStats();
+  }, [fetchStats]);
 
   useEffect(() => {
-    fetchAbnormalScans();
-  }, [page, startDate, endDate]);
+    void fetchAbnormalScans();
+  }, [fetchAbnormalScans]);
 
   // === Các action nhanh cho bộ lọc ngày ===
   const setToday = () => {

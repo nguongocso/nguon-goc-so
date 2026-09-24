@@ -14,8 +14,8 @@ import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.report.dto.response.IndustryReportResponse;
 import vn.nguongocso.report.dto.response.ProductBreakdownItem;
 
-/** Sinh file Excel (.xlsx) cho báo cáo tổng hợp ngành bằng Apache POI. */
+/** Sinh file Excel (.xlsx) cho báo cáo tổng hợp ngành bằng Apache POI SXSSFWorkbook (Streaming). */
 @Slf4j
 @Component
 public class IndustryReportExcelGeneratorImpl implements IndustryReportExcelGenerator {
@@ -37,11 +37,11 @@ public class IndustryReportExcelGeneratorImpl implements IndustryReportExcelGene
             "Tổng sản lượng (kg)"
     };
 
-    /** Tạo nội dung file Excel dạng byte array. */
+    /** Tạo nội dung file Excel dạng byte array bằng cơ chế streaming SXSSFWorkbook. */
     @Override
     public byte[] generate(IndustryReportResponse report) {
-        try (Workbook workbook = new XSSFWorkbook();
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
             Sheet sheet = workbook.createSheet("Báo cáo tổng hợp ngành");
             sheet.setColumnWidth(0, 30 * 256);
@@ -179,6 +179,16 @@ public class IndustryReportExcelGeneratorImpl implements IndustryReportExcelGene
                     report.getToDate(),
                     ex);
             throw new BusinessException(EXPORT_ERROR);
+        } finally {
+            try {
+                workbook.dispose();
+            } catch (Exception e) {
+                log.warn("Không thể xóa file tạm của SXSSFWorkbook", e);
+            }
+            try {
+                workbook.close();
+            } catch (Exception ignored) {
+            }
         }
     }
 

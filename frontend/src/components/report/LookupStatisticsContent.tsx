@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   getLookupStatistics,
   getAbnormalScans,
@@ -7,6 +7,7 @@ import type {
   LookupStatisticsResponse,
   AbnormalScanResponse,
 } from '@/types/lookupStatistics';
+import { useDebounce } from '@/hooks/useDebounce';
 import { StatisticsSummary } from '@/components/report/StatisticsSummary';
 import { LocationChart } from '@/components/report/LocationChart';
 import { LotStatsTable } from '@/components/report/LotStatsTable';
@@ -41,12 +42,16 @@ export default function LookupStatisticsContent() {
   const [endDate, setEndDate] = useState('');
   const [groupBy, setGroupBy] = useState<GroupByType>('MONTH');
 
-  const fetchStats = async () => {
+  // Trì hoãn 400ms khi người dùng nhập bộ lọc ngày để tránh spam truy vấn API
+  const debouncedStartDate = useDebounce(startDate, 400);
+  const debouncedEndDate = useDebounce(endDate, 400);
+
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getLookupStatistics({
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
+        startDate: debouncedStartDate || undefined,
+        endDate: debouncedEndDate || undefined,
         groupBy,
       });
       setStats(data);
@@ -56,14 +61,14 @@ export default function LookupStatisticsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedStartDate, debouncedEndDate, groupBy]);
 
-  const fetchAbnormalScans = async () => {
+  const fetchAbnormalScans = useCallback(async () => {
     try {
       setAbnormalLoading(true);
       const data = await getAbnormalScans({
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
+        startDate: debouncedStartDate || undefined,
+        endDate: debouncedEndDate || undefined,
         page,
         size: 10,
       });
@@ -80,15 +85,15 @@ export default function LookupStatisticsContent() {
     } finally {
       setAbnormalLoading(false);
     }
-  };
+  }, [debouncedStartDate, debouncedEndDate, page]);
 
   useEffect(() => {
-    fetchStats();
-  }, [startDate, endDate, groupBy]);
+    void fetchStats();
+  }, [fetchStats]);
 
   useEffect(() => {
-    fetchAbnormalScans();
-  }, [page, startDate, endDate]);
+    void fetchAbnormalScans();
+  }, [fetchAbnormalScans]);
 
   return (
     <div className="space-y-6">

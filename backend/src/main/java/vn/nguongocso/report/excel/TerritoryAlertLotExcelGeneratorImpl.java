@@ -16,8 +16,7 @@ import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +24,7 @@ import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.report.dto.response.AlertBadgeSummary;
 import vn.nguongocso.report.dto.response.AlertLotSummaryResponse;
 
-/** Triển khai sinh file Excel danh sách lô có cảnh báo cho Cán bộ quản lý ngành (NCL-07-CN-006). */
+/** Triển khai sinh file Excel danh sách lô có cảnh báo cho Cán bộ quản lý ngành (NCL-07-CN-006) bằng SXSSFWorkbook streaming. */
 @Slf4j
 @Component
 public class TerritoryAlertLotExcelGeneratorImpl implements TerritoryAlertLotExcelGenerator {
@@ -50,8 +49,8 @@ public class TerritoryAlertLotExcelGeneratorImpl implements TerritoryAlertLotExc
 
     @Override
     public byte[] generate(List<AlertLotSummaryResponse> alertLots, String officerName, LocalDate fromDate, LocalDate toDate) {
-        try (Workbook workbook = new XSSFWorkbook();
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
             Sheet sheet = workbook.createSheet("Lô có cảnh báo");
 
@@ -204,6 +203,16 @@ public class TerritoryAlertLotExcelGeneratorImpl implements TerritoryAlertLotExc
         } catch (Exception ex) {
             log.error("Lỗi khi sinh file Excel báo cáo lô có cảnh báo", ex);
             throw new BusinessException(EXPORT_ERROR);
+        } finally {
+            try {
+                workbook.dispose();
+            } catch (Exception e) {
+                log.warn("Không thể xóa file tạm của SXSSFWorkbook", e);
+            }
+            try {
+                workbook.close();
+            } catch (Exception ignored) {
+            }
         }
     }
 

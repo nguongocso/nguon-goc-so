@@ -1,5 +1,6 @@
 package vn.nguongocso.trace.dto.request;
 
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -20,6 +21,7 @@ public class ExportLabelsRequest {
 
     @NotNull(message = "count không được để trống")
     @Min(value = 1, message = "count phải >= 1")
+    @Max(value = 500, message = "Số lượng tem xuất trực tiếp tối đa 500 tem")
     private Integer count;
 
     @NotBlank(message = "labelSize không được để trống")
