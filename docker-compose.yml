@@ -17,17 +17,7 @@ services:
       - mysql_data:/var/lib/mysql
 
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "127.0.0.1",
-          "-u",
-          "root",
-          "-p${MYSQL_ROOT_PASSWORD}"
-        ]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}" ]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -81,11 +71,7 @@ services:
 
       # Cấu hình AI Assistant (Google Gemini)
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-<<<<<<< HEAD
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3-flash-preview,gemini-3.5-flash}
-=======
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash,gemini-3.6-flash,gemini-3.7-flash,gemini-3.8-flash,gemini-3.5-flash-lite}
->>>>>>> 65526668c5c81b32661c3acd3d273ce3f9dcf31e
 
       # Múi giờ nghiệp vụ (mặc định Asia/Ho_Chi_Minh). Dùng chung cho Clock
       # nghiệp vụ (app.timezone) và múi giờ mặc định của JVM.qw
