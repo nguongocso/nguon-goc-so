@@ -124,6 +124,90 @@ public interface TraceCodeScanLogRepository extends JpaRepository<TraceCodeScanL
                                          @Param("startDate") LocalDateTime startDate,
                                          @Param("endDate") LocalDateTime endDate);
 
+    /** Tổng hợp số lượt quét theo ngày trực tiếp tại CSDL. */
+    @Query(value = """
+            SELECT DATE_FORMAT(l.scanned_at, '%Y-%m-%d') AS period, COUNT(l.id) AS scan_count
+            FROM trace_code_scan_logs l
+            JOIN trace_codes tc ON l.trace_code_id = tc.id
+            JOIN shipments s ON tc.shipment_id = s.id
+            WHERE (:orgId IS NULL OR s.organization_id = :orgId)
+              AND (:lotId IS NULL OR s.production_lot_id = :lotId)
+              AND (:shipmentId IS NULL OR s.id = :shipmentId)
+              AND (:startDate IS NULL OR l.scanned_at >= :startDate)
+              AND (:endDate IS NULL OR l.scanned_at <= :endDate)
+            GROUP BY period
+            ORDER BY period ASC
+            """, nativeQuery = true)
+    List<Object[]> getTimeSeriesGroupedByDay(
+            @Param("orgId") UUID orgId,
+            @Param("lotId") UUID lotId,
+            @Param("shipmentId") UUID shipmentId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    /** Tổng hợp số lượt quét theo tuần trực tiếp tại CSDL. */
+    @Query(value = """
+            SELECT DATE_FORMAT(l.scanned_at, '%x-W%v') AS period, COUNT(l.id) AS scan_count
+            FROM trace_code_scan_logs l
+            JOIN trace_codes tc ON l.trace_code_id = tc.id
+            JOIN shipments s ON tc.shipment_id = s.id
+            WHERE (:orgId IS NULL OR s.organization_id = :orgId)
+              AND (:lotId IS NULL OR s.production_lot_id = :lotId)
+              AND (:shipmentId IS NULL OR s.id = :shipmentId)
+              AND (:startDate IS NULL OR l.scanned_at >= :startDate)
+              AND (:endDate IS NULL OR l.scanned_at <= :endDate)
+            GROUP BY period
+            ORDER BY period ASC
+            """, nativeQuery = true)
+    List<Object[]> getTimeSeriesGroupedByWeek(
+            @Param("orgId") UUID orgId,
+            @Param("lotId") UUID lotId,
+            @Param("shipmentId") UUID shipmentId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    /** Tổng hợp số lượt quét theo tháng trực tiếp tại CSDL. */
+    @Query(value = """
+            SELECT DATE_FORMAT(l.scanned_at, '%Y-%m') AS period, COUNT(l.id) AS scan_count
+            FROM trace_code_scan_logs l
+            JOIN trace_codes tc ON l.trace_code_id = tc.id
+            JOIN shipments s ON tc.shipment_id = s.id
+            WHERE (:orgId IS NULL OR s.organization_id = :orgId)
+              AND (:lotId IS NULL OR s.production_lot_id = :lotId)
+              AND (:shipmentId IS NULL OR s.id = :shipmentId)
+              AND (:startDate IS NULL OR l.scanned_at >= :startDate)
+              AND (:endDate IS NULL OR l.scanned_at <= :endDate)
+            GROUP BY period
+            ORDER BY period ASC
+            """, nativeQuery = true)
+    List<Object[]> getTimeSeriesGroupedByMonth(
+            @Param("orgId") UUID orgId,
+            @Param("lotId") UUID lotId,
+            @Param("shipmentId") UUID shipmentId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    /** Tổng hợp số lượt quét theo năm trực tiếp tại CSDL. */
+    @Query(value = """
+            SELECT DATE_FORMAT(l.scanned_at, '%Y') AS period, COUNT(l.id) AS scan_count
+            FROM trace_code_scan_logs l
+            JOIN trace_codes tc ON l.trace_code_id = tc.id
+            JOIN shipments s ON tc.shipment_id = s.id
+            WHERE (:orgId IS NULL OR s.organization_id = :orgId)
+              AND (:lotId IS NULL OR s.production_lot_id = :lotId)
+              AND (:shipmentId IS NULL OR s.id = :shipmentId)
+              AND (:startDate IS NULL OR l.scanned_at >= :startDate)
+              AND (:endDate IS NULL OR l.scanned_at <= :endDate)
+            GROUP BY period
+            ORDER BY period ASC
+            """, nativeQuery = true)
+    List<Object[]> getTimeSeriesGroupedByYear(
+            @Param("orgId") UUID orgId,
+            @Param("lotId") UUID lotId,
+            @Param("shipmentId") UUID shipmentId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
     /** Lấy danh sách lượt quét bất thường có phân trang. */
     @Query("SELECT l FROM TraceCodeScanLog l " +
             "JOIN l.traceCode tc JOIN tc.shipment s JOIN s.productionLot pl " +

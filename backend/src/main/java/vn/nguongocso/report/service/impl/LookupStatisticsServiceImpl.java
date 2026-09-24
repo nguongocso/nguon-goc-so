@@ -1,6 +1,7 @@
 package vn.nguongocso.report.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /** Triển khai dịch vụ thống kê tra cứu mã truy xuất. */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LookupStatisticsServiceImpl implements LookupStatisticsService {
@@ -96,13 +98,13 @@ public class LookupStatisticsServiceImpl implements LookupStatisticsService {
                 row[3] != null ? ((Number) row[3]).longValue() : 0L))
             .collect(Collectors.toList());
 
-        List<LocalDateTime> scannedAtList = traceCodeScanLogRepository.getScannedAtList(
+        List<LookupStatisticsResponse.TimeSeriesData> timeSeries = fetchTimeSeries(
+            groupBy,
             targetOrgId,
             productionLotId,
             shipmentId,
             startDateTime,
             endDateTime);
-        List<LookupStatisticsResponse.TimeSeriesData> timeSeries = groupScannedAt(scannedAtList, groupBy);
 
         return LookupStatisticsResponse.builder()
             .summary(summary)
@@ -175,8 +177,62 @@ public class LookupStatisticsServiceImpl implements LookupStatisticsService {
         }
     }
 
+    /**
+     * Lấy dữ liệu chuỗi thời gian bằng cách đẩy logic gom nhóm xuống tầng CSDL (Pushdown Aggregation).
+     * Có fallback tự động gom nhóm trên bộ nhớ nếu truy vấn CSDL gặp ngoại lệ.
+     */
+    private List<LookupStatisticsResponse.TimeSeriesData> fetchTimeSeries(
+            String groupBy,
+            UUID targetOrgId,
+            UUID productionLotId,
+            UUID shipmentId,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime) {
+        String type = (groupBy == null) ? "MONTH" : groupBy.toUpperCase();
+        try {
+            List<Object[]> raw;
+            switch (type) {
+                case "DAY":
+                    raw = traceCodeScanLogRepository.getTimeSeriesGroupedByDay(
+                            targetOrgId, productionLotId, shipmentId, startDateTime, endDateTime);
+                    break;
+                case "WEEK":
+                    raw = traceCodeScanLogRepository.getTimeSeriesGroupedByWeek(
+                            targetOrgId, productionLotId, shipmentId, startDateTime, endDateTime);
+                    break;
+                case "YEAR":
+                    raw = traceCodeScanLogRepository.getTimeSeriesGroupedByYear(
+                            targetOrgId, productionLotId, shipmentId, startDateTime, endDateTime);
+                    break;
+                case "MONTH":
+                default:
+                    raw = traceCodeScanLogRepository.getTimeSeriesGroupedByMonth(
+                            targetOrgId, productionLotId, shipmentId, startDateTime, endDateTime);
+                    break;
+            }
+            if (raw != null) {
+                return raw.stream()
+                        .map(r -> new LookupStatisticsResponse.TimeSeriesData(
+                                String.valueOf(r[0]),
+                                ((Number) r[1]).longValue()))
+                        .collect(Collectors.toList());
+            }
+        } catch (Exception e) {
+            log.warn("Lỗi khi gom nhóm chuỗi thời gian bằng SQL, chuyển sang gom nhóm bộ nhớ: {}", e.getMessage());
+        }
+
+        // Fallback gom nhóm bộ nhớ
+        List<LocalDateTime> scannedAtList = traceCodeScanLogRepository.getScannedAtList(
+                targetOrgId,
+                productionLotId,
+                shipmentId,
+                startDateTime,
+                endDateTime);
+        return groupScannedAt(scannedAtList, groupBy);
+    }
+
     /** Nhóm danh sách thời điểm quét theo khoảng thời gian. */
-    private List<LookupStatisticsResponse.TimeSeriesData> groupScannedAt(
+    List<LookupStatisticsResponse.TimeSeriesData> groupScannedAt(
         List<LocalDateTime> list,
         String groupBy) {
 
