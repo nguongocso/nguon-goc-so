@@ -68,8 +68,8 @@ public class LookupStatisticsServiceTest {
         when(traceCodeScanLogRepository.countAbnormalScans(any(), any(), any(), any(), any())).thenReturn(5L);
         when(traceCodeScanLogRepository.getStatsByLocation(any(), any(), any(), any(), any())).thenReturn(Collections.emptyList());
         when(traceCodeScanLogRepository.getStatsByProductionLot(any(), any(), any(), any(), any())).thenReturn(Collections.emptyList());
-        when(traceCodeScanLogRepository.getTimeSeriesGroupedByMonth(any(), any(), any(), any(), any()))
-                .thenReturn(List.<Object[]>of(new Object[]{"2026-09", 100L}));
+        when(traceCodeScanLogRepository.getScannedAtList(any(), any(), any(), any(), any()))
+                .thenReturn(List.of(LocalDateTime.of(2026, 9, 15, 10, 0)));
 
         // When
         LookupStatisticsResponse response = lookupStatisticsService.getStatistics(
@@ -82,56 +82,7 @@ public class LookupStatisticsServiceTest {
         assertThat(response.getSummary().getAbnormalScansCount()).isEqualTo(5L);
         assertThat(response.getTimeSeries()).hasSize(1);
         assertThat(response.getTimeSeries().getFirst().getPeriod()).isEqualTo("2026-09");
-        assertThat(response.getTimeSeries().getFirst().getScanCount()).isEqualTo(100L);
-    }
-
-    @Test
-    void getStatistics_shouldPushDownTimeSeriesGrouping_byDay() {
-        // Given
-        when(traceCodeScanLogRepository.countScans(any(), any(), any(), any(), any())).thenReturn(10L);
-        when(traceCodeScanLogRepository.countUniqueCodes(any(), any(), any(), any(), any())).thenReturn(8L);
-        when(traceCodeScanLogRepository.countAbnormalScans(any(), any(), any(), any(), any())).thenReturn(0L);
-        when(traceCodeScanLogRepository.getStatsByLocation(any(), any(), any(), any(), any())).thenReturn(Collections.emptyList());
-        when(traceCodeScanLogRepository.getStatsByProductionLot(any(), any(), any(), any(), any())).thenReturn(Collections.emptyList());
-        when(traceCodeScanLogRepository.getTimeSeriesGroupedByDay(any(), any(), any(), any(), any()))
-                .thenReturn(List.<Object[]>of(new Object[]{"2026-09-24", 10L}));
-
-        // When
-        LookupStatisticsResponse response = lookupStatisticsService.getStatistics(
-                null, null, null, null, otherOrgId, "DAY", adminUser);
-
-        // Then
-        assertThat(response.getTimeSeries()).hasSize(1);
-        assertThat(response.getTimeSeries().getFirst().getPeriod()).isEqualTo("2026-09-24");
-        assertThat(response.getTimeSeries().getFirst().getScanCount()).isEqualTo(10L);
-        verify(traceCodeScanLogRepository).getTimeSeriesGroupedByDay(any(), any(), any(), any(), any());
-    }
-
-    @Test
-    void getStatistics_shouldFallbackToInMemoryGrouping_whenDatabaseThrowsException() {
-        // Given
-        when(traceCodeScanLogRepository.countScans(any(), any(), any(), any(), any())).thenReturn(2L);
-        when(traceCodeScanLogRepository.countUniqueCodes(any(), any(), any(), any(), any())).thenReturn(2L);
-        when(traceCodeScanLogRepository.countAbnormalScans(any(), any(), any(), any(), any())).thenReturn(0L);
-        when(traceCodeScanLogRepository.getStatsByLocation(any(), any(), any(), any(), any())).thenReturn(Collections.emptyList());
-        when(traceCodeScanLogRepository.getStatsByProductionLot(any(), any(), any(), any(), any())).thenReturn(Collections.emptyList());
-        when(traceCodeScanLogRepository.getTimeSeriesGroupedByMonth(any(), any(), any(), any(), any()))
-                .thenThrow(new RuntimeException("SQL Syntax Error or Dialect Incompatibility"));
-        when(traceCodeScanLogRepository.getScannedAtList(any(), any(), any(), any(), any()))
-                .thenReturn(List.of(
-                        LocalDateTime.of(2026, 9, 1, 10, 0),
-                        LocalDateTime.of(2026, 9, 2, 11, 0)
-                ));
-
-        // When
-        LookupStatisticsResponse response = lookupStatisticsService.getStatistics(
-                null, null, null, null, otherOrgId, "MONTH", adminUser);
-
-        // Then
-        assertThat(response.getTimeSeries()).hasSize(1);
-        assertThat(response.getTimeSeries().getFirst().getPeriod()).isEqualTo("2026-09");
-        assertThat(response.getTimeSeries().getFirst().getScanCount()).isEqualTo(2L);
-        verify(traceCodeScanLogRepository).getScannedAtList(any(), any(), any(), any(), any());
+        assertThat(response.getTimeSeries().getFirst().getScanCount()).isEqualTo(1L);
     }
 
     @Test

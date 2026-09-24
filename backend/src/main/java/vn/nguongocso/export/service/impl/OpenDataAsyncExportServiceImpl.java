@@ -8,6 +8,8 @@ import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.exception.ResourceNotFoundException;
@@ -57,8 +59,18 @@ public class OpenDataAsyncExportServiceImpl implements OpenDataAsyncExportServic
         OpenDataExportJob savedJob = jobRepository.save(job);
         log.info("Đã tạo Export Job: id={}, user={}, format={}", savedJob.getId(), savedJob.getRequestedByUsername(), format);
 
-        // Ủy thác cho worker xử lý ngầm trong thread pool
-        exportWorker.processExportJob(savedJob.getId(), request, currentUser, tempDirPath);
+        // Ủy thác cho worker xử lý ngầm trong thread pool sau khi transaction đã commit thành công vào CSDL
+        Runnable dispatch = () -> exportWorker.processExportJob(savedJob.getId(), request, currentUser, tempDirPath);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    dispatch.run();
+                }
+            });
+        } else {
+            dispatch.run();
+        }
 
         return toResponse(savedJob);
     }

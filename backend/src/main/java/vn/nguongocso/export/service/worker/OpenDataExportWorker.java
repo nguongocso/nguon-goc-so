@@ -36,9 +36,22 @@ public class OpenDataExportWorker {
      */
     @Async("exportTaskExecutor")
     public void processExportJob(UUID jobId, ExportOpenDataRequest request, CustomUserDetails currentUser, String tempDirPath) {
-        OpenDataExportJob job = jobRepository.findById(jobId).orElse(null);
+        OpenDataExportJob job = null;
+        for (int attempt = 0; attempt < 5; attempt++) {
+            job = jobRepository.findById(jobId).orElse(null);
+            if (job != null) {
+                break;
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
         if (job == null) {
-            log.error("Không tìm thấy OpenDataExportJob với ID: {}", jobId);
+            log.error("Không tìm thấy OpenDataExportJob với ID: {} sau 5 lần kiểm tra", jobId);
             return;
         }
 
