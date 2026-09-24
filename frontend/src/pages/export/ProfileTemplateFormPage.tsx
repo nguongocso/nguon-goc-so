@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -48,11 +48,7 @@ const profileTemplateSchema = z.object({
   isDefault: z.boolean(),
 });
 
-type ProfileTemplateFormData = {
-  name: string;
-  partnerName?: string;
-  isDefault: boolean;
-};
+type ProfileTemplateFormData = z.infer<typeof profileTemplateSchema>;
 
 export const ProfileTemplateFormPage: React.FC = () => {
   const navigate = useNavigate();
@@ -204,7 +200,7 @@ export const ProfileTemplateFormPage: React.FC = () => {
   };
 
   // Submit form
-  const onSubmit = async (data: ProfileTemplateFormData) => {
+  const onSubmit: SubmitHandler<ProfileTemplateFormData> = async (data) => {
     if (!validateMandatoryFields()) {
       toast.error('Mẫu hồ sơ chưa đáp ứng đủ các trường bắt buộc theo quy định');
       return;

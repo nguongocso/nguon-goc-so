@@ -1,16 +1,37 @@
 package vn.nguongocso.event.controller;
 
+import java.util.UUID;
+
 import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
-import vn.nguongocso.event.dto.request.*;
+import vn.nguongocso.event.dto.request.CorrectPackagingEventRequest;
+import vn.nguongocso.event.dto.request.CorrectPreprocessingEventRequest;
+import vn.nguongocso.event.dto.request.OfflineEventSyncRequest;
+import vn.nguongocso.event.dto.request.RecordHarvestEventRequest;
+import vn.nguongocso.event.dto.request.RecordMobileEventRequest;
+import vn.nguongocso.event.dto.request.RecordPackagingEventRequest;
+import vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest;
+import vn.nguongocso.event.dto.request.RecordTransportEventRequest;
+import vn.nguongocso.event.dto.request.RecordWarehouseEntryRequest;
+import vn.nguongocso.event.dto.request.RecordWarehouseExitRequest;
+import vn.nguongocso.event.dto.request.StorageConditionRequest;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
+import vn.nguongocso.event.dto.response.CoopWarehouseEventResponse;
 import vn.nguongocso.event.dto.response.OfflineEventSyncResponse;
 import vn.nguongocso.event.dto.response.ScanLookupResponse;
 import vn.nguongocso.event.dto.response.StorageConditionResponse;
@@ -18,26 +39,7 @@ import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.OfflineSyncService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
-import java.util.UUID;
-
-/**
- * Controller REST quản lý các sự kiện trong chuỗi cung ứng.
- * <p>
- * Cung cấp các API để ghi nhận và quản lý các sự kiện như:
- * <ul>
- *   <li>Thu hoạch (HARVEST)</li>
- *   <li>Đóng gói (PACKAGING)</li>
- *   <li>Sửa lỗi đóng gói (CORRECTION)</li>
- * </ul>
- * </p>
- *
- * <p>Tất cả các API đều yêu cầu xác thực và phân quyền.
- * Chỉ người dùng có vai trò VT-02 (Quản lý HTX) hoặc VT-03 (Người ghi sự kiện)
- * mới được phép thực hiện các thao tác này.</p>
- *
- * @author Team WEB !
- */
-
+/** Controller REST quản lý các sự kiện trong chuỗi cung ứng. */
 @RestController
 @RequestMapping("/api/v1/chain-events")
 @RequiredArgsConstructor
@@ -46,10 +48,7 @@ public class ChainEventController {
     private final ChainEventService chainEventService;
     private final PermissionChecker permissionChecker;
 
-    /**
-     * API ghi nhận sự kiện thu hoạch cho lô sản xuất.
-     * Chấp nhận vai trò VT-01 (Admin), VT-02 (Quản lý HTX) và VT-03 (Người ghi sự kiện).
-     */
+    /** API ghi nhận sự kiện thu hoạch cho lô sản xuất. */
     @PostMapping("/harvest")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> recordHarvest(
@@ -60,10 +59,7 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API ghi nhận sự kiện sơ chế và phân loại cho lô sản xuất.
-     * Chỉ chấp nhận vai trò VT-02 (Quản lý HTX) và VT-03 (Người ghi sự kiện).
-     */
+    /** API ghi nhận sự kiện sơ chế và phân loại cho lô sản xuất. */
     @PostMapping("/preprocessing")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> recordPreprocessing(
@@ -74,9 +70,7 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API tạo sự kiện đính chính thông tin sơ chế và phân loại (giữ nguyên gốc).
-     */
+    /** API tạo sự kiện đính chính thông tin sơ chế và phân loại (giữ nguyên gốc). */
     @PostMapping("/preprocessing/{id}/correct")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> correctPreprocessing(
@@ -84,13 +78,14 @@ public class ChainEventController {
             @Valid @RequestBody CorrectPreprocessingEventRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        ChainEventResponse response = chainEventService.correctPreprocessingEvent(originalEventId, request, currentUser);
+        ChainEventResponse response = chainEventService.correctPreprocessingEvent(
+                originalEventId,
+                request,
+                currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API ghi nhận sự kiện đóng gói cho lô sản xuất.
-     */
+    /** API ghi nhận sự kiện đóng gói cho lô sản xuất. */
     @PostMapping("/packaging")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> recordPackaging(
@@ -101,10 +96,7 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API ghi nhận sự kiện vận chuyển cho lô hàng.
-     * Chỉ chấp nhận vai trò VT-03 (Người ghi sự kiện).
-     */
+    /** API ghi nhận sự kiện vận chuyển cho lô hàng. */
     @PostMapping("/transport")
     @PreAuthorize("hasRole('VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> recordTransport(
@@ -116,9 +108,7 @@ public class ChainEventController {
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API tạo sự kiện đính chính thông tin đóng gói (giữ nguyên gốc).
-     */
+    /** API tạo sự kiện đính chính thông tin đóng gói (giữ nguyên gốc). */
     @PostMapping("/packaging/{id}/correct")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> correctPackaging(
@@ -130,10 +120,7 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API ghi nhận sự kiện ngoài đồng từ thiết bị di động.
-     * Chỉ chấp nhận vai trò VT-02 (Quản lý HTX) và VT-03 (Người ghi sự kiện).
-     */
+    /** API ghi nhận sự kiện ngoài đồng từ thiết bị di động. */
     @PostMapping("/mobile")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> recordMobileEvent(
@@ -145,9 +132,7 @@ public class ChainEventController {
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API đồng bộ sự kiện ngoại tuyến.
-     */
+    /** API đồng bộ sự kiện ngoại tuyến. */
     @PostMapping("/sync")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<OfflineEventSyncResponse>> syncOfflineEvents(
@@ -159,17 +144,7 @@ public class ChainEventController {
                 .body(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Tra cứu mã truy xuất trước khi mở biểu mẫu ghi sự kiện.
-     *
-     * Chức năng:
-     * - Kiểm tra quyền sử dụng chức năng quét mã.
-     * - Kiểm tra mã truy xuất có tồn tại.
-     * - Kiểm tra mã đã gắn lô hàng.
-     * - Kiểm tra quyền theo tổ chức.
-     * - Kiểm tra trạng thái lô hàng.
-     * - Trả về thông tin cần thiết để mở biểu mẫu ghi sự kiện.
-     */
+    /** Tra cứu mã truy xuất trước khi mở biểu mẫu ghi sự kiện. */
     @GetMapping("/scan-lookup")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResult<ScanLookupResponse>> scanLookup(
@@ -181,37 +156,29 @@ public class ChainEventController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * API ghi nhận sự kiện nhập kho tại hợp tác xã (HTX).
-     */
+    /** API ghi nhận sự kiện nhập kho tại hợp tác xã (HTX). */
     @PostMapping("/coop-warehouse/entry")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
-    public ResponseEntity<ApiResult<vn.nguongocso.event.dto.response.CoopWarehouseEventResponse>> recordWarehouseEntry(
+    public ResponseEntity<ApiResult<CoopWarehouseEventResponse>> recordWarehouseEntry(
             @Valid @RequestBody RecordWarehouseEntryRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        vn.nguongocso.event.dto.response.CoopWarehouseEventResponse response = chainEventService.recordWarehouseEntryEvent(request, currentUser);
+        CoopWarehouseEventResponse response = chainEventService.recordWarehouseEntryEvent(request, currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API ghi nhận sự kiện xuất kho tại hợp tác xã (HTX).
-     */
+    /** API ghi nhận sự kiện xuất kho tại hợp tác xã (HTX). */
     @PostMapping("/coop-warehouse/exit")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
-    public ResponseEntity<ApiResult<vn.nguongocso.event.dto.response.CoopWarehouseEventResponse>> recordWarehouseExit(
+    public ResponseEntity<ApiResult<CoopWarehouseEventResponse>> recordWarehouseExit(
             @Valid @RequestBody RecordWarehouseExitRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        vn.nguongocso.event.dto.response.CoopWarehouseEventResponse response = chainEventService.recordWarehouseExitEvent(request, currentUser);
+        CoopWarehouseEventResponse response = chainEventService.recordWarehouseExitEvent(request, currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API ghi nhận mốc điều kiện bảo quản khi vận chuyển.
-     * VT-03 (Người ghi sự kiện, đúng tổ chức) và VT-04
-     * (Doanh nghiệp thu mua, đã thu mua lô hàng) — cùng luật với tra cứu tay.
-     */
+    /** API ghi nhận mốc điều kiện bảo quản khi vận chuyển. */
     @PostMapping("/storage-condition")
     @PreAuthorize("hasAnyRole('VT-03', 'VT-04')")
     public ResponseEntity<ApiResult<StorageConditionResponse>> recordStorageCondition(
@@ -222,5 +189,4 @@ public class ChainEventController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
-
 }

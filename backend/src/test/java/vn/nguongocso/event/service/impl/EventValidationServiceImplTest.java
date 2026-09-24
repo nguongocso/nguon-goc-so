@@ -39,6 +39,8 @@ import vn.nguongocso.event.entity.FailedEventLog;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.event.repository.FailedEventLogRepository;
+import vn.nguongocso.event.service.processor.ShipmentDraftCleaner;
+import vn.nguongocso.event.service.recorder.FailedEventLogRecorder;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
@@ -65,7 +67,7 @@ class EventValidationServiceImplTest {
     private FailedEventLogRepository failedEventLogRepository;
 
     @Mock
-    private UserRepository userRepository;
+    private FailedEventLogRecorder failedEventLogRecorder;
 
     @Mock
     private TraceCodeRepository traceCodeRepository;
@@ -82,7 +84,7 @@ class EventValidationServiceImplTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
-    @InjectMocks
+    private ShipmentDraftCleaner shipmentDraftCleaner;
     private EventValidationServiceImpl eventValidationService;
 
     private CustomUserDetails currentUser;
@@ -93,6 +95,13 @@ class EventValidationServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        shipmentDraftCleaner = new ShipmentDraftCleaner(
+                shipmentRepository, chainEventRepository, traceCodeRepository,
+                dossierExportHistoryRepository, codeRangeRepository, eventPublisher);
+        eventValidationService = new EventValidationServiceImpl(
+                productionLotRepository, shipmentRepository, failedEventLogRepository,
+                failedEventLogRecorder, shipmentDraftCleaner);
+
         currentUser = mock(CustomUserDetails.class);
         UUID orgId = UUID.randomUUID();
         lenient().when(currentUser.getOrganizationId()).thenReturn(orgId);
@@ -206,7 +215,8 @@ class EventValidationServiceImplTest {
         codeRange.setUsedCount(500L);
 
         when(shipmentRepository.findById(shipment.getId())).thenReturn(Optional.of(shipment));
-        when(codeRangeRepository.findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(currentUser.getOrganizationId())).thenReturn(Optional.of(codeRange));
+        when(codeRangeRepository.findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(
+                currentUser.getOrganizationId())).thenReturn(Optional.of(codeRange));
 
         eventValidationService.deleteDraft(shipment.getId(), currentUser);
 
@@ -253,12 +263,11 @@ class EventValidationServiceImplTest {
 
     @Test
     void logFailedAttempt_success() {
-        when(userRepository.findById(currentUser.getUserId())).thenReturn(Optional.of(user));
-
         eventValidationService.logFailedAttempt(
                 productionLot.getId(), "LOT-A", ChainEventType.HARVEST, "Lý do lỗi", currentUser);
 
-        verify(failedEventLogRepository, times(1)).save(any(FailedEventLog.class));
+        verify(failedEventLogRecorder, times(1)).recordFailedAttempt(
+                productionLot.getId(), "LOT-A", ChainEventType.HARVEST, "Lý do lỗi", currentUser);
     }
 
     @Test

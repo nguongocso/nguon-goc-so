@@ -6,10 +6,12 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.exception.BusinessException;
@@ -24,22 +26,14 @@ import vn.nguongocso.integration.partner.dto.response.PartnerFarmLogSummaryRespo
 import vn.nguongocso.integration.partner.dto.response.PartnerLotDossierResponse;
 import vn.nguongocso.integration.partner.dto.response.PartnerLotInfoResponse;
 import vn.nguongocso.integration.partner.dto.response.PartnerOrgInfoResponse;
-import vn.nguongocso.integration.partner.util.PartnerSampleDataProvider;
 import vn.nguongocso.organization.entity.Organization;
 
 /**
- * Service xử lý lấy hồ sơ truy xuất lô sản xuất cho bên thứ ba (NCL-12-CN-002,
- * NCL-12-CN-004).
- * <p>
- * Đảm bảo quy tắc bảo mật Cách ly Dữ liệu Tổ chức (Tenant Isolation - TC-04)
- * đối với khóa thật,
- * và điều hướng trả dữ liệu mẫu chuẩn Sandbox đối với khóa thử nghiệm (TC-01,
- * TC-02).
- */
+ * Service xử lý lấy hồ sơ truy xuất lô sản xuất cho bên thứ ba.
+*/
 @Service
 @RequiredArgsConstructor
 public class PartnerLotService {
-
     private static final Logger log = LoggerFactory.getLogger(PartnerLotService.class);
 
     private final ProductionLotRepository productionLotRepository;
@@ -47,13 +41,6 @@ public class PartnerLotService {
 
     /**
      * Lấy hồ sơ truy xuất đầy đủ của lô sản xuất cho bên thứ ba.
-     * <p>
-     * - Đối với khóa thử nghiệm (isTest = true): LUÔN trả về dữ liệu mẫu Sandbox
-     * kèm đánh dấu isTest = true (TC-01, TC-02).
-     * - Đối với khóa thật: Thực thi quy tắc Cách ly Dữ liệu Tổ chức (Tenant
-     * Isolation - TC-04):
-     * Chỉ cho phép truy xuất lô thuộc sở hữu của Hợp tác xã tương ứng với
-     * PartnerApiKey.
      */
     @Transactional(readOnly = true)
     public PartnerLotDossierResponse getLotDossierForPartner(UUID lotId, PartnerApiKey partnerApiKey) {
@@ -61,39 +48,37 @@ public class PartnerLotService {
             throw new BusinessException("Khóa truy cập không hợp lệ hoặc thiếu thông tin tổ chức");
         }
 
-        // TC-01, TC-02: Khóa thử nghiệm chỉ được phép truy cập mã lô 'sample-lot-001' qua cổng publicapi
         if (Boolean.TRUE.equals(partnerApiKey.getIsTest())
                 || (partnerApiKey.getKeyPrefix() != null && partnerApiKey.getKeyPrefix().startsWith("nks_test_"))) {
             log.warn(
-                    "Bên thứ ba '{}' dùng khóa thử nghiệm gọi lấy hồ sơ lô thực tế (lotId={}) -> Từ chối",
+                    "Bên thứ ba '{}' dùng khóa thử nghiệm gọi lấy hồ sơ lô thực tế (lotId={})",
                     partnerApiKey.getPartnerName(), lotId);
-            throw new BusinessException(org.springframework.http.HttpStatus.FORBIDDEN,
+            throw new BusinessException(HttpStatus.FORBIDDEN,
                     "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
         }
 
         UUID organizationId = partnerApiKey.getOrganization().getOrganizationId();
 
-        // 1. Kiểm tra lô sản xuất tồn tại không
         ProductionLot lot = productionLotRepository.findById(lotId)
-                .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin lô sản xuất"));
+                .orElseThrow(() -> new BusinessException(org.springframework.http.HttpStatus.NOT_FOUND,
+                        "Không tìm thấy lô sản xuất yêu cầu"));
 
-        // 2. Kiểm tra Cách ly dữ liệu Tổ chức (TC-04): Lô có thuộc HTX của API Key hay
-        // không
         if (!lot.getOrganization().getOrganizationId().equals(organizationId)) {
             log.warn("Bên thứ ba '{}' (orgId={}) cố tình truy cập lô {} thuộc orgId khác={}",
                     partnerApiKey.getPartnerName(), organizationId, lotId, lot.getOrganization().getOrganizationId());
             throw new BusinessException("Lô sản xuất nằm ngoài phạm vi truy xuất của khóa truy cập");
         }
 
-        // Truy vấn nạp đủ quan hệ phục vụ response
         ProductionLot fullLot = productionLotRepository.findDossierByIdAndOrganizationId(lotId, organizationId)
                 .orElse(lot);
 
         return mapToDossierResponse(fullLot);
     }
 
+    /**
+     * Chuyển đổi entity lô sản xuất sang response hồ sơ truy xuất.
+     */
     private PartnerLotDossierResponse mapToDossierResponse(ProductionLot lot) {
-        // 1. Lot Info
         PartnerLotInfoResponse lotInfo = PartnerLotInfoResponse.builder()
                 .lotId(lot.getId().toString())
                 .lotName(lot.getName())
@@ -106,7 +91,6 @@ public class PartnerLotService {
                 .status(lot.getStatus())
                 .build();
 
-        // 2. Org Info
         Organization org = lot.getOrganization();
         PartnerOrgInfoResponse orgInfo = PartnerOrgInfoResponse.builder()
                 .organizationId(org.getOrganizationId().toString())
@@ -117,7 +101,6 @@ public class PartnerLotService {
                 .email(org.getEmail())
                 .build();
 
-        // 3. Farm Area Info
         PartnerFarmAreaResponse farmAreaInfo = null;
         if (lot.getFarmArea() != null) {
             FarmArea fa = lot.getFarmArea();
@@ -129,7 +112,6 @@ public class PartnerLotService {
                     .build();
         }
 
-        // 4. Certifications
         List<PartnerCertificationResponse> certResponses = new ArrayList<>();
         if (lot.getCertifications() != null) {
             for (ProductionLotCertification plc : lot.getCertifications()) {
@@ -147,7 +129,6 @@ public class PartnerLotService {
             }
         }
 
-        // 5. Farm Log Summary
         int logCount = 0;
         try {
             var logs = farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lot.getId());

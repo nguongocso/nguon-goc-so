@@ -77,6 +77,8 @@ class TestApiKeyIntegrationTest {
     private static final String EXPIRED_LIVE_RAW_KEY = "nks_live_expired1234567890abcdef12345678";
     private static final String REVOKED_TEST_RAW_KEY = "nks_test_revoked1234567890abcdef12345678";
     private static final String RATE_LIMITED_TEST_RAW_KEY = "nks_test_ratelimit1234567890abcdef123456";
+    private static final String ACTIVE_LIVE_RAW_KEY = "nks_live_active1234567890abcdef12345678";
+    private static final String REVOKED_LIVE_RAW_KEY = "nks_live_revoked1234567890abcdef12345678";
 
     @Autowired
     private MockMvc mockMvc;
@@ -249,6 +251,32 @@ class TestApiKeyIntegrationTest {
                 .rateLimitPerHour(100)
                 .expiresAt(LocalDateTime.now().minusDays(2))
                 .status(PartnerApiKeyStatus.EXPIRED)
+                .isTest(false)
+                .createdBy(testManagerUser)
+                .build());
+
+        // 11. Tạo Khóa Thật Đang Hoạt Động (ACTIVE Live Key)
+        partnerApiKeyRepository.save(PartnerApiKey.builder()
+                .organization(testOrg)
+                .partnerName("Doanh Nghiệp Thu Mua Active Live Key")
+                .keyHash(PartnerApiKeyService.hashSha256(ACTIVE_LIVE_RAW_KEY))
+                .keyPrefix("nks_live_acti")
+                .rateLimitPerHour(1000)
+                .expiresAt(LocalDateTime.now().plusDays(365))
+                .status(PartnerApiKeyStatus.ACTIVE)
+                .isTest(false)
+                .createdBy(testManagerUser)
+                .build());
+
+        // 12. Tạo Khóa Thật Bị Thu Hồi (REVOKED Live Key)
+        partnerApiKeyRepository.save(PartnerApiKey.builder()
+                .organization(testOrg)
+                .partnerName("Doanh Nghiệp Thu Mua Revoked Live Key")
+                .keyHash(PartnerApiKeyService.hashSha256(REVOKED_LIVE_RAW_KEY))
+                .keyPrefix("nks_live_revo")
+                .rateLimitPerHour(500)
+                .expiresAt(LocalDateTime.now().plusDays(30))
+                .status(PartnerApiKeyStatus.REVOKED)
                 .isTest(false)
                 .createdBy(testManagerUser)
                 .build());
@@ -545,5 +573,90 @@ class TestApiKeyIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Khóa thử nghiệm không đúng. Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa."));
+    }
+
+    /**
+     * Request không gửi kèm tiêu đề HTTP xác thực bắt buộc -> Bị từ chối HTTP 401 Unauthorized ("Thiếu Header X-API-KEY").
+     */
+    @Test
+    @DisplayName("Thiếu Header X-API-KEY -> Bị từ chối HTTP 401 Unauthorized")
+    void testMissingApiKeyHeader_RejectedWith401() throws Exception {
+        mockMvc.perform(get("/api/publicapi/v1/lots/sample-lot-001")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Thiếu Header X-API-KEY"));
+    }
+
+    /**
+     * Khóa Live không tồn tại trong hệ thống -> Bị từ chối HTTP 401 Unauthorized ("Khóa truy cập không hợp lệ").
+     */
+    @Test
+    @DisplayName("Khóa Live không tồn tại -> Bị từ chối HTTP 401 với thông báo 'Khóa truy cập không hợp lệ'")
+    void testInvalidLiveApiKey_RejectedWith401() throws Exception {
+        mockMvc.perform(get("/api/publicapi/v1/lots/sample-lot-001")
+                        .header("X-API-KEY", "nks_live_random_invalid_key_99999")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Khóa truy cập không hợp lệ"));
+    }
+
+    /**
+     * Khóa Live đã bị thu hồi -> Bị từ chối HTTP 401 Unauthorized ("Khóa truy cập đã bị thu hồi và không còn hiệu lực").
+     */
+    @Test
+    @DisplayName("Khóa Live bị thu hồi -> Bị từ chối HTTP 401 với thông báo 'Khóa truy cập đã bị thu hồi và không còn hiệu lực'")
+    void testRevokedLiveApiKey_RejectedWith401() throws Exception {
+        mockMvc.perform(get("/api/publicapi/v1/lots/sample-lot-001")
+                        .header("X-API-KEY", REVOKED_LIVE_RAW_KEY)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Khóa truy cập đã bị thu hồi và không còn hiệu lực"));
+    }
+
+    /**
+     * Khóa Live truy cập lô không tồn tại -> Bị từ chối HTTP 404 Not Found ("Không tìm thấy lô sản xuất yêu cầu").
+     */
+    @Test
+    @DisplayName("Khóa Live gọi lô không tồn tại -> Bị từ chối HTTP 404 Not Found")
+    void testLiveApiKey_NonExistentLot_RejectedWith404() throws Exception {
+        UUID nonExistentLotId = UUID.randomUUID();
+        mockMvc.perform(get("/api/publicapi/v1/lots/" + nonExistentLotId)
+                        .header("X-API-KEY", ACTIVE_LIVE_RAW_KEY)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Không tìm thấy lô sản xuất yêu cầu"));
+    }
+
+    /**
+     * Khóa Live gọi với mã lô sai định dạng UUID -> Bị từ chối HTTP 400 Bad Request ("Tham số không hợp lệ").
+     */
+    @Test
+    @DisplayName("Khóa Live gọi với mã lô sai định dạng UUID -> Bị từ chối HTTP 400 Bad Request")
+    void testLiveApiKey_InvalidLotIdFormat_RejectedWith400() throws Exception {
+        mockMvc.perform(get("/api/publicapi/v1/lots/invalid-lot-uuid-12345")
+                        .header("X-API-KEY", ACTIVE_LIVE_RAW_KEY)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(containsString("Tham số không hợp lệ")));
+    }
+
+    /**
+     * Khóa Live gọi lô thật thuộc sở hữu của tổ chức -> Trả về 200 OK với is_test=false.
+     */
+    @Test
+    @DisplayName("Khóa Live hợp lệ gọi lô thật -> Trả về 200 OK và is_test=false")
+    void testLiveApiKey_RealLot_Success() throws Exception {
+        mockMvc.perform(get("/api/publicapi/v1/lots/" + realProductionLot.getId())
+                        .header("X-API-KEY", ACTIVE_LIVE_RAW_KEY)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.is_test").value(false))
+                .andExpect(jsonPath("$.data.lotInfo.lotName").value(realProductionLot.getName()));
     }
 }

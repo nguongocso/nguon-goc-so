@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
@@ -39,6 +40,7 @@ import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.event.ApiKeyQuotaThresholdEvent;
 import vn.nguongocso.integration.apikey.event.ApiKeyLifecycleEvent;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
+import vn.nguongocso.integration.partner.repository.PartnerWebhookNotificationRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 
@@ -62,7 +64,7 @@ public class PartnerApiKeyService {
     private final ApplicationEventPublisher eventPublisher;
     private final PartnerApiKeyUsageService partnerApiKeyUsageService;
     private final ApiKeyQuotaPolicy apiKeyQuotaPolicy;
-    private final vn.nguongocso.integration.partner.repository.PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
+    private final PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
     private final Map<String, AtomicInteger> hourlyRateLimitMap = new ConcurrentHashMap<>();
 
     /**
@@ -83,17 +85,14 @@ public class PartnerApiKeyService {
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin người dùng"));
 
-        // 1. Sinh chuỗi ngẫu nhiên 32-byte an toàn -> Hex string
         byte[] randomBytes = new byte[32];
         SECURE_RANDOM.nextBytes(randomBytes);
         String randomHex = bytesToHex(randomBytes);
 
-        // 2. Tạo rawApiKey và keyPrefix, keyHash
         String rawApiKey = KEY_PREFIX_CONSTANT + randomHex;
         String keyPrefix = KEY_PREFIX_CONSTANT + randomHex.substring(0, 8);
         String keyHash = hashSha256(rawApiKey);
 
-        // 3. Khởi tạo Entity
         PartnerApiKey apiKey = PartnerApiKey.builder()
                 .organization(organization)
                 .partnerName(request.getPartnerName().trim())
@@ -143,18 +142,16 @@ public class PartnerApiKeyService {
             request.setExpiresAt(LocalDateTime.now().plusDays(7));
         }
 
-        // 1. Kiểm tra ngày hết hạn phải ở tương lai
         if (!request.getExpiresAt().isAfter(LocalDateTime.now())) {
             throw new BusinessException("Ngày hết hạn của khóa truy cập phải ở thời điểm tương lai");
         }
 
-        // 2. Ràng buộc thời hạn ngắn cho khóa thử nghiệm: tối đa 30 ngày
         if (request.getExpiresAt().isAfter(LocalDateTime.now().plusDays(MAX_TEST_EXPIRE_DAYS))) {
             throw new BusinessException(
                     "Thời hạn khóa thử nghiệm không được vượt quá " + MAX_TEST_EXPIRE_DAYS + " ngày");
         }
 
-        // 3. Ràng buộc hạn mức thấp cho khóa thử nghiệm: tối đa 50 lượt/giờ
+        // 3. Ràng buộc hạn mức thấp cho khóa thử nghiệm: tối đa 100 lượt/giờ
         if (request.getRateLimitPerHour() != null && request.getRateLimitPerHour() > MAX_TEST_RATE_LIMIT) {
             throw new BusinessException(
                     "Hạn mức số lượt gọi thử nghiệm không vượt quá " + MAX_TEST_RATE_LIMIT + " lượt/giờ");
@@ -165,17 +162,14 @@ public class PartnerApiKeyService {
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin người dùng"));
 
-        // 4. Sinh chuỗi ngẫu nhiên 32-byte an toàn -> Hex string
         byte[] randomBytes = new byte[32];
         SECURE_RANDOM.nextBytes(randomBytes);
         String randomHex = bytesToHex(randomBytes);
 
-        // 5. Tạo rawApiKey với tiền tố nks_test_
         String rawApiKey = TEST_KEY_PREFIX_CONSTANT + randomHex;
         String keyPrefix = TEST_KEY_PREFIX_CONSTANT + randomHex.substring(0, 8);
         String keyHash = hashSha256(rawApiKey);
 
-        // 6. Khởi tạo Entity với isTest = true
         PartnerApiKey apiKey = PartnerApiKey.builder()
                 .organization(organization)
                 .partnerName(request.getPartnerName().trim())
@@ -250,7 +244,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Thu hồi khóa truy cập (vô hiệu hóa ngay lập tức - TC-02).
+     * Thu hồi khóa truy cập.
      */
     @Transactional
     public PartnerApiKeyResponse revokeApiKey(UUID apiKeyId) {
@@ -401,13 +395,11 @@ public class PartnerApiKeyService {
 
         PartnerApiKey apiKey = apiKeyOpt.get();
 
-        // 1. Kiểm tra trạng thái REVOKED
         if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
             recordCallStats(apiKey, false, 401, clientIp);
             throw new BusinessException("Khóa truy cập đã bị thu hồi và không còn hiệu lực");
         }
 
-        // 2. Kiểm tra ngày hết hạn
         if (LocalDateTime.now().isAfter(apiKey.getExpiresAt())) {
             if (apiKey.getStatus() != PartnerApiKeyStatus.EXPIRED) {
                 apiKey.setStatus(PartnerApiKeyStatus.EXPIRED);
@@ -420,7 +412,6 @@ public class PartnerApiKeyService {
             throw new BusinessException("Khóa truy cập đã hết thời gian hiệu lực");
         }
 
-        // 3. Kiểm tra Hạn mức số lượt gọi trong 1 giờ (Rate Limit per Hour - QTN-20)
         LocalDateTime now = LocalDateTime.now();
         String hourlyKey = buildHourlyKey(apiKey.getId(), now);
 
@@ -502,7 +493,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Ghi nhận chỉ số thống kê lượt gọi trực tiếp vào bảng {@code partner_api_keys}.
+     * Ghi nhận chỉ số thống kê lượt gọi của khóa.
      */
     private void recordCallStats(PartnerApiKey apiKey, boolean success, int httpStatus, String clientIp) {
         try {

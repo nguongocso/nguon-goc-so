@@ -1,11 +1,8 @@
 package vn.nguongocso.config;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.UUID;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,230 +10,91 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.auth.service.CustomUserDetailsService;
 
-import java.io.IOException;
-import java.util.UUID;
-
-/**
- * JWT authentication filter.
- *
- * <p>
- * Hệ thống sử dụng 2 loại JWT:
- * </p>
- *
- * <ul>
- *     <li>
- *         ORG_SELECTION:
- *         token tạm thời sau khi username/password hợp lệ,
- *         dùng cho bước chọn organization.
- *     </li>
- *
- *     <li>
- *         ACCESS:
- *         token xác thực đầy đủ sau khi organization được chọn,
- *         dùng để truy cập các API được bảo vệ.
- *     </li>
- * </ul>
- *
- * <p>
- * ORG_SELECTION không được tạo Spring Security Authentication.
- * ACCESS mới được phép thiết lập SecurityContext.
- * </p>
- */
+/** Bộ lọc xác thực JWT cho các yêu cầu HTTP. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtTokenProvider tokenProvider;
     private final CustomUserDetailsService userDetailsService;
 
-    /**
-     * Xử lý JWT trong Authorization header.
-     *
-     * <p>
-     * Quy tắc:
-     * </p>
-     *
-     * <ul>
-     *     <li>Không có token → request tiếp tục.</li>
-     *     <li>Token không hợp lệ → request tiếp tục.</li>
-     *     <li>ORG_SELECTION → không authenticate.</li>
-     *     <li>ACCESS → authenticate user.</li>
-     * </ul>
-     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain)
-            throws ServletException, IOException {
-
+            FilterChain filterChain) throws ServletException, IOException {
         String token = getTokenFromRequest(request);
-
-        /*
-         * Không có JWT.
-         */
-        if (token == null) {
+        if (token == null || !tokenProvider.validateToken(token)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        /*
-         * JWT không hợp lệ hoặc hết hạn.
-         */
-        if (!tokenProvider.validateToken(token)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        /*
-         * Xác định loại JWT.
-         */
         String tokenType = tokenProvider.getTokenTypeFromToken(token);
 
-        /*
-         * =========================================================
-         * ORG_SELECTION
-         * =========================================================
-         *
-         * Token này KHÔNG được dùng để authenticate Spring Security.
-         *
-         * Endpoint /organizations và /select-organization sẽ tự
-         * kiểm tra token thông qua JwtTokenProvider.
-         */
+        // ORG_SELECTION không đưa vào SecurityContext; các API chọn tổ chức tự xác thực riêng
         if (JwtTokenProvider.TOKEN_TYPE_SELECTION.equals(tokenType)) {
-
             filterChain.doFilter(request, response);
             return;
         }
 
-        /*
-         * =========================================================
-         * ACCESS
-         * =========================================================
-         *
-         * ACCESS JWT mới được tạo Authentication.
-         */
         if (JwtTokenProvider.TOKEN_TYPE_ACCESS.equals(tokenType)) {
-
-            authenticateAccessToken(
-                    request,
-                    token
-            );
-
+            authenticateAccessToken(request, token);
             filterChain.doFilter(request, response);
             return;
         }
 
-        /*
-         * Không nhận diện được token type.
-         *
-         * Không authenticate.
-         */
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Authenticate request bằng ACCESS JWT.
-     */
-    private void authenticateAccessToken(
-            HttpServletRequest request,
-            String token) {
-
-        /*
-         * Nếu SecurityContext đã có Authentication,
-         * không authenticate lại.
-         */
-        if (SecurityContextHolder
-                .getContext()
-                .getAuthentication() != null) {
-
+    /** Xác thực người dùng từ mã ACCESS JWT và thiết lập SecurityContext. */
+    private void authenticateAccessToken(HttpServletRequest request, String token) {
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
             return;
         }
 
-        /*
-         * Load lại đúng membership đã được ghi vào ACCESS JWT.
-         * Dùng userId + organizationId tránh phụ thuộc vào việc
-         * organization code có thay đổi hoặc khác format hay không.
-         */
+        // Xác định người dùng theo userId và organizationId để không phụ thuộc vào mã tổ chức có thể thay đổi
         UUID userId = tokenProvider.getUserIdFromToken(token);
         UUID organizationId = tokenProvider.getOrganizationIdFromToken(token);
-
         if (userId == null || organizationId == null) {
             return;
         }
 
-        /*
-         * Membership bị vô hiệu hóa (QTN-32) hoặc tài khoản bị khóa khiến
-         * việc load thất bại: KHÔNG thiết lập Authentication để request
-         * được xử lý như chưa đăng nhập (401/403) — đây là cơ chế chấm dứt
-         * phiên tức thời với JWT stateless. Ném exception qua filter sẽ
-         * biến thành 500 nên phải nuốt và bỏ qua.
-         */
+        // QTN-32: Không xác thực thành viên bị vô hiệu hóa để yêu cầu được xử lý như chưa đăng nhập.
         UserDetails userDetails;
         try {
-            userDetails = userDetailsService.loadUserByUserIdAndOrganizationId(
-                    userId,
-                    organizationId
-            );
+            userDetails = userDetailsService.loadUserByUserIdAndOrganizationId(userId, organizationId);
         } catch (Exception e) {
             log.warn("Không xác thực được ACCESS token: userId={}, organizationId={}, reason={}",
                     userId, organizationId, e.getMessage());
             return;
         }
 
-        /*
-         * Tạo Spring Security Authentication.
-         */
         UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-        authentication.setDetails(
-                new WebAuthenticationDetailsSource()
-                        .buildDetails(request)
-        );
-
-        /*
-         * Đưa Authentication vào SecurityContext.
-         */
-        SecurityContextHolder
-                .getContext()
-                .setAuthentication(authentication);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    /**
-     * Lấy JWT từ Authorization header.
-     *
-     * <pre>
-     * Authorization: Bearer &lt;jwt&gt;
-     * </pre>
-     */
-    private String getTokenFromRequest(
-            HttpServletRequest request) {
-
-        String bearer =
-                request.getHeader(AUTHORIZATION_HEADER);
-
-        if (bearer != null
-                && bearer.startsWith(BEARER_PREFIX)) {
-
-            return bearer.substring(
-                    BEARER_PREFIX.length()
-            );
+    /** Trích xuất JWT từ tiêu đề Authorization hoặc tham số truy vấn token. */
+    private String getTokenFromRequest(HttpServletRequest request) {
+        String bearer = request.getHeader(AUTHORIZATION_HEADER);
+        if (bearer != null && bearer.startsWith(BEARER_PREFIX)) {
+            return bearer.substring(BEARER_PREFIX.length());
         }
 
-        /*
-         * Cho phép lấy token qua query parameter (phục vụ mở tệp đính kèm trong tab mới của trình duyệt).
-         */
+        // Dự phòng lấy token từ tham số truy vấn khi tải tệp hoặc xem tài nguyên không thể gửi tiêu đề Authorization
         String queryToken = request.getParameter("token");
         if (queryToken != null && !queryToken.isBlank()) {
             return queryToken.trim();

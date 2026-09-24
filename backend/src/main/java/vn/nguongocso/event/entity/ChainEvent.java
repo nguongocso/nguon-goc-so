@@ -1,23 +1,33 @@
 package vn.nguongocso.event.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.Point;
+
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.trace.entity.Shipment;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
-/**
- * Thực thể đại diện cho một sự kiện trong chuỗi cung ứng.
- *
- * @author Triệu Văn Đại
- */
-
+/** Thực thể đại diện cho một sự kiện trong chuỗi cung ứng. */
 @Entity
 @Table(name = "chain_events")
 @Getter
@@ -26,7 +36,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class ChainEvent {
-
     @Id
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "id", nullable = false, updatable = false)
@@ -53,12 +62,7 @@ public class ChainEvent {
     @JoinColumn(name = "recorded_by", nullable = false)
     private User recordedBy;
 
-    /**
-     * Tổ chức mà người dùng đại diện tại thời điểm ghi sự kiện.
-     *
-     * <p>Không suy ra giá trị này từ membership hiện tại vì một người dùng có thể đồng thời thuộc
-     * nhiều tổ chức hoặc chuyển tổ chức sau khi sự kiện đã được ghi.</p>
-     */
+    /** Tổ chức mà người dùng đại diện tại thời điểm ghi sự kiện. */
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "recorded_organization_id")
     private UUID recordedOrganizationId;

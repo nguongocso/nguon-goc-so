@@ -61,7 +61,7 @@ public class PublicLotApiController {
         try {
             parsedLotId = UUID.fromString(lotId);
         } catch (IllegalArgumentException e) {
-            throw new BusinessException("Mã lô không hợp lệ: " + lotId);
+            throw new BusinessException("Tham số không hợp lệ: mã lô '" + lotId + "' không đúng định dạng UUID");
         }
 
         PartnerLotDossierResponse response = partnerLotService.getLotDossierForPartner(parsedLotId, partnerApiKey);

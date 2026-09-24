@@ -14,10 +14,7 @@ import vn.nguongocso.event.service.ChainEventService;
 
 import java.util.UUID;
 
-/**
- * Controller kiểm chứng tính toàn vẹn dòng sự kiện.
- * Endpoint theo API docs: GET /api/v1/shipments/{shipmentId}/verify-chain
- */
+/** Controller kiểm chứng tính toàn vẹn dòng sự kiện. */
 @RestController
 @RequestMapping("/api/v1/shipments")
 public class ChainVerificationController {

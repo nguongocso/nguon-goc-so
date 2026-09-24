@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
@@ -41,17 +40,29 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import vn.nguongocso.export.service.recorder.ExportLogRecorder;
+import vn.nguongocso.export.service.renderer.ExportCsvRenderer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-/**
- * Unit test cho tính năng exportWithTemplate trong ExportServiceImpl (NCL-07-CN-007).
- * Kiểm thử TC-01, TC-03 (mặc định + ghi ExportLog), TC-04 (kiểm tra phân quyền mẫu).
- */
+/** Unit test cho tính năng exportWithTemplate trong ExportServiceImpl (NCL-07-CN-007). */
 @ExtendWith(MockitoExtension.class)
 public class ExportWithTemplateServiceTest {
 
@@ -79,7 +90,8 @@ public class ExportWithTemplateServiceTest {
     @Mock
     private ProfileTemplateService profileTemplateService;
 
-    @InjectMocks
+    private ExportCsvRenderer exportCsvRenderer;
+    private ExportLogRecorder exportLogRecorder;
     private ExportServiceImpl exportService;
 
     private UUID orgId;
@@ -94,6 +106,17 @@ public class ExportWithTemplateServiceTest {
         orgId = UUID.randomUUID();
         userId = UUID.randomUUID();
         shipmentId = UUID.randomUUID();
+
+        exportCsvRenderer = new ExportCsvRenderer();
+        exportLogRecorder = new ExportLogRecorder(exportLogRepository, userRepository);
+        exportService = new ExportServiceImpl(
+                shipmentRepository,
+                profileTemplateRepository,
+                profileTemplateService,
+                null,
+                exportCsvRenderer,
+                exportLogRecorder
+        );
 
         currentUser = mock(CustomUserDetails.class);
         lenient().when(currentUser.getUserId()).thenReturn(userId);
@@ -190,9 +213,21 @@ public class ExportWithTemplateServiceTest {
 
         // 3 sự kiện chuỗi bắt buộc để vượt qua QTN-11
         List<ChainEvent> events = List.of(
-                ChainEvent.builder().shipment(validShipment).eventType(ChainEventType.HARVEST).recordedAt(LocalDateTime.now().minusDays(3)).build(),
-                ChainEvent.builder().shipment(validShipment).eventType(ChainEventType.PACKAGING).recordedAt(LocalDateTime.now().minusDays(2)).build(),
-                ChainEvent.builder().shipment(validShipment).eventType(ChainEventType.TRANSPORT).recordedAt(LocalDateTime.now().minusDays(1)).build()
+                ChainEvent.builder()
+                        .shipment(validShipment)
+                        .eventType(ChainEventType.HARVEST)
+                        .recordedAt(LocalDateTime.now().minusDays(3))
+                        .build(),
+                ChainEvent.builder()
+                        .shipment(validShipment)
+                        .eventType(ChainEventType.PACKAGING)
+                        .recordedAt(LocalDateTime.now().minusDays(2))
+                        .build(),
+                ChainEvent.builder()
+                        .shipment(validShipment)
+                        .eventType(ChainEventType.TRANSPORT)
+                        .recordedAt(LocalDateTime.now().minusDays(1))
+                        .build()
         );
         lenient().when(chainEventRepository.findByShipmentIdInOrderByRecordedAtAsc(any())).thenReturn(events);
 

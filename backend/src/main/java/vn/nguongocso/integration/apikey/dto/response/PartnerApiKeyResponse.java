@@ -4,12 +4,14 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 
 /** DTO phản hồi thông tin khóa API tích hợp của đối tác. */
@@ -36,8 +38,13 @@ public class PartnerApiKeyResponse {
 
     private PartnerApiKeyStatus status;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("is_test")
+    @JsonProperty("is_test")
     private Boolean isTest;
+
+    @JsonProperty("isTest")
+    public Boolean getIsTestCamel() {
+        return isTest;
+    }
 
     private Long totalCalls;
 
