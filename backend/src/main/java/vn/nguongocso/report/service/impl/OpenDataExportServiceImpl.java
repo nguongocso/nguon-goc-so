@@ -116,11 +116,18 @@ public class OpenDataExportServiceImpl implements OpenDataExportService {
             }
 
             List<UUID> lotIds = lots.stream().map(ProductionLot::getId).toList();
-            List<FarmLog> allLogs = farmLogRepository.findByProductionLotId_IdInOrderByExecutedDateAsc(lotIds);
+            List<FarmLog> allLogs = new ArrayList<>();
+            for (List<UUID> lotChunk : vn.nguongocso.common.util.QueryChunkUtils.chunkList(lotIds)) {
+                allLogs.addAll(farmLogRepository.findByProductionLotId_IdInOrderByExecutedDateAsc(lotChunk));
+            }
 
             List<UUID> logIds = allLogs.stream().map(FarmLog::getId).toList();
-            List<FarmLogAttachment> allAttachments = logIds.isEmpty() ? List.of()
-                : farmLogAttachmentRepository.findByFarmLogIdIn(logIds);
+            List<FarmLogAttachment> allAttachments = new ArrayList<>();
+            if (!logIds.isEmpty()) {
+                for (List<UUID> logChunk : vn.nguongocso.common.util.QueryChunkUtils.chunkList(logIds)) {
+                    allAttachments.addAll(farmLogAttachmentRepository.findByFarmLogIdIn(logChunk));
+                }
+            }
 
             Map<UUID, List<FarmLog>> logsByLot = allLogs.stream()
                 .collect(Collectors.groupingBy(log -> log.getProductionLotId().getId()));
@@ -143,7 +150,11 @@ public class OpenDataExportServiceImpl implements OpenDataExportService {
             }
 
             List<UUID> eligibleLotIds = eligibleLots.stream().map(ProductionLot::getId).toList();
-            List<Shipment> shipments = shipmentRepository.findByProductionLotIdIn(eligibleLotIds).stream()
+            List<Shipment> rawShipments = new ArrayList<>();
+            for (List<UUID> lotChunk : vn.nguongocso.common.util.QueryChunkUtils.chunkList(eligibleLotIds)) {
+                rawShipments.addAll(shipmentRepository.findByProductionLotIdIn(lotChunk));
+            }
+            List<Shipment> shipments = rawShipments.stream()
                 .filter(shipment -> shipment.getStatus() != ShipmentStatus.SPLIT)
                 .toList();
 
@@ -151,8 +162,12 @@ public class OpenDataExportServiceImpl implements OpenDataExportService {
                 .collect(Collectors.groupingBy(sh -> sh.getProductionLot().getId()));
 
             List<UUID> shipmentIds = shipments.stream().map(Shipment::getId).toList();
-            List<ChainEvent> chainEvents = shipmentIds.isEmpty() ? List.of()
-                : chainEventRepository.findByShipmentIdInOrderByRecordedAtAsc(shipmentIds);
+            List<ChainEvent> chainEvents = new ArrayList<>();
+            if (!shipmentIds.isEmpty()) {
+                for (List<UUID> shipmentChunk : vn.nguongocso.common.util.QueryChunkUtils.chunkList(shipmentIds)) {
+                    chainEvents.addAll(chainEventRepository.findByShipmentIdInOrderByRecordedAtAsc(shipmentChunk));
+                }
+            }
 
             Map<UUID, List<ChainEvent>> eventsByShipment = chainEvents.stream()
                 .collect(Collectors.groupingBy(e -> e.getShipment().getId()));
