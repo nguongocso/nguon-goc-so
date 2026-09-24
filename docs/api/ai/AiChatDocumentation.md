@@ -139,3 +139,27 @@ Module AI Chatbot cung cấp các điểm cuối API phục vụ giao tiếp tr�
   };
   ```
 - **Hỗ trợ Markdown:** Khi render `reply`, sử dụng thư viện `react-markdown` để hiển thị đẹp định dạng gạch đầu dòng, chữ in đậm và các đường dẫn.
+
+---
+
+## 4. Cơ chế Phân tích Số liệu Nghiệp vụ & Bảo mật Đa Tổ chức (Data Analytics & Security)
+
+### 4.1. Nhận diện Ý định Thống kê (Intent Detection)
+Hệ thống tự động phát hiện các từ khóa/ngữ cảnh mang ý định thống kê dữ liệu thực tế từ câu hỏi của người dùng:
+- **Từ khóa lô sản xuất & vùng trồng:** `thống kê`, `bao nhiêu lô`, `số lô`, `sản lượng`, `thu hoạch`, `diện tích`, `bao nhiêu ha`.
+- **Từ khóa chứng nhận:** `chứng nhận`, `sắp hết hạn`, `vietgap`, `globalgap`, `hết hạn`.
+- **Từ khóa cảnh báo:** `cảnh báo`, `bất thường`, `thu hồi`, `vi phạm`.
+- **Từ khóa vận chuyển & bàn giao:** `lô hàng`, `bàn giao`, `vận chuyển`, `tiếp nhận`.
+
+Khi phát hiện ý định thống kê, hệ thống tự động trích xuất các số liệu tổng hợp nghiệp vụ từ cơ sở dữ liệu và nhúng vào ngữ cảnh phục vụ phản hồi của Trợ lý AI.
+
+### 4.2. Chính sách Bảo mật Cô lập Đa Tổ chức (Multi-Tenant Data Isolation)
+- **Người dùng Doanh nghiệp / Hợp tác xã (VT-02, VT-03, VT-04):**
+  - Cưỡng chế chỉ trích xuất số liệu thuộc chính tổ chức của người dùng (`currentUser.organizationId`).
+  - Tuyệt đối không cho phép AI truy vấn hoặc đọc số liệu của tổ chức khác. Mọi câu hỏi cố tình truy vấn dữ liệu của tổ chức khác sẽ bị từ chối theo chính sách bảo mật đa tổ chức.
+- **Cán bộ Quản lý Ngành (VT-05):**
+  - Chỉ được tra cứu và tổng hợp số liệu của các tổ chức thuộc phạm vi địa bàn hành chính (Tỉnh/Huyện/Xã) được phân công theo bảng `user_area_assignment` (thông qua `AreaScopeService`).
+  - Nếu cán bộ chưa được phân công địa bàn, hệ thống thông báo chưa có phạm vi quản lý.
+- **Người tiêu dùng / Khách vãng lai (VT-06):**
+  - Không được cung cấp các số liệu thống kê nội bộ của bất kỳ tổ chức nào. Trợ lý AI chỉ giải đáp thông tin quy chuẩn công khai hoặc hướng dẫn người dùng đăng nhập tài khoản thẩm quyền.
+
