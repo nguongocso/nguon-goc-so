@@ -6,11 +6,22 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import vn.nguongocso.notification.entity.Notification;
 
 /** Repository thao tác Notification. */
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
+    /**
+     * Lấy tất cả thông báo của người dùng, ưu tiên chưa đọc lên trước rồi mới đến mới nhất.
+     * Giúp số lượng chuông (đếm toàn bộ chưa đọc) khớp với danh sách hiển thị.
+     */
+    Page<Notification> findByUser_UserIdOrderByIsReadAscCreatedAtDesc(
+            UUID userId,
+            Pageable pageable);
+
     /** Lấy tất cả thông báo của người dùng, sắp xếp mới nhất. */
     Page<Notification> findByUser_UserIdOrderByCreatedAtDesc(
             UUID userId,
@@ -30,4 +41,12 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
             UUID entityId,
             String title,
             LocalDateTime after);
+
+    /**
+     * Đánh dấu đã đọc toàn bộ thông báo chưa đọc của người dùng.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Notification n SET n.isRead = true, n.readAt = :readAt "
+            + "WHERE n.user.userId = :userId AND n.isRead = false")
+    int markAllAsRead(@Param("userId") UUID userId, @Param("readAt") LocalDateTime readAt);
 }

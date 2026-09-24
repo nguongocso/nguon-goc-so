@@ -5,19 +5,23 @@ export const DEFAULT_API_ERROR_MESSAGE = 'Không thể kết nối đến máy c
 
 /** Cấu trúc dữ liệu phản hồi lỗi từ API backend (theo hợp đồng ApiResult). */
 interface ApiErrorPayload {
-  message?: string;
+  message?: unknown;
+  error?: unknown;
   [key: string]: unknown;
 }
 
-/** Kiểm tra xem dữ liệu phản hồi có chứa trường `message` hợp lệ hay không. */
-function hasErrorMessage(data: unknown): data is ApiErrorPayload & { message: string } {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'message' in data &&
-    typeof (data as ApiErrorPayload).message === 'string' &&
-    (data as ApiErrorPayload).message!.trim().length > 0
-  );
+/** Trích xuất thông báo lỗi hợp lệ từ dữ liệu phản hồi API. */
+function getApiErrorMessage(data: unknown): string | null {
+  if (typeof data !== 'object' || data === null) return null;
+
+  const payload = data as ApiErrorPayload;
+  if (typeof payload.message === 'string' && payload.message.trim()) {
+    return payload.message;
+  }
+  if (typeof payload.error === 'string' && payload.error.trim()) {
+    return payload.error;
+  }
+  return null;
 }
 
 /** Chuẩn hóa lỗi API thành đối tượng Error với thông báo từ máy chủ hoặc nội dung dự phòng. */
@@ -26,11 +30,13 @@ export function toApiError(
   fallback: string = DEFAULT_API_ERROR_MESSAGE,
 ): Error {
   if (isAxiosError(err)) {
-    const data = err.response?.data;
-    if (hasErrorMessage(data)) {
-      return new Error(data.message);
-    }
-    return new Error(fallback);
+    return new Error(getApiErrorMessage(err.response?.data) || fallback);
+  }
+
+  if (typeof err === 'object' && err !== null && 'response' in err) {
+    const response = (err as { response?: { data?: unknown } }).response;
+    const message = getApiErrorMessage(response?.data);
+    if (message) return new Error(message);
   }
 
   if (err instanceof Error && err.message) {

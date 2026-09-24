@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import type { PartnerApiKeyResponse, WebhookTestPingResponse } from '@/types/apiKey';
 import { updatePartnerWebhook, testPingPartnerWebhook, getPartnerWebhook } from '@/api/apiKeyApi';
+import { toApiError } from '@/api/apiError';
+import { validateWebhookUrl } from './webhookUrlValidator';
 import { sanitizeResponseBody } from '@/utils/string';
 
 interface WebhookConfigModalProps {
@@ -84,27 +86,10 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
   }
 
   const validateUrl = (url: string): boolean => {
-    if (!url.trim()) {
-      setUrlError(null);
-      return true; // Cho phép để trống để hủy webhook
-    }
-
-    try {
-      const parsed = new URL(url.trim());
-      const isHttps = parsed.protocol === 'https:';
-      const isLocalhost = parsed.protocol === 'http:' && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1');
-
-      if (!isHttps && !isLocalhost) {
-        setUrlError('Địa chỉ Webhook bắt buộc phải sử dụng giao thức bảo mật HTTPS (https://).');
-        return false;
-      }
-
-      setUrlError(null);
-      return true;
-    } catch {
-      setUrlError('Định dạng URL không hợp lệ (ví dụ: https://partner.example.com/webhooks).');
-      return false;
-    }
+    // Kiểm tra địa chỉ webhook dùng chung để giữ logic nhất quán
+    const check = validateWebhookUrl(url);
+    setUrlError(check.error);
+    return check.valid;
   };
 
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,8 +132,9 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
       }
       setJustSaved(true);
       toast.success('Lưu cấu hình Webhook thành công! Vui lòng sao chép Khóa bí mật (Secret Key).');
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Không thể lưu thông tin nhận thông báo. Vui lòng thử lại.';
+    } catch (err: unknown) {
+      // Chuẩn hoá lỗi API để tránh treo trạng thái lưu
+      const msg = toApiError(err, 'Không thể lưu thông tin nhận thông báo. Vui lòng thử lại.').message;
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -177,8 +163,9 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
       } else {
         toast.error(`Máy chủ đối tác phản hồi lỗi hoặc không thể kết nối.`);
       }
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Lỗi khi gửi kiểm tra kết nối thử nghiệm.';
+    } catch (err: unknown) {
+      // Chuẩn hoá lỗi API để tránh treo trạng thái kiểm tra kết nối
+      const msg = toApiError(err, 'Lỗi khi gửi kiểm tra kết nối thử nghiệm.').message;
       toast.error(msg);
     } finally {
       setPinging(false);
@@ -375,10 +362,17 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
         </div>
 
         <DialogFooter className="shrink-0 gap-2 sm:gap-0">
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={saving}
+          >
             {justSaved ? 'Đóng' : 'Hủy'}
           </Button>
-          <Button onClick={handleSave} disabled={saving || !!urlError}>
+          <Button
+            onClick={handleSave}
+            disabled={saving || !!urlError}
+          >
             {saving ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />

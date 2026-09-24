@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner';
 import { CalendarPlus, Loader2 } from 'lucide-react';
 import { renewApiKey } from '@/api/apiKeyApi';
+import { toApiError } from '@/api/apiError';
 import type { PartnerApiKeyResponse, RenewApiKeyRequest } from '@/types/apiKey';
 
 interface RenewApiKeyDialogProps {
@@ -48,8 +49,8 @@ export const RenewApiKeyDialog: React.FC<RenewApiKeyDialogProps> = ({
       toast.success(`Đã gia hạn khóa API của "${apiKeyData.partnerName}" thành công!`);
       onSuccess(updatedKey);
       onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể gia hạn khóa API');
+    } catch (error: unknown) {
+      toast.error(toApiError(error, 'Không thể gia hạn khóa API').message);
     } finally {
       setLoading(false);
     }
