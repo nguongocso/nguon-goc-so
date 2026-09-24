@@ -7,13 +7,19 @@ export type NotificationType =
   | 'ANOMALY_OPEN'
   | 'ANOMALY_DISMISSED'
   | 'ACCOUNT_UNLOCKED'
-  | 'ACTIVITY_LOG_EXPORT_READY';
+  | 'ACTIVITY_LOG_EXPORT_READY'
+  | 'FARM_LOG_SYNC_SUCCESS'
+  | 'FARM_LOG_SYNC_FAILED';
 
 export interface NotificationResponse {
   id: string;
   type: NotificationType;
   title: string;
   content: string;
+  /**
+   * ID thực thể nghiệp vụ liên kết (VD: phiếu bàn giao lô hàng).
+   * Null khi thông báo không có thực thể đính kèm.
+   */
   entityId: string | null;
   isRead: boolean;
   readAt: string | null;
@@ -35,6 +41,10 @@ export interface MarkReadResponse {
   id: string;
   isRead: boolean;
   readAt: string | null;
+}
+
+export interface MarkAllReadResponse {
+  markedReadCount: number;
 }
 
 export interface GetNotificationsParams {

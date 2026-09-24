@@ -6,10 +6,15 @@ import {
   useMapEvents,
 } from 'react-leaflet';
 import L from 'leaflet';
+
 import 'leaflet/dist/leaflet.css';
 
+interface LeafletDefaultIconPrototype extends L.Icon.Default {
+  _getIconUrl?: () => string;
+}
+
 // Khắc phục lỗi icon marker của Leaflet khi chạy bằng Vite.
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as LeafletDefaultIconPrototype)._getIconUrl;
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -20,11 +25,13 @@ L.Icon.Default.mergeOptions({
     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
+/** Tọa độ địa lý trên bản đồ. */
 interface MapPosition {
   lat: number;
   lng: number;
 }
 
+/** Thuộc tính của thành phần chọn tọa độ vị trí LocationPicker. */
 interface LocationPickerProps {
   onLocationSelect: (
     latitude: number,

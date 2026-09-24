@@ -1,7 +1,9 @@
 import type { WarehouseReceiptRequest, WarehouseReceiptResponse } from '@/types/warehouseReceipt';
 import type { PageResponse } from '@/types/common';
+
 import apiClient from './axiosConfig';
 
+/** Ghi nhận sự kiện nhập kho HTX. */
 export const recordWarehouseReceipt = async (
   data: WarehouseReceiptRequest
 ): Promise<WarehouseReceiptResponse> => {
@@ -12,6 +14,7 @@ export const recordWarehouseReceipt = async (
   return response.data.data;
 };
 
+/** Lấy danh sách sự kiện nhập kho HTX có phân trang. */
 export const getWarehouseReceipts = async (
   page: number = 0,
   size: number = 10
@@ -23,6 +26,7 @@ export const getWarehouseReceipts = async (
   return response.data.data;
 };
 
+/** Lấy chi tiết sự kiện nhập kho HTX theo ID sự kiện. */
 export const getWarehouseReceiptDetail = async (
   eventId: string
 ): Promise<WarehouseReceiptResponse> => {

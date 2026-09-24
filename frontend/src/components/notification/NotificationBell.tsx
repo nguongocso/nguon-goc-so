@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NotificationPanel } from '@/components/notification/NotificationPanel';
-import { isApiKeyWarningNotification } from '@/lib/notificationHelpers';
+import { resolveNotificationTarget } from '@/lib/notificationHelpers';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,22 +20,23 @@ export const NotificationBell = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { unreadCount: apiUnreadCount, refresh: refreshUnreadCount } = useUnreadCount();
-  const { items, isLoading, load, markAsRead } = useNotifications({
+  const { items, isLoading, load, markAsRead, markAllAsRead } = useNotifications({
     size: 8,
     autoLoad: false,
   });
+  const [isMarkingAllAsRead, setIsMarkingAllAsRead] = useState(false);
 
   const isMissingEmail = Boolean(
     user &&
     hasAnyRole(user.roleCode, ROLE_ACCESS.userProfile) &&
-    (!user.email || user.email.trim() === ''),
+    (!user.email || user.email.trim() === '')
   );
 
   const isMissingTerritory = Boolean(
     user &&
     hasAnyRole(user.roleCode, ROLE_ACCESS.organizationProfile) &&
     user.roleCode === 'VT-02' &&
-    (!user.organizationProvinceId || !user.organizationCommuneId),
+    (!user.organizationProvinceId || !user.organizationCommuneId)
   );
 
   const emailNoticeKey = user ? `session_read_email_notice_${user.userId}` : '';
@@ -50,7 +51,7 @@ export const NotificationBell = () => {
     return territoryNoticeKey ? sessionStorage.getItem(territoryNoticeKey) === 'true' : false;
   });
 
-  // Đồng bộ trạng thái đã đọc khi user hoặc thông tin tài khoản thay đổi
+  // Đồng bộ trạng thái đã đọc khi user thay đổi hoặc email/địa bàn cập nhật
   useEffect(() => {
     if (emailNoticeKey) {
       setIsEmailNoticeRead(sessionStorage.getItem(emailNoticeKey) === 'true');
@@ -63,6 +64,7 @@ export const NotificationBell = () => {
     }
   }, [territoryNoticeKey, user?.organizationProvinceId, user?.organizationCommuneId]);
 
+  // Tổng số lượng thông báo chưa đọc (bao gồm thông báo nhắc email và nhắc địa bàn nếu chưa đọc)
   const totalUnreadCount =
     apiUnreadCount +
     (isMissingEmail && !isEmailNoticeRead ? 1 : 0) +
@@ -77,34 +79,24 @@ export const NotificationBell = () => {
   };
 
   const handleItemClick = (notification: NotificationResponse) => {
-    if (isApiKeyWarningNotification(notification)) {
-      if (!notification.isRead) {
-        void markAsRead(notification.id).then(() => refreshUnreadCount());
-      }
-      setOpen(false);
-      const action = notification.title.toLowerCase().includes('hạn mức') ? 'quota' : 'renew';
-      if (notification.entityId) {
-        navigate(`/integration/api-keys?keyId=${notification.entityId}&action=${action}`);
-      } else {
-        navigate('/integration/api-keys');
-      }
-      return;
-    }
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }
     setOpen(false);
-    if (notification.type === 'ACTIVITY_LOG_EXPORT_READY' && notification.entityId) {
-      navigate(`/activity-logs?exportJobId=${notification.entityId}`);
-      return;
+
+    const target = resolveNotificationTarget(notification);
+    if (target) {
+      navigate(target);
     }
-    if (notification.entityId) {
-      navigate(`/shipment-handovers/${notification.entityId}`);
-      return;
-    }
-    const text = `${notification.title} ${notification.content}`.toLowerCase();
-    if (text.includes('kiểm nghiệm') || text.includes('lô sản xuất')) {
-      navigate('/production-lots');
+  };
+
+  const handleMarkAllAsRead = async () => {
+    setIsMarkingAllAsRead(true);
+    try {
+      await markAllAsRead();
+      await refreshUnreadCount();
+    } finally {
+      setIsMarkingAllAsRead(false);
     }
   };
 
@@ -158,6 +150,10 @@ export const NotificationBell = () => {
           isMissingTerritory={isMissingTerritory}
           isTerritoryNoticeRead={isTerritoryNoticeRead}
           onTerritoryNoticeClick={handleTerritoryNoticeClick}
+          unreadCount={apiUnreadCount}
+          onMarkAllAsRead={handleMarkAllAsRead}
+          isMarkingAllAsRead={isMarkingAllAsRead}
+          onClose={() => setOpen(false)}
         />
       </DropdownMenuContent>
     </DropdownMenu>

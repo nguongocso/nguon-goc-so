@@ -1,3 +1,4 @@
+/** Yêu cầu ghi nhận sự kiện nhập kho HTX. */
 export interface WarehouseReceiptRequest {
   codeValue: string;
   receivedQuantity: number;
@@ -6,6 +7,7 @@ export interface WarehouseReceiptRequest {
   reason?: string;
 }
 
+/** Phản hồi sau khi ghi nhận sự kiện nhập kho HTX. */
 export interface WarehouseReceiptResponse {
   id: string;
   eventType: 'WAREHOUSE_RECEIPT';

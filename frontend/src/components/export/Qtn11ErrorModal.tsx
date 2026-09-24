@@ -1,4 +1,6 @@
+import React from 'react';
 import { AlertTriangle, FileX, CalendarX, X } from 'lucide-react';
+
 import {
   Dialog,
   DialogContent,
@@ -11,6 +13,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
+import { cn } from '@/lib/utils';
+
+/** Chi tiết lỗi thiếu sự kiện hoặc chứng từ theo quy định QTN-11 của từng lô hàng. */
 export interface Qtn11ErrorDetail {
   id?: string;
   name?: string;
@@ -20,17 +25,19 @@ export interface Qtn11ErrorDetail {
   missingDocDetails?: string[];
 }
 
+/** Thuộc tính của hộp thoại thông báo lỗi không đủ điều kiện xuất dữ liệu (QTN-11). */
 interface Qtn11ErrorModalProps {
   open: boolean;
   onClose: () => void;
   errors: Qtn11ErrorDetail[];
 }
 
-export const Qtn11ErrorModal = ({
+/** Hiển thị các lô hàng chưa đủ điều kiện xuất dữ liệu theo QTN-11. */
+export const Qtn11ErrorModal: React.FC<Qtn11ErrorModalProps> = ({
   open,
   onClose,
   errors,
-}: Qtn11ErrorModalProps) => {
+}) => {
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
@@ -42,11 +49,11 @@ export const Qtn11ErrorModal = ({
             </DialogTitle>
           </div>
           <DialogDescription className="text-sm text-muted-foreground">
-            Danh sách các lô hàng/shipment trong phạm vi chọn chưa thể kết xuất do bị thiếu sự kiện chuỗi cung ứng hoặc chứng từ đính kèm theo quy định:
+            Danh sách các lô hàng/shipment trong phạm vi chọn chưa thể kết xuất do bị thiếu sự kiện
+            chuỗi cung ứng hoặc chứng từ đính kèm theo quy định:
           </DialogDescription>
         </DialogHeader>
 
-        {/* Scrollable list */}
         <div className="flex-1 overflow-y-auto pr-1 my-3 space-y-3 max-h-[50vh]">
           {errors.map((item, index) => (
             <Card key={item.id || index} className="border-red-200 bg-red-50/40 dark:bg-red-950/10">
@@ -67,7 +74,6 @@ export const Qtn11ErrorModal = ({
                   </Badge>
                 </div>
 
-                {/* Missing Events */}
                 {item.missingEvents && item.missingEvents.length > 0 && (
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
@@ -79,7 +85,10 @@ export const Qtn11ErrorModal = ({
                         <Badge
                           key={idx}
                           variant="outline"
-                          className="bg-amber-100/70 border-amber-300 text-amber-900 text-xs dark:bg-amber-950 dark:text-amber-200"
+                          className={cn(
+                            'bg-amber-100/70 border-amber-300 text-amber-900 text-xs',
+                            'dark:bg-amber-950 dark:text-amber-200',
+                          )}
                         >
                           {evt}
                         </Badge>
@@ -87,8 +96,6 @@ export const Qtn11ErrorModal = ({
                     </div>
                   </div>
                 )}
-
-                {/* Missing Docs */}
                 {((item.missingDocDetails && item.missingDocDetails.length > 0) || item.missingDocs) && (
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5 text-xs font-medium text-red-700 dark:text-red-400">

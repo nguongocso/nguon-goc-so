@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'react-router-dom';
@@ -17,8 +17,8 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+
 import { cn } from '@/lib/utils';
-import { getLocalDateString } from '@/utils/dateTime';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,7 +37,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { exportOpenData } from '@/api/exportApi';
 import { getProductCategories } from '@/api/productCategoryApi';
 import { getOrganizations } from '@/api/organizationApi';
 import { ProvinceUnitMultiSelect } from '@/components/common/ProvinceUnitMultiSelect';
@@ -49,48 +48,45 @@ import {
   exportOpenDataSchema,
   type ExportOpenDataFormValues,
 } from '@/utils/validators';
-import {
-  Qtn11ErrorModal,
-  type Qtn11ErrorDetail,
-} from './Qtn11ErrorModal';
+import { Qtn11ErrorModal } from './Qtn11ErrorModal';
 import { DossierPreviewDialog } from './DossierPreviewDialog';
+import { useExportOpenData } from './open-data/useExportOpenData';
+import {
+  toDateTimeLocal,
+  detectActiveQuickRange,
+  type QuickRangeKey,
+} from './open-data/dateRangeHelpers';
 
-// Helper: format date to datetime-local string (YYYY-MM-DDTHH:mm)
-const toDateTimeLocal = (date: Date, endOfDay = false): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  let hours = String(date.getHours()).padStart(2, '0');
-  let minutes = String(date.getMinutes()).padStart(2, '0');
-  if (endOfDay) {
-    hours = '23';
-    minutes = '59';
-  }
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
-type QuickRangeKey = '7days' | '30days' | 'week' | 'month' | 'year' | null;
-
-export const ExportOpenDataForm = () => {
+/**
+ * Biểu mẫu cấu hình và xuất dữ liệu mở theo chuẩn quốc gia (Open Data Export Form).
+ * Thiết kế giao diện 2 cột đồng bộ với hệ thống: Cột trái cấu hình phạm vi dữ liệu, Cột phải định dạng và tải xuống.
+ */
+export const ExportOpenDataForm: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.roleCode === 'VT-01';
-  // NCL-742 §8: chọn địa bàn cho VT-01/VT-05 (mặc định route chỉ VT-05).
+  // NCL-742 §8: chọn địa bàn cho VT-01/VT-05
   const canFilterByUnit = isAdmin || user?.roleCode === 'VT-05';
+  const isManager = user?.roleCode === 'VT-02';
+  // Mẫu hồ sơ truy xuất theo đối tác (NCL-07-CN-007) - Chỉ áp dụng cho VT-02 (HTX) và VT-04 (Doanh nghiệp)
+  const canUseTemplates = user?.roleCode === 'VT-02' || user?.roleCode === 'VT-04';
+
   const [unitIds, setUnitIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [activeQuickRange, setActiveQuickRange] = useState<QuickRangeKey>(null);
-  const [qtn11ErrorModalOpen, setQtn11ErrorModalOpen] = useState(false);
-  const [qtn11Errors, setQtn11Errors] = useState<Qtn11ErrorDetail[]>([]);
   const [previewTemplateModalOpen, setPreviewTemplateModalOpen] = useState(false);
 
-  // Mẫu hồ sơ truy xuất theo đối tác (NCL-07-CN-007) - Chỉ áp dụng cho VT-02 (HTX) và VT-04 (Doanh nghiệp)
-  const canUseTemplates = user?.roleCode === 'VT-02' || user?.roleCode === 'VT-04';
-  const isManager = user?.roleCode === 'VT-02';
   const orgIdForTemplate = canUseTemplates ? user?.organizationId : undefined;
   const { templates: profileTemplates } = useProfileTemplates(orgIdForTemplate, canUseTemplates);
+
+  const {
+    submitting,
+    qtn11ErrorModalOpen,
+    setQtn11ErrorModalOpen,
+    qtn11Errors,
+    onSubmit,
+  } = useExportOpenData({ canFilterByUnit, unitIds });
 
   const {
     control,
@@ -111,66 +107,16 @@ export const ExportOpenDataForm = () => {
     },
   });
 
-  const selectedFormat = watch('format');
+  const selectedFormat = watch('format') || 'JSON';
   const selectedTemplateId = watch('templateId');
   const selectedOrgId = watch('organizationId');
   const selectedCategoryIds = watch('productCategoryIds') || [];
   const fromDate = watch('fromDate');
   const toDate = watch('toDate');
 
-  // Detect if current date range matches any preset
+  // Tự động nhận diện mốc thời gian nhanh đang chọn
   useEffect(() => {
-    if (!fromDate || !toDate) {
-      setActiveQuickRange(null);
-      return;
-    }
-
-    // Helper to compare dates ignoring seconds/milliseconds
-    const normalize = (dateStr: string) => {
-      if (!dateStr) return '';
-      // trim seconds and timezone
-      return dateStr.slice(0, 16);
-    };
-
-    const now = new Date();
-    const todayStr = toDateTimeLocal(now, true);
-    const from7days = toDateTimeLocal(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000));
-    const from30days = toDateTimeLocal(new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000));
-    const normalizedFrom = normalize(fromDate);
-    const normalizedTo = normalize(toDate);
-
-    // Week
-    const dayOfWeek = now.getDay();
-    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    const monday = new Date(now);
-    monday.setDate(diff);
-    monday.setHours(0, 0, 0, 0);
-    const weekFrom = toDateTimeLocal(monday);
-    const weekTo = toDateTimeLocal(now, true);
-
-    // Month
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthFrom = toDateTimeLocal(firstDay);
-    const monthTo = toDateTimeLocal(now, true);
-
-    // Year
-    const yearFirst = new Date(now.getFullYear(), 0, 1);
-    const yearFrom = toDateTimeLocal(yearFirst);
-    const yearTo = toDateTimeLocal(now, true);
-
-    if (normalizedFrom === normalize(from7days) && normalizedTo === normalize(todayStr)) {
-      setActiveQuickRange('7days');
-    } else if (normalizedFrom === normalize(from30days) && normalizedTo === normalize(todayStr)) {
-      setActiveQuickRange('30days');
-    } else if (normalizedFrom === normalize(weekFrom) && normalizedTo === normalize(weekTo)) {
-      setActiveQuickRange('week');
-    } else if (normalizedFrom === normalize(monthFrom) && normalizedTo === normalize(monthTo)) {
-      setActiveQuickRange('month');
-    } else if (normalizedFrom === normalize(yearFrom) && normalizedTo === normalize(yearTo)) {
-      setActiveQuickRange('year');
-    } else {
-      setActiveQuickRange(null);
-    }
+    setActiveQuickRange(detectActiveQuickRange(fromDate, toDate));
   }, [fromDate, toDate]);
 
   useEffect(() => {
@@ -189,90 +135,10 @@ export const ExportOpenDataForm = () => {
         setLoading(false);
       }
     };
-    fetchData();
+    void fetchData();
   }, [isAdmin]);
 
-  const onSubmit = async (data: ExportOpenDataFormValues) => {
-    setSubmitting(true);
-    try {
-      const payload: Record<string, unknown> = { format: data.format };
-      if (data.organizationId) payload.organizationId = data.organizationId;
-      if (data.fromDate) payload.fromDate = data.fromDate;
-      if (data.toDate) payload.toDate = data.toDate;
-      if (data.productCategoryIds?.length)
-        payload.productCategoryIds = data.productCategoryIds;
-      if (data.shipmentIds?.length) payload.shipmentIds = data.shipmentIds;
-      if (canFilterByUnit && unitIds.length > 0) payload.unitIds = unitIds;
-      // NCL-07-CN-007: Gửi templateId nếu có chọn mẫu cụ thể (khác rỗng / default)
-      if (data.templateId && data.templateId !== 'default') {
-        payload.templateId = data.templateId;
-      }
-
-      const blob = await exportOpenData(payload as Parameters<typeof exportOpenData>[0]);
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const fileName = `export_${getLocalDateString()}.${data.format.toLowerCase()}`;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast.success('Xuất dữ liệu thành công!');
-    } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: Blob; status?: number } };
-      if (axiosError.response?.data instanceof Blob) {
-        const text = await axiosError.response.data.text();
-        try {
-          const json: { message?: string; errors?: Qtn11ErrorDetail[] } = JSON.parse(text);
-          if (json.errors && Array.isArray(json.errors) && json.errors.length > 0) {
-            setQtn11Errors(json.errors);
-            setQtn11ErrorModalOpen(true);
-            toast.error(json.message || 'Không có lô hàng nào đáp ứng đủ quy tắc');
-          } else {
-            toast.error(json.message || 'Xuất dữ liệu thất bại');
-          }
-        } catch {
-          toast.error('Xuất dữ liệu thất bại');
-        }
-      } else {
-        toast.error((error as { message?: string }).message || 'Xuất dữ liệu thất bại');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const removeCategory = (id: string) => {
-    setValue(
-      'productCategoryIds',
-      selectedCategoryIds.filter((v) => v !== id),
-      { shouldValidate: true }
-    );
-  };
-
-  const clearAllCategories = () => {
-    setValue('productCategoryIds', [], { shouldValidate: true });
-  };
-
-  const addCategory = (id: string) => {
-    if (!id) return;
-    if (selectedCategoryIds.includes(id)) {
-      removeCategory(id);
-    } else {
-      setValue('productCategoryIds', [...selectedCategoryIds, id], {
-        shouldValidate: true,
-      });
-    }
-  };
-
-  const getCategoryName = (id: string) => {
-    return categories.find((c) => c.id === id)?.name || id;
-  };
-
-  // Quick date range setters
+  // Bộ gán mốc thời gian nhanh
   const setQuickRange = (days: number, key: QuickRangeKey) => {
     const now = new Date();
     const from = new Date(now);
@@ -314,6 +180,33 @@ export const ExportOpenDataForm = () => {
     setValue('fromDate', undefined);
     setValue('toDate', undefined);
     setActiveQuickRange(null);
+  };
+
+  const removeCategory = (id: string) => {
+    setValue(
+      'productCategoryIds',
+      selectedCategoryIds.filter((v) => v !== id),
+      { shouldValidate: true }
+    );
+  };
+
+  const clearAllCategories = () => {
+    setValue('productCategoryIds', [], { shouldValidate: true });
+  };
+
+  const addCategory = (id: string) => {
+    if (!id) return;
+    if (selectedCategoryIds.includes(id)) {
+      removeCategory(id);
+    } else {
+      setValue('productCategoryIds', [...selectedCategoryIds, id], {
+        shouldValidate: true,
+      });
+    }
+  };
+
+  const getCategoryName = (id: string) => {
+    return categories.find((c) => c.id === id)?.name || id;
   };
 
   if (loading) {

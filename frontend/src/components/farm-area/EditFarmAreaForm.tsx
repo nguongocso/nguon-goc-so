@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
 import { AlertTriangle } from "lucide-react";
 
@@ -19,38 +18,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import { updateFarmArea, getCropTypes } from "@/api/farmAreaApi";
+import { toApiError } from "@/api/apiError";
 import type { AreaUnit, CropType, FarmArea } from "@/types/farmArea";
 import { AREA_UNIT_LABELS, convertAreaFromHa, convertAreaToHa } from "@/types/farmArea";
 import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
 import { selectAllOnFocus, preventMouseUpCollapse } from "@/utils/inputUtils";
+import { farmAreaFormSchema, type FarmAreaFormValues as FormValues } from "./farmAreaFormSchema";
 
-const formSchema = z.object({
-  name: z.string().min(1, "Tên vùng trồng không được để trống").max(255),
-  cropType: z.string().uuid("Vui lòng chọn loại cây trồng"),
-  latitude: z.number({ required_error: "Vui lòng chọn vị trí trên bản đồ" }),
-  longitude: z.number({ required_error: "Vui lòng chọn vị trí trên bản đồ" }),
-  area: z
-    .number({ invalid_type_error: "Vui lòng nhập diện tích" })
-    .positive("Diện tích phải lớn hơn 0"),
-  areaUnit: z.enum(["HA", "KM2", "M2", "SAO", "CONG", "MAU"], {
-    required_error: "Vui lòng chọn đơn vị diện tích",
-  }),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
-interface Props {
+/** Thuộc tính của biểu mẫu chỉnh sửa vùng trồng. */
+interface EditFarmAreaFormProps {
   farmArea: FarmArea;
   onSuccess: (updatedArea: FarmArea) => void;
   onCancel: () => void;
 }
 
-export const EditFarmAreaForm = ({ farmArea, onSuccess, onCancel }: Props) => {
-  const [cropTypes, setCropTypes] = useState<CropType[]>([]);
-  const [loading, setLoading] = useState(true);
-
+export const EditFarmAreaForm = ({ farmArea, onSuccess, onCancel }: EditFarmAreaFormProps) => {
+  // Giá trị dẫn xuất ban đầu từ vùng trồng hiện tại
   const initialDisplayArea = convertAreaFromHa(farmArea.area, farmArea.areaUnit);
 
+  // Hooks: biểu mẫu
   const {
     register,
     handleSubmit,
@@ -58,7 +44,7 @@ export const EditFarmAreaForm = ({ farmArea, onSuccess, onCancel }: Props) => {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(farmAreaFormSchema),
     defaultValues: {
       name: farmArea.name || "",
       cropType: farmArea.cropTypeId || "",
@@ -69,6 +55,11 @@ export const EditFarmAreaForm = ({ farmArea, onSuccess, onCancel }: Props) => {
     },
   });
 
+  // State: danh sách loại cây trồng và trạng thái tải
+  const [cropTypes, setCropTypes] = useState<CropType[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Giá trị dẫn xuất từ biểu mẫu
   const latitude = watch("latitude");
   const longitude = watch("longitude");
   const selectedAreaUnit = watch("areaUnit");
@@ -81,6 +72,7 @@ export const EditFarmAreaForm = ({ farmArea, onSuccess, onCancel }: Props) => {
       ? { lat: latitude, lng: longitude }
       : undefined;
 
+  // Effects: tải danh sách loại cây trồng
   useEffect(() => {
     const fetchCropTypes = async () => {
       try {
@@ -95,6 +87,7 @@ export const EditFarmAreaForm = ({ farmArea, onSuccess, onCancel }: Props) => {
     void fetchCropTypes();
   }, []);
 
+  // Handlers: chọn vị trí và nộp biểu mẫu
   const handleLocationSelect = (lat: number, lng: number) => {
     setValue("latitude", lat, { shouldValidate: true, shouldDirty: true });
     setValue("longitude", lng, { shouldValidate: true, shouldDirty: true });
@@ -113,8 +106,9 @@ export const EditFarmAreaForm = ({ farmArea, onSuccess, onCancel }: Props) => {
       const result = await updateFarmArea(farmArea.id, payload);
       toast.success(`Cập nhật vùng trồng "${result.name}" thành công!`);
       onSuccess(result);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi cập nhật vùng trồng");
+    } catch (error: unknown) {
+      // Chuẩn hoá lỗi API để hiển thị đúng thông điệp backend
+      toast.error(toApiError(error, "Có lỗi xảy ra khi cập nhật vùng trồng").message);
     }
   };
 
@@ -256,7 +250,11 @@ export const EditFarmAreaForm = ({ farmArea, onSuccess, onCancel }: Props) => {
                     {selectedAreaUnit ? AREA_UNIT_LABELS[selectedAreaUnit] : ""}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent side="bottom" align="start" className="min-w-[220px] w-(--anchor-width)">
+                <SelectContent
+                  side="bottom"
+                  align="start"
+                  className="min-w-[220px] w-(--anchor-width)"
+                >
                   {(Object.entries(AREA_UNIT_LABELS) as [AreaUnit, string][]).map(
                     ([unit, label]) => (
                       <SelectItem key={unit} value={unit}>
@@ -278,11 +276,19 @@ export const EditFarmAreaForm = ({ farmArea, onSuccess, onCancel }: Props) => {
 
         {/* Footer */}
         <div className="flex justify-end gap-2 border-t border-emerald-100 px-6 py-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+          >
             Hủy
           </Button>
 
-          <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
           </Button>
         </div>
