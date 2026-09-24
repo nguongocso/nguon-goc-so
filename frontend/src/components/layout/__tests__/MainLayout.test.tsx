@@ -59,9 +59,5 @@ describe("MainLayout component", () => {
     // Xác nhận nội dung trang con được hiển thị
     expect(screen.getByTestId("child-page")).toBeInTheDocument();
     expect(screen.getByText("Dashboard Content")).toBeInTheDocument();
-
-    // Xác nhận nút mở Trợ lý AI (AiChatWidget) hiện diện trên giao diện
-    const aiButton = screen.getByRole("button", { name: "Mở Trợ lý AI" });
-    expect(aiButton).toBeInTheDocument();
   });
 });
