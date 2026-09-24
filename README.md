@@ -1,542 +1,244 @@
-# Nguồn Gốc Số - Nông sản truy xuất nguồn gốc
+# Nguồn Gốc Số — Nông sản truy xuất nguồn gốc
 
-> **Hệ thống quản lý truy xuất nguồn gốc nông sản** – Minh bạch từ nông trại đến bàn ăn.
+> Dự án nguồn gốc số là nền tảng quản lí truy xuất nguồn gốc các mặt hàng nông sản. Giúp các tổ chức minh bạch quá trình sản xuất và vận chuyển chuỗi cung ứng.
 
----
-
-## 📖 Mục lục
-
-- [Giới thiệu](#-giới-thiệu)
-- [Tính năng nổi bật](#-tính-năng-nổi-bật)
-- [Công nghệ sử dụng](#-công-nghệ-sử-dụng)
-- [Kiến trúc hệ thống](#-kiến-trúc-hệ-thống)
-- [Cấu trúc thư mục](#-cấu-trúc-thư-mục)
-- [Yêu cầu hệ thống](#-yêu-cầu-hệ-thống)
-- [Cài đặt & Chạy dự án](#-cài-đặt--chạy-dự-án)
-- [Cấu hình](#-cấu-hình)
-- [Phân quyền người dùng](#-phân-quyền-người-dùng)
-- [Tài liệu API](#-tài-liệu-api)
-- [Tài liệu vận hành & bảo vệ](#-tài-liệu-vận-hành--bảo-vệ)
-- [Kiểm thử](#-kiểm-thử)
-- [Triển khai](#-triển-khai)
-- [Biến môi trường](#-biến-môi-trường)
-- [Quy trình phát triển](#-quy-trình-phát-triển)
-- [Đóng góp](#-đóng-góp)
-- [Giấy phép](#-giấy-phép)
-- [Tác giả](#-tác-giả)
+**Website triển khai:** [https://agri-trace.online](https://agri-trace.online)
 
 ---
 
-## 🌱 Giới thiệu
+## Tính năng hiện có
 
-**Nguồn Gốc Số** là nền tảng quản lý truy xuất nguồn gốc nông sản, giúp các tổ chức (hợp tác xã, doanh nghiệp) số hóa toàn bộ quy trình sản xuất và chuỗi cung ứng.
+### 1. Đối với các quản trị viên của hệ thống
+- Quản lý thông tin và quyền các tổ chức, doanh nghiệp và cơ quan quản lí
+- Quản lý thông tin và quyền các thành viên của từng tổ chức
+- Quản lý các thông tin, dữ liệu nội bộ
 
-Hệ thống cho phép:
+### 2. Đối với các hợp tác xã
+I. Đối với người quản lí
+- Cho phép khai báo và quản lý thông tin của các vùng trồng, lô sản xuất, lô hàng
+- Quản lý thông tin, quyền sử dụng của các thành viên trong nội bộ hợp tác xã
 
-- **Quản lý tổ chức & thành viên** – Đa tổ chức, phân quyền chi tiết theo vai trò.
-- **Khai báo vùng trồng & lô sản xuất** – Theo dõi từ khâu gieo trồng đến thu hoạch.
-- **Nhật ký canh tác & chứng từ** – Ghi nhận hoạt động canh tác kèm hình ảnh, chứng nhận.
-- **Chuỗi sự kiện cung ứng** – Thu hoạch, đóng gói, vận chuyển, thu mua.
-- **Sinh mã QR & Tem truy xuất** – Mỗi lô hàng có mã duy nhất theo chuẩn GS1 mô phỏng.
-- **Tra cứu công khai** – Người tiêu dùng quét mã để xem hành trình sản phẩm.
-- **Báo cáo & Phân tích** – Thống kê lượt tra cứu, phân tích vùng trồng, so sánh mùa vụ.
-- **Sao lưu & Phục hồi dữ liệu** – Tự động theo lịch, bảo toàn dữ liệu khi có sự cố.
+II. Đối với thành viên khác
+- Ghi sự kiện thu hoạch, đóng gói, vận chuyển, thu mua để minh bạch quá trình sản xuất và vận chuyển
+- Tạo lô hàng và mã QR / tem truy xuất
+- Kích hoạt, thu hồi các lô hàng
+- Tạo hồ sơ, báo cáo dưới dạng PDF hoặc CSV
 
----
+### 3. Đối với các doanh nghiệp
+- Ghi sự kiện thu mua, xuất hồ sơ, tạo báo cáo dưới dạng PDF hoặc CSV
+- Quản lý chuỗi cung ứng và sự kiện vận chuyển liên quan
 
-## ✨ Tính năng nổi bật
-
-### 👥 Quản lý tổ chức & Thành viên
-
-- Tạo tổ chức (HTX, Doanh nghiệp, Cơ quan quản lý)
-- Quản lý thành viên theo vai trò (`VT-01` → `VT-05`)
-- Cấp quyền chi tiết (từng chức năng, từng tổ chức)
-- Mời thành viên qua email (invitation)
-
-### 📦 Lô sản xuất & Vùng trồng
-
-- Khai báo vùng trồng (tên, vị trí, diện tích)
-- Tạo lô sản xuất (nháp → chờ duyệt → đã duyệt)
-- Cập nhật thông tin lô, gửi duyệt, phê duyệt
-- Gắn tiêu chuẩn chất lượng & chứng nhận
-
-### 📝 Nhật ký canh tác
-
-- Ghi nhật ký hoạt động (bón phân, tưới tiêu, phun thuốc...)
-- Đính kèm hình ảnh & chứng từ
-- Xem lịch sử canh tác theo thời gian
-
-### 🔗 Chuỗi sự kiện cung ứng
-
-- Ghi sự kiện thu hoạch → chuyển lô sang `HARVESTED`
-- Ghi sự kiện đóng gói → chuyển lô sang `PACKAGED`
-- Ghi sự kiện vận chuyển (quét mã lô hàng)
-- Ghi sự kiện thu mua (doanh nghiệp thu mua – VT-04)
-
-### 🏷️ Mã QR & Lô hàng
-
-- Tạo lô hàng từ lô sản xuất đã đóng gói
-- Sinh mã truy xuất trong hạn mức dải mã
-- Kích hoạt tem → cho phép tra cứu công khai
-- Thu hồi lô hàng khi phát hiện sự cố
-
-### 🔍 Tra cứu công khai
-
-- Người tiêu dùng quét mã QR hoặc nhập mã
-- Xem hành trình sản phẩm (dòng sự kiện, bản đồ)
-- Xem chứng nhận & tiêu chuẩn đã đạt
-
-### 📊 Báo cáo & Phân tích
-
-- Thống kê lượt quét theo lô, thời gian, vị trí
-- Phân tích vùng trồng & so sánh mùa vụ
-- Báo cáo ngành cho cán bộ quản lý (VT-05)
-- Xuất dữ liệu mở theo lược đồ chuẩn
-
-### 💾 Sao lưu & Phục hồi
-
-- Lịch sao lưu tự động (cron expression)
-- Sao lưu thủ công
-- Xem lịch sử sao lưu/phục hồi
-- Tải xuống file backup
-- Phục hồi dữ liệu với chế độ bảo trì & rollback tự động
-
-### 📱 Trải nghiệm di động
-
-- Ghi sự kiện ngoài đồng (mobile-friendly form)
-- Quét mã để ghi sự kiện nhanh
-- Lưu sự kiện khi mất mạng → đồng bộ sau
-- Giao diện tối ưu cho thiết bị di động
+### 4. Đối với người tiêu dùng
+- Truy xuất / tra cứu công khai thông tin các lô hàng, lô sản xuất thông qua QR hoặc mã tem
 
 ---
 
-## 🛠️ Công nghệ sử dụng
+## Công nghệ
 
-### 🔙 Backend
+### Backend
+- Ngôn ngữ: Java 21
+- Framework: Spring Boot 3.5.x + Spring Security 6.x + JWT
+- ORM: Spring Data JPA (Hibernate 6.x)
+- Database: MySQL 8.4
+- Migration: Flyway 11.x
+- Build: Maven 3.9+ (có `.mvn/wrapper`)
+- Logging: SLF4J + Logback
 
-| Thành phần | Công nghệ |
-|------------|-----------|
-| Ngôn ngữ | Java 21 |
-| Framework | Spring Boot 3.5.x |
-| Bảo mật | Spring Security 6.x + JWT |
-| ORM | Spring Data JPA (Hibernate 6.x) |
-| Database | MySQL 8.0 |
-| Migration | Flyway 11.x |
-| Validation | Jakarta Validation |
-| JSON | Jackson 2.x |
-| Build tool | Maven 3.x |
-| Logging | SLF4J + Logback |
+### Frontend
+- Ngôn ngữ: TypeScript 6.x
+- Framework: React 19.x
+- Build: Vite 8.x
+- UI: Tailwind CSS 4.x + shadcn/ui + Base UI (`@base-ui/react`)
+- HTTP Client: Axios; Routing: React Router 7
+- State / Query: TanStack React Query (`@tanstack/react-query`)
+- QR: `@zxing/browser`; Charts: Recharts; Maps: Leaflet
 
-### 🎨 Frontend
+### Database
+- MySQL 8.4 (`mysql:8.4` qua Docker Compose)
+- Schema: Flyway (`db/migration/`)
+- Migration tự động khi khởi động backend (`spring.flyway.enabled=true`)
+- Database name: `nguon_goc_so`
 
-| Thành phần | Công nghệ |
-|------------|-----------|
-| Ngôn ngữ | TypeScript 5.x |
-| Framework | React 18.x |
-| Build tool | Vite 5.x |
-| UI Library | Tailwind CSS 3.x + shadcn/ui |
-| Form handling | React Hook Form + Zod |
-| HTTP Client | Axios |
-| Routing | React Router v6 |
-| QR Code | @zxing/browser |
-| Charts | Recharts |
-| Notifications | Sonner |
-
-### 🐳 DevOps
-
-| Thành phần | Công nghệ |
-|------------|-----------|
-| Container | Docker + Docker Compose |
-| CI/CD | GitHub Actions |
-| Monitoring | Spring Boot Actuator |
+### DevOps
+- Container: Docker + Docker Compose (v2)
+- CI/CD: GitHub Actions (`.github/workflows/`)
+- Monitoring: Spring Boot Actuator
+- Deployment thực tế: Kubernetes (k3s) + GHCR + AWS RDS; staging (`staging.agri-trace.online`) và production (`https://agri-trace.online`)
 
 ---
 
-## 🏗️ Kiến trúc hệ thống
-
-```mermaid
-flowchart LR
-    A[React Frontend] -->|HTTPS/HTTP| B[Spring Boot API]
-    B --> C[MySQL Database]
-    B --> D[File System – Uploads / Backups]
-    A --> E[QR Code Scanner]
-    E -->|Scan| F[Public Trace Page]
-```
-
-### Luồng dữ liệu chính
-
-1. **Người dùng** (VT-02, VT-03) ghi sự kiện → Frontend gọi API → Backend validate, lưu DB, update status.
-2. **Mã QR** được sinh từ Backend, lưu đường dẫn file.
-3. **Người tiêu dùng** quét mã → truy cập trang công khai → Backend trả về dòng sự kiện.
-4. **Sao lưu & Phục hồi** chạy background, sử dụng `mysqldump` và `mysql` CLI.
-
----
-
-## 📂 Cấu trúc thư mục
+## Cấu trúc thư mục nhanh
 
 ```text
 nguongocso/
-├── backend/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/vn/nguongocso/
-│   │   │   │   ├── auth/           # Xác thực & phân quyền
-│   │   │   │   ├── backup/         # Sao lưu & phục hồi
-│   │   │   │   ├── common/         # DTO, API Result
-│   │   │   │   ├── config/         # Cấu hình (Security, JWT)
-│   │   │   │   ├── event/          # Chuỗi sự kiện
-│   │   │   │   ├── farm/           # Vùng trồng, lô sản xuất
-│   │   │   │   ├── trace/          # Lô hàng, mã truy xuất
-│   │   │   │   ├── organization/   # Tổ chức, thành viên
-│   │   │   │   ├── report/         # Báo cáo & thống kê
-│   │   │   │   ├── notification/   # Thông báo
-│   │   │   │   └── permission/     # Quyền hạn
-│   │   │   ├── resources/
-│   │   │   │   ├── db/migration/   # Flyway scripts
-│   │   │   │   ├── application.properties
-│   │   │   │   └── application-dev.properties
-│   │   └── test/                   # Unit tests
-│   ├── pom.xml
-│   └── Dockerfile
-│
-├── frontend/
-│   ├── src/
-│   │   ├── api/                    # API calls
-│   │   ├── assets/                 # Images, fonts
-│   │   ├── components/             # Reusable UI
-│   │   │   ├── ui/                 # shadcn/ui
-│   │   │   ├── layout/             # Header, Sidebar
-│   │   │   ├── auth/               # Login, RoleBasedRoute
-│   │   │   ├── backup/             # Backup & Restore
-│   │   │   └── ...
-│   │   ├── hooks/                  # Custom React hooks
-│   │   ├── pages/                  # Route pages
-│   │   │   ├── admin/              # Admin pages
-│   │   │   ├── public/             # Public pages (trace)
-│   │   │   └── ...
-│   │   ├── types/                  # TypeScript types
-│   │   ├── utils/                  # Helpers & validators
-│   │   ├── config/                 # App config, roles
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── index.html
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── vite.config.ts
-│
-├── docs/
-│   ├── API/
-│   │   └── API_DOCS.md
-│   ├── AI_DESIGN_SYSTEM.md
-│   └── DATABASE_SCHEMA.md
-│
-├── docker/
-│   ├── docker-compose.yml
-│   └── mysql/
-│
-├── .env.example
-├── .gitignore
-└── README.md
+├── backend/          # Spring Boot (Java 21, Maven)
+├── frontend/         # React + Vite (TypeScript)
+├── docs/             # Tài liệu (API, handover, agent workflow)
+├── docker-compose.yml# Compose v2
+├── .env.example      # Mẫu biến môi trường (113 dòng)
+├── k8s/              # Kubernetes manifests
+└── README.md         # Trang vào chính
 ```
 
 ---
 
-## 📋 Yêu cầu hệ thống
+## Yêu cầu hệ thống
 
-| Thành phần | Phiên bản tối thiểu |
-|------------|---------------------|
-| Java | 21 |
-| Node.js | 22.x |
-| MySQL | 8.0 |
-| Maven | 3.9.x |
-| Git | 2.x |
-| Docker (optional) | 24.x |
+| Thành phần | Phiên bản tối thiểu | Ghi chú |
+|------------|---------------------|---------|
+| OS | Windows / Linux / macOS | — |
+| Java | 21 | `backend/Dockerfile`: `eclipse-temurin:21-jdk` |
+| Maven | 3.9.x | Có `.mvn/wrapper` (`./mvnw`, `.\mvnw.cmd`) |
+| Node.js | 22.x | `frontend/package.json`: React 19 / Vite 8 |
+| MySQL | 8.4 | `docker-compose.yml`: `mysql:8.4` |
+| Docker (optional) | 24+ / Compose v2 | — |
+| Git | 2.x | — |
 
 ---
 
-## ⚙️ Cài đặt & Chạy dự án
+## Cài đặt & Chạy dự án
 
-### 1. Clone repository
+### 1. Clone
 
 ```bash
-git clone https://github.com/your-org/nguongocso.git
-cd nguongocso
+git clone https://github.com/nguongocso/nguon-goc-so.git
+cd nguon-goc-so
 ```
 
-### 2. Backend
+### 2. Cấu hình môi trường
+
+**Docker Compose (đơn giản nhất):**
+```bash
+cp .env.example .env
+# Điền DB_HOST, DB_NAME, DB_USERNAME, DB_PASSWORD, JWT_SECRET, v.v.
+```
+
+**Development từ source:**
+- Root `.env` cho Compose; `backend/.env` và `frontend/.env` nếu tách riêng.
+- Chi tiết: `docs/configuration.md`, `.env.example`.
+
+> **Không ghi secret thật**; dùng placeholder.
+
+### 3. Database
+
+MySQL 8.4. Schema & migration qua Flyway (`db/migration/`). Chi tiết: `docs/installation.md`, `docs/DATABASE_SCHEMA.md`.
+
+### 4. Backend
 
 ```bash
 cd backend
-
-# Cài đặt dependencies
-mvn clean install
-
-# Chạy ứng dụng (mặc định port 8080)
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+# Linux / macOS / Git Bash
+./mvnw clean install
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+# Windows PowerShell:
+# .\mvnw.cmd clean install
+# .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
+# Port: 8080 | Swagger: http://localhost:8080/swagger-ui/index.html
 ```
 
-Hoặc chạy với Docker:
+> **DB sẵn sàng:** `mysql` có `healthcheck`; backend có `depends_on` + `condition: service_healthy`. Nếu chạy thủ công (không Compose), phải đợi `mysqladmin ping` trước khi `mvn spring-boot:run`.
 
-```bash
-docker build -t nguongocso-backend .
-docker run -p 8080:8080 nguongocso-backend
-```
-
-### 3. Frontend
+### 5. Frontend
 
 ```bash
 cd frontend
-
-# Cài đặt dependencies
 npm install
-
-# Chạy dev server (mặc định port 5173)
 npm run dev
+# Port: 3000 (khớp vite.config.ts)
+# API base: VITE_API_URL=http://localhost:8080/api/v1 (khớp runtimeConfig.ts)
 ```
 
-### 4. Database
-
-Tạo database MySQL:
-
-```sql
-CREATE DATABASE nguon_goc_so CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-Sau đó chạy Flyway (mặc định tự động chạy khi start backend).
-
----
-
-## 🔧 Cấu hình
-
-### Backend – `application-dev.properties`
-
-```properties
-# Database
-spring.datasource.url=jdbc:mysql://localhost:3306/nguon_goc_so
-spring.datasource.username=root
-spring.datasource.password=your_password
-
-# JWT
-app.jwt.secret=YourSecretKey
-app.jwt.expiration=86400000
-
-# Upload
-app.upload.base-dir=./uploads
-app.upload.farm-log.max-size=5242880
-
-# Backup
-app.backup.local-dir=./backups
-app.backup.mysql-dump-path=mysqldump
-app.backup.retention-count=30
-
-# Logging
-logging.level.vn.nguongocso=DEBUG
-```
-
-### Frontend – `.env`
-
-```env
-VITE_API_URL=http://localhost:8080/api/v1
-VITE_APP_NAME=Nguồn gốc số
-```
-
----
-
-## 👥 Phân quyền người dùng
-
-| Role | Mô tả | Quyền chính |
-|------|-------|-------------|
-| **VT-01** | Quản trị viên nền tảng | Quản lý tổ chức, dải mã, danh mục, backup/restore |
-| **VT-02** | Quản lý hợp tác xã | Quản lý vùng trồng, lô sản xuất, thành viên, duyệt lô |
-| **VT-03** | Người ghi sự kiện | Ghi nhật ký canh tác, sự kiện chuỗi (thu hoạch, đóng gói, vận chuyển) |
-| **VT-04** | Doanh nghiệp thu mua | Ghi sự kiện thu mua, xuất hồ sơ |
-| **VT-05** | Cán bộ quản lý ngành | Xem báo cáo, phân tích, xuất dữ liệu mở |
-
-Mỗi role được gán quyền chi tiết (permission) trên từng resource.
-
----
-
-## 📚 Tài liệu API
-
-Sau khi chạy backend, truy cập:
-
-- **Swagger UI:** `http://localhost:8080/swagger-ui/index.html`
-- **OpenAPI JSON:** `http://localhost:8080/v3/api-docs`
-
-Hoặc xem file: [`docs/api/API_DOCS.md`](docs/API/API_DOCS.md)
-
----
-
-## 📚 Tài liệu vận hành & bảo vệ
-
-Bộ tài liệu vận hành, triển khai và bảo vệ hệ thống nằm tại [`docs/handover/`](docs/handover/):
-
-| Tài liệu | Mô tả |
-|----------|-------|
-| [OPERATIONS.md](docs/handover/OPERATIONS.md) | Hướng dẫn vận hành: khởi động, tắt, status, logs, cấu hình, database, troubleshooting |
-| [DEPLOYMENT.md](docs/handover/DEPLOYMENT.md) | Quy trình triển khai: CI/CD, Docker, Kubernetes, GHCR, database, verification |
-| [ARCHITECTURE.md](docs/handover/ARCHITECTURE.md) | Kiến trúc hệ thống, các module, luồng dữ liệu chính |
-| [SECURITY.md](docs/handover/SECURITY.md) | Bảo mật: authentication, authorization, RBAC, multi-tenant, secrets |
-| [USER_GUIDE.md](docs/handover/USER_GUIDE.md) | Hướng dẫn sử dụng cho người dùng thực tế (quản lý HTX, ghi sự kiện, tra cứu) |
-| [DEMO_DATA.md](docs/handover/DEMO_DATA.md) | Dữ liệu demo/phục vụ buổi bảo vệ (tài khoản, organization, lô, kiểm nghiệm) |
-
----
-
-## 🧪 Kiểm thử
-
-### Backend
+### 6. Docker Compose (toàn bộ)
 
 ```bash
-cd backend
-mvn test
+docker compose up -d --build
+docker compose down
+docker compose down -v
 ```
 
-### Frontend
+### 7. Kiểm tra hệ thống
+
+- Backend: `curl -I http://localhost:8080`
+- Frontend: `http://localhost:3000` → DevTools → Network → API trả 200/JSON (không CORS / connection refused)
+- Database: `mysql -h localhost -P 3306 -u nguongocso -p` → xem DB `nguon_goc_so`
+
+---
+
+## Cấu hình quan trọng
+
+| Biến | Mục đích | Ví dụ / Mặc định |
+|------|----------|----------------|
+| `DB_HOST` / `DB_PORT` / `DB_NAME` | DB kết nối | `mysql` / `3306` / `nguon_goc_so` |
+| `DB_USERNAME` / `DB_PASSWORD` | DB auth | `nguongocso` / (placeholder) |
+| `JWT_SECRET` / `JWT_EXPIRATION` | JWT ký / hạn | (placeholder) / `86400000` |
+| `ALLOWED_ORIGINS` | CORS | `http://localhost:3000` |
+| `VITE_API_URL` | FE → API | `http://localhost:8080/api/v1` |
+| `UPLOAD_BASE_DIR` / `QR_IMAGE_STORAGE_PATH` | File lưu | `/app/uploads` / `/app/files/qr` |
+| `APP_TIMEZONE` | Múi giờ nghiệp vụ | `Asia/Ho_Chi_Minh` |
+
+Chi tiết đầy đủ tại `docs/configuration.md` và `.env.example`.
+
+---
+
+## Kiểm thử
 
 ```bash
-cd frontend
-npm run test
-```
-
-### Kiểm thử E2E
-
-```bash
-npm run test:e2e
+# Backend
+cd backend && ./mvnw test
+# Frontend
+cd frontend && npm run test
+# E2E không có trong dự án hiện tại; sử dụng `npm run test` nếu cần kiểm thử tự động.
 ```
 
 ---
 
-## 🚀 Triển khai
+## Triển khai
 
-### Docker Compose
-
-```bash
-docker-compose -f docker/docker-compose.yml up -d
-```
-
-### Production Build
-
-**Backend:**
-
-```bash
-mvn clean package -Pproduction
-java -jar target/nguongocso-*.jar
-```
-
-**Frontend:**
-
-```bash
-npm run build
-# Output in dist/ folder, deploy to Nginx/AWS S3/CDN
-```
-
-### Environment Variables for Production
-
-| Variable | Description |
-|----------|-------------|
-| `DB_HOST` | Database host |
-| `DB_PORT` | Database port |
-| `DB_NAME` | Database name |
-| `DB_USERNAME` | Database username |
-| `DB_PASSWORD` | Database password |
-| `JWT_SECRET` | JWT signing secret |
-| `APP_UPLOAD_BASE_DIR` | Upload directory |
-| `BACKUP_LOCAL_DIR` | Backup directory |
-| `BACKUP_RETENTION_COUNT` | Number of backups to keep |
+- Docker Compose: `docker compose up -d --build` (v2)
+- Production build: `cd backend && ./mvnw clean package -Pprod`; `cd frontend && npm run build`
+- CI/CD: GitHub Actions → GHCR → Kubernetes (`k8s/`) → `staging.agri-trace.online` / `agri-trace.online`
+- Tài liệu deploy chi tiết: `docs/handover/DEPLOYMENT.md`, `docs/deployment-aws-ec2.md`
 
 ---
 
-## 🌿 Quy trình phát triển
+## Tài liệu liên quan
 
-### Branch Strategy
-
-```text
-main          → Production (deploy từ đây)
-develop       → Integration / Staging
-feature/*     → New features
-bugfix/*      → Bug fixes
-release/*     → Release preparation
-hotfix/*      → Emergency fixes
-```
-
-### Git Workflow — Development → Staging → Production
-
-```text
-feature/*
-    ↓
-Pull Request → develop
-    ↓
-CI: backend-test + frontend-build
-    ↓
-Build & Push Docker images (commit-SHA tag, immutable)
-    ↓
-Deploy → staging (namespace: staging)
-    ↓
-Staging verification (TC-01, TC-03, TC-04)
-    ↓
-Release Candidate (develop → main via Pull Request)
-    ↓
-main
-    ↓
-Git tag v1.0.0 (annotated tag, trỏ đến release commit)
-    ↓
-CI: backend-test + frontend-build
-    ↓
-Build & Push Docker images (commit-SHA tag, immutable)
-    ↓
-Deploy → production (namespace: production)
-    ↓
-rollout status + collect evidence + validate traceability
-```
-
-### Commit Convention
-
-```text
-feat: Add QR code generation
-fix: Fix permission check for VT-03
-docs: Update API documentation
-style: Format code with Prettier
-refactor: Extract reusable components
-test: Add unit tests for BackupService
-chore: Update dependencies
-```
+- Cài đặt / cấu hình: `docs/installation.md`, `docs/configuration.md`, `docs/environment-matrix.md`
+- Vận hành / troubleshoot: `docs/handover/OPERATIONS.md`, `docs/troubleshooting.md`
+- Kiến trúc: `docs/handover/ARCHITECTURE.md`
+- API docs (theo domain): [`docs/api/`](docs/api/)
+- Quản lý agent / lifecycle: `docs/agent/`
 
 ---
 
-## 🤝 Đóng góp
+## Quy trình phát triển
 
-1. Fork repository
-2. Tạo branch feature của bạn
-3. Commit thay đổi
-4. Push lên branch của bạn
-5. Tạo Pull Request
-
-Mọi đóng góp đều được chào đón!
+- Branch: `main` → production; `develop` → staging; `feature/*`, `bugfix/*` cho phát triển.
+- Commit convention: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`
+- CI/CD chi tiết: xem `docs/handover/DEPLOYMENT.md` và `docs/deployment-aws-ec2.md`
 
 ---
 
-## 📄 Giấy phép
+## Đóng góp
 
-MIT License – xem file [LICENSE](LICENSE) để biết chi tiết.
-
----
-
-## 👨‍💻 Tác giả
-
-- **Trần Phương Đoàn** – *Backend Developer / Team Lead* – [doantran28092005@gmail.com](mailto:a@example.com)
-- **La Văn Hiến** – *Backend Developer* – [hienvla05@gmail.com](mailto:b@example.com)
-- **Triệu Văn Đại** – *Backend Developer* – [trieuvandai12035@gmail.com](mailto:b@example.com)
-- **Trần Văn Nhu** – *Frontend Developer* – [dtc235200572@ictu.edu.vn](mailto:b@example.com)
-- **Lê Xuân Dương** – *Frontend Developer* – [dtc235200874@ictu.edu.vn](mailto:b@example.com)
+Fork → branch `feature/*` → commit → PR → `develop` → CI → staging verify → `main` → tag → production.
 
 ---
 
-## 📮 Liên hệ
+## Giấy phép
 
-- **Email:** support@nguongocso.com
-- **Website:** [https://nguongocso.com](https://nguongocso.com)
-- **GitHub:** [https://github.com/your-org/nguongocso](https://github.com/your-org/nguongocso)
+MIT License.
 
 ---
 
-> **Xây dựng niềm tin – Minh bạch từ nông trại đến bàn ăn.** 
+## Tác giả
+
+- Trần Phương Đoàn — Team Lead / Backend
+- La Văn Hiến — Backend Developer
+- Triệu Văn Đại — Backend Developer
+- Trần Văn Nhu — Frontend Developer
+- Lê Xuân Dương — Frontend Developer
+
+> Liên hệ chính thức: xem `docs/handover/USER_GUIDE.md`; không đưa email cá nhân vào tài liệu kỹ thuật công khai.
+
+---
