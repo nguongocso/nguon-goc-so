@@ -28,12 +28,12 @@ const testApiKeySchema = z.object({
     .number({ invalid_type_error: 'Vui lòng nhập số ngày hợp lệ' })
     .int('Số ngày phải là số nguyên')
     .min(1, 'Thời hạn tối thiểu là 1 ngày')
-    .max(30, 'Thời hạn thử nghiệm tối đa là 30 ngày theo quy định'),
+    .max(15, 'Thời hạn thử nghiệm tối đa là 15 ngày theo quy định'),
   rateLimitPerHour: z
     .number({ invalid_type_error: 'Vui lòng nhập hạn mức gọi' })
     .int('Hạn mức phải là số nguyên')
     .min(1, 'Hạn mức tối thiểu là 1 lượt/giờ')
-    .max(100, 'Hạn mức thử nghiệm tối đa là 100 lượt/giờ'),
+    .max(50, 'Hạn mức thử nghiệm tối đa là 50 lượt/giờ'),
 });
 
 type TestApiKeyFormValues = z.infer<typeof testApiKeySchema>;
@@ -67,7 +67,7 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
     defaultValues: {
       partnerName: '',
       expireDays: 14,
-      rateLimitPerHour: 100,
+      rateLimitPerHour: 30,
     },
   });
 
@@ -78,7 +78,7 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
       reset({
         partnerName: '',
         expireDays: 14,
-        rateLimitPerHour: 100,
+        rateLimitPerHour: 30,
       });
     }
   }, [open, reset]);
@@ -126,7 +126,6 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 py-2">
-          {/* Hộp thông tin chế độ thử nghiệm */}
           <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/60 border border-border text-xs text-muted-foreground">
             <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <div className="space-y-1">
@@ -139,7 +138,6 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
             </div>
           </div>
 
-          {/* Tên đối tác */}
           <div className="space-y-1.5">
             <Label htmlFor="test-partner-name" className="text-xs font-medium">
               Tên đối tác / Kỹ thuật viên kết nối <span className="text-destructive">*</span>
@@ -159,7 +157,6 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
             )}
           </div>
 
-          {/* Thời hạn (ngày) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="test-expire-days" className="text-xs font-medium">
@@ -167,16 +164,15 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
               </Label>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span>Chọn nhanh:</span>
-                {[7, 14, 30].map((days) => (
+                {[3, 7, 15].map((days) => (
                   <button
                     key={days}
                     type="button"
                     onClick={() => setValue('expireDays', days, { shouldValidate: true })}
-                    className={`px-1.5 py-0.5 rounded border text-[11px] font-medium transition-colors ${
-                      currentExpireDays === days
+                    className={`px-1.5 py-0.5 rounded border text-[11px] font-medium transition-colors ${currentExpireDays === days
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-muted hover:bg-muted/80 border-border text-foreground'
-                    }`}
+                      }`}
                   >
                     {days} ngày
                   </button>
@@ -187,7 +183,7 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
               id="test-expire-days"
               type="number"
               min={1}
-              max={30}
+              max={15}
               {...register('expireDays', { valueAsNumber: true })}
               disabled={submitting}
             />
@@ -198,12 +194,11 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
               </p>
             ) : (
               <p className="text-[11px] text-muted-foreground">
-                Tối đa 30 ngày theo quy định bảo mật thử nghiệm.
+                Tối đa 15 ngày theo quy định bảo mật thử nghiệm.
               </p>
             )}
           </div>
 
-          {/* Hạn mức số lượt gọi */}
           <div className="space-y-1.5">
             <Label htmlFor="test-rate-limit" className="text-xs font-medium">
               Hạn mức gọi API (lượt/giờ) <span className="text-destructive">*</span>
@@ -212,7 +207,7 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
               id="test-rate-limit"
               type="number"
               min={1}
-              max={100}
+              max={50}
               {...register('rateLimitPerHour', { valueAsNumber: true })}
               disabled={submitting}
             />
@@ -223,7 +218,7 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
               </p>
             ) : (
               <p className="text-[11px] text-muted-foreground">
-                Khóa thử nghiệm giới hạn tối đa 100 lượt/giờ.
+                Khóa thử nghiệm giới hạn tối đa 50 lượt/giờ.
               </p>
             )}
           </div>

@@ -4,11 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 import java.util.UUID;
 
-/**
- * DTO phản hồi kiểm tra tính hợp lệ của lô trước khi tạo sự kiện.
- *
- * @author Triệu Văn Đại
- */
+/** DTO phản hồi kiểm tra tính hợp lệ của lô trước khi tạo sự kiện. */
 @Data
 @Builder
 public class LotValidationResponse {
@@ -22,14 +18,14 @@ public class LotValidationResponse {
 
     private LotDetails details;
 
-    /**
-     * Chi tiết của lô hàng.
-     */
+    /** Chi tiết của lô hàng. */
     @Data
     @Builder
     public static class LotDetails {
-        private String lotType; // "PRODUCTION_LOT" or "SHIPMENT"
+        private String lotType;
+
         private String currentStatus;
+
         private UUID organizationId;
     }
 }

@@ -20,10 +20,7 @@ import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
 
-/**
- * Bộ lọc xác thực khóa API đối tác cho các đường dẫn tích hợp (QTN-20).
- * Kiểm tra tính hợp lệ của khóa và giới hạn tần suất gọi API.
- */
+/** Bộ lọc xác thực khóa API đối tác cho các đường dẫn tích hợp (QTN-20). */
 @Component
 @RequiredArgsConstructor
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {

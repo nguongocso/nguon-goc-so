@@ -16,7 +16,6 @@ import vn.nguongocso.export.enums.ProfileFieldGroup;
 @AllArgsConstructor
 @Builder
 public class ProfileTemplateFieldResponse {
-
     /** ID trường */
     private UUID id;
 

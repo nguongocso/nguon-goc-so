@@ -10,28 +10,34 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO phản hồi thông tin sự kiện kho hợp tác xã (nhập kho / xuất kho).
- *
- * @author Antigravity
- */
-
+/** DTO phản hồi thông tin sự kiện kho hợp tác xã (nhập kho / xuất kho). */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CoopWarehouseEventResponse {
     private UUID id;
+
     private UUID shipmentId;
+
     private String shipmentName;
+
     private UUID productionLotId;
+
     private String productionLotName;
+
     private ChainEventType eventType;
+
     private String warehouseName;
+
     private LocalDateTime entryTime;
+
     private LocalDateTime exitTime;
+
     private String storageCondition;
+
     private String destination;
+
     private String notes;
 
     /** Thời gian lưu kho tính theo ngày. */
@@ -50,9 +56,14 @@ public class CoopWarehouseEventResponse {
     private String warningMessage;
 
     private Double latitude;
+
     private Double longitude;
+
     private List<String> images;
+
     private LocalDateTime recordedAt;
+
     private String recordedByName;
+
     private LocalDateTime createdAt;
 }

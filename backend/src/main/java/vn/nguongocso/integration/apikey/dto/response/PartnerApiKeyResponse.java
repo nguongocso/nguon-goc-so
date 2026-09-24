@@ -14,9 +14,7 @@ import lombok.Setter;
 
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 
-/**
- * Response chứa thông tin khóa truy cập của đối tác bên thứ ba.
-*/
+/** DTO phản hồi thông tin khóa API tích hợp của đối tác. */
 @Getter
 @Setter
 @Builder

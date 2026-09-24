@@ -66,7 +66,7 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
     expect(screen.getByText(/Lấy Khóa API \(API Key\)/i)).toBeInTheDocument();
     expect(screen.getByText('https://agri-trace.online')).toBeInTheDocument();
     expect(screen.getByText(/X-API-KEY: <chuỗi_khóa>/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tối đa 100 lượt \/ giờ/i)).toBeInTheDocument();
+    expect(screen.getByText(/Mặc định 30 lượt \/ giờ/i)).toBeInTheDocument();
   });
 
   it('renders endpoint list including public lots and GS1 endpoints', () => {
@@ -116,7 +116,7 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
       screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/production-lots\/sample-lot-001\/dossier"/i)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/shipments\/sample-lot-001\/dossier\/gs1"/i)
+      screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/shipments\/sample-shipment-001\/dossier\/gs1"/i)
     ).toBeInTheDocument();
 
     // Hiển thị khối Dữ liệu phản hồi mẫu cho cả 3 endpoints
@@ -171,7 +171,7 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
     expect(screen.getByText(/curl -s -X GET "https:\/\/staging\.agri-trace\.online\/api\/publicapi\/v1\/lots\/sample-lot-001"/i)).toBeInTheDocument();
     // Endpoint 2 & 3 vẫn là Production
     expect(screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/production-lots\/sample-lot-001\/dossier"/i)).toBeInTheDocument();
-    expect(screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/shipments\/sample-lot-001\/dossier\/gs1"/i)).toBeInTheDocument();
+    expect(screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/shipments\/sample-shipment-001\/dossier\/gs1"/i)).toBeInTheDocument();
 
     // Chuyển endpoint 2 sang Localhost
     const localBtns = screen.getAllByRole('button', { name: 'Localhost' });
@@ -180,7 +180,7 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
     // Endpoint 2 đổi sang localhost:8080, endpoint 1 vẫn staging, endpoint 3 vẫn production
     expect(screen.getByText(/curl -s -X GET "https:\/\/staging\.agri-trace\.online\/api\/publicapi\/v1\/lots\/sample-lot-001"/i)).toBeInTheDocument();
     expect(screen.getByText(/curl -s -X GET "http:\/\/localhost:8080\/api\/v1\/partner\/production-lots\/sample-lot-001\/dossier"/i)).toBeInTheDocument();
-    expect(screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/shipments\/sample-lot-001\/dossier\/gs1"/i)).toBeInTheDocument();
+    expect(screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/shipments\/sample-shipment-001\/dossier\/gs1"/i)).toBeInTheDocument();
   });
 
   it('supports copying code sample and response JSON to clipboard with toast feedback when key is entered', async () => {
@@ -224,7 +224,26 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
     expect(screen.getByText('3. Bảng Ánh xạ Thuộc tính theo Chuẩn GS1 EPCIS')).toBeInTheDocument();
     expect(screen.getByText('Mã lô sản xuất (GTIN)')).toBeInTheDocument();
     expect(screen.getByText('4. Bảng Mã Lỗi Tổng hợp (HTTP Error Codes)')).toBeInTheDocument();
-    expect(screen.getByText('401')).toBeInTheDocument();
-    expect(screen.getByText(/API Key đã hết hạn/i)).toBeInTheDocument();
+    expect(screen.getAllByText('401').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Khóa thử nghiệm đã hết hạn/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Khóa truy cập đã hết thời gian hiệu lực/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('403').length).toBeGreaterThan(0);
+  });
+
+  it('allows unauthenticated users to access /portal and displays login button instead of dashboard', () => {
+    renderPage();
+
+    // Người dùng chưa đăng nhập thấy nút "Đăng nhập"
+    expect(screen.getByRole('button', { name: /Đăng nhập/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Bảng điều khiển/i })).not.toBeInTheDocument();
+
+    // Hiển thị phần Quy tắc Tiền tố Khóa & Chế độ Sandbox
+    expect(screen.getByText(/Quy tắc Tiền tố Khóa & Phạm vi Thử nghiệm/i)).toBeInTheDocument();
+    expect(screen.getByText(/Mặc định 30 lượt \/ giờ/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/sample-shipment-001/i).length).toBeGreaterThan(0);
+
+    // Kiểm tra tiêu đề khung Ví dụ Gọi Thử nghiệm và hướng dẫn thay thế khóa
+    expect(screen.getByText(/^Ví dụ Gọi Thử nghiệm$/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hãy thay thế khóa/i)).toBeInTheDocument();
   });
 });

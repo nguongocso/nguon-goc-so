@@ -8,19 +8,9 @@ import vn.nguongocso.event.entity.FailedEventLog;
 
 import java.util.UUID;
 
-/**
- * Repository cho entity FailedEventLog.
- *
- * @author Triệu Văn Đại
- */
+/** Repository cho entity FailedEventLog. */
 @Repository
 public interface FailedEventLogRepository extends JpaRepository<FailedEventLog, UUID> {
-    /**
-     * Lấy danh sách nhật ký sự kiện bị chặn, sắp xếp theo thời gian thử lại giảm
-     * dần.
-     *
-     * @param pageable thông tin phân trang
-     * @return danh sách nhật ký sự kiện bị chặn
-     */
+    /** Lấy danh sách nhật ký sự kiện bị chặn, sắp xếp theo thời gian thử lại giảm dần. */
     Page<FailedEventLog> findAllByOrderByAttemptedAtDesc(Pageable pageable);
 }

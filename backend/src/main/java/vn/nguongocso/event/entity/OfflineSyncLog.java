@@ -64,7 +64,7 @@ public class OfflineSyncLog {
     private ChainEventType eventType;
 
     @Column(name = "status", nullable = false, length = 20)
-    private String status; // SUCCESS, DUPLICATE, FAILED
+    private String status;
 
     @Column(name = "failure_reason", columnDefinition = "TEXT")
     private String failureReason;

@@ -23,10 +23,7 @@ import org.hibernate.type.SqlTypes;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.trace.entity.Shipment;
 
-/**
- * Thực thể ghi nhận nhật ký xuất hồ sơ (ExportLog).
- * Lưu vết shipment, mẫu hồ sơ đã áp dụng, người xuất và thời điểm xuất.
- */
+/** Thực thể ghi nhận nhật ký xuất hồ sơ (ExportLog). */
 @Entity
 @Table(name = "export_logs")
 @Getter
@@ -35,7 +32,6 @@ import vn.nguongocso.trace.entity.Shipment;
 @AllArgsConstructor
 @Builder
 public class ExportLog {
-
     /** Khóa chính của bản ghi nhật ký */
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

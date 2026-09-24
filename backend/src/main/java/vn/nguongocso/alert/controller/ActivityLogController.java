@@ -63,12 +63,8 @@ public class ActivityLogController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String action,
             @RequestParam(required = false) String actorName,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate startDate,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate endDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) String objectType,
             @AuthenticationPrincipal CustomUserDetails currentUser,
             HttpServletRequest request) {

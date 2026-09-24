@@ -122,6 +122,7 @@ class PartnerLotServiceTest {
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> partnerLotService.getLotDossierForPartner(nonExistentLotId, partnerApiKey));
 
-        assertTrue(exception.getMessage().contains("Không tìm thấy thông tin lô"));
+        assertTrue(exception.getMessage().contains("Không tìm thấy lô sản xuất yêu cầu"));
+        assertEquals(org.springframework.http.HttpStatus.NOT_FOUND, exception.getStatus());
     }
 }

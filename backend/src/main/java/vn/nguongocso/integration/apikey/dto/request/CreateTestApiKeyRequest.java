@@ -14,8 +14,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Yêu cầu cấp mới khóa thử nghiệm dành cho đối tác bên thứ ba.
-*/
+ * Yêu cầu cấp mới khóa thử nghiệm (Sandbox/Test Key) dành cho đối tác bên thứ ba.
+ */
 @Getter
 @Setter
 @Builder
@@ -26,7 +26,7 @@ public class CreateTestApiKeyRequest {
     private String partnerName;
 
     @Min(value = 1, message = "Hạn mức số lượt gọi trong 1 giờ phải lớn hơn 0")
-    @Max(value = 100, message = "Hạn mức số lượt gọi thử nghiệm không vượt quá 100 lượt/giờ")
+    @Max(value = 50, message = "Hạn mức số lượt gọi thử nghiệm không vượt quá 50 lượt/giờ")
     private Integer rateLimitPerHour;
 
     @Future(message = "Ngày hết hạn phải ở thời điểm tương lai")

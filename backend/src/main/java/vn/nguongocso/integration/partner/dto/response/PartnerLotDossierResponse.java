@@ -13,7 +13,7 @@ import lombok.Setter;
 
 /**
  * DTO hồ sơ truy xuất lô sản xuất dành cho bên thứ ba.
-*/
+ */
 @Getter
 @Setter
 @Builder

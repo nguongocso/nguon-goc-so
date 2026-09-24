@@ -13,10 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.organization.entity.Organization;
 
-/**
- * Bộ nạp dữ liệu khởi tạo cho môi trường kiểm thử runtime (profile test).
- * Điều phối khởi tạo dữ liệu mẫu và lưu trữ thông tin xác thực ra tệp tạm.
- */
+/** Bộ nạp dữ liệu khởi tạo cho môi trường kiểm thử runtime (profile test). */
 @Slf4j
 @Component
 @Profile("runtime-test")

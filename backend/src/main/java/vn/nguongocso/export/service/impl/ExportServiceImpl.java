@@ -29,16 +29,12 @@ import vn.nguongocso.export.service.renderer.ExportCsvRenderer;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
-/**
- * Điều phối dịch vụ xuất dữ liệu công khai và xuất hồ sơ theo mẫu đối tác.
- * Sử dụng mô hình Orchestrator không giữ transaction trong quá trình render tệp.
- */
+/** Điều phối dịch vụ xuất dữ liệu công khai và xuất hồ sơ theo mẫu đối tác. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ExportServiceImpl implements ExportService {
-
     private final ShipmentRepository shipmentRepository;
     private final ProfileTemplateRepository profileTemplateRepository;
     private final ProfileTemplateService profileTemplateService;

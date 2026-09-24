@@ -15,29 +15,15 @@ import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.FailedEventLogRepository;
 import vn.nguongocso.exception.BusinessException;
 
-/**
- * Component chuyên trách ghi nhận vết sự kiện thất bại vào cơ sở dữ liệu.
- *
- * <p>Tham gia vào transaction độc lập do Service gọi tạo ra. Không tự ý mở thêm
- * transaction annotation trên component.</p>
- */
+/** Component chuyên trách ghi nhận vết sự kiện thất bại vào cơ sở dữ liệu. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class FailedEventLogRecorder {
-
     private final UserRepository userRepository;
     private final FailedEventLogRepository failedEventLogRepository;
 
-    /**
-     * Ghi nhận một lần thử sự kiện thất bại vào bảng failed_event_logs.
-     *
-     * @param lotId       ID lô hàng hoặc lô sản xuất
-     * @param lotCode     mã lô hàng hoặc mã lô sản xuất
-     * @param eventType   loại sự kiện chuỗi cung ứng
-     * @param reason      nguyên nhân thất bại
-     * @param currentUser thông tin người dùng đang thao tác
-     */
+    /** Ghi nhận một lần thử sự kiện thất bại vào bảng failed_event_logs. */
     public void recordFailedAttempt(UUID lotId, String lotCode, ChainEventType eventType, String reason,
             CustomUserDetails currentUser) {
         User user = userRepository.findById(currentUser.getUserId())

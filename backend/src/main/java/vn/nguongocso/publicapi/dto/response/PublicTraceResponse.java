@@ -1,14 +1,15 @@
 package vn.nguongocso.publicapi.dto.response;
 
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
-
-/** Response thông tin tra cứu công khai. */
+/**
+ * Response thông tin tra cứu công khai.
+ */
 @Getter
 @Setter
 @Builder
@@ -51,12 +52,11 @@ public class PublicTraceResponse {
 
     private List<PublicInspectionCriterionResultDto> inspections;
 
-    /** Đánh dấu dữ liệu thử nghiệm (Sandbox). */
+    @com.fasterxml.jackson.annotation.JsonProperty("is_test")
     private Boolean isTest;
 
-    /** Thông điệp thông báo dữ liệu thử nghiệm. */
+    @com.fasterxml.jackson.annotation.JsonProperty("test_notice")
     private String testNotice;
 
-    /** Ranh giới vùng trồng hiển thị công khai. */
     private PublicFarmAreaBoundaryDto farmAreaBoundary;
 }

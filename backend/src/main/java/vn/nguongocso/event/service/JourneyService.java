@@ -23,7 +23,6 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 @Service
 @RequiredArgsConstructor
 public class JourneyService {
-
     private final ShipmentRepository shipmentRepository;
     private final ChainEventRepository chainEventRepository;
 

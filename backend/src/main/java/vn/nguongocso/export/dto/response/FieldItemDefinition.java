@@ -14,7 +14,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class FieldItemDefinition {
-
     /** Khóa định danh trường (vd: organization.name) */
     private String fieldKey;
 

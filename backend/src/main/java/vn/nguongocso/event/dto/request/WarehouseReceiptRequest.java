@@ -9,11 +9,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 
-/**
- * DTO yêu cầu ghi nhận nhập kho và đối chiếu số lượng.
- *
- * @author Team
- */
+/** DTO yêu cầu ghi nhận nhập kho và đối chiếu số lượng. */
 @Getter
 @Setter
 public class WarehouseReceiptRequest {
