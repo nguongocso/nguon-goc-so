@@ -36,11 +36,10 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
   ]);
 
   const [partnerName, setPartnerName] = useState("");
-  const [rateLimitPerHour, setRateLimitPerHour] = useState<number | string>(100);
+  const [rateLimitPerHour, setRateLimitPerHour] = useState<number | string>(30);
   const [expiresAt, setExpiresAt] = useState<string>(getDefaultExpiry(14));
   const [loading, setLoading] = useState(false);
 
-  // Result state after creation
   const [createdKeyData, setCreatedKeyData] = useState<PartnerApiKeyResponse | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -61,8 +60,8 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
       toast.error("Hạn mức gọi API phải lớn hơn 0");
       return;
     }
-    if (rateLimit > 100) {
-      toast.error("Hạn mức thử nghiệm tối đa là 100 lượt/giờ theo quy định");
+    if (rateLimit > 50) {
+      toast.error("Hạn mức thử nghiệm tối đa là 50 lượt/giờ theo quy định");
       return;
     }
 
@@ -78,10 +77,9 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
       return;
     }
 
-    // Kiểm tra tối đa 30 ngày
-    const maxDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000 + 3600000); // 30 ngày + 1h buffer
+    const maxDate = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000 + 3600000); // 15 ngày + 1h buffer
     if (expiryDate.getTime() > maxDate.getTime()) {
-      toast.error("Thời hạn thử nghiệm tối đa là 30 ngày theo quy định bảo mật");
+      toast.error("Thời hạn thử nghiệm tối đa là 15 ngày theo quy định bảo mật");
       return;
     }
 
@@ -120,7 +118,6 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header trang */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -135,7 +132,6 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
       </div>
 
       {createdKeyData ? (
-        /* Result Screen after successful generation */
         <Card className="rounded-xl border-emerald-200 dark:border-emerald-800 bg-white dark:bg-card shadow-sm overflow-hidden">
           <CardHeader className="bg-emerald-50/60 dark:bg-emerald-950/40 border-b border-emerald-100 dark:border-emerald-800 pb-4">
             <div className="flex items-center gap-2.5 text-emerald-800 dark:text-emerald-200">
@@ -151,7 +147,6 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent className="p-6 space-y-5">
-            {/* Warning Alert */}
             <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-sm">
               <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <div>
@@ -163,7 +158,6 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
               </div>
             </div>
 
-            {/* API Key Box */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Khóa API thử nghiệm (Header X-API-KEY)
@@ -198,7 +192,6 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Thông tin cấu hình tóm tắt */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 text-xs">
               <div>
                 <span className="text-muted-foreground block">Đối tác thụ hưởng:</span>
@@ -233,19 +226,17 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        /* Create Form Card */
         <Card className="rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-card shadow-sm">
           <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
             <CardTitle className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               Thông tin cấu hình khóa thử nghiệm
             </CardTitle>
             <CardDescription>
-              Thiết lập đối tác sử dụng, hạn mức thử nghiệm (tối đa 100 lượt/giờ) và thời hạn hiệu lực (tối đa 30 ngày).
+              Thiết lập đối tác sử dụng, hạn mức thử nghiệm (tối đa 50 lượt/giờ) và thời hạn hiệu lực (tối đa 15 ngày).
             </CardDescription>
           </CardHeader>
           <form noValidate onSubmit={handleSubmit}>
             <CardContent className="space-y-5 pt-6">
-              {/* Tên đối tác */}
               <div className="space-y-1.5">
                 <Label htmlFor="partnerName" className="text-sm font-medium">
                   Tên đối tác / Đơn vị thử nghiệm <span className="text-red-500">*</span>
@@ -261,7 +252,6 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
                 />
               </div>
 
-              {/* Hạn mức số lượt gọi / giờ */}
               <div className="space-y-1.5">
                 <Label htmlFor="rateLimitPerHour" className="text-sm font-medium">
                   Hạn mức gọi API (Số lượt / giờ) <span className="text-red-500">*</span>
@@ -270,19 +260,18 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
                   id="rateLimitPerHour"
                   type="number"
                   min={1}
-                  max={100}
-                  placeholder="VD: 100"
+                  max={50}
+                  placeholder="VD: 30"
                   value={rateLimitPerHour}
                   onChange={(e) => setRateLimitPerHour(e.target.value)}
                   disabled={loading}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Khóa thử nghiệm giới hạn tối đa 100 lượt/giờ theo quy định bảo mật tài nguyên.
+                  Khóa thử nghiệm giới hạn tối đa 50 lượt/giờ theo quy định bảo mật tài nguyên.
                 </p>
               </div>
 
-              {/* Thời gian hết hạn khóa */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="expiresAt" className="text-sm font-medium">
@@ -290,7 +279,7 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
                   </Label>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span>Chọn nhanh:</span>
-                    {[7, 14, 30].map((days) => (
+                    {[3, 7, 15].map((days) => (
                       <button
                         key={days}
                         type="button"
@@ -312,11 +301,10 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
                   className="max-w-md"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Thời hạn thử nghiệm tối đa là 30 ngày kể từ thời điểm tạo.
+                  Thời hạn thử nghiệm tối đa là 15 ngày kể từ thời điểm tạo.
                 </p>
               </div>
 
-              {/* Cảnh báo ghi chú */}
               <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200 text-xs leading-relaxed">
                 <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                 <span>
