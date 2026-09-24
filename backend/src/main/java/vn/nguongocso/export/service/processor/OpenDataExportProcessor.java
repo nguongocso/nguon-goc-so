@@ -35,6 +35,7 @@ import vn.nguongocso.export.dto.response.Qtn11ErrorDetailDto;
 import vn.nguongocso.export.schema.OpenDataSchema;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.FarmLogRepository;
+import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
@@ -105,8 +106,7 @@ public class OpenDataExportProcessor {
     }
 
     private List<Shipment> filterEligibleShipments(List<Shipment> shipments) {
-        List<UUID> shipmentIds = shipments.stream().map(Shipment::getId).collect(Collectors.toList());
-        Map<UUID, Set<ChainEventType>> eventMap = getEventTypesByShipment(shipmentIds);
+        Map<UUID, Set<ChainEventType>> eventMap = getEventTypesByShipment(shipments);
         Map<UUID, Boolean> docMap = getDocumentationExistence(shipments);
 
         List<Shipment> eligible = new ArrayList<>();
@@ -154,54 +154,86 @@ public class OpenDataExportProcessor {
                 .build();
     }
 
-    private Map<UUID, Set<ChainEventType>> getEventTypesByShipment(List<UUID> shipmentIds) {
-        List<Shipment> shipments = shipmentRepository.findAllById(shipmentIds);
+    Map<UUID, Set<ChainEventType>> getEventTypesByShipment(List<Shipment> shipments) {
+        if (shipments == null || shipments.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<UUID> shipmentIds = shipments.stream().map(Shipment::getId).collect(Collectors.toList());
         Map<UUID, UUID> shipmentToLotMap = shipments.stream()
                 .collect(Collectors.toMap(
                         Shipment::getId,
-                        s -> s.getProductionLot() != null ? s.getProductionLot().getId() : null));
+                        s -> s.getProductionLot() != null ? s.getProductionLot().getId() : null,
+                        (existing, replacement) -> existing));
+
+        Set<UUID> lotIds = shipmentToLotMap.values().stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<UUID> orgIds = shipments.stream()
+                .map(Shipment::getOrganization)
+                .filter(Objects::nonNull)
+                .map(Organization::getOrganizationId)
+                .collect(Collectors.toSet());
 
         Map<UUID, Set<ChainEventType>> eventMap = new HashMap<>();
         List<ChainEvent> shipmentEvents = chainEventRepository.findByShipmentIdInOrderByRecordedAtAsc(shipmentIds);
         for (ChainEvent e : shipmentEvents) {
-            UUID sid = e.getShipment().getId();
-            eventMap.computeIfAbsent(sid, k -> new HashSet<>()).add(e.getEventType());
-        }
-
-        List<ChainEventType> unassignedTypes = List.of(ChainEventType.HARVEST, ChainEventType.PACKAGING);
-        List<ChainEvent> unassignedEvents = chainEventRepository.findByShipmentIsNullAndEventTypeIn(unassignedTypes);
-
-        Map<UUID, Set<ChainEventType>> lotEventMap = new HashMap<>();
-        for (ChainEvent e : unassignedEvents) {
-            Map<String, Object> data = parseEventData(e.getEventData());
-            Object lotIdObj = data.get("productionLotId");
-            if (lotIdObj != null) {
-                UUID lotId = UUID.fromString(lotIdObj.toString());
-                lotEventMap.computeIfAbsent(lotId, k -> new HashSet<>()).add(e.getEventType());
+            if (e.getShipment() != null) {
+                UUID sid = e.getShipment().getId();
+                eventMap.computeIfAbsent(sid, k -> new HashSet<>()).add(e.getEventType());
             }
         }
 
-        for (Map.Entry<UUID, UUID> entry : shipmentToLotMap.entrySet()) {
-            UUID shipmentId = entry.getKey();
-            UUID lotId = entry.getValue();
-            if (lotId != null && lotEventMap.containsKey(lotId)) {
-                eventMap.computeIfAbsent(shipmentId, k -> new HashSet<>()).addAll(lotEventMap.get(lotId));
+        if (!lotIds.isEmpty() && !orgIds.isEmpty()) {
+            List<ChainEventType> unassignedTypes = List.of(ChainEventType.HARVEST, ChainEventType.PACKAGING);
+            List<ChainEvent> unassignedEvents = chainEventRepository.findByShipmentIsNullAndEventTypeInAndRecordedOrganizationIdIn(
+                    unassignedTypes, orgIds);
+
+            Map<UUID, Set<ChainEventType>> lotEventMap = new HashMap<>();
+            for (ChainEvent e : unassignedEvents) {
+                Map<String, Object> data = parseEventData(e.getEventData());
+                Object lotIdObj = data.get("productionLotId");
+                if (lotIdObj != null) {
+                    try {
+                        UUID lotId = UUID.fromString(lotIdObj.toString());
+                        if (lotIds.contains(lotId)) {
+                            lotEventMap.computeIfAbsent(lotId, k -> new HashSet<>()).add(e.getEventType());
+                        }
+                    } catch (IllegalArgumentException ignored) {
+                        // Bỏ qua giá trị không hợp lệ
+                    }
+                }
+            }
+
+            for (Map.Entry<UUID, UUID> entry : shipmentToLotMap.entrySet()) {
+                UUID shipmentId = entry.getKey();
+                UUID lotId = entry.getValue();
+                if (lotId != null && lotEventMap.containsKey(lotId)) {
+                    eventMap.computeIfAbsent(shipmentId, k -> new HashSet<>()).addAll(lotEventMap.get(lotId));
+                }
             }
         }
         return eventMap;
     }
 
-    private Map<UUID, Boolean> getDocumentationExistence(List<Shipment> shipments) {
+    Map<UUID, Boolean> getDocumentationExistence(List<Shipment> shipments) {
         Map<UUID, Boolean> result = new HashMap<>();
+        if (shipments == null || shipments.isEmpty()) {
+            return result;
+        }
+
         Set<UUID> lotIds = shipments.stream()
                 .map(Shipment::getProductionLot)
                 .filter(Objects::nonNull)
                 .map(ProductionLot::getId)
                 .collect(Collectors.toSet());
 
-        Set<UUID> lotsWithFarmLogs = lotIds.stream()
-                .filter(farmLogRepository::existsByProductionLotId)
-                .collect(Collectors.toSet());
+        if (lotIds.isEmpty()) {
+            for (Shipment s : shipments) {
+                result.put(s.getId(), false);
+            }
+            return result;
+        }
+
+        Set<UUID> lotsWithFarmLogs = farmLogRepository.findDistinctProductionLotIdsWithFarmLogsIn(lotIds);
 
         List<ProductionLotCertification> certs = productionLotCertificationRepository
                 .findByProductionLotIdIn(new ArrayList<>(lotIds));
