@@ -79,6 +79,7 @@ nguon-goc-so/
 | `root .env` (tạo từ `.env.example`) | **Docker Compose** hoặc khi chạy backend trực tiếp từ root | `DB_HOST=mysql` (tên service), `DB_NAME=nguon_goc_so` |
 | `backend/.env` (tạo từ `backend/.env.example`) | **Chạy backend local bằng source** (không Docker mysql) | `DB_HOST=host.docker.internal` (mặc định cho Docker mysql); `ALLOWED_ORIGINS=http://localhost`; `FRONTEND_URL=http://localhost` |
 | `frontend/.env` (tạo từ `frontend/.env.example`) | **Chạy frontend local bằng `npm run dev`** | `VITE_API_BASE_URL=http://localhost:8080/api/v1` |
+| `root .env`, `backend/.env`, `frontend/.env` | **Không được Git track** (`*.env` trong `.gitignore`) | Chỉ `.env.example` được commit |
 
 ### 4.1 Biến bắt buộc để khởi động (tối thiểu)
 

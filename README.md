@@ -121,7 +121,7 @@ cp .env.example .env
 
 ### 3. Database
 
-MySQL 8.4. Schema & migration qua Flyway (`db/migration/`). Chi tiết: `docs/installation.md`, `docs/DATABASE_SCHEMA.md`.
+MySQL 8.4. Schema & migration qua Flyway (`db/migration/`). Chi tiết: `docs/installation.md`, `docs/guide_db.md`.
 
 ### 4. Backend
 
@@ -129,11 +129,11 @@ MySQL 8.4. Schema & migration qua Flyway (`db/migration/`). Chi tiết: `docs/in
 cd backend
 # Linux / macOS / Git Bash
 ./mvnw clean install
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+./mvnw spring-boot:run
 # Windows PowerShell:
 # .\mvnw.cmd clean install
-# .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
-# Port: 8080 | Swagger: http://localhost:8080/swagger-ui/index.html
+# .\mvnw.cmd spring-boot:run
+# Port: 8080
 ```
 
 > **DB sẵn sàng:** `mysql` có `healthcheck`; backend có `depends_on` + `condition: service_healthy`. Nếu chạy thủ công (không Compose), phải đợi `mysqladmin ping` trước khi `mvn spring-boot:run`.
@@ -213,7 +213,7 @@ cd frontend && npm run test
 
 ## Quy trình phát triển
 
-- Branch: `main` → production; `develop` → staging; `feature/*`, `bugfix/*` cho phát triển.
+- Branch: `main` → production; `develop` → staging; `feature/*`, `fix/*` cho phát triển.
 - Commit convention: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`
 - CI/CD chi tiết: xem `docs/handover/DEPLOYMENT.md` và `docs/deployment-aws-ec2.md`
 
