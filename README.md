@@ -11,7 +11,7 @@
 ### 1. Đối với các quản trị viên của hệ thống
 - Quản lý thông tin và quyền các tổ chức, doanh nghiệp và cơ quan quản lí
 - Quản lý thông tin và quyền các thành viên của từng tổ chức
-- Quản lý các thông tin, dữ liệu nội bộ
+- Quản lý cấu hình hệ thống, danh mục dùng chung (tiêu chuẩn, tiêu chí kiểm nghiệm, mốc canh tác), nhật ký hoạt động và sao lưu/khôi phục
 
 ### 2. Đối với các hợp tác xã
 I. Đối với người quản lí
@@ -41,7 +41,7 @@ II. Đối với thành viên khác
 - ORM: Spring Data JPA (Hibernate 6.x)
 - Database: MySQL 8.4
 - Migration: Flyway 11.x
-- Build: Maven 3.9+ (có `.mvn/wrapper`)
+- Build: Maven 3.9+ (Maven Wrapper nằm ở `backend/`: `backend/mvnw`, `backend/mvnw.cmd`)
 - Logging: SLF4J + Logback
 
 ### Frontend
@@ -88,10 +88,10 @@ nguongocso/
 |------------|---------------------|---------|
 | OS | Windows / Linux / macOS | — |
 | Java | 21 | `backend/Dockerfile`: `eclipse-temurin:21-jdk` |
-| Maven | 3.9.x | Có `.mvn/wrapper` (`./mvnw`, `.\mvnw.cmd`) |
+| Maven | 3.9.x | Wrapper nằm trong `backend/`: `backend/mvnw`, `backend/mvnw.cmd` (Maven 3.9.16) |
 | Node.js | 22.x | `frontend/package.json`: React 19 / Vite 8 |
 | MySQL | 8.4 | `docker-compose.yml`: `mysql:8.4` |
-| Docker (optional) | 24+ / Compose v2 | — |
+| Docker (optional) | 24+ / Compose ≥ 2.24 | `additional_contexts` trong `docker-compose.yml` cần Compose ≥ 2.24 |
 | Git | 2.x | — |
 
 ---
@@ -145,7 +145,8 @@ cd frontend
 npm install
 npm run dev
 # Port: 3000 (khớp vite.config.ts)
-# API base: VITE_API_URL=http://localhost:8080/api/v1 (khớp runtimeConfig.ts)
+# API base (local): VITE_API_BASE_URL=http://localhost:8080/api/v1 (theo frontend/.env.example)
+# runtimeConfig.ts đọc theo thứ tự: VITE_API_BASE_URL → VITE_API_URL → mặc định same-origin "/api/v1"
 ```
 
 ### 6. Docker Compose (toàn bộ)
@@ -158,7 +159,7 @@ docker compose down -v
 
 ### 7. Kiểm tra hệ thống
 
-- Backend: `curl -I http://localhost:8080`
+- Backend: `curl -s http://localhost:8080/actuator/health` → body chứa `"status":"UP"` (endpoint public). Lưu ý: `curl -I http://localhost:8080` trả 401/403 vì mọi route khác yêu cầu JWT.
 - Frontend: `http://localhost:3000` → DevTools → Network → API trả 200/JSON (không CORS / connection refused)
 - Database: `mysql -h localhost -P 3306 -u nguongocso -p` → xem DB `nguon_goc_so`
 
@@ -172,11 +173,11 @@ docker compose down -v
 | `DB_USERNAME` / `DB_PASSWORD` | DB auth | `nguongocso` / (placeholder) |
 | `JWT_SECRET` / `JWT_EXPIRATION` | JWT ký / hạn | (placeholder) / `86400000` |
 | `ALLOWED_ORIGINS` | CORS | `http://localhost:3000` |
-| `VITE_API_URL` | FE → API | `http://localhost:8080/api/v1` |
+| `VITE_API_BASE_URL` (local) / `VITE_API_URL` (root `.env` → Docker) | FE → API | `http://localhost:8080/api/v1` |
 | `UPLOAD_BASE_DIR` / `QR_IMAGE_STORAGE_PATH` | File lưu | `/app/uploads` / `/app/files/qr` |
 | `APP_TIMEZONE` | Múi giờ nghiệp vụ | `Asia/Ho_Chi_Minh` |
 
-Chi tiết đầy đủ tại `docs/configuration.md` và `.env.example`.
+Bảng biến cốt lõi: `docs/configuration.md`; danh sách đầy đủ nhất: `.env.example` (113 dòng).
 
 ---
 
@@ -203,7 +204,7 @@ cd frontend && npm run test
 
 ## Tài liệu liên quan
 
-- Cài đặt / cấu hình: `docs/installation.md`, `docs/configuration.md`, `docs/environment-matrix.md`
+- Cài đặt: `docs/installation.md`; biến môi trường cốt lõi: `docs/configuration.md`; ma trận môi trường: `docs/environment-matrix.md`
 - Vận hành / troubleshoot: `docs/handover/OPERATIONS.md`, `docs/troubleshooting.md`
 - Kiến trúc: `docs/handover/ARCHITECTURE.md`
 - API docs (theo domain): [`docs/api/`](docs/api/)
@@ -213,7 +214,7 @@ cd frontend && npm run test
 
 ## Quy trình phát triển
 
-- Branch: `main` → production; `develop` → staging; `feature/*`, `fix/*` cho phát triển.
+- Branch: `develop` → staging (mọi push); `main` → production **chỉ khi** commit là merge từ `release/vX.Y.Z` hoặc `hotfix/vX.Y.Z` (hoặc chạy `workflow_dispatch` với environment=production — theo `.github/workflows/ci-cd.yml`); `feature/*`, `fix/*` cho phát triển.
 - Commit convention: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`
 - CI/CD chi tiết: xem `docs/handover/DEPLOYMENT.md` và `docs/deployment-aws-ec2.md`
 
@@ -227,7 +228,7 @@ Fork → branch `feature/*` → commit → PR → `develop` → CI → staging v
 
 ## Giấy phép
 
-MIT License.
+MIT License — xem [`LICENSE`](LICENSE).
 
 ---
 

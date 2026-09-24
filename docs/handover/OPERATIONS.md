@@ -254,7 +254,7 @@ trường của container (`MYSQL_DATABASE`, `MYSQL_USER`, ...).
 - Chạy **tự động** mỗi khi backend khởi động. Không cần lệnh riêng.
 - Cấu hình an toàn: `repair-on-migrate=true`, `validate-on-migrate=false`,
   `out-of-order=true` (`application.properties`).
-- Có **58 file migration** (`V1__...` → `V59__...`, V-number có khoảng trống chủ ý).
+- Không hard-code số lượng migration (số file thay đổi theo thời gian); kiểm tra trực tiếp thư mục `db/migration/{schema,data}` hoặc chạy `SELECT COUNT(*) FROM flyway_schema_history;`.
 - Hibernate dùng `ddl-auto=validate` (schema do Flyway quản lý).
 
 ### 7.3 Seed data (khi database mới)
@@ -270,8 +270,13 @@ Các migration `data/` tự chèn dữ liệu khởi tạo:
 | `V18__seed_backup_schedule.sql` | Lịch sao lưu mặc định |
 | `V29/V34/V37/V46/V52` | Nội dung hướng dẫn sử dụng (in-app help) |
 | `V43__seed_administrative_units.sql` | Đơn vị hành chính (phân công địa bàn VT-05) |
-| `V57__seed_role_test_accounts.sql` | 3 tổ chức demo + 5 tài khoản demo theo role |
-| `V58__seed_demo_data_vt02.sql` | Dữ liệu demo VT-02 (15 vùng trồng, 15 lô, chứng nhận, kiểm nghiệm…) |
+| `V57` + `V58` — **chỉ khi profile `staging`** | Tổ chức demo + 5 tài khoản theo role và dữ liệu demo VT-02 (15 vùng trồng, 15 lô, chứng nhận, kiểm nghiệm…) |
+
+> **Lưu ý nguồn file:** `V57__seed_role_test_accounts.sql` và `V58__seed_demo_data_vt02.sql` nằm trong
+> `backend/src/main/resources/db/migration-test/data/` — **không** nằm trong `db/migration/data/`.
+> Chúng chỉ được đưa vào `spring.flyway.locations` khi profile **`staging`**
+> (`application-staging.properties`; CI/CD cũng patch `SPRING_FLYWAY_LOCATIONS` cho môi trường staging).
+> Local mặc định và production **không** seed các file này — local chỉ có tài khoản `admin` (V17).
 
 ### 7.4 Sao lưu & phục hồi (Backup / Restore)
 

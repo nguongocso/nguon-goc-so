@@ -7,19 +7,57 @@
 
 ## 1. Yêu cầu hệ thống
 
-- **MySQL** 8.4 (theo `docker-compose.yml` và `.env.example`)
-- **Port mặc định:** `3306` (theo `DB_PORT=3306`; không phải `3307`)
+- **MySQL** 8.4 (theo `docker-compose.yml` và `.env.example`) — Windows đã có **XAMPP** thì dùng luôn MySQL của XAMPP (xem mục 2.2)
+- **Port mặc định:** `3306` 
 - **Java / Maven / Wrapper:** 21 / 3.9+ (`mvnw.cmd`)
 
 ---
 
-## 2. Tạo database (nếu dùng MySQL ngoài Docker)
+## 2. Tạo database & user (nếu dùng MySQL ngoài Docker)
+
+### 2.1 MySQL cài riêng trên máy
+
+Đăng nhập MySQL bằng quyền `root` (`mysql -u root -p`) rồi chạy:
 
 ```sql
 CREATE DATABASE nguon_goc_so CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'nguongocso'@'localhost' IDENTIFIED BY 'your_password';
+GRANT ALL PRIVILEGES ON nguon_goc_so.* TO 'nguongocso'@'localhost';
+FLUSH PRIVILEGES;
 ```
 
-> Nếu dùng Docker Compose, service `mysql` tự tạo DB từ `MYSQL_DATABASE=${DB_NAME}`.
+- `your_password` phải khớp `DB_PASSWORD` trong `backend/.env`; user `nguongocso` khớp `DB_USERNAME` trong `.env.example`.
+- Kiểm tra: `mysql -u nguongocso -p -e "SELECT 1;"` → không báo lỗi.
+- **Thiếu `CREATE USER` + `GRANT`** sẽ gặp `Access denied for user 'nguongocso'@'localhost'` khi chạy backend.
+
+### 2.2 Windows — dùng MySQL của XAMPP
+
+1. Mở **XAMPP Control Panel** → bấm **Start** ở module **MySQL** (port mặc định `3306`).
+   - Kiểm tra: `netstat -ano | findstr 3306` → có tiến trình đang listen.
+   - Nếu XAMPP đang để port `3307`: đặt `DB_PORT=3307` trong `backend/.env` (lưu ý repo đang mặc định `3306`).
+2. Mở phpMyAdmin tại `http://localhost/phpmyadmin` (user `root`, mặc định **không có mật khẩu** trên XAMPP) → tab **SQL** → chạy toàn bộ đoạn SQL ở mục **2.1**.
+   - Root đã có mật khẩu / muốn đặt mật khẩu: dùng mục **Security** trong XAMPP, hoặc chạy `ALTER USER 'root'@'localhost' IDENTIFIED BY 'mat_khau_moi';`.
+3. Điền `backend/.env`: `DB_HOST=localhost`, `DB_PORT=3306`, `DB_USERNAME=nguongocso`, `DB_PASSWORD=your_password`.
+4. **MySQL của XAMPP phải ở trạng thái Start** trước mỗi lần chạy backend (vừa mở máy thì vào Control Panel bấm Start lại).
+
+> ⚠️ XAMPP thường đi kèm **MariaDB** (tương thích ngược MySQL). Dự án chuẩn hoá trên **MySQL 8.4** (theo `docker-compose.yml`; staging/production dùng RDS MySQL). Nếu Flyway migrate báo lỗi lạ, hãy thử lại với MySQL 8.4 thật (mục 2.1 hoặc 2.3).
+
+### 2.3 (Tuỳ chọn) Chỉ chạy MySQL bằng Docker, backend vẫn chạy source
+
+```powershell
+docker run -d --name ngs-mysql -p 3306:3306 `
+  -e MYSQL_ROOT_PASSWORD=your_root_password `
+  -e MYSQL_DATABASE=nguon_goc_so `
+  -e MYSQL_USER=nguongocso -e MYSQL_PASSWORD=your_password `
+  mysql:8.4
+```
+
+- `backend/.env`: `DB_HOST=localhost` (cổng `3306` đã publish ra máy host).
+- Gỡ khi không dùng: `docker rm -f ngs-mysql`.
+
+### 2.4 Nếu dùng Docker Compose (Flow B)
+
+Không cần thao tác thủ công: service `mysql` tự tạo DB/user từ `MYSQL_DATABASE=${DB_NAME}`, `MYSQL_USER=${DB_USERNAME}`, `MYSQL_PASSWORD=${DB_PASSWORD}` trong **root `.env`** (kèm `MYSQL_ROOT_PASSWORD`), và chỉ start backend sau khi mysql `healthy`.
 
 ---
 
@@ -30,7 +68,7 @@ CREATE DATABASE nguon_goc_so CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 Sử dụng `backend/.env` (tạo từ `backend/.env.example`):
 
 ```env
-DB_HOST=localhost        # hoặc host.docker.internal nếu mysql chạy trong Docker
+DB_HOST=localhost        # MySQL máy / XAMPP / Docker đã -p 3306:3306 → localhost; host.docker.internal chỉ dùng khi backend chạy TRONG container
 DB_PORT=3306
 DB_NAME=nguon_goc_so
 DB_USERNAME=nguongocso
