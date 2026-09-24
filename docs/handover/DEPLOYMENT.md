@@ -18,7 +18,7 @@ Repository định nghĩa **hai môi trường deploy** trong CI/CD & Kubernetes
 | Môi trường | Branch | Kubernetes namespace | Host/URL | NodePort frontend |
 |---|---|---|---|---|
 | **staging** | `develop` | `staging` | `https://staging.agri-trace.online` | `31691` |
-| **production** | chạy thủ công từ release commit | `production` | `https://agri-trace.online` | `31690` |
+| **production** | `main` | `production` | `https://agri-trace.online` | `31690` |
 
 Các hằng số trên nằm trong:
 
@@ -40,7 +40,7 @@ Những yêu cầu thực tế cho từng chế độ deploy:
 | Yêu cầu | Giá trị |
 |---|---|
 | Kho lưu ảnh | **GitHub Container Registry (GHCR)** — `ghcr.io/<owner>/nguongocso-backend` và `…/nguongocso-frontend` |
-| Secrets | `KUBECONFIG_B64` (bắt buộc), `KUBE_NAMESPACE` (tùy chọn; mặc định theo environment); GHCR dùng `GITHUB_TOKEN` |
+| Secrets | `KUBECONFIG_B64` (kubeconfig base64), `KUBE_NAMESPACE` (staging/production), `GHCR_TOKEN` tự động qua `GITHUB_TOKEN` |
 | GitHub Environments | `staging`, `production` (dùng trong job deploy) |
 | Nhân CI | `ubuntu-latest`, JDK 21 (Temurin), Node 22 |
 
@@ -55,8 +55,7 @@ Những yêu cầu thực tế cho từng chế độ deploy:
 ### 2.3 Kubernetes (k3s)
 
 - Cluster k3s (cài theo `docs/deployment-aws-ec2.md` mục 2.3).
-- Ingress-Nginx controller + cert-manager và ClusterIssuer do hạ tầng quản lý
-  (repository không chứa manifest ClusterIssuer).
+- Ingress-Nginx controller + cert-manager (`cluster-issuer.yaml` — Let's Encrypt).
 - Manifest trong `k8s/`: namespace, secrets, configmap, persistent-volumes,
   deployments, services, ingresses.
 
@@ -145,15 +144,14 @@ cd frontend && npm run test            # Vitest
 
 ### 5.2 Tag image (từ CI `ci-cd.yml`)
 
-| Nguồn chạy | Tag thuận tiện |
+| Branch | Tag |
 |---|---|
-| push `develop` | `develop` |
-| chạy thủ công staging | `staging` |
-| chạy thủ công production | `production` |
-| mọi build image | thêm tag `github.sha` (SHA commit, bất biến) |
+| `main` | `latest` |
+| `develop` / khác | `edge` |
+| mọi build | thêm tag `github.sha` (SHA commit) |
 
-> Kubernetes luôn deploy tag `github.sha`. Không dùng tag thuận tiện làm
-> deployment identity.
+> Manifest k8s mặc định tham chiếu `:latest`. CI dùng `sed` thay tag
+> theo `image_tag` output rồi `kubectl apply`.
 
 ### 5.3 Build thủ công
 
@@ -175,9 +173,8 @@ docker compose up -d --build
 ### 6.1 Chạy database
 
 - **Compose:** service `mysql` (mysql:8.4), volume `mysql_data`.
-- **Kubernetes:** workflow không triển khai MySQL; manifest cũ chỉ còn trong
-  `k8s/archived/mysql.yaml`. Staging và production dùng database bên ngoài,
-  khuyến nghị **AWS RDS**.
+- **Kubernetes:** CI có hỗ trợ `k8s/mysql.yaml` nếu tồn tại; file hiện nằm
+  trong `k8s/archived/mysql.yaml`. Production khuyến nghị **AWS RDS**.
 - ConfigMap k8s hiện trỏ RDS: `database-1.ct2w4qggumqo.ap-southeast-2.rds.amazonaws.com`.
 
 ### 6.2 Migration
@@ -195,6 +192,9 @@ dữ liệu demo VT-02 (chi tiết: [DEMO_DATA.md](./DEMO_DATA.md)).
 
 ## 7. Quy trình Release & CI/CD
 
+> Ma trận trigger as-is, sơ đồ luồng, phát hiện chưa kiểm chứng và các đề xuất
+> thay đổi policy được tách riêng tại [`docs/ci-cd-flow.md`](../ci-cd-flow.md).
+
 ### 7.1 Release Flow (Development → Staging → Production)
 
 ```text
@@ -202,43 +202,63 @@ feature/*
     ↓
 Pull Request → develop
     ↓
-CI: backend test + frontend lint/test/build (không deploy)
-    ↓
-Merge/push develop
+CI: backend-test + frontend lint/test/build
     ↓
 Build & Push Docker images (commit-SHA tag, immutable)
     ↓
 Deploy → staging (namespace: staging)
     ↓
-rollout status + smoke test
+Staging verification (TC-01, TC-03, TC-04)
     ↓
 Release Candidate (develop → main via Pull Request)
     ↓
-Chạy workflow thủ công từ main: environment=production + release_version
+main
     ↓
-GitHub Environment production approval
+Git tag v1.0.0 (annotated tag, trỏ đến release commit trên main)
     ↓
-CI + kiểm tra/tạo annotated Git tag
+CI: backend-test + frontend lint/test/build
     ↓
 Build & Push Docker images (commit-SHA tag, immutable)
     ↓
 Deploy → production (namespace: production)
     ↓
-rollout status + smoke test + annotate change-cause + collect evidence
+rollout status + annotate change-cause + collect evidence
     ↓
 Validate traceability consistency (tag→commit→image→K8s)
 ```
 
 ### 7.2 CI/CD Workflow Steps (`.github/workflows/ci-cd.yml`)
 
-Ma trận trigger, sơ đồ luồng, secrets và các cổng kiểm soát được mô tả tại
-[`docs/ci-cd-flow.md`](../ci-cd-flow.md).
-
-- PR vào `develop`/`main`: chỉ CI, không push image và không deploy.
-- Push `develop`: CI, build image, deploy staging và smoke test.
-- `workflow_dispatch(staging)`: CI, build image, deploy staging và smoke test.
-- `workflow_dispatch(production)` từ `main`: bắt buộc SemVer, environment approval, CI,
-  tạo tag, deploy production, smoke test và xác minh traceability.
+```text
+[Push develop/main OR workflow_dispatch(staging|production)]
+        │
+        ▼
+Job backend-test    → ./mvnw clean test -Dgit.commit=${GITHUB_SHA}
+        │
+        ▼
+Job frontend-build  → npm ci + npm run lint + npm test + npm run build
+        │
+        ▼
+Job build-push      → docker login GHCR
+        │             build-args: GIT_COMMIT=${github.sha} + RELEASE_VERSION
+        │             labels: org.opencontainers.image.revision + version
+        │             tags: latest/edge (convenience) + github.sha (immutable)
+        │
+        ▼
+Job deploy          → environment: staging|production
+                      setup kubectl + KUBECONFIG_B64
+                      sed: image tag → github.sha (immutable)
+                      sed: K8s labels (release-version, git-commit)
+                      kubectl apply namespace/secrets/configmap/pv/services/deployments
+                      patch NodePort frontend (31690 prod / 31691 staging)
+                      patch configmap CORS + FRONTEND_URL + DB_NAME
+                      apply ingress (ingress.yaml | ingress-staging.yaml)
+                      kubectl rollout restart + rollout status (timeout 180s)
+                      annotate kubernetes.io/change-cause
+                      [main only] git tag v1.0.0 + git push origin v1.0.0
+                      collect release & deployment evidence (TC-04)
+                      validate traceability consistency (TC-04)
+```
 
 Chạy thủ công:
 
@@ -247,7 +267,7 @@ Chạy thủ công:
 gh workflow run ci-cd.yml -f environment=staging
 
 # Deploy production
-gh workflow run ci-cd.yml -f environment=production -f release_version=1.2.0
+gh workflow run ci-cd.yml -f environment=production
 ```
 
 ---
@@ -317,9 +337,7 @@ Release version theo chuẩn **MAJOR.MINOR.PATCH**:
 
 ### 10.2 Git Tag Creation
 
-Khi chạy production thủ công với `release_version`, workflow kiểm tra rồi tạo
-annotated tag trước khi deploy. Nếu tag đã tồn tại, tag phải trỏ đúng commit của
-workflow; tag khác commit làm workflow thất bại.
+Khi commit release được merge vào `main`, CI tự động tạo annotated tag:
 
 ```bash
 git tag -a v1.0.0 -m "Release v1.0.0"
@@ -337,7 +355,7 @@ git rev-parse HEAD          # → phải khớp với trên
 - Không dùng Git tag làm Docker deployment identity duy nhất.
 - Git tag dùng để nhận diện release.
 - **Commit SHA** là deployment identity (immutable).
-- Không deploy production bằng tag mutable `production`.
+- Không deploy production bằng `latest` hoặc `edge`.
 
 ### 10.3 Traceability Validation (CI)
 
@@ -353,7 +371,7 @@ Git Tag (v1.0.0) → Commit SHA → Docker Image (:sha) → K8s Deployment
 
 ## 11. Rollback Procedure
 
-Rollback dựa trên **commit-SHA/image cụ thể** — không rollback bằng tag mutable.
+Rollback dựa trên **commit-SHA/image cụ thể** — không rollback bằng `latest`.
 
 ### 11.1 Xác định image cần rollback
 
@@ -403,9 +421,9 @@ Production đang chạy: v1.0.1 (commit B, image:...:commit-B)
 | Nguồn | Có triển khai? | Ý nghĩa |
 |---|---|---|
 | Semantic release version (`1.0.0`) | ✅ | `pom.xml` + `package.json` + build-info + OCI labels + K8s labels |
-| Git tag (`v1.0.0`) | ✅ (production thủ công) | Annotated tag trỏ đến release commit |
+| Git tag (`v1.0.0`) | ✅ (trên main) | Annotated tag trỏ đến release commit |
 | Docker image tag `github.sha` | ✅ (GHCR + deploy) | Immutable — K8s deploy dùng đúng tag này |
-| `:develop` / `:staging` / `:production` | ✅ (GHCR) | Chỉ convenience tag; deploy KHÔNG dùng |
+| `:latest` / `:edge` | ✅ (GHCR) | Chỉ convenience tag; deploy KHÔNG dùng |
 | Build-info (`META-INF/build-info.properties`) | ✅ | `build.version=1.0.0`, `build.time`, `build.git.commit` |
 | OCI metadata | ✅ | `org.opencontainers.image.version` + `.revision` |
 | Actuator `/actuator/info` | ✅ (yêu cầu JWT) | Trả build version/time/commit; **không public** |

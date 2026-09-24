@@ -1,120 +1,133 @@
-# Luồng CI/CD
+# Rà soát luồng CI/CD (NCL-943)
 
-Tài liệu này mô tả hành vi chuẩn của `.github/workflows/ci-cd.yml`. Thay đổi trigger,
-điều kiện deploy hoặc tên secret phải cập nhật đồng thời tài liệu này.
+Tài liệu này mô tả nguyên trạng `.github/workflows/ci-cd.yml`, ghi nhận các điểm
+bất hợp lý và tách riêng những thay đổi cần nhóm thống nhất. NCL-943 không mặc
+định thay đổi chính sách release hoặc cấu hình Kubernetes đang vận hành.
 
-## Ma trận kích hoạt
+## Phạm vi và mức độ xác minh
 
-| Sự kiện | CI | Build và push image | Deploy |
+- Nguồn đối chiếu: workflow, manifest và tài liệu trong repository.
+- Pull request chỉ chứng minh được các job CI đã chạy; job deploy bị bỏ qua không
+  phải bằng chứng CD hoạt động.
+- Chưa chạy deploy staging hoặc production trong lần rà soát này.
+- Chưa kiểm tra trực tiếp namespace, secret, ingress, TLS, database hoặc
+  protection rules trên cluster/GitHub Environment.
+- Thay đổi thực thi duy nhất của NCL-943 là bổ sung `npm test` vào frontend CI.
+
+## Ma trận trigger hiện tại
+
+| Sự kiện | CI | Build/push image | Deploy hiện tại |
 |---|---:|---:|---|
-| Pull request vào `develop` hoặc `main` | Có | Không | Không |
-| Push vào `develop` | Có | Có | Tự động lên `staging` |
-| Chạy thủ công, chọn `staging` | Có | Có | `staging` |
-| Chạy thủ công từ `main`, chọn `production` và nhập version | Có | Có | `production`, sau khi được duyệt |
+| Pull request vào `develop`, `main`, `test/cicd` | Có | Không | Không |
+| Push `develop` | Có | Có | Staging |
+| Push `release/**`, `hotfix/**`, `test/cicd` | Có | Có | Staging |
+| Push `main` thông thường | Có | Có | Không |
+| Merge `release/vX.Y.Z` hoặc `hotfix/vX.Y.Z` vào `main` bằng merge commit phù hợp | Có | Có | Production |
+| Chạy thủ công, chọn `staging` | Có | Có | Staging |
+| Chạy thủ công, chọn `production` và nhập version | Có | Có | Production |
 
-Push trực tiếp vào `main`, `release/*`, `hotfix/*` hoặc `test` không tự deploy.
-Production không được suy luận từ commit message và chỉ được chạy từ `main`.
+Workflow hiện không giới hạn manual production ở branch `main` và chưa xác minh
+`release_version` theo SemVer. Nếu chọn production nhưng bỏ trống version, image
+vẫn có thể được build với tag thuận tiện `production` nhưng không có job deploy.
+
+## Luồng hiện tại
 
 ```mermaid
 flowchart TD
-    PR[PR vào develop hoặc main] --> CI[Backend test + frontend lint, test, build]
-    CI --> PRDone[Hoàn tất CI, không push image, không deploy]
+    PR[PR vào develop, main hoặc test/cicd] --> CI[Backend test + frontend lint/test/build]
+    CI --> PRDone[Không build image, không deploy]
 
-    Develop[Push develop] --> CIDev[CI]
-    CIDev --> BuildStaging[Build và push image theo commit SHA]
-    BuildStaging --> Staging[Deploy staging]
-    Staging --> StagingCheck[Rollout + smoke test]
+    Push[Push branch được theo dõi] --> CIPush[CI]
+    CIPush --> Build[Build và push image: mutable tag + commit SHA]
+    Build --> IsMain{Branch main?}
+    IsMain -->|Không| Staging[Deploy staging]
+    IsMain -->|Có| ReleaseCommit{Merge commit từ release/hotfix vX.Y.Z?}
+    ReleaseCommit -->|Không| MainDone[Không deploy]
+    ReleaseCommit -->|Có| ProductionGate[Job environment production]
 
-    Manual[workflow_dispatch] --> Choice{Environment}
-    Choice -->|staging| CIManualStaging[CI + build image]
-    CIManualStaging --> Staging
-    Choice -->|production + SemVer từ main| CIProduction[CI + build image]
-    CIProduction --> Approval[GitHub Environment approval]
-    Approval --> Tag[Kiểm tra và tạo Git tag]
-    Tag --> Production[Deploy production]
-    Production --> ProductionCheck[Rollout + smoke test + traceability]
+    Manual[workflow_dispatch] --> ManualEnv{Environment}
+    ManualEnv -->|staging| Staging
+    ManualEnv -->|production + version| ProductionGate
+
+    Staging --> StagingRollout[Apply + patch + restart + rollout status]
+    ProductionGate --> TagCheck[Kiểm tra tag trùng]
+    TagCheck --> Production[Apply + patch + restart production]
+    Production --> ProductionRollout[Rollout status]
+    ProductionRollout --> Tag[Create/push annotated tag]
+    Tag --> Evidence[Collect evidence + validate traceability]
 ```
 
-## Các cổng kiểm soát
+`environment: production` chỉ tạo cổng duyệt khi required reviewers hoặc
+protection rules đã được cấu hình trên GitHub. Repository không chứng minh được
+cấu hình ngoài mã nguồn này.
 
-1. Backend chạy `./mvnw clean test` với profile `test`.
-2. Frontend chạy `npm ci`, lint, Vitest và build.
-3. Job build chỉ chạy sau khi cả hai phần trên thành công.
-4. Kubernetes luôn deploy image bất biến `:<github.sha>`; các tag `develop`,
-   `staging`, `production` chỉ là tag thuận tiện.
-5. Deploy dừng ngay nếu thiếu `backend-secrets`, `ghcr-secret`, manifest hoặc
-   rollout thất bại. Workflow không áp dụng `k8s/secrets.yaml` để tránh đưa giá
-   trị mẫu trong repository lên cluster.
-6. Sau rollout, workflow kiểm tra `/actuator/health` của backend và trang gốc của
-   frontend qua `kubectl port-forward`.
-7. Production cần protection rule/reviewer cấu hình trên GitHub Environment
-   `production`; workflow không thể tự tạo quy tắc này.
+## Hành vi đã có và được giữ nguyên
 
-## Version và truy vết
-
-- Staging tự động: `0.0.0-staging.<run_number>`.
-- Production: bắt buộc nhập `release_version` đúng `MAJOR.MINOR.PATCH`, ví dụ
-  `1.2.0`.
-- Production tạo annotated tag `v<release_version>`. Tag đã tồn tại chỉ hợp lệ
-  khi trỏ đúng commit đang deploy; workflow không ghi đè tag.
-- OCI labels, Kubernetes labels, Git tag và deployment đều liên kết về cùng
-  `github.sha`.
-
-## Cấu hình bắt buộc
-
-Mỗi GitHub Environment (`staging`, `production`) cần:
-
-| Secret | Nội dung |
+| Hành vi | Trạng thái |
 |---|---|
-| `KUBECONFIG_B64` | Kubeconfig được mã hóa base64 |
-| `KUBE_NAMESPACE` | Không bắt buộc; mặc định là tên environment |
+| PR không build/push image và không deploy | Đã có từ trước |
+| Kubernetes deploy image theo commit SHA | Đã có cho staging và production |
+| Production dùng GitHub Environment | Đã có; required reviewers chưa kiểm chứng |
+| Kiểm tra tag trùng trước production deploy | Đã có |
+| Tạo tag sau rollout production thành công | Đã có |
+| Traceability tag → commit → image → Kubernetes labels | Đã có |
+| Rollback bằng revision hoặc commit-SHA image | Đã có trong tài liệu vận hành |
+| Retry apply service/deployment | Đã có; ingress không dùng retry |
 
-Trong từng namespace của cluster phải có:
+## Thay đổi có bằng chứng trong phạm vi task
 
-- `backend-secrets`: thông tin DB, JWT, SMTP và các secret của backend.
-- `ghcr-secret`: image pull secret cho GHCR.
+Frontend CI nay chạy theo thứ tự:
 
-Cluster phải cài ingress controller và cert-manager/ClusterIssuer từ hạ tầng.
-Repository hiện không quản lý manifest ClusterIssuer.
-
-## Chạy thủ công
-
-```bash
-# Staging
-gh workflow run ci-cd.yml -f environment=staging
-
-# Production
-gh workflow run ci-cd.yml -f environment=production -f release_version=1.2.0
+```text
+npm ci → npm run lint → npm test → npm run build
 ```
 
-Không chạy production để thử workflow. Dùng pull request để kiểm tra CI và chạy
-staging thủ công khi cần xác minh CD.
+Frontend test đã chạy thành công ở local sau khi đồng bộ `develop`. GitHub
+Actions vẫn là bằng chứng cuối cùng cho môi trường CI của pull request.
 
-## Kết quả rà soát local (2026-09-23)
+## Phát hiện chưa sửa trong task này
 
-Các lỗi dưới đây tồn tại trên commit gốc của nhánh và không phát sinh từ thay
-đổi workflow/tài liệu này:
+| ID | Phát hiện từ repository | Rủi ro hoặc phần cần xác minh |
+|---|---|---|
+| F-01 | Workflow gọi `k8s/secret.yaml`, `k8s/pvc.yaml`, `k8s/mysql.yaml`; các đường dẫn này không tồn tại | Lỗi bị che bởi `2>/dev/null || true`; không được đổi sang manifest thật khi chưa kiểm tra cluster/storage |
+| F-02 | Workflow mặc định namespace `nguongocso`, còn `k8s/namespace.yaml` tạo `staging` và `production` | Cần xác nhận giá trị `KUBE_NAMESPACE` thực tế trước khi đổi mặc định |
+| F-03 | Manual production không giới hạn branch và không kiểm tra SemVer | Có thể deploy production từ commit hoặc version ngoài quy ước |
+| F-04 | Production tự động phụ thuộc nội dung merge commit của `release/vX.Y.Z` hoặc `hotfix/vX.Y.Z` | Squash/rebase hoặc thay đổi format commit có thể làm production không chạy |
+| F-05 | `environment: production` không chứng minh đã cấu hình required reviewers | Cần kiểm tra repository Settings → Environments → production |
+| F-06 | Workflow chưa có smoke test ứng dụng sau rollout | `rollout status` chỉ xác nhận Kubernetes rollout, không xác nhận domain/TLS/nghiệp vụ |
+| F-07 | Workflow chưa có concurrency cho deploy | Hai lượt deploy gần nhau có thể chạy chồng lấn |
+| F-08 | Một số lệnh apply ingress/config ban đầu nuốt lỗi | Có thể báo thành công dù tài nguyên phụ trợ không được cập nhật |
 
-- Frontend: 456/463 test đạt; 7 test lỗi (6 timeout và 1 assertion dữ liệu).
-- Backend: lượt chạy bị giới hạn sau 5 phút; 1.267 test đã có báo cáo, trong đó
-  có 5 lỗi H2 do thiếu bảng ở `CodeRangeRepositoryTest` và
-  `ShipmentSplitRelationshipRepositoryTest`.
+## Đề xuất cần nhóm thống nhất trước khi áp dụng
 
-Vì vậy test gate mới sẽ chặn pipeline cho đến khi các lỗi test hiện hữu được xử
-lý. Không được bỏ qua test hoặc thêm `continue-on-error` để ép deploy.
+Các mục sau là backlog cải tiến, không phải trạng thái đã hoàn thành của NCL-943:
 
-## Rollback
+| Đề xuất | Quyết định hoặc bằng chứng cần có |
+|---|---|
+| Thu hẹp trigger còn `develop` và manual dispatch | Thống nhất vai trò `main`, `release/**`, `hotfix/**`, `test/cicd` |
+| Chuyển production sang manual-only | Chốt quy trình release, người vận hành và nhánh được phép chạy |
+| Bắt buộc production chạy từ `main` và version đúng SemVer | Thống nhất convention version/hotfix |
+| Đổi namespace mặc định sang `staging`/`production` | Kiểm tra namespace, secret, database và dữ liệu thật trên cluster |
+| Thay manifest thiếu bằng `persistent-volumes.yaml` hoặc manifest khác | Đánh giá storage class, PV/PVC hiện hữu và khả năng thay đổi dữ liệu |
+| Bỏ `|| true`, kiểm tra secret và fail-fast | Chạy thử staging và chuẩn bị đầy đủ secret/tài nguyên trước |
+| Thêm concurrency/retry ingress | Chạy staging để xác minh hành vi khi có deploy đồng thời/lỗi tạm thời |
+| Thêm smoke test | Chọn rõ port-forward nội bộ hay domain/ingress/TLS và tiêu chí pass |
+| Cấu hình required reviewers cho production | Xác minh GitHub plan, reviewer và chính sách chống self-approval |
+| Đổi thời điểm tạo release tag | Giữ tag sau rollout; nếu thêm smoke test thì quyết định tag sau smoke test |
 
-Xác định revision và image commit-SHA trước khi rollback:
+## Trạng thái sáu subtask
 
-```bash
-kubectl -n production rollout history deployment/backend
-kubectl -n production rollout history deployment/frontend
-kubectl -n production rollout undo deployment/backend
-kubectl -n production rollout undo deployment/frontend
-kubectl -n production rollout status deployment/backend --timeout=180s
-kubectl -n production rollout status deployment/frontend --timeout=180s
-```
+| Subtask | Kết quả rà soát |
+|---|---|
+| NCL-952 — Trigger và branch | Đã lập ma trận as-is; thay đổi policy được tách thành đề xuất |
+| NCL-954 — CI | Đã bổ sung frontend test; cần GitHub Actions xác nhận |
+| NCL-956 — CD staging | Đã rà soát tĩnh; chưa có runtime evidence |
+| NCL-957 — CD production | Đã rà soát tĩnh; chưa có runtime evidence và chưa xác minh approval |
+| NCL-958 — Code so với documentation | Đã ghi nhận điểm khớp, sai lệch và rủi ro chưa sửa |
+| NCL-959 — Vẽ lại luồng | Đã vẽ luồng as-is; đề xuất được tách khỏi sơ đồ hiện tại |
 
-Sau rollback phải chạy lại health check, kiểm tra frontend và ghi nhận SHA image
-đang hoạt động. Không rollback bằng tag mutable như `production`.
+## Điều kiện kết thúc NCL-943
+
+NCL-943 hoàn thành ở mức rà soát khi tài liệu khớp code, các phát hiện có bằng
+chứng và CI của pull request đạt. Staging/production chỉ được đánh dấu đã xác minh
+sau khi có workflow run thực sự chạy job deploy và lưu lại runtime evidence.
