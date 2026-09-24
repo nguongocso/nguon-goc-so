@@ -172,7 +172,7 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
 | Quản lý hợp tác xã | `VT-02` | Cập nhật, khoanh ranh giới vùng trồng | Thuộc tổ chức quản lý vùng trồng (`QTN-01`) |
 | Quản lý tổ chức khác | `VT-02` | Thao tác trên vùng trồng tổ chức khác | **Bị chặn: 403 Forbidden** |
 | Người ghi sự kiện | `VT-03` | Thao tác cập nhật ranh giới | **Bị chặn: 403 Forbidden** |
-| Khách vãng lai / Người tiêu dùng | Công khai | Xem ranh giới trên trang tra cứu tem | Cho phép xem (read-only, `QTN-12`) |
+| Người tiêu dùng | Công khai | Xem ranh giới trên trang tra cứu tem | Cho phép xem (read-only, `QTN-12`) |
 
 ---
 
