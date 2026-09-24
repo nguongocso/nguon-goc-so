@@ -153,4 +153,11 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
     /** Lấy danh sách lô hàng theo danh sách ID lô sản xuất. */
     @Query("SELECT s FROM Shipment s WHERE s.productionLot.id IN :productionLotIds")
     List<Shipment> findByProductionLotIdIn(@Param("productionLotIds") List<UUID> productionLotIds);
+
+    /** Đếm số lượng lô hàng theo tổ chức và trạng thái (TASK-AI-05). */
+    long countByOrganization_OrganizationIdAndStatus(UUID organizationId, ShipmentStatus status);
+
+    /** Đếm số lượng lô hàng theo danh sách tổ chức và trạng thái (TASK-AI-05 & TASK-AI-07). */
+    long countByOrganization_OrganizationIdInAndStatus(Collection<UUID> organizationIds, ShipmentStatus status);
 }
+

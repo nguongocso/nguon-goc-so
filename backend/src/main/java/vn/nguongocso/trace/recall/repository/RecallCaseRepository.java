@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import vn.nguongocso.trace.recall.entity.RecallCase;
 import vn.nguongocso.trace.recall.enums.RecallCaseStatus;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -46,4 +47,11 @@ public interface RecallCaseRepository extends JpaRepository<RecallCase, UUID> {
             """)
     List<RecallCase> findClosedByShipmentId(@Param("shipmentId") UUID shipmentId,
                                             @Param("status") RecallCaseStatus status);
+
+    /** Đếm số lượng vụ việc thu hồi theo tổ chức và trạng thái (TASK-AI-05). */
+    long countByOrganizationIdAndStatus(UUID organizationId, RecallCaseStatus status);
+
+    /** Đếm số lượng vụ việc thu hồi theo danh sách tổ chức và trạng thái (TASK-AI-05 & TASK-AI-07). */
+    long countByOrganizationIdInAndStatus(Collection<UUID> organizationIds, RecallCaseStatus status);
 }
+

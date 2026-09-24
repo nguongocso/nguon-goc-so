@@ -14,6 +14,7 @@ import vn.nguongocso.certification.enums.CertificationVerificationStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -147,4 +148,35 @@ public interface CertificationRepository
                         @Param("reviewedAt") LocalDateTime reviewedAt,
                         @Param("reviewNote") String reviewNote,
                         @Param("rejectionReason") String rejectionReason);
+
+        /** Tìm các chứng nhận sắp hết hiệu lực trong khoảng thời gian của một tổ chức (TASK-AI-05). */
+        @Query("""
+                        SELECT c FROM Certification c
+                        JOIN FETCH c.standard std
+                        WHERE c.organization.organizationId = :organizationId
+                          AND c.expiryDate >= :today
+                          AND c.expiryDate <= :threshold
+                          AND c.verificationStatus != vn.nguongocso.certification.enums.CertificationVerificationStatus.REJECTED
+                        ORDER BY c.expiryDate ASC
+                        """)
+        List<Certification> findExpiringCertifications(
+                        @Param("organizationId") UUID organizationId,
+                        @Param("today") LocalDate today,
+                        @Param("threshold") LocalDate threshold);
+
+        /** Tìm các chứng nhận sắp hết hiệu lực trong khoảng thời gian theo danh sách tổ chức (TASK-AI-05 & TASK-AI-07). */
+        @Query("""
+                        SELECT c FROM Certification c
+                        JOIN FETCH c.standard std
+                        WHERE c.organization.organizationId IN :organizationIds
+                          AND c.expiryDate >= :today
+                          AND c.expiryDate <= :threshold
+                          AND c.verificationStatus != vn.nguongocso.certification.enums.CertificationVerificationStatus.REJECTED
+                        ORDER BY c.expiryDate ASC
+                        """)
+        List<Certification> findExpiringCertificationsByOrgIds(
+                        @Param("organizationIds") Collection<UUID> organizationIds,
+                        @Param("today") LocalDate today,
+                        @Param("threshold") LocalDate threshold);
 }
+
