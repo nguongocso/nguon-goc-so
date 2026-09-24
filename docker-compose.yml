@@ -81,7 +81,7 @@ services:
 
       # Cấu hình AI Assistant (Google Gemini)
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash,gemini-3.6-flash,gemini-1.5-flash,gemini-2.0-flash}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash,gemini-3.6-flash,gemini-3.7-flash,gemini-3.8-flash,gemini-3.5-flash-lite}
 
       # Múi giờ nghiệp vụ (mặc định Asia/Ho_Chi_Minh). Dùng chung cho Clock
       # nghiệp vụ (app.timezone) và múi giờ mặc định của JVM.qw

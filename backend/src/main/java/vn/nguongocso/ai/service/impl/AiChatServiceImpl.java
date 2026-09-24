@@ -103,13 +103,15 @@ public class AiChatServiceImpl implements AiChatService {
                         candidateModel,
                         aiProperties.getApiKey());
 
-                String responseBody = aiRestClient.post()
+                byte[] responseBytes = aiRestClient.post()
                         .uri(requestUrl)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON, MediaType.ALL)
                         .body(requestPayload)
                         .retrieve()
-                        .body(String.class);
+                        .body(byte[].class);
 
+                String responseBody = responseBytes != null ? new String(responseBytes, StandardCharsets.UTF_8) : "";
                 String aiReply = extractTextFromGeminiResponse(responseBody);
                 if (aiReply != null && !aiReply.isBlank()) {
                     log.info("Gọi thành công mô hình Google Gemini: [{}]", candidateModel);
@@ -134,8 +136,13 @@ public class AiChatServiceImpl implements AiChatService {
 
         log.error("Tất cả các mô hình Gemini trong chuỗi fallback đều không thành công. Chi tiết lỗi cuối: {}",
                 lastErrorDetail);
-        return generateErrorFallbackResponse(currentUser,
-                "Dịch vụ AI đang quá tải hoặc gặp lỗi phản hồi từ máy chủ Google.");
+        AiChatResponse fallback = generateLocalFallbackResponse(userMessage, currentUser);
+        String note = "\n\n> *(Lưu ý: Dịch vụ AI đám mây Google đang quá tải tạm thời. Trợ lý cung cấp hướng dẫn nghiệp vụ theo quy trình chuẩn của hệ thống).*";
+        return AiChatResponse.builder()
+                .reply(fallback.getReply() + note)
+                .timestamp(LocalDateTime.now())
+                .suggestedQuestions(fallback.getSuggestedQuestions())
+                .build();
     }
 
     /**
