@@ -30,8 +30,8 @@ import vn.nguongocso.integration.partner.util.PartnerSampleDataProvider;
 import vn.nguongocso.report.dto.response.Gs1DossierExportResponse;
 
 /**
- * Controller xuất hồ sơ theo lược đồ GS1 mô phỏng dành cho bên thứ ba.
-*/
+ * Controller xuất hồ sơ theo lược đồ GS1 mô phỏng dành cho Bên thứ ba (NCL-12-CN-004, NCL-12-CN-003).
+ */
 @RestController
 @RequestMapping("/api/v1/partner/shipments")
 @RequiredArgsConstructor
@@ -87,7 +87,7 @@ public class PartnerShipmentController {
             log.warn("Đối tác '{}' dùng khóa thử nghiệm cố truy cập lô hàng '{}' -> từ chối",
                     partnerApiKey.getPartnerName(), shipmentId);
             throw new BusinessException(HttpStatus.FORBIDDEN,
-                    "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
+                    "Khóa thử nghiệm chỉ được phép truy cập mã lô hàng \"sample-shipment-001\" hoặc mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
         }
 
         UUID parsedShipmentId;

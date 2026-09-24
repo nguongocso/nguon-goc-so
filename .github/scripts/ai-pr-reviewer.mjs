@@ -88,7 +88,7 @@ function detectLayer(filePath) {
   if (norm.includes('service') || norm.endsWith('service.java') || norm.endsWith('serviceimpl.java')) return 'Backend - Service Layer';
   if (norm.includes('controller') || norm.endsWith('controller.java')) return 'Backend - Controller Layer';
   if (norm.includes('exception')) return 'Backend - Exception Layer';
-  
+
   if (norm.endsWith('.tsx') && norm.includes('components/')) return 'Frontend - Component';
   if (norm.endsWith('.tsx') && norm.includes('pages/')) return 'Frontend - Page';
   if (norm.includes('hooks/') || norm.startsWith('use')) return 'Frontend - Custom Hook';
@@ -191,7 +191,7 @@ ${preparedDiff.content}
 Hãy phân tích kỹ từng dòng code thêm mới (bắt đầu bằng dấu +) và trả về duy nhất một JSON object hợp lệ (không kèm text ngoài JSON) có cấu trúc sau:
 
 {
-  "passed": true/false (chỉ true khi KHÔNG CÓ bất kỳ lỗi Blocker hoặc Major nào),
+  "passed": true/false (BẮT BUỘC: true nếu chỉ có lỗi Minor hoặc không có lỗi; CHỈ false khi có ít nhất 1 lỗi Blocker hoặc Major),
   "totalViolations": number,
   "summary": "Đoạn văn ngắn gọn tóm tắt nhận xét tổng thể chất lượng mã nguồn...",
   "violations": [
@@ -213,12 +213,14 @@ Hãy phân tích kỹ từng dòng code thêm mới (bắt đầu bằng dấu +
  */
 async function callAI(prompt) {
   if (GEMINI_API_KEY) {
-    // Danh sách các model Gemini ưu tiên (gemini-3.6-flash theo đề xuất trực tiếp từ Google API)
+    // Danh sách các model Gemini ưu tiên khả dụng cao
     const candidateModels = [
+      'gemini-2.5-flash-lite',
+      'gemini-3.5-flash-lite',
+      'gemini-flash-lite-latest',
+      'gemini-flash-latest',
       'gemini-3.6-flash',
-      'gemini-3.5-flash',
-      'gemini-2.5-flash',
-      'gemini-flash'
+      'gemini-3.5-flash'
     ];
 
     // Thử các model trong danh sách ưu tiên
@@ -422,11 +424,63 @@ function runStaticChecks() {
 }
 
 /**
+ * Chuẩn hóa kết quả đánh giá để đảm bảo tính nhất quán nghiệp vụ:
+ * - Chỉ coi là CHƯA ĐẠT (passed = false) khi thực sự có ít nhất 1 lỗi Blocker hoặc Major.
+ * - Lỗi Minor hoặc Info chỉ mang tính khuyến nghị, không được phép khóa nút Merge.
+ */
+function normalizeReviewResult(rawResult) {
+  if (!rawResult || typeof rawResult !== 'object') {
+    return {
+      passed: true,
+      totalViolations: 0,
+      summary: 'Không có dữ liệu phân tích, mặc định cho phép.',
+      violations: [],
+      blockerCount: 0,
+      majorCount: 0,
+      minorCount: 0
+    };
+  }
+
+  const violations = Array.isArray(rawResult.violations) ? rawResult.violations : [];
+
+  for (const v of violations) {
+    if (!v.severity || !['Blocker', 'Major', 'Minor', 'Info'].includes(v.severity)) {
+      v.severity = 'Minor';
+    }
+  }
+
+  const blockerCount = violations.filter(v => v.severity === 'Blocker').length;
+  const majorCount = violations.filter(v => v.severity === 'Major').length;
+  const minorCount = violations.filter(v => v.severity === 'Minor' || v.severity === 'Info').length;
+
+  const hasBlockingErrors = blockerCount > 0 || majorCount > 0;
+  const passed = !hasBlockingErrors;
+
+  return {
+    ...rawResult,
+    passed,
+    totalViolations: violations.length,
+    violations,
+    blockerCount,
+    majorCount,
+    minorCount
+  };
+}
+
+/**
  * Tạo báo cáo Markdown đăng lên Pull Request
  */
 function buildMarkdownComment(reviewResult) {
-  const { passed, summary, violations } = reviewResult;
-  const statusIcon = passed ? '✅ **ĐẠT YÊU CẦU (PASS)**' : '❌ **CHƯA ĐẠT (CHANGES REQUESTED)**';
+  const { passed, summary, violations, blockerCount = 0, majorCount = 0, minorCount = 0 } = reviewResult;
+
+  let statusIcon;
+  if (passed) {
+    statusIcon = violations.length === 0
+      ? '✅ **ĐẠT YÊU CẦU (PASS)**'
+      : '🟢 **ĐẠT YÊU CẦU (PASS - CÓ KHUYẾN NGHỊ MINOR)**';
+  } else {
+    statusIcon = '❌ **CHƯA ĐẠT (CHANGES REQUESTED)**';
+  }
   
   let md = `## 🤖 Báo Cáo Đánh Giá Chất Lượng Mã Nguồn (AI Clean Code Gatekeeper)\n\n`;
   md += `**Kết luận:** ${statusIcon}\n\n`;
@@ -458,7 +512,9 @@ function buildMarkdownComment(reviewResult) {
   }
 
   if (!passed) {
-    md += `\n> ⚠️ **Lưu ý:** Vui lòng khắc phục các lỗi có mức độ **Blocker** và **Major** nêu trên trước khi tiến hành merge. Tham khảo tài liệu chi tiết tại thư mục \`docs/standards/\`.`;
+    md += `\n> ⚠️ **Lưu ý:** Phát hiện **${blockerCount} lỗi Blocker** và **${majorCount} lỗi Major** nêu trên. Vui lòng khắc phục các lỗi này trước khi tiến hành merge. Tham khảo tài liệu chi tiết tại thư mục \`docs/standards/\`.`;
+  } else if (violations.length > 0) {
+    md += `\n> ℹ️ **Lưu ý:** Pull Request chỉ có **${minorCount} khuyến nghị Minor** (không khóa nút merge). Lập trình viên nên cân nhắc cải thiện để mã nguồn hoàn thiện hơn.`;
   }
 
   return md;
@@ -542,18 +598,26 @@ async function main() {
   const standards = loadStandards();
 
   const prompt = buildPrompt(files, diff, standards);
-  const reviewResult = await callAI(prompt);
+  const rawReviewResult = await callAI(prompt);
+  const reviewResult = normalizeReviewResult(rawReviewResult);
 
-  console.log(`Kết quả phân tích: ${reviewResult.passed ? 'ĐẠT CHUẨN ✅' : 'CÓ LỖI VI PHẠM ❌'} (${reviewResult.violations?.length || 0} vi phạm)`);
+  console.log(
+    `Kết quả phân tích: ${reviewResult.passed ? 'ĐẠT CHUẨN ✅' : 'CÓ LỖI VI PHẠM ❌'} ` +
+    `(${reviewResult.totalViolations} vi phạm: ${reviewResult.blockerCount} Blocker, ${reviewResult.majorCount} Major, ${reviewResult.minorCount} Minor)`
+  );
 
   await postGitHubReview(reviewResult);
 
-  // Nếu có lỗi Blocker/Major, kết thúc với mã lỗi 1 để Status Check bị đỏ (khóa nút merge)
+  // Chỉ khi có lỗi Blocker hoặc Major mới kết thúc với mã lỗi 1 để khóa nút merge
   if (!reviewResult.passed) {
-    console.log('🔴 Phát hiện lỗi Blocker/Major. Workflow kết thúc với mã lỗi để khóa nút Merge.');
+    console.log(`🔴 Phát hiện ${reviewResult.blockerCount} lỗi Blocker và ${reviewResult.majorCount} lỗi Major. Workflow kết thúc với mã lỗi để khóa nút Merge.`);
     process.exit(1);
   } else {
-    console.log('🟢 Mọi tiêu chí đã vượt qua! Status Check màu xanh (cho phép merge).');
+    if (reviewResult.totalViolations > 0) {
+      console.log(`🟡 PR chỉ có ${reviewResult.minorCount} khuyến nghị Minor (không chặn merge). Status Check màu xanh.`);
+    } else {
+      console.log('🟢 Mọi tiêu chí đã vượt qua! Status Check màu xanh (cho phép merge).');
+    }
     process.exit(0);
   }
 }

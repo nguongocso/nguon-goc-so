@@ -11,7 +11,8 @@ import {
 import { Button } from '@/components/ui/button';
 import type { AreaDeviationErrorData } from '@/types/farmArea';
 
-interface Props {
+/** Thuộc tính của hộp thoại xác nhận chênh lệch diện tích. */
+interface AreaDeviationConfirmDialogProps {
   open: boolean;
   data: AreaDeviationErrorData | null;
   onConfirm: () => void;
@@ -19,7 +20,7 @@ interface Props {
   isSubmitting?: boolean;
 }
 
-export const AreaDeviationConfirmDialog: React.FC<Props> = ({
+export const AreaDeviationConfirmDialog: React.FC<AreaDeviationConfirmDialogProps> = ({
   open,
   data,
   onConfirm,
@@ -56,7 +57,7 @@ export const AreaDeviationConfirmDialog: React.FC<Props> = ({
             so với diện tích khai báo ban đầu. Vui lòng đối chiếu số liệu trước khi lưu:
           </p>
 
-          <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-sm dark:border-border dark:bg-muted/30">
+          <div className="grid grid-cols-1 gap-2.5 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-sm sm:grid-cols-2 dark:border-border dark:bg-muted/30">
             <div>
               <span className="text-xs text-muted-foreground">Diện tích khai báo:</span>
               <p className="font-semibold text-slate-900 dark:text-foreground">

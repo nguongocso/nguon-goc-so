@@ -60,7 +60,8 @@ public class PartnerLotService {
         UUID organizationId = partnerApiKey.getOrganization().getOrganizationId();
 
         ProductionLot lot = productionLotRepository.findById(lotId)
-                .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin lô sản xuất"));
+                .orElseThrow(() -> new BusinessException(org.springframework.http.HttpStatus.NOT_FOUND,
+                        "Không tìm thấy lô sản xuất yêu cầu"));
 
         if (!lot.getOrganization().getOrganizationId().equals(organizationId)) {
             log.warn("Bên thứ ba '{}' (orgId={}) cố tình truy cập lô {} thuộc orgId khác={}",

@@ -1,21 +1,20 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-  CheckCircle2,
-  AlertTriangle,
-  LoaderCircle,
-  Package,
-  User,
-  CalendarClock,
-} from 'lucide-react';
+import { AlertTriangle, LoaderCircle, Package, User, CalendarClock } from 'lucide-react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { HelpButton } from '@/components/help/HelpButton';
 import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
+import { WarehouseReceiptQuantityComparison } from './components/WarehouseReceiptQuantityComparison';
 
-const ALLOWED_THRESHOLD = 2.0;
+import {
+  formatWarehouseReceiptDate,
+  formatWarehouseReceiptDateTime,
+} from './warehouseReceiptFormatters';
 
+/** Trang chi tiết sự kiện nhập kho và đối chiếu số lượng khai báo, thực nhận. */
 export default function WarehouseReceiptDetailPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const { detail, isLoadingDetail, error, fetchDetail } = useWarehouseReceipt();
@@ -26,27 +25,6 @@ export default function WarehouseReceiptDetailPage() {
     }
   }, [eventId, fetchDetail]);
 
-  const formatDate = (iso: string) => {
-    try {
-      return new Date(iso).toLocaleDateString('vi-VN', {
-        year: 'numeric', month: '2-digit', day: '2-digit',
-      });
-    } catch {
-      return iso;
-    }
-  };
-
-  const formatDateTime = (iso: string) => {
-    try {
-      const d = new Date(iso);
-      return d.toLocaleDateString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit' })
-        + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return iso;
-    }
-  };
-
-  // Loading state
   if (isLoadingDetail) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -55,7 +33,6 @@ export default function WarehouseReceiptDetailPage() {
     );
   }
 
-  // Error / not found state
   if (error || !detail) {
     return (
       <div className="mx-auto max-w-3xl space-y-6 p-4">
@@ -74,7 +51,6 @@ export default function WarehouseReceiptDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -83,20 +59,23 @@ export default function WarehouseReceiptDetailPage() {
             </h1>
             <Badge
               variant={isExceeded ? 'destructive' : 'outline'}
-              className={isExceeded ? 'rounded-full' : 'rounded-full text-emerald-700 border-emerald-300'}
+              className={
+                isExceeded
+                  ? 'rounded-full'
+                  : 'rounded-full border-emerald-300 text-emerald-700'
+              }
             >
               {isExceeded ? 'Chênh lệch' : 'Khớp'}
             </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {detail.shipmentName || 'Chi tiết sự kiện nhập kho'}
-            {detail.recordedAt ? ` • ${formatDateTime(detail.recordedAt)}` : ''}
+            {detail.recordedAt ? ` • ${formatWarehouseReceiptDateTime(detail.recordedAt)}` : ''}
           </p>
         </div>
         <HelpButton screenKey="warehouse-receipt" />
       </div>
 
-      {/* Section 1 — Thông tin lô hàng */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -120,59 +99,8 @@ export default function WarehouseReceiptDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Section 2 — Đối chiếu số lượng */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            {isExceeded ? (
-              <AlertTriangle className="size-5 text-red-600" />
-            ) : (
-              <CheckCircle2 className="size-5 text-emerald-600" />
-            )}
-            Đối chiếu số lượng
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <div className="rounded-lg bg-blue-50 p-4">
-              <p className="text-xs text-blue-700">Số lượng khai báo</p>
-              <p className="mt-1 text-xl font-bold text-blue-900">
-                {detail.declaredQuantity?.toLocaleString('vi-VN')} kg
-              </p>
-            </div>
-            <div className="rounded-lg bg-emerald-50 p-4">
-              <p className="text-xs text-emerald-700">Số lượng thực nhận</p>
-              <p className="mt-1 text-xl font-bold text-emerald-900">
-                {detail.receivedQuantity?.toLocaleString('vi-VN')} kg
-              </p>
-            </div>
-            <div className={`rounded-lg p-4 ${isExceeded ? 'bg-red-50' : 'bg-gray-50'}`}>
-              <p className={`text-xs ${isExceeded ? 'text-red-700' : 'text-gray-600'}`}>Chênh lệch</p>
-              <p className={`mt-1 text-xl font-bold ${isExceeded ? 'text-red-900' : 'text-gray-900'}`}>
-                {(detail.discrepancy ?? 0) >= 0 ? '+' : ''}
-                {detail.discrepancy?.toLocaleString('vi-VN')} kg
-              </p>
-            </div>
-            <div className={`rounded-lg p-4 ${isExceeded ? 'bg-red-50' : 'bg-gray-50'}`}>
-              <p className={`text-xs ${isExceeded ? 'text-red-700' : 'text-gray-600'}`}>Tỷ lệ chênh lệch</p>
-              <p className={`mt-1 text-xl font-bold ${isExceeded ? 'text-red-900' : 'text-gray-900'}`}>
-                {(detail.discrepancyPercent ?? 0) >= 0 ? '+' : ''}
-                {detail.discrepancyPercent}%
-              </p>
-            </div>
-          </div>
+      <WarehouseReceiptQuantityComparison detail={detail} isExceeded={isExceeded} />
 
-          <div className="mt-4 flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Ngưỡng cho phép:</span>
-            <Badge variant="outline">{ALLOWED_THRESHOLD}%</Badge>
-            <span className="ml-2">
-              {isExceeded ? 'Đã vượt ngưỡng' : 'Trong ngưỡng cho phép'}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Section 3 — Tình trạng hàng (chỉ khi có dữ liệu) */}
       {hasCondition && (
         <Card>
           <CardHeader className="pb-3">
@@ -184,7 +112,6 @@ export default function WarehouseReceiptDetailPage() {
         </Card>
       )}
 
-      {/* Section 4 — Lý do chênh lệch (chỉ khi có dữ liệu) */}
       {hasReason && (
         <Card className={isExceeded ? 'border-red-200' : ''}>
           <CardHeader className="pb-3">
@@ -199,7 +126,6 @@ export default function WarehouseReceiptDetailPage() {
         </Card>
       )}
 
-      {/* Section 5 — Thông tin ghi nhận */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Thông tin ghi nhận</CardTitle>
@@ -219,13 +145,13 @@ export default function WarehouseReceiptDetailPage() {
                 Thời gian ghi nhận
               </p>
               <p className="text-sm font-medium">
-                {detail.recordedAt ? formatDateTime(detail.recordedAt) : '—'}
+                {detail.recordedAt ? formatWarehouseReceiptDateTime(detail.recordedAt) : '—'}
               </p>
             </div>
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Ngày nhập kho</p>
               <p className="text-sm font-medium">
-                {detail.receiptDate ? formatDate(detail.receiptDate) : '—'}
+                {detail.receiptDate ? formatWarehouseReceiptDate(detail.receiptDate) : '—'}
               </p>
             </div>
           </div>

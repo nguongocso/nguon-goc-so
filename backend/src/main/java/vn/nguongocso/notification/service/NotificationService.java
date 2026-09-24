@@ -43,6 +43,9 @@ public interface NotificationService {
     /** Đánh dấu một thông báo là đã đọc. */
     NotificationResponse markAsRead(UUID notificationId);
 
+    /** Đánh dấu tất cả thông báo chưa đọc của người dùng là đã đọc. */
+    int markAllAsRead();
+
     /** Gửi thông báo khi một mã tem bị đánh dấu nghi vấn. */
     void sendSuspectTraceCodeNotification(TraceCode traceCode);
 

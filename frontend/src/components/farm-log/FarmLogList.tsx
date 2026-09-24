@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
+import { toApiError } from "@/api/apiError";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -134,10 +135,9 @@ export function FarmLogList({
         first: response.first,
         last: response.last,
       });
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message ||
-        "Không thể tải lịch sử nhật ký canh tác.";
+    } catch (error: unknown) {
+      // Chuẩn hoá lỗi API để hiển thị và luôn reset trạng thái tải
+      const message = toApiError(error, "Không thể tải lịch sử nhật ký canh tác.").message;
       toast.error(message);
     } finally {
       setIsLoading(false);

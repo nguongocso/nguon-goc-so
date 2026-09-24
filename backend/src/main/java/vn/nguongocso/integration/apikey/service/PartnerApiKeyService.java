@@ -45,17 +45,17 @@ import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 
 /**
- * Service quản lý vòng đời khóa truy cập của bên thứ ba.
-*/
+ * Service quản lý vòng đời khóa truy cập của bên thứ ba (NCL-12-CN-001, NCL-12-CN-004).
+ */
 @Service
 @RequiredArgsConstructor
 public class PartnerApiKeyService {
     private static final Logger log = LoggerFactory.getLogger(PartnerApiKeyService.class);
     private static final String KEY_PREFIX_CONSTANT = "nks_live_";
     private static final String TEST_KEY_PREFIX_CONSTANT = "nks_test_";
-    private static final int MAX_TEST_RATE_LIMIT = 100;
-    private static final int MAX_TEST_EXPIRE_DAYS = 30;
-
+    public static final int DEFAULT_TEST_RATE_LIMIT = 30;
+    private static final int MAX_TEST_RATE_LIMIT = 50;
+    private static final int MAX_TEST_EXPIRE_DAYS = 15;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final PartnerApiKeyRepository partnerApiKeyRepository;
@@ -124,7 +124,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Tạo mới khóa thử nghiệm cho đối tác.
+     * Tạo mới khóa thử nghiệm (Sandbox) cho đối tác (TC-01, TC-04).
      */
     @Transactional
     public PartnerApiKeyResponse createTestApiKey(CreateTestApiKeyRequest request) {
@@ -136,7 +136,7 @@ public class PartnerApiKeyService {
             throw new BusinessException("Tên đối tác hoặc tên khóa thử nghiệm không được để trống");
         }
         if (request.getRateLimitPerHour() == null) {
-            request.setRateLimitPerHour(60);
+            request.setRateLimitPerHour(DEFAULT_TEST_RATE_LIMIT);
         }
         if (request.getExpiresAt() == null) {
             request.setExpiresAt(LocalDateTime.now().plusDays(7));
@@ -147,11 +147,14 @@ public class PartnerApiKeyService {
         }
 
         if (request.getExpiresAt().isAfter(LocalDateTime.now().plusDays(MAX_TEST_EXPIRE_DAYS))) {
-            throw new BusinessException("Thời hạn khóa thử nghiệm không được vượt quá " + MAX_TEST_EXPIRE_DAYS + " ngày");
+            throw new BusinessException(
+                    "Thời hạn khóa thử nghiệm không được vượt quá " + MAX_TEST_EXPIRE_DAYS + " ngày");
         }
 
+        // 3. Ràng buộc hạn mức thấp cho khóa thử nghiệm: tối đa 100 lượt/giờ
         if (request.getRateLimitPerHour() != null && request.getRateLimitPerHour() > MAX_TEST_RATE_LIMIT) {
-            throw new BusinessException("Hạn mức số lượt gọi thử nghiệm không vượt quá " + MAX_TEST_RATE_LIMIT + " lượt/giờ");
+            throw new BusinessException(
+                    "Hạn mức số lượt gọi thử nghiệm không vượt quá " + MAX_TEST_RATE_LIMIT + " lượt/giờ");
         }
 
         Organization organization = organizationRepository.findById(organizationId)
@@ -199,7 +202,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Lấy danh sách khóa truy cập của Hợp tác xã hiện tại.
+     * Lấy danh sách khóa truy cập của Hợp tác xã hiện tại (phân trang).
      */
     @Transactional(readOnly = true)
     public PartnerApiKeyPageResponse getOrganizationApiKeys(PartnerApiKeyStatus status, Pageable pageable) {
@@ -221,7 +224,6 @@ public class PartnerApiKeyService {
      */
     private PartnerApiKeyPageResponse toPageResponse(Page<PartnerApiKey> page) {
         List<PartnerApiKeyResponse> content = page.map(this::mapToResponse).getContent();
-
         List<UUID> keyIds = content.stream().map(PartnerApiKeyResponse::getId).toList();
         Map<UUID, Integer> usedCallsToday = partnerApiKeyUsageService.getDailyCallCounts(keyIds);
         for (PartnerApiKeyResponse item : content) {
@@ -267,7 +269,6 @@ public class PartnerApiKeyService {
         PartnerApiKey updatedKey = partnerApiKeyRepository.save(apiKey);
         log.info("Đã thu hồi khóa truy cập id={}, partnerName={}, orgId={}",
                 apiKeyId, updatedKey.getPartnerName(), organizationId);
-
         try {
             int cancelledCount = partnerWebhookNotificationRepository.cancelPendingNotificationsForApiKey(
                     apiKeyId,
@@ -279,7 +280,6 @@ public class PartnerApiKeyService {
         } catch (Exception e) {
             log.error("Lỗi khi hủy hàng đợi Webhook của khóa apiKeyId={}: {}", apiKeyId, e.getMessage());
         }
-
         publishActivityLog(currentUser, "REVOKE_API_KEY",
                 "Thu hồi khóa truy cập của đối tác '" + updatedKey.getPartnerName()
                         + "' (mã khóa " + updatedKey.getKeyPrefix() + "...)",
@@ -289,7 +289,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Gia hạn khóa truy cập.
+     * Gia hạn khóa truy cập (NCL-12-CN-005).
      */
     @Transactional
     public PartnerApiKeyResponse renewApiKey(UUID apiKeyId, RenewApiKeyRequest request) {
@@ -319,9 +319,7 @@ public class PartnerApiKeyService {
                 apiKeyId, updatedKey.getPartnerName(), organizationId,
                 previousStatus == PartnerApiKeyStatus.EXPIRED ? "EXPIRED" : previousStatus,
                 request.getExpiresAt());
-
         publishLifecycleEvent(updatedKey);
-
         publishActivityLog(currentUser, "RENEW_API_KEY",
                 "Gia hạn khóa truy cập của đối tác '" + updatedKey.getPartnerName()
                         + "' (mã khóa " + updatedKey.getKeyPrefix() + "...), hết hạn mới: "
@@ -332,7 +330,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Nâng hạn mức khóa truy cập.
+     * Nâng hạn mức khóa truy cập (NCL-12-CN-005).
      */
     @Transactional
     public PartnerApiKeyResponse updateApiKeyQuota(UUID apiKeyId, UpdateApiKeyQuotaRequest request) {
@@ -360,7 +358,8 @@ public class PartnerApiKeyService {
         apiKey.setRateLimitPerHour(newRateLimit);
 
         PartnerApiKey updatedKey = partnerApiKeyRepository.save(apiKey);
-        log.info("Đã nâng hạn mức khóa truy cập id={}, partnerName={}, orgId={}, oldLimit={}, incrementBy={}, newLimit={}",
+        log.info(
+                "Đã nâng hạn mức khóa truy cập id={}, partnerName={}, orgId={}, oldLimit={}, incrementBy={}, newLimit={}",
                 apiKeyId, updatedKey.getPartnerName(), organizationId, previousRateLimit,
                 request.getIncrementBy(), newRateLimit);
 
@@ -375,7 +374,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Kiểm tra tính hợp lệ và hạn mức của khóa từ đối tác.
+     * Kiểm tra tính hợp lệ và hạn mức của rawApiKey từ đối tác.
      */
     @Transactional
     public PartnerApiKey validateApiKeyAndCheckRateLimit(String rawApiKey, String clientIp) {
@@ -388,7 +387,8 @@ public class PartnerApiKeyService {
 
         if (apiKeyOpt.isEmpty()) {
             if (rawApiKey.trim().startsWith(TEST_KEY_PREFIX_CONSTANT) || rawApiKey.trim().contains("test")) {
-                throw new BusinessException("Khóa thử nghiệm không đúng. Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa.");
+                throw new BusinessException(
+                        "Khóa thử nghiệm không đúng. Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa.");
             }
             throw new BusinessException("Khóa truy cập không hợp lệ");
         }
@@ -417,11 +417,9 @@ public class PartnerApiKeyService {
 
         AtomicInteger currentCallCount = hourlyRateLimitMap.computeIfAbsent(hourlyKey, k -> new AtomicInteger(0));
         int rateLimit = apiKey.getRateLimitPerHour();
-
         int callsInCurrentHour;
         while (true) {
             int currentCount = currentCallCount.get();
-
             if (currentCount >= rateLimit) {
                 recordCallStats(apiKey, false, 429, clientIp);
                 throw new BusinessException("Khóa truy cập đã vượt quá hạn mức " + rateLimit + " lượt gọi/giờ");
@@ -433,12 +431,12 @@ public class PartnerApiKeyService {
             }
         }
 
+        // 4. Chạm ngưỡng cảnh báo hạn mức (NCL-12-CN-005): QTN-20 là hạn mức THEO GIỜ
         partnerApiKeyUsageService.recordCallAndGetDailyCount(apiKey.getId());
         int warningThreshold = apiKeyQuotaPolicy.warningThreshold(apiKey.getRateLimitPerHour());
         if (warningThreshold > 0 && callsInCurrentHour >= warningThreshold) {
             publishQuotaThresholdEvent(apiKey, callsInCurrentHour, warningThreshold);
         }
-
         recordCallStats(apiKey, true, 200, clientIp);
         return apiKey;
     }
@@ -452,7 +450,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Lấy số lượt gọi trong giờ hiện tại của khóa.
+     * Lấy số lượt gọi THÀNH CÔNG trong giờ hiện tại cho khóa (NCL-12-CN-005, QTN-20).
      */
     public int getCurrentHourCalls(UUID apiKeyId) {
         String hourlyKey = buildHourlyKey(apiKeyId, LocalDateTime.now());
@@ -461,7 +459,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Phát sự kiện vòng đời khóa vừa được cấp hoặc gia hạn.
+     * Phát sự kiện vòng đời khóa vừa được cấp hoặc gia hạn (NCL-12-CN-005).
      */
     private void publishLifecycleEvent(PartnerApiKey key) {
         try {
@@ -478,7 +476,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Phát sự kiện chạm ngưỡng hạn mức.
+     * Phát sự kiện chạm ngưỡng hạn mức. Không bao giờ ném lỗi để tránh chặn request của đối tác.
      */
     private void publishQuotaThresholdEvent(PartnerApiKey apiKey, int usedCalls, int warningThreshold) {
         try {
@@ -527,7 +525,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Chuyển mảng byte sang chuỗi hex.
+     * Chuyển đổi byte array sang định dạng hex string.
      */
     private static String bytesToHex(byte[] bytes) {
         StringBuilder hexString = new StringBuilder();
@@ -542,7 +540,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Ghi nhật ký hoạt động theo convention của hệ thống.
+     * Ghi nhật ký hoạt động theo convention của hệ thống (TASK-27).
      */
     private void publishActivityLog(CustomUserDetails currentUser, String action, String description,
             String entityType, String entityId) {
@@ -561,7 +559,7 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Chuyển đổi entity sang response DTO.
+     * Map PartnerApiKey entity sang PartnerApiKeyResponse DTO.
      */
     private PartnerApiKeyResponse mapToResponse(PartnerApiKey key) {
         PartnerApiKeyStatus status = key.getStatus();

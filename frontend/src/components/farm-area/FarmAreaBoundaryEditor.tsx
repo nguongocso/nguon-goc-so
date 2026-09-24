@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { toApiError } from '@/api/apiError';
 import { getFarmAreaBoundary, updateFarmAreaBoundary } from '@/api/farmAreaApi';
 import type {
   AreaDeviationErrorData,
@@ -31,13 +32,14 @@ import { BoundaryMapEditor } from './BoundaryMapEditor';
 import { BoundaryPastePanel } from './BoundaryPastePanel';
 import { AreaDeviationConfirmDialog } from './AreaDeviationConfirmDialog';
 
-interface Props {
+/** Thuộc tính của trình chỉnh sửa ranh giới vùng trồng. */
+interface FarmAreaBoundaryEditorProps {
   farmArea: FarmArea;
   onSaveSuccess?: (updatedBoundary: FarmAreaBoundaryResponse) => void;
   onDirtyChange?: (isDirty: boolean) => void;
 }
 
-export const FarmAreaBoundaryEditor: React.FC<Props> = ({
+export const FarmAreaBoundaryEditor: React.FC<FarmAreaBoundaryEditorProps> = ({
   farmArea,
   onSaveSuccess,
   onDirtyChange,
@@ -68,9 +70,10 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
         setSavedBoundary(data);
         const initialPoints = data?.points ? [...data.points] : [];
         setDraftPoints(initialPoints);
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (!isMounted) return;
-        const message = error.response?.data?.message || 'Không thể tải ranh giới vùng trồng';
+        // Chuẩn hoá lỗi API để hiển thị và tránh treo trạng thái tải
+        const message = toApiError(error, 'Không thể tải ranh giới vùng trồng').message;
         setLoadError(message);
         toast.error(message);
       } finally {
@@ -222,9 +225,11 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
       setDeviationError(null);
       toast.success('Cập nhật ranh giới vùng trồng thành công!');
       onSaveSuccess?.(res);
-    } catch (error: any) {
-      const status = error.response?.status;
-      const errorData = error.response?.data?.errors as AreaDeviationErrorData | undefined;
+    } catch (error: unknown) {
+      // Đọc mã lỗi nghiệp vụ 409 từ backend để mở hộp thoại xác nhận
+      const apiError = error as { response?: { status?: number; data?: { errors?: AreaDeviationErrorData; message?: string } } };
+      const status = apiError.response?.status;
+      const errorData = apiError.response?.data?.errors;
 
       // Dialog chỉ dùng số liệu chính thức từ lỗi 409 của backend.
       if (status === 409 && errorData?.code === 'AREA_DEVIATION_CONFIRMATION_REQUIRED') {
@@ -233,7 +238,7 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
         return;
       }
 
-      toast.error(error.response?.data?.message || 'Không thể lưu ranh giới vùng trồng');
+      toast.error(toApiError(error, 'Không thể lưu ranh giới vùng trồng').message);
     } finally {
       setIsSaving(false);
     }
@@ -258,7 +263,11 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
           </h2>
           <p className="mt-1 text-sm text-red-700 dark:text-red-400">{loadError}</p>
         </div>
-        <Button type="button" variant="outline" onClick={() => setReloadKey((value) => value + 1)}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setReloadKey((value) => value + 1)}
+        >
           <RefreshCw className="mr-2 size-4" />
           Thử lại
         </Button>

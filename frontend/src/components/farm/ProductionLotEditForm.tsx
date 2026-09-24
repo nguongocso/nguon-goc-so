@@ -1,4 +1,5 @@
 import { getFarmAreas } from "@/api/farmApi";
+import { toApiError } from "@/api/apiError";
 import { getProductCategories } from "@/api/productCategoryApi";
 import {
   getProductionLotById,
@@ -124,9 +125,9 @@ export const ProductionLotEditForm: React.FC = () => {
       });
       toast.success("Cập nhật lô sản xuất thành công");
       navigate("/production-lots");
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message || "Cập nhật thất bại. Vui lòng thử lại.";
+    } catch (error: unknown) {
+      // Chuẩn hoá lỗi API để hiển thị đúng thông điệp backend
+      const message = toApiError(error, "Cập nhật thất bại. Vui lòng thử lại.").message;
       toast.error(message);
     } finally {
       setSubmitting(false);

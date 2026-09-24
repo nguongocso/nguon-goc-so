@@ -16,6 +16,7 @@ import {
   SlidersHorizontal,
   FileCode,
   BookOpen,
+  Info,
 } from 'lucide-react';
 import { Logo } from '@/components/common/Logo';
 import { Button } from '@/components/ui/button';
@@ -474,7 +475,7 @@ export const DataPortalDocsPage: React.FC = () => {
           </div>
 
           {/* Hướng dẫn sử dụng Cổng dữ liệu */}
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 sm:p-5 text-sm space-y-3">
+          <div className="rounded-lg border border-border bg-white dark:bg-card p-4 sm:p-5 text-sm space-y-3 shadow-xs">
             <div className="flex items-center gap-2 font-semibold text-primary">
               <BookOpen className="w-4 h-4" />
               <span>Hướng dẫn sử dụng Cổng dữ liệu Nguồn Gốc Số</span>
@@ -483,7 +484,7 @@ export const DataPortalDocsPage: React.FC = () => {
               Cổng dữ liệu Nguồn Gốc Số cung cấp chuẩn giao diện lập trình ứng dụng (RESTful API) mở, cho phép các bên liên quan (doanh nghiệp thu mua, sàn thương mại điện tử, đơn vị logistics và đối tác quốc tế) tự động tích hợp và truy xuất hồ sơ chuỗi giá trị nông sản theo thời gian thực.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
-              <div className="bg-background/80 rounded-md border border-border p-3 space-y-1">
+              <div className="bg-slate-50/80 dark:bg-muted/40 rounded-md border border-border p-3 space-y-1">
                 <div className="font-semibold text-foreground flex items-center gap-1.5">
                   <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[11px] font-bold">1</span>
                   Lấy Khóa API (API Key)
@@ -492,7 +493,7 @@ export const DataPortalDocsPage: React.FC = () => {
                   Liên hệ Quản trị viên Hợp tác xã (HTX) để được cấp mã khóa tích hợp (khóa thử nghiệm để kiểm thử hoặc khóa chính thức).
                 </p>
               </div>
-              <div className="bg-background/80 rounded-md border border-border p-3 space-y-1">
+              <div className="bg-slate-50/80 dark:bg-muted/40 rounded-md border border-border p-3 space-y-1">
                 <div className="font-semibold text-foreground flex items-center gap-1.5">
                   <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[11px] font-bold">2</span>
                   Cấu hình HTTP Request
@@ -501,7 +502,7 @@ export const DataPortalDocsPage: React.FC = () => {
                   Lựa chọn môi trường Base URL phù hợp và đính kèm khóa vào HTTP Request Header <code className="font-mono text-primary bg-primary/10 px-1 py-0.5 rounded text-[11px]">X-API-KEY: &lt;khóa&gt;</code>.
                 </p>
               </div>
-              <div className="bg-background/80 rounded-md border border-border p-3 space-y-1">
+              <div className="bg-slate-50/80 dark:bg-muted/40 rounded-md border border-border p-3 space-y-1">
                 <div className="font-semibold text-foreground flex items-center gap-1.5">
                   <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[11px] font-bold">3</span>
                   Truy xuất & Nhận Dữ liệu
@@ -566,14 +567,93 @@ export const DataPortalDocsPage: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-1.5 text-xs">
                 <div className="font-mono bg-muted p-2 rounded border border-border font-semibold text-foreground">
-                  Tối đa 100 lượt / giờ
+                  Mặc định 30 lượt / giờ (Khóa thử)
                 </div>
                 <p className="text-muted-foreground">
-                  Nếu vượt quá hạn mức, hệ thống trả về mã lỗi HTTP <code className="font-mono text-destructive">429 Too Many Requests</code>.
+                  Khóa thử nghiệm áp dụng hạn mức thấp (mặc định 30, tối đa 50 lượt/giờ). Vượt quá hạn mức trả về mã lỗi HTTP <code className="font-mono text-destructive">429 Too Many Requests</code>.
                 </p>
               </CardContent>
             </Card>
           </div>
+
+          {/* Quy tắc Tiền tố Khóa & Phạm vi Sandbox */}
+          <Card className="bg-card border-border overflow-hidden">
+            <CardHeader className="bg-muted/30 pb-3">
+              <div className="flex items-center gap-2">
+                <Key className="w-4 h-4 text-primary" />
+                <CardTitle className="text-sm font-semibold">
+                  Quy tắc Tiền tố Khóa &amp; Phạm vi Thử nghiệm
+                </CardTitle>
+              </div>
+              <CardDescription className="text-xs mt-1">
+                Hướng dẫn chi tiết về cấu trúc khóa API và cơ chế cách ly an toàn dành cho đội ngũ kỹ thuật tích hợp.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-5 space-y-4 text-xs sm:text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-3.5 rounded-lg border border-primary/20 bg-primary/5 space-y-2">
+                  <div className="font-semibold text-foreground flex items-center gap-2 text-xs">
+                    <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-primary/20 text-primary border border-primary/30">
+                      nks_test_...
+                    </span>
+                    <span>Khóa Thử Nghiệm</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Được cấp để đội kỹ thuật đối tác kết nối và kiểm thử API. Tự động kích hoạt cơ chế Sandbox, cách ly hoàn toàn khỏi dữ liệu thật.
+                  </p>
+                  <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Hạn mức thấp: <strong>mặc định 30 lượt/giờ</strong> (tối đa 50 lượt/giờ).</li>
+                    <li>Thời hạn ngắn: <strong>tối đa 15 ngày</strong> kể từ thời điểm cấp.</li>
+                    <li>Response luôn có: <code className="font-mono text-primary font-semibold">&quot;is_test&quot;: true</code> và <code className="font-mono text-primary font-semibold">&quot;test_notice&quot;</code>.</li>
+                  </ul>
+                </div>
+
+                <div className="p-3.5 rounded-lg border border-border bg-muted/30 space-y-2">
+                  <div className="font-semibold text-foreground flex items-center gap-2 text-xs">
+                    <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-slate-700 text-slate-200 border border-slate-600">
+                      nks_live_...
+                    </span>
+                    <span>Khóa Chính Thức</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Dành cho hệ thống vận hành chính thức sau khi đối tác hoàn tất kiểm thử tích hợp và được Quản lý Hợp tác xã phê duyệt.
+                  </p>
+                  <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Hạn mức cao: thỏa thuận theo hợp đồng (500 – 5.000 - ... lượt/giờ).</li>
+                    <li>Thời hạn dài: tùy biến theo kỳ hợp tác nông nghiệp.</li>
+                    <li>Truy xuất dữ liệu thực tế của các lô thuộc quyền sở hữu của HTX cấp khóa.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-lg border border-amber-500/20 bg-amber-500/5 space-y-2 text-xs">
+                <div className="font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>Quy định Phạm vi Dữ liệu của Khóa Thử nghiệm</span>
+                </div>
+                <p className="text-muted-foreground leading-relaxed">
+                  Để đảm bảo an toàn và bảo mật thông tin nội bộ của các nông hộ, <strong>Khóa thử nghiệm chỉ được phép truy cập vào các mã dữ liệu mẫu chuẩn hóa sau:</strong>
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 font-mono text-[11px]">
+                  <div className="p-2 bg-background/80 rounded border border-border">
+                    <span className="text-muted-foreground block text-[10px] uppercase font-sans">Lô sản xuất</span>
+                    <strong className="text-primary font-semibold">sample-lot-001</strong>
+                  </div>
+                  <div className="p-2 bg-background/80 rounded border border-border">
+                    <span className="text-muted-foreground block text-[10px] uppercase font-sans">Lô hàng GS1</span>
+                    <strong className="text-primary font-semibold">sample-shipment-001</strong>
+                  </div>
+                  <div className="p-2 bg-background/80 rounded border border-border">
+                    <span className="text-muted-foreground block text-[10px] uppercase font-sans">Tem truy xuất</span>
+                    <strong className="text-primary font-semibold">TEST-TRACE-001</strong>
+                  </div>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed pt-1">
+                  Nếu gọi với bất kỳ mã lô hoặc ID nào khác, hệ thống sẽ từ chối với mã lỗi HTTP <code className="font-mono text-destructive font-semibold">403 Forbidden</code> kèm thông điệp: <em>&quot;Khóa thử nghiệm chỉ được phép truy cập mã lô &apos;sample-lot-001&apos;. Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.&quot;</em>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </section>
 
         {/* Section 2: Danh sách các Endpoints */}
@@ -592,7 +672,7 @@ export const DataPortalDocsPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Code2 className="w-4 h-4 text-primary" />
                   <CardTitle className="text-sm font-semibold">
-                    Ví dụ Gọi Thử nghiệm (Quickstart Code Samples)
+                    Ví dụ Gọi Thử nghiệm
                   </CardTitle>
                 </div>
                 <CardDescription className="text-xs mt-1">
@@ -601,7 +681,13 @@ export const DataPortalDocsPage: React.FC = () => {
               </CardHeader>
 
               {/* Ô nhập API Key thử nghiệm */}
-              <div className="p-4 bg-muted/20 space-y-2 border-t border-border">
+              <div className="p-4 bg-muted/20 space-y-3 border-t border-border">
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 text-blue-900 dark:text-blue-300 text-xs leading-relaxed max-w-xl">
+                  <Info className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+                  <span>
+                    Hãy thay thế khóa <code className="font-mono font-semibold bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded text-[11px] text-blue-800 dark:text-blue-200">&quot;Ví dụ&quot;</code> bằng API Key thử nghiệm hoặc API Key thật do Quản lý HTX hoặc Admin cấp.
+                  </span>
+                </div>
                 <label
                   htmlFor="portal-api-key-input"
                   className="text-xs font-medium text-foreground flex items-center gap-1.5"
@@ -656,6 +742,12 @@ export const DataPortalDocsPage: React.FC = () => {
                 <p className="text-muted-foreground">
                   Cho phép đối tác lấy thông tin cơ bản của lô sản xuất theo mã định danh. Với khóa thử nghiệm.
                 </p>
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 text-blue-900 dark:text-blue-300 text-xs leading-relaxed">
+                  <Info className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+                  <span>
+                    Hãy thay thế <code className="font-mono font-semibold bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded text-[11px] text-blue-800 dark:text-blue-200">{'{lotId}'}</code> bằng mã lô sản xuất bạn muốn truy cập, thay thế khóa <code className="font-mono font-semibold bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded text-[11px] text-blue-800 dark:text-blue-200">&quot;Ví dụ&quot;</code> bằng API Key thử nghiệm hoặc API Key thật do Quản lý HTX hoặc Admin cấp.
+                  </span>
+                </div>
                 {customApiKey.trim() && (
                   <EndpointCodeSnippet
                     endpointPath="/api/publicapi/v1/lots/sample-lot-001"
@@ -689,6 +781,12 @@ export const DataPortalDocsPage: React.FC = () => {
                 <p className="text-muted-foreground">
                   Truy xuất đầy đủ hồ sơ của lô sản xuất bao gồm: thông tin vùng trồng, giống cây trồng, nhật ký canh tác theo mốc, danh sách vật tư nông nghiệp đã sử dụng và kết quả kiểm nghiệm đạt chuẩn.
                 </p>
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 text-blue-900 dark:text-blue-300 text-xs leading-relaxed">
+                  <Info className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+                  <span>
+                    Hãy thay thế <code className="font-mono font-semibold bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded text-[11px] text-blue-800 dark:text-blue-200">{'{lotId}'}</code> bằng mã lô sản xuất bạn muốn truy cập, thay thế khóa <code className="font-mono font-semibold bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded text-[11px] text-blue-800 dark:text-blue-200">&quot;Ví dụ&quot;</code> bằng API Key thử nghiệm hoặc API Key thật do Quản lý HTX hoặc Admin cấp.
+                  </span>
+                </div>
                 {customApiKey.trim() && (
                   <EndpointCodeSnippet
                     endpointPath="/api/v1/partner/production-lots/sample-lot-001/dossier"
@@ -722,9 +820,15 @@ export const DataPortalDocsPage: React.FC = () => {
                 <p className="text-muted-foreground">
                   Xuất dữ liệu theo định dạng JSON-LD tuân thủ tiêu chuẩn GS1 EPCIS 2.0 (Electronic Product Code Information Services).
                 </p>
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 text-blue-900 dark:text-blue-300 text-xs leading-relaxed">
+                  <Info className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+                  <span>
+                    Hãy thay thế <code className="font-mono font-semibold bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded text-[11px] text-blue-800 dark:text-blue-200">{'{shipmentId}'}</code> bằng mã lô hàng bạn muốn truy cập, thay thế khóa <code className="font-mono font-semibold bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded text-[11px] text-blue-800 dark:text-blue-200">&quot;Ví dụ&quot;</code> bằng API Key thử nghiệm hoặc API Key thật do Quản lý HTX hoặc Admin cấp.
+                  </span>
+                </div>
                 {customApiKey.trim() && (
                   <EndpointCodeSnippet
-                    endpointPath="/api/v1/partner/shipments/sample-lot-001/dossier/gs1"
+                    endpointPath="/api/v1/partner/shipments/sample-shipment-001/dossier/gs1"
                     copyId="code-sample-ep3"
                     responseCopyId="json-sample-ep3"
                     sampleResponseJson={SAMPLE_GS1_DOSSIER_JSON}
@@ -777,7 +881,7 @@ export const DataPortalDocsPage: React.FC = () => {
                           <td className="p-2.5 font-mono text-primary font-semibold">shipmentId</td>
                           <td className="p-2.5 font-mono">string / UUID</td>
                           <td className="p-2.5 text-destructive font-semibold">Có</td>
-                          <td className="p-2.5 text-muted-foreground">Mã UUID hoặc chuỗi định danh của lô hàng xuất (Ví dụ: <code className="font-mono text-foreground font-semibold">sample-lot-001</code> / <code className="font-mono text-foreground font-semibold">sample-shipment-001</code> với khóa thử nghiệm)</td>
+                          <td className="p-2.5 text-muted-foreground">Mã UUID hoặc chuỗi định danh của lô hàng xuất (Ví dụ: <code className="font-mono text-foreground font-semibold">sample-shipment-001</code> với khóa thử nghiệm)</td>
                         </tr>
                       </tbody>
                     </table>
@@ -859,13 +963,13 @@ export const DataPortalDocsPage: React.FC = () => {
                       <td className="p-2.5 sm:p-3 font-semibold text-foreground">Bước nghiệp vụ (Công đoạn)</td>
                       <td className="p-2.5 sm:p-3 font-mono text-primary font-semibold">bizStep</td>
                       <td className="p-2.5 sm:p-3 font-mono text-xs">urn:epcglobal:cbv:bizstep:...</td>
-                      <td className="p-2.5 sm:p-3 text-muted-foreground">Thu hoạch (harvesting), Đóng gói (packing), Vận chuyển (shipping)</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Thu hoạch, Đóng gói, Vận chuyển</td>
                     </tr>
                     <tr className="hover:bg-muted/30 transition-colors">
                       <td className="p-2.5 sm:p-3 font-semibold text-foreground">Trạng thái chất lượng</td>
                       <td className="p-2.5 sm:p-3 font-mono text-primary font-semibold">disposition</td>
                       <td className="p-2.5 sm:p-3 font-mono text-xs">urn:epcglobal:cbv:disp:...</td>
-                      <td className="p-2.5 sm:p-3 text-muted-foreground">Đạt chuẩn (active/passed), Đang kiểm nghiệm (in_progress)</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Đạt chuẩn, Đang kiểm nghiệm</td>
                     </tr>
                     <tr className="hover:bg-muted/30 transition-colors">
                       <td className="p-2.5 sm:p-3 font-semibold text-foreground">Thời điểm ghi nhận</td>
@@ -917,14 +1021,44 @@ export const DataPortalDocsPage: React.FC = () => {
                     <tr className="hover:bg-muted/30 transition-colors">
                       <td className="p-2.5 sm:p-3 font-mono font-bold text-rose-600">401</td>
                       <td className="p-2.5 sm:p-3 font-semibold text-foreground">Unauthorized</td>
-                      <td className="p-2.5 sm:p-3 text-muted-foreground">Khóa API không hợp lệ, đã bị thu hồi hoặc đã hết hạn.</td>
-                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;API Key đã hết hạn hoặc không tồn tại&quot;</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Khóa thử nghiệm đã hết hạn hiệu lực (sau tối đa 15 ngày).</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Khóa thử nghiệm đã hết hạn&quot;</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-mono font-bold text-rose-600">401</td>
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Unauthorized</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Khóa truy cập chính thức (Live Key) đã hết thời gian hiệu lực.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Khóa truy cập đã hết thời gian hiệu lực&quot;</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-mono font-bold text-rose-600">401</td>
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Unauthorized</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Khóa API không tồn tại trong hệ thống hoặc không đúng.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Khóa truy cập không hợp lệ&quot; / &quot;Khóa thử nghiệm không đúng. Vui lòng liên hệ...&quot;</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-mono font-bold text-rose-600">401</td>
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Unauthorized</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Khóa API đã bị Quản lý Hợp tác xã thu hồi hiệu lực.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Khóa truy cập đã bị thu hồi và không còn hiệu lực&quot;</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-mono font-bold text-rose-600">401</td>
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Unauthorized</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Request không gửi kèm tiêu đề HTTP xác thực bắt buộc.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Thiếu Header X-API-KEY&quot;</td>
                     </tr>
                     <tr className="hover:bg-muted/30 transition-colors">
                       <td className="p-2.5 sm:p-3 font-mono font-bold text-rose-600">403</td>
                       <td className="p-2.5 sm:p-3 font-semibold text-foreground">Forbidden</td>
-                      <td className="p-2.5 sm:p-3 text-muted-foreground">Khóa API không có quyền truy cập tài nguyên được yêu cầu.</td>
-                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Bạn không có quyền truy cập dữ liệu này&quot;</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Khóa thử nghiệm cố truy cập mã lô hoặc ID ngoài phạm vi dữ liệu mẫu Sandbox.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Khóa thử nghiệm chỉ được phép truy cập mã lô \&quot;sample-lot-001\&quot;. Vui lòng liên hệ...&quot;</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-mono font-bold text-rose-600">403</td>
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Forbidden</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Tài khoản không có quyền hạn Quản lý HTX khi gọi API cấp khóa.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Bạn không có quyền thực hiện thao tác này&quot;</td>
                     </tr>
                     <tr className="hover:bg-muted/30 transition-colors">
                       <td className="p-2.5 sm:p-3 font-mono font-bold text-amber-600">404</td>
@@ -935,8 +1069,8 @@ export const DataPortalDocsPage: React.FC = () => {
                     <tr className="hover:bg-muted/30 transition-colors">
                       <td className="p-2.5 sm:p-3 font-mono font-bold text-purple-600">429</td>
                       <td className="p-2.5 sm:p-3 font-semibold text-foreground">Too Many Requests</td>
-                      <td className="p-2.5 sm:p-3 text-muted-foreground">Vượt quá hạn mức số lượt gọi trong 1 giờ quy định.</td>
-                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Vượt quá hạn mức yêu cầu API&quot;</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Vượt quá hạn mức số lượt gọi trong 1 giờ (mặc định 30 lượt/giờ đối với khóa thử nghiệm - QTN-20).</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Khóa truy cập đã vượt quá hạn mức &#123;limit&#125; lượt gọi/giờ&quot;</td>
                     </tr>
                     <tr className="hover:bg-muted/30 transition-colors">
                       <td className="p-2.5 sm:p-3 font-mono font-bold text-destructive">500</td>

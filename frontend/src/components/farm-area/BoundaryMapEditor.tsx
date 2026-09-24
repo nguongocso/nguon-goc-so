@@ -6,14 +6,15 @@ import { Button } from '@/components/ui/button';
 import type { LatLng } from '@/types/farmArea';
 
 // Khắc phục icon mặc định của Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-interface Props {
+/** Thuộc tính của trình chỉnh sửa bản đồ ranh giới. */
+interface BoundaryMapEditorProps {
   points: LatLng[];
   initialCenter?: { latitude: number; longitude: number };
   onAddPoint: (point: LatLng) => void;
@@ -51,7 +52,7 @@ function createVertexIcon(index: number, isSelected: boolean) {
   });
 }
 
-export const BoundaryMapEditor: React.FC<Props> = ({
+export const BoundaryMapEditor: React.FC<BoundaryMapEditorProps> = ({
   points,
   initialCenter,
   onAddPoint,

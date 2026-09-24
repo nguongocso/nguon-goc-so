@@ -317,7 +317,7 @@ public class NotificationServiceImpl implements NotificationService {
         Page<Notification> page;
 
         if (isRead == null) {
-            page = notificationRepository.findByUser_UserIdOrderByCreatedAtDesc(
+            page = notificationRepository.findByUser_UserIdOrderByIsReadAscCreatedAtDesc(
                     currentUser.getUserId(), pageable);
         } else {
             page = notificationRepository.findByUser_UserIdAndIsReadOrderByCreatedAtDesc(
@@ -378,6 +378,20 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         return toResponse(notification);
+    }
+
+    @Override
+    public int markAllAsRead() {
+        permissionChecker.check(NOTIFICATION_RESOURCE, NOTIFICATION_READ_ACTION);
+
+        CustomUserDetails currentUser = getCurrentUser();
+        int markedReadCount = notificationRepository.markAllAsRead(
+                currentUser.getUserId(),
+                LocalDateTime.now());
+
+        log.info("Đã đánh dấu đã đọc {} thông báo. userId={}", markedReadCount, currentUser.getUserId());
+
+        return markedReadCount;
     }
 
     private CustomUserDetails getCurrentUser() {
