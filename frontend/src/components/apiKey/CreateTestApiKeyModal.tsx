@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createTestApiKey } from '@/api/apiKeyApi';
+import { toApiError } from '@/api/apiError';
 import type { PartnerApiKeyResponse } from '@/types/apiKey';
 
 const testApiKeySchema = z.object({
@@ -99,12 +100,9 @@ export const CreateTestApiKeyModal: React.FC<CreateTestApiKeyModalProps> = ({
       toast.success('Cấp khóa thử nghiệm thành công!');
       onSuccess(createdKey);
       onClose();
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        'Không thể cấp khóa thử nghiệm. Vui lòng kiểm tra lại quyền hạn.';
-      toast.error(message);
+    } catch (error: unknown) {
+      // Chuẩn hoá lỗi API, ưu tiên thông điệp backend để tránh treo UI
+      toast.error(toApiError(error, 'Không thể cấp khóa thử nghiệm. Vui lòng kiểm tra lại quyền hạn.').message);
     } finally {
       setSubmitting(false);
     }

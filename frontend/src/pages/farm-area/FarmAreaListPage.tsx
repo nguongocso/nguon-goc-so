@@ -9,6 +9,7 @@ import { Plus, MapPin, ExternalLink, Pencil, Trash2, Eye, EyeOff } from 'lucide-
 import { HelpButton } from '@/components/help/HelpButton';
 import { toast } from 'sonner';
 import { getFarmAreas, toggleFarmAreaStatus } from '@/api/farmAreaApi';
+import { toApiError } from '@/api/apiError';
 import type { FarmArea } from '@/types/farmArea';
 import { AREA_UNIT_LABELS, convertAreaFromHa } from '@/types/farmArea';
 import { useNavigate } from 'react-router-dom';
@@ -35,7 +36,11 @@ const STATUS_OPTIONS = [
 ];
 
 const FarmAreaListPage: React.FC = () => {
+  // Hooks: điều hướng và quyền tạo vùng trồng
   const navigate = useNavigate();
+  const canCreate = usePermission(ROLE_ACCESS.farmAreaCreate);
+
+  // State: danh sách, tải, tìm kiếm, lọc, phân trang và modals
   const [areas, setAreas] = useState<FarmArea[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,15 +53,15 @@ const FarmAreaListPage: React.FC = () => {
   const [deletingFarmArea, setDeletingFarmArea] = useState<FarmArea | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const canCreate = usePermission(ROLE_ACCESS.farmAreaCreate);
-
+  // Handlers: tải danh sách vùng trồng
   const fetchAreas = async () => {
     try {
       setLoading(true);
       const data = await getFarmAreas();
       setAreas(data);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể tải danh sách vùng trồng');
+    } catch (error: unknown) {
+      // Chuẩn hoá lỗi API và luôn reset trạng thái tải để tránh treo UI
+      toast.error(toApiError(error, 'Không thể tải danh sách vùng trồng').message);
     } finally {
       setLoading(false);
     }
@@ -97,8 +102,8 @@ const FarmAreaListPage: React.FC = () => {
           : `Đã chuyển vùng trồng '${area.name}' sang Ngừng sử dụng`
       );
       fetchAreas();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể đổi trạng thái vùng trồng');
+    } catch (error: unknown) {
+      toast.error(toApiError(error, 'Không thể đổi trạng thái vùng trồng').message);
     } finally {
       setTogglingId(null);
     }

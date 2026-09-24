@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Bell, CheckCircle2, ChevronLeft, ChevronRight, Info, MailWarning, MapPinOff } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { AlertTriangle, Bell, CheckCheck, CheckCircle2, ChevronLeft, ChevronRight, Info, MailWarning, MapPinOff, RefreshCw } from 'lucide-react';
 import { HelpButton } from '@/components/help/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
-import { isApiKeyWarningNotification } from '@/lib/notificationHelpers';
+import { resolveNotificationTarget } from '@/lib/notificationHelpers';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAnyRole, ROLE_ACCESS } from '@/config/roleAccess';
 import type { NotificationResponse, NotificationType } from '@/types/notification';
@@ -24,6 +24,8 @@ const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   ANOMALY_DISMISSED: CheckCircle2,
   ACCOUNT_UNLOCKED: Info,
   ACTIVITY_LOG_EXPORT_READY: CheckCircle2,
+  FARM_LOG_SYNC_SUCCESS: CheckCircle2,
+  FARM_LOG_SYNC_FAILED: RefreshCw,
 };
 
 const TYPE_STYLE: Record<NotificationType, string> = {
@@ -36,6 +38,8 @@ const TYPE_STYLE: Record<NotificationType, string> = {
   ANOMALY_DISMISSED: 'bg-success-bg text-success',
   ACCOUNT_UNLOCKED: 'bg-info-bg text-info',
   ACTIVITY_LOG_EXPORT_READY: 'bg-success-bg text-success',
+  FARM_LOG_SYNC_SUCCESS: 'bg-success-bg text-success',
+  FARM_LOG_SYNC_FAILED: 'bg-warning-bg text-warning',
 };
 
 const formatNotificationReason = (content: string) => {
@@ -65,19 +69,30 @@ const formatDateTime = (iso: string) => {
 const NotificationsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<ReadFilter>('ALL');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialFilter: ReadFilter =
+    searchParams.get('filter') === 'UNREAD' ? 'UNREAD' : searchParams.get('filter') === 'READ' ? 'READ' : 'ALL';
+  const [filter, setFilter] = useState<ReadFilter>(initialFilter);
   const isRead = filter === 'ALL' ? undefined : filter === 'READ';
 
-  const { items, page, totalPages, isLoading, load, markAsRead } = useNotifications({
+  useEffect(() => {
+    const next = searchParams.get('filter');
+    if (next === 'UNREAD' || next === 'READ' || next === 'ALL') {
+      setFilter(next);
+    }
+  }, [searchParams]);
+
+  const { items, page, totalPages, isLoading, load, markAsRead, markAllAsRead } = useNotifications({
     size: 20,
     isRead,
   });
-  const { refresh: refreshUnreadCount } = useUnreadCount();
+  const { unreadCount, refresh: refreshUnreadCount } = useUnreadCount();
+  const [isMarkingAllAsRead, setIsMarkingAllAsRead] = useState(false);
 
   const isMissingEmail = Boolean(
     user &&
     hasAnyRole(user.roleCode, ROLE_ACCESS.userProfile) &&
-    (!user.email || user.email.trim() === ''),
+    (!user.email || user.email.trim() === '')
   );
 
   const emailNoticeKey = user ? `session_read_email_notice_${user.userId}` : '';
@@ -97,10 +112,11 @@ const NotificationsPage = () => {
       (filter === 'UNREAD' && !isEmailNoticeRead) ||
       (filter === 'READ' && isEmailNoticeRead));
 
+  // Cảnh báo thiếu địa bàn hành chính đối với vai trò Quản lý HTX (VT-02)
   const isMissingTerritory = Boolean(
     user &&
     user.roleCode === 'VT-02' &&
-    (!user.organizationProvinceId || !user.organizationCommuneId),
+    (!user.organizationProvinceId || !user.organizationCommuneId)
   );
 
   const territoryNoticeKey = user?.organizationId
@@ -123,26 +139,22 @@ const NotificationsPage = () => {
       (filter === 'READ' && isTerritoryNoticeRead));
 
   const handleItemClick = (notification: NotificationResponse) => {
-    if (isApiKeyWarningNotification(notification)) {
-      if (!notification.isRead) {
-        void markAsRead(notification.id).then(() => refreshUnreadCount());
-      }
-      return;
-    }
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }
-    if (notification.type === 'ACTIVITY_LOG_EXPORT_READY' && notification.entityId) {
-      navigate(`/activity-logs?exportJobId=${notification.entityId}`);
-      return;
+    const target = resolveNotificationTarget(notification);
+    if (target) {
+      navigate(target);
     }
-    if (notification.entityId) {
-      navigate(`/shipment-handovers/${notification.entityId}`);
-      return;
-    }
-    const text = `${notification.title} ${notification.content}`.toLowerCase();
-    if (text.includes('kiểm nghiệm') || text.includes('lô sản xuất')) {
-      navigate('/production-lots');
+  };
+
+  const handleMarkAllAsRead = async () => {
+    setIsMarkingAllAsRead(true);
+    try {
+      await markAllAsRead();
+      await refreshUnreadCount();
+    } finally {
+      setIsMarkingAllAsRead(false);
     }
   };
 
@@ -176,24 +188,42 @@ const NotificationsPage = () => {
         <HelpButton screenKey="notifications" />
       </div>
 
-      <div className="flex gap-2">
-        {(
-          [
-            { value: 'ALL', label: 'Tất cả' },
-            { value: 'UNREAD', label: 'Chưa đọc' },
-            { value: 'READ', label: 'Đã đọc' },
-          ] as const
-        ).map((option) => (
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-2">
+          {(
+            [
+              { value: 'ALL', label: 'Tất cả' },
+              { value: 'UNREAD', label: unreadCount > 0 ? `Chưa đọc (${unreadCount})` : 'Chưa đọc' },
+              { value: 'READ', label: 'Đã đọc' },
+            ] as const
+          ).map((option) => (
+            <Button
+              key={option.value}
+              type="button"
+              size="sm"
+              variant={filter === option.value ? 'default' : 'outline'}
+              onClick={() => {
+                setFilter(option.value);
+                setSearchParams(option.value === 'ALL' ? {} : { filter: option.value });
+              }}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
+        {unreadCount > 0 && (
           <Button
-            key={option.value}
             type="button"
             size="sm"
-            variant={filter === option.value ? 'default' : 'outline'}
-            onClick={() => setFilter(option.value)}
+            variant="outline"
+            onClick={() => void handleMarkAllAsRead()}
+            disabled={isMarkingAllAsRead}
+            title="Đánh dấu tất cả thông báo là đã đọc"
           >
-            {option.label}
+            <CheckCheck className="h-4 w-4" />
+            {isMarkingAllAsRead ? 'Đang xử lý...' : 'Đánh dấu tất cả đã đọc'}
           </Button>
-        ))}
+        )}
       </div>
 
       <Card>

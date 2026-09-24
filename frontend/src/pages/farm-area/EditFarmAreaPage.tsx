@@ -5,6 +5,7 @@ import { FarmAreaBoundaryEditor } from "@/components/farm-area/FarmAreaBoundaryE
 import { HelpButton } from "@/components/help/HelpButton";
 import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 import { getFarmAreaById } from "@/api/farmAreaApi";
+import { toApiError } from "@/api/apiError";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { FarmArea } from "@/types/farmArea";
 import { toast } from "sonner";
@@ -106,8 +107,9 @@ export const EditFarmAreaPage: React.FC = () => {
         setLoading(true);
         const data = await getFarmAreaById(id);
         setFarmArea(data);
-      } catch (error: any) {
-        toast.error(error.response?.data?.message || "Không thể tải thông tin vùng trồng");
+      } catch (error: unknown) {
+        // Chuẩn hoá lỗi API và điều hướng về danh sách để tránh treo UI
+        toast.error(toApiError(error, "Không thể tải thông tin vùng trồng").message);
         navigate("/farm-areas");
       } finally {
         setLoading(false);
@@ -181,7 +183,12 @@ export const EditFarmAreaPage: React.FC = () => {
             onSaveSuccess={() => {
               // Tải lại thông tin vùng trồng khi cần đồng bộ diện tích tính toán
               if (id) {
-                void getFarmAreaById(id).then(setFarmArea);
+                void getFarmAreaById(id)
+                  .then(setFarmArea)
+                  .catch((error: unknown) => {
+                    // Ghi nhận lỗi đồng bộ để tránh treo im lặng
+                    toast.error(toApiError(error, "Không thể đồng bộ thông tin vùng trồng").message);
+                  });
               }
             }}
           />
