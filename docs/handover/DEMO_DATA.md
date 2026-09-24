@@ -10,7 +10,9 @@
 
 ## 1. Nguồn dữ liệu
 
-Toàn bộ dữ liệu demo nằm trong các migration Flyway `data/`:
+Dữ liệu seed chia làm **2 nhóm**:
+
+**a) Dữ liệu nền tảng — `backend/src/main/resources/db/migration/data/`** (luôn được nạp ở mọi môi trường: local, staging, production):
 
 | File | Nội dung |
 |---|---|
@@ -22,8 +24,17 @@ Toàn bộ dữ liệu demo nằm trong các migration Flyway `data/`:
 | `V43__seed_administrative_units.sql` | Đơn vị hành chính (địa bàn cho VT-05) |
 | `V55__seed_standards.sql` | Danh mục tiêu chuẩn chất lượng (VietGAP, GlobalG.A.P., ISO 22000…) |
 | `V56__seed_inspection_criteria.sql` | Danh mục chỉ tiêu kiểm nghiệm (Pb, Cd, E. coli…) |
+
+**b) Dữ liệu demo/test — `backend/src/main/resources/db/migration-test/data/`** (**chỉ nạp khi profile `staging`** — xem `application-staging.properties`):
+
+| File | Nội dung |
+|---|---|
 | `V57__seed_role_test_accounts.sql` | 3 tổ chức demo + 5 tài khoản demo (VT-02…VT-06) |
 | `V58__seed_demo_data_vt02.sql` | Dữ liệu nghiệp vụ demo cho VT-02 (đầy đủ luồng truy xuất) |
+
+> 💡 **Local mặc định chỉ có tài khoản `admin`** (nhóm a). Muốn có đủ tài khoản demo ở local:
+> chạy backend với profile `staging` (`$env:SPRING_PROFILES_ACTIVE = "staging"; .\mvnw.cmd spring-boot:run`)
+> hoặc xem hướng dẫn ở `docs/installation.md` mục B4.
 
 > ⚠️ Lưu ý: dữ liệu demo hiện **seed qua migration**. Việc bổ sung thêm dữ liệu
 > cho buổi bảo vệ nên dùng **API/UI của hệ thống** hoặc file SQL tạm — không tự

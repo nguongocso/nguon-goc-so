@@ -100,7 +100,6 @@ docker-volumes/
 AI_GUIDE.md
 context.md
 .agents/
-npm_member_check.txt
 dev-server.log
 .agent-work/
 
