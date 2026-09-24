@@ -1,3 +1,4 @@
+import axios from 'axios';
 import apiClient from './axiosConfig';
 import type {
   ProfileTemplate,
@@ -294,7 +295,6 @@ export const previewTemplatePdf = async (
     shipmentId?: string;
   }
 ): Promise<Blob> => {
-  console.log('[profileTemplateApi] previewTemplatePdf:', { organizationId, data });
   try {
     const response = await apiClient.post(
       `/organizations/${organizationId}/profile-templates/preview-pdf`,
@@ -305,8 +305,12 @@ export const previewTemplatePdf = async (
       }
     );
     return response.data;
-  } catch (error: any) {
-    if (error.response?.data instanceof Blob && error.response.data.type?.includes('application/json')) {
+  } catch (error: unknown) {
+    if (
+      axios.isAxiosError(error) &&
+      error.response?.data instanceof Blob &&
+      error.response.data.type?.includes('application/json')
+    ) {
       const text = await error.response.data.text();
       let message = text || 'Lỗi khi tạo bản xem trước PDF theo mẫu';
       try {

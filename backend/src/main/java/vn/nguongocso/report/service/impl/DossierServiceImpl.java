@@ -1978,9 +1978,7 @@ public class DossierServiceImpl implements DossierService {
         return shipment;
     }
 
-    /**
-     * Xuất tệp PDF xem trước mẫu hồ sơ truy xuất theo cấu hình trường (sử dụng dữ liệu SHIP-MOCK-2026-DEMO).
-     */
+    /** Xuất tệp PDF xem trước mẫu hồ sơ truy xuất theo cấu hình trường. */
     @Override
     @Transactional(readOnly = true)
     public byte[] exportPreviewPdf(

@@ -76,9 +76,7 @@ public interface DossierService {
         CustomUserDetails currentUser
     );
 
-    /**
-     * Xuất tệp PDF xem trước mẫu hồ sơ truy xuất theo cấu hình trường.
-     */
+    /** Xuất tệp PDF xem trước mẫu hồ sơ truy xuất theo cấu hình trường. */
     byte[] exportPreviewPdf(
         UUID orgId,
         String templateName,
