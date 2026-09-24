@@ -236,6 +236,4 @@ MIT License
 - Trần Văn Nhu — Frontend Developer
 - Lê Xuân Dương — Frontend Developer
 
-> Liên hệ: xem `README.md` gốc hoặc `docs/handover/USER_GUIDE.md`; không đưa email cá nhân vào tài liệu kỹ thuật công khai.
-
 ---
