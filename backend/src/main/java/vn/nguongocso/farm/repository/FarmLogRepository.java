@@ -1,7 +1,9 @@
 package vn.nguongocso.farm.repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -52,6 +54,10 @@ public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
 	@Query("SELECT COUNT(fl) > 0 FROM FarmLog fl " +
 			"WHERE fl.productionLotId.id = :productionLotId")
 	boolean existsByProductionLotId(@Param("productionLotId") UUID productionLotId);
+
+	/** Lấy danh sách ID các lô sản xuất có nhật ký canh tác trong danh sách lô cung cấp. */
+	@Query("SELECT DISTINCT fl.productionLotId.id FROM FarmLog fl WHERE fl.productionLotId.id IN :productionLotIds")
+	Set<UUID> findDistinctProductionLotIdsWithFarmLogsIn(@Param("productionLotIds") Collection<UUID> productionLotIds);
 
 	/** Đếm số nhật ký canh tác của lô sản xuất. */
 	@Query("SELECT COUNT(fl) FROM FarmLog fl WHERE fl.productionLotId.id = :productionLotId")

@@ -288,7 +288,29 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
             }
         }
 
-        List<Shipment> shipments = shipmentRepository.findByProductionLotIdIn(lotIds);
+        List<Shipment> shipments = new ArrayList<>();
+        List<RecallRequest> recallRequests = new ArrayList<>();
+        List<TraceCode> lockedCodes = new ArrayList<>();
+        List<InspectionRequest> failedInspections = new ArrayList<>();
+        List<ChainEvent> harvestEvents = new ArrayList<>();
+        List<ProductFeedback> seriousFeedbacks = new ArrayList<>();
+        List<Alert> expiredAlerts = new ArrayList<>();
+
+        for (List<UUID> chunk : vn.nguongocso.common.util.QueryChunkUtils.chunkList(lotIds)) {
+            shipments.addAll(shipmentRepository.findByProductionLotIdIn(chunk));
+            recallRequests.addAll(recallRequestRepository.findByProductionLotIdInAndStatusIn(
+                chunk, List.of(RecallRequestStatus.PENDING, RecallRequestStatus.APPROVED)));
+            lockedCodes.addAll(traceCodeRepository.findByProductionLotIdsAndStatus(chunk, TraceCodeStatus.LOCKED));
+            failedInspections.addAll(inspectionRequestRepository.findByProductionLotIdInAndStatus(
+                chunk, InspectionRequestStatus.FAILED));
+            harvestEvents.addAll(chainEventRepository.findHarvestEventsByLotIds(chunk));
+            seriousFeedbacks.addAll(productFeedbackRepository.findSeriousOpenFeedbacksByLotIds(
+                chunk,
+                List.of(ProductFeedbackSeverity.QUALITY_SUSPECTED, ProductFeedbackSeverity.COUNTERFEIT_SUSPECTED),
+                ProductFeedbackStatus.CLOSED));
+            expiredAlerts.addAll(alertRepository.findByRelatedEntityIdInAndType(chunk, AlertType.INSPECTION_EXPIRED));
+        }
+
         Map<UUID, List<Shipment>> shipmentsByLot = shipments.stream()
             .collect(Collectors.groupingBy(s -> s.getProductionLot().getId()));
 
@@ -309,8 +331,6 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
             }
         }
 
-        List<RecallRequest> recallRequests = recallRequestRepository.findByProductionLotIdInAndStatusIn(
-            lotIds, List.of(RecallRequestStatus.PENDING, RecallRequestStatus.APPROVED));
         for (RecallRequest rr : recallRequests) {
             UUID lId = rr.getProductionLot().getId();
             LocalDateTime trigAt = rr.getApprovedAt() != null ? rr.getApprovedAt() : rr.getRequestedAt();
@@ -321,7 +341,6 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
                 trigAt, note, badgesByLot, alertTypesByLot, latestTriggeredByLot);
         }
 
-        List<TraceCode> lockedCodes = traceCodeRepository.findByProductionLotIdsAndStatus(lotIds, TraceCodeStatus.LOCKED);
         Map<UUID, List<TraceCode>> lockedCodesByLot = lockedCodes.stream()
             .collect(Collectors.groupingBy(tc -> tc.getShipment().getProductionLot().getId()));
         for (Map.Entry<UUID, List<TraceCode>> entry : lockedCodesByLot.entrySet()) {
@@ -337,8 +356,6 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
                 badgesByLot, alertTypesByLot, latestTriggeredByLot);
         }
 
-        List<InspectionRequest> failedInspections = inspectionRequestRepository.findByProductionLotIdInAndStatus(
-            lotIds, InspectionRequestStatus.FAILED);
         for (InspectionRequest ir : failedInspections) {
             UUID lId = ir.getProductionLot().getId();
             LocalDateTime trigAt = ir.getUpdatedAt() != null ? ir.getUpdatedAt() : ir.getCreatedAt();
@@ -347,7 +364,6 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
                 badgesByLot, alertTypesByLot, latestTriggeredByLot);
         }
 
-        List<ChainEvent> harvestEvents = chainEventRepository.findHarvestEventsByLotIds(lotIds);
         for (ChainEvent ce : harvestEvents) {
             if (isEarlyHarvestEvent(ce)) {
                 UUID lId = extractLotIdFromEvent(ce);
@@ -360,10 +376,6 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
             }
         }
 
-        List<ProductFeedback> seriousFeedbacks = productFeedbackRepository.findSeriousOpenFeedbacksByLotIds(
-            lotIds,
-            List.of(ProductFeedbackSeverity.QUALITY_SUSPECTED, ProductFeedbackSeverity.COUNTERFEIT_SUSPECTED),
-            ProductFeedbackStatus.CLOSED);
         for (ProductFeedback pf : seriousFeedbacks) {
             UUID lId = pf.getProductionLot().getId();
             LocalDateTime trigAt = pf.getCreatedAt();
@@ -372,7 +384,6 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
                 trigAt, note, badgesByLot, alertTypesByLot, latestTriggeredByLot);
         }
 
-        List<Alert> expiredAlerts = alertRepository.findByRelatedEntityIdInAndType(lotIds, AlertType.INSPECTION_EXPIRED);
         for (Alert al : expiredAlerts) {
             UUID lId = al.getRelatedEntityId();
             LocalDateTime trigAt = al.getCreatedAt();

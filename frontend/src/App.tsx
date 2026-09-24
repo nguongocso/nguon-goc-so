@@ -2,6 +2,7 @@ import { Component, type ReactNode } from 'react';
 import AppRoutes from './routes/AppRoutes';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppToaster } from '@/components/ui/toast';
+import { AiChatWidget } from '@/components/ai/AiChatWidget';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -59,6 +60,7 @@ function App() {
       <AuthProvider>
         <AppRoutes />
         <AppToaster />
+        <AiChatWidget />
       </AuthProvider>
     </ErrorBoundary>
   );

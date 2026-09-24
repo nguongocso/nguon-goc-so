@@ -177,16 +177,24 @@ public class AiChatServiceImpl implements AiChatService {
                         candidateModel,
                         aiProperties.getApiKey());
 
+<<<<<<< HEAD
                 long startTime = System.currentTimeMillis();
                 String responseBody = aiRestClient.post()
+=======
+                byte[] responseBytes = aiRestClient.post()
+>>>>>>> 65526668c5c81b32661c3acd3d273ce3f9dcf31e
                         .uri(requestUrl)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON, MediaType.ALL)
                         .body(requestPayload)
                         .retrieve()
-                        .body(String.class);
+                        .body(byte[].class);
 
+<<<<<<< HEAD
                 long durationMs = System.currentTimeMillis() - startTime;
+=======
+                String responseBody = responseBytes != null ? new String(responseBytes, StandardCharsets.UTF_8) : "";
+>>>>>>> 65526668c5c81b32661c3acd3d273ce3f9dcf31e
                 String aiReply = extractTextFromGeminiResponse(responseBody);
                 if (aiReply != null && !aiReply.isBlank()) {
                     log.info("Gọi thành công mô hình Google Gemini [{}] sau {}ms", candidateModel, durationMs);
@@ -211,8 +219,7 @@ public class AiChatServiceImpl implements AiChatService {
 
         log.error("Tất cả các mô hình Gemini trong chuỗi fallback đều không thành công. Chi tiết lỗi cuối: {}",
                 lastErrorDetail);
-        return generateErrorFallbackResponse(currentUser,
-                "Dịch vụ AI đang quá tải hoặc gặp lỗi phản hồi từ máy chủ Google.");
+        return generateLocalFallbackResponse(userMessage, currentUser);
     }
 
     /**
@@ -603,8 +610,7 @@ public class AiChatServiceImpl implements AiChatService {
                     + "2. **Bước 2:** Nhấn nút **Tạo lô sản xuất mới** ở góc trên bên phải.\n"
                     + "3. **Bước 3:** Chọn **Vùng trồng**, **Loại giống cây**, nhập diện tích, ngày bắt đầu mùa vụ và ngày dự kiến thu hoạch.\n"
                     + "4. **Bước 4:** Bấm **Lưu** để hệ thống tạo lô ở trạng thái **Nháp (DRAFT)**.\n"
-                    + "5. **Bước 5:** Quản lý HTX phê duyệt lô chuyển sang trạng thái **Đã duyệt (APPROVED)**. Khi đó, người ghi sự kiện (VT-03) mới bắt đầu được ghi Nhật ký canh tác (Farm Log).\n\n"
-                    + "> *Lưu ý: Hệ thống hiện đang chạy ở chế độ cục bộ (chưa nạp API Key Google Gemini thực tế). Trợ lý phản hồi theo quy trình chuẩn.*";
+                    + "5. **Bước 5:** Quản lý HTX phê duyệt lô chuyển sang trạng thái **Đã duyệt (APPROVED)**. Khi đó, người ghi sự kiện (VT-03) mới bắt đầu được ghi Nhật ký canh tác (Farm Log).\n\n";
         } else if (lowerMsg.contains("nhật ký") || lowerMsg.contains("canh tác") || lowerMsg.contains("bón phân")
                 || lowerMsg.contains("thuốc")) {
             content = greeting + "\n\n**Quy trình ghi Nhật ký canh tác chuẩn VietGAP:**\n"
@@ -612,27 +618,31 @@ public class AiChatServiceImpl implements AiChatService {
                     + "2. Nhấn **Thêm nhật ký canh tác**.\n"
                     + "3. Chọn loại hoạt động (Gieo giống, Bón phân, Phun thuốc BVTV, Tưới nước, Thu hoạch).\n"
                     + "4. Điền cụ thể tên vật tư, liều lượng sử dụng và thời gian cách ly (PHI) bắt buộc.\n"
-                    + "5. Đính kèm hình ảnh bao bì vật tư hoặc hiện trường để phục vụ kiểm tra thẩm định.\n\n"
-                    + "> *Lưu ý: Hệ thống hiện đang chạy ở chế độ cục bộ (chưa nạp API Key Google Gemini thực tế).*";
+                    + "5. Đính kèm hình ảnh bao bì vật tư hoặc hiện trường để phục vụ kiểm tra thẩm định.\n\n";
         } else if (lowerMsg.contains("bàn giao") || lowerMsg.contains("thu mua") || lowerMsg.contains("vận chuyển")) {
             content = greeting + "\n\n**Quy trình Bàn giao Lô hàng cho Doanh nghiệp Thu mua:**\n"
                     + "1. Quản lý HTX tạo **Phiếu bàn giao** từ các Lô sản xuất đã thu hoạch đạt chuẩn.\n"
                     + "2. Hệ thống sinh mã QR bàn giao điện tử duy nhất.\n"
                     + "3. Doanh nghiệp thu mua dùng ứng dụng quét mã QR để kiểm tra thực tế và xác nhận ký nhận bàn giao điện tử.\n"
-                    + "4. Dữ liệu bàn giao được lưu vết bất biến trên chuỗi sự kiện hành trình (Chain of Custody).\n\n"
-                    + "> *Lưu ý: Hệ thống hiện đang chạy ở chế độ cục bộ (chưa nạp API Key Google Gemini thực tế).*";
+                    + "4. Dữ liệu bàn giao được lưu vết bất biến trên chuỗi sự kiện hành trình (Chain of Custody).\n\n";
         } else {
             content = greeting + "\n\nTôi là **Trợ lý AI Nguồn Gốc Số**, sẵn sàng hỗ trợ bạn về:\n"
                     + "- **Quy trình canh tác & ghi nhật ký** theo chuẩn VietGAP/GlobalGAP.\n"
                     + "- **Quản lý lô sản xuất, tạo biên bản bàn giao** thu mua.\n"
                     + "- **Quét mã QR truy xuất nguồn gốc** và xử lý cảnh báo bất thường.\n"
                     + "- **Quản lý chứng nhận chất lượng** và tích hợp cổng dữ liệu đối tác.\n\n"
-                    + "Bạn có thể nhập câu hỏi chi tiết hơn hoặc chọn các gợi ý bên dưới để được hướng dẫn cụ thể!\n\n"
-                    + "> *(Thông báo: Hệ thống đang chạy chế độ phát triển nội bộ. Khi cấu hình biến GEMINI_API_KEY, AI sẽ kích hoạt mô hình ngôn ngữ lớn để trả lời linh hoạt mọi câu hỏi).*";
+                    + "Bạn có thể nhập câu hỏi chi tiết hơn hoặc chọn các gợi ý bên dưới để được hướng dẫn cụ thể!\n\n";
+        }
+
+        String note;
+        if (aiProperties.getApiKey() == null || aiProperties.getApiKey().isBlank()) {
+            note = "> *(Lưu ý: Hệ thống đang chạy ở chế độ tri thức cục bộ do chưa nạp biến GEMINI_API_KEY. Trợ lý phản hồi theo quy trình chuẩn).*";
+        } else {
+            note = "> *(Lưu ý: Dịch vụ AI đám mây Google đang quá tải tạm thời. Trợ lý tự động kích hoạt bộ tri thức chuẩn của hệ thống để hỗ trợ bạn kịp thời).*";
         }
 
         return AiChatResponse.builder()
-                .reply(content)
+                .reply(content + note)
                 .timestamp(LocalDateTime.now())
                 .suggestedQuestions(extractOrGenerateFollowUpQuestions(currentUser))
                 .build();

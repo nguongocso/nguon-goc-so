@@ -25,7 +25,11 @@ public class AiProperties {
     /**
      * Chuỗi danh sách mô hình ngôn ngữ ưu tiên (phân cách bằng dấu phẩy).
      */
+<<<<<<< HEAD
     private String model = "gemini-3-flash-preview,gemini-3.5-flash";
+=======
+    private String model = "gemini-3.5-flash,gemini-3.6-flash,gemini-3.7-flash,gemini-3.8-flash,gemini-3.5-flash-lite";
+>>>>>>> 65526668c5c81b32661c3acd3d273ce3f9dcf31e
 
     /**
      * Địa chỉ cơ sở của API Google Gemini.
@@ -49,7 +53,11 @@ public class AiProperties {
      */
     public List<String> getModelList() {
         if (model == null || model.isBlank()) {
+<<<<<<< HEAD
             return List.of("gemini-3-flash-preview", "gemini-3.5-flash");
+=======
+            return List.of("gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash");
+>>>>>>> 65526668c5c81b32661c3acd3d273ce3f9dcf31e
         }
         return Arrays.stream(model.split(","))
                 .map(String::trim)
