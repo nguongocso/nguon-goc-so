@@ -1,6 +1,8 @@
 import type { ChainVerificationResponse } from '@/types/eventChainVerification';
+
 import apiClient from './axiosConfig';
 
+/** Xác thực tính toàn vẹn chuỗi sự kiện của lô hàng. */
 export const verifyChainIntegrity = async (
   shipmentId: string
 ): Promise<ChainVerificationResponse> => {

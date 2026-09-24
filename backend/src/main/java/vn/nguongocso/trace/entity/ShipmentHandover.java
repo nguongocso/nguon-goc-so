@@ -25,9 +25,7 @@ import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 
-/**
- * Thực thể đại diện cho một phiếu bàn giao lô hàng.
- */
+/** Thực thể đại diện cho một phiếu bàn giao lô hàng. */
 @Entity
 @Table(name = "shipment_handovers")
 @Getter
@@ -36,7 +34,6 @@ import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 @AllArgsConstructor
 @Builder
 public class ShipmentHandover {
-
     @Id
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "id", nullable = false, updatable = false)

@@ -50,7 +50,6 @@ import vn.nguongocso.alert.service.ActivityLogService;
 @RequestMapping("/api/v1/organizations/activity-logs")
 @RequiredArgsConstructor
 public class ActivityLogController {
-
     private final ActivityLogService activityLogService;
     private final ActivityLogExportService activityLogExportService;
 
@@ -64,12 +63,8 @@ public class ActivityLogController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String action,
             @RequestParam(required = false) String actorName,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate startDate,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate endDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) String objectType,
             @AuthenticationPrincipal CustomUserDetails currentUser,
             HttpServletRequest request) {

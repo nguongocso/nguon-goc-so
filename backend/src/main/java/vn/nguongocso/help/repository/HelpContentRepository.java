@@ -9,14 +9,17 @@ import org.springframework.stereotype.Repository;
 import vn.nguongocso.help.entity.HelpContent;
 
 /**
- * Repository quản lý nội dung hướng dẫn sử dụng (NCL-01-CN-006).
+ * Repository quản lý nội dung hướng dẫn sử dụng.
  */
 @Repository
 public interface HelpContentRepository extends JpaRepository<HelpContent, UUID> {
-
-    /** Lấy nội dung hướng dẫn khớp màn hình + vai trò cụ thể. */
+    /*
+    /** Tìm nội dung hướng dẫn theo màn hình và mã vai trò (sắp xếp theo số thứ tự).
+     */
     List<HelpContent> findByScreenKeyAndRoleCodeOrderBySortOrderAsc(String screenKey, String roleCode);
 
-    /** Lấy tất cả nội dung hướng dẫn của một màn hình (dự phòng tổng quát). */
+    /*
+     * Tìm nội dung hướng dẫn theo màn hình (sắp xếp theo số thứ tự).
+     */
     List<HelpContent> findByScreenKeyOrderBySortOrderAsc(String screenKey);
 }

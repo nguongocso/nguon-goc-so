@@ -1,16 +1,16 @@
 package vn.nguongocso.farm.dto.response;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
 /**
- * DTO phản hồi thông tin lô sản xuất.
- */
+ * Thông tin lô sản xuất.
+*/
 @Getter
 @Setter
 @Builder

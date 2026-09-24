@@ -1,14 +1,10 @@
 package vn.nguongocso.farm.util;
 
 /**
- * Exception xảy ra trong quá trình đọc tệp nhập.
- */
+ * Ngoại lệ khi đọc tệp nhập lô sản xuất.
+*/
 public class ProductionLotImportException extends RuntimeException {
-    /**
-     * Tạo một ProductionLotImportException với thông điệp lỗi.
-     *
-     * @param message thông điệp lỗi
-     */
+    /** Khởi tạo ngoại lệ nhập lô sản xuất. */
     public ProductionLotImportException(String message) {
         super(message);
     }

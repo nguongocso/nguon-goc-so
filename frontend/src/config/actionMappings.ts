@@ -1,23 +1,24 @@
+/** Nhãn tiếng Việt tương ứng cho từng mã hành động nghiệp vụ. */
 export const ACTION_LABELS: Record<string, string> = {
-  // Basic CRUD
+  // Thao tác dữ liệu cơ bản
   CREATE: 'Tạo mới',
   UPDATE: 'Cập nhật',
   DELETE: 'Xóa',
   READ: 'Xem',
 
-  // Approval
+  // Phê duyệt
   APPROVE: 'Phê duyệt',
   REJECT: 'Từ chối',
   SUBMIT: 'Gửi duyệt',
   SUBMIT_PRODUCTION_LOT_FOR_APPROVAL: 'Gửi duyệt lô sản xuất',
 
-  // Events
+  // Sự kiện chuỗi
   RECORD_HARVEST_EVENT: 'Ghi sự kiện thu hoạch',
   RECORD_PACKAGING_EVENT: 'Ghi sự kiện đóng gói',
   RECORD_TRANSPORT_EVENT: 'Ghi sự kiện vận chuyển',
   CORRECT_PACKAGING_EVENT: 'Đính chính đóng gói',
 
-  // Shipment
+  // Lô hàng & Mã tem
   ACTIVATE: 'Kích hoạt',
   RECALL: 'Thu hồi',
   RECALL_SHIPMENT: 'Thu hồi lô hàng',
@@ -25,21 +26,22 @@ export const ACTION_LABELS: Record<string, string> = {
   LOCK_TRACE_CODE: 'Khóa mã tem',
   UNLOCK_TRACE_CODE: 'Mở khóa mã tem',
 
-  // Authentication
+  // Xác thực
   LOGIN: 'Đăng nhập',
   LOGOUT: 'Đăng xuất',
 
-  // Production Lot
+  // Lô sản xuất
   APPROVE_PRODUCTION_LOT: 'Phê duyệt lô sản xuất',
   SUBMIT_PRODUCTION_LOT: 'Gửi duyệt lô sản xuất',
 
-  // Organization, Members, Invitations
+  // Tổ chức & Thành viên
   CREATE_ORGANIZATION: 'Tạo tổ chức',
   UPDATE_ORGANIZATION: 'Cập nhật tổ chức',
   CREATE_INVITATION: 'Tạo thư mời',
   JOIN_ORGANIZATION: 'Tham gia tổ chức',
 };
 
+/** Lớp CSS Tailwind màu sắc tương ứng cho từng mã hành động. */
 export const ACTION_COLORS: Record<string, string> = {
   CREATE: 'bg-success-bg text-success',
   UPDATE: 'bg-info-bg text-info',
@@ -76,10 +78,12 @@ export const ACTION_COLORS: Record<string, string> = {
   JOIN_ORGANIZATION: 'bg-success-bg text-success',
 };
 
+/** Lấy nhãn hiển thị tiếng Việt của hành động. */
 export const getActionLabel = (action: string): string => {
   return ACTION_LABELS[action] || action;
 };
 
+/** Lấy lớp CSS màu sắc nhãn của hành động. */
 export const getActionColor = (action: string): string => {
   return ACTION_COLORS[action] || 'bg-muted text-muted-foreground';
 };

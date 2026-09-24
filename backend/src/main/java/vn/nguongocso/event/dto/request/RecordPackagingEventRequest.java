@@ -10,16 +10,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO ghi nhận sự kiện đóng gói.
- *
- * @author Team WEB 1
- */
-
+/** DTO ghi nhận sự kiện đóng gói. */
 @Getter
 @Setter
 public class RecordPackagingEventRequest {
-
     @NotNull(message = "Vui lòng chọn lô sản xuất")
     private UUID productionLotId;
 
@@ -33,13 +27,9 @@ public class RecordPackagingEventRequest {
     private Double latitude;
     private Double longitude;
 
-    /**
-     * Danh sách ảnh thực địa (base64 hoặc URL), tùy chọn.
-     */
+    /** Danh sách ảnh thực địa (base64 hoặc URL), tùy chọn. */
     private List<String> images;
 
-    /**
-     * Nguồn thiết bị ghi sự kiện, mặc định "WEB".
-     */
+    /** Nguồn thiết bị ghi sự kiện, mặc định "WEB". */
     private String deviceSource = "WEB";
 }

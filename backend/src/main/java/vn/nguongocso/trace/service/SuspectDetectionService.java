@@ -10,38 +10,47 @@ import vn.nguongocso.trace.dto.response.SuspectTraceCodeDetailResponse;
 import vn.nguongocso.trace.dto.response.SuspectTraceCodeResponse;
 import vn.nguongocso.trace.dto.response.UnlockTraceCodeResponse;
 
-/**
- * Service phát hiện và quản lý mã tem nghi vấn.
- */
+/** Service phát hiện và quản lý mã tem nghi vấn. */
 public interface SuspectDetectionService {
+    /** Đánh giá mức nghi vấn cho một mã tem sau khi có lượt quét mới. */
+    void evaluateSuspicion(
+        UUID traceCodeId
+    );
 
-    /**
-     * Đánh giá mức nghi vấn cho một mã tem sau khi có lượt quét mới.
-     */
-    void evaluateSuspicion(UUID traceCodeId);
+    /** Lấy danh sách mã tem nghi vấn có phân trang. */
+    PageResponse<SuspectTraceCodeResponse> getSuspectTraceCodes(
+        Integer minScore,
+        String status,
+        int page,
+        int size
+    );
 
-    /**
-     * Lấy danh sách mã tem nghi vấn (phân trang).
-     */
-    PageResponse<SuspectTraceCodeResponse> getSuspectTraceCodes(Integer minScore, String status, int page, int size);
+    /** Lấy chi tiết mã tem nghi vấn. */
+    SuspectTraceCodeDetailResponse getSuspectDetail(
+        UUID traceCodeId
+    );
 
-    /**
-     * Lấy chi tiết mã tem nghi vấn.
-     */
-    SuspectTraceCodeDetailResponse getSuspectDetail(UUID traceCodeId);
+    /** Khóa mã tem nghi vấn. */
+    LockTraceCodeResponse lockTraceCode(
+        UUID traceCodeId,
+        LockTraceCodeRequest request,
+        UUID userId,
+        String userName
+    );
 
-    /**
-     * Khóa mã tem nghi vấn.
-     */
-    LockTraceCodeResponse lockTraceCode(UUID traceCodeId, LockTraceCodeRequest request, UUID userId, String userName);
+    /** Mở khóa mã tem. */
+    LockTraceCodeResponse unlockTraceCode(
+        UUID traceCodeId,
+        String reason,
+        UUID userId,
+        String userName
+    );
 
-    /**
-     * Mở khóa mã tem (hỗ trợ backward compatibility).
-     */
-    LockTraceCodeResponse unlockTraceCode(UUID traceCodeId, String reason, UUID userId, String userName);
-
-    /**
-     * Mở khóa mã tem sau khi xác minh theo ID hoặc mã code (NCL-08-CN-013).
-     */
-    UnlockTraceCodeResponse unlockTraceCodeWithVerification(String codeOrId, UnlockTraceCodeRequest request, UUID userId, String userName);
+    /** Mở khóa mã tem sau khi xác minh theo ID hoặc mã code. */
+    UnlockTraceCodeResponse unlockTraceCodeWithVerification(
+        String codeOrId,
+        UnlockTraceCodeRequest request,
+        UUID userId,
+        String userName
+    );
 }

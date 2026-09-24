@@ -41,7 +41,7 @@ export default function LabelCancellationHistoryPage() {
   const [filterReason, setFilterReason] = useState<string>('ALL');
   const [filterType, setFilterType] = useState<string>('ALL');
 
-  // Pagination state (Max 10 items per page)
+  // Trạng thái phân trang (tối đa 10 dòng/trang)
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
 
@@ -95,7 +95,7 @@ export default function LabelCancellationHistoryPage() {
     fetchData();
   }, [shipmentId]);
 
-  // Statistics calculation
+  // Tính toán số liệu thống kê
   const totalCancelledCount = useMemo(() => {
     return historyList.reduce((acc, curr) => acc + curr.quantity, 0);
   }, [historyList]);
@@ -104,15 +104,15 @@ export default function LabelCancellationHistoryPage() {
 
   const filteredHistory = useMemo(() => {
     return historyList.filter((item) => {
-      // Reason filter
+      // Lọc theo lý do
       if (filterReason !== 'ALL' && item.reasonType !== filterReason) {
         return false;
       }
-      // Type filter
+      // Lọc theo loại hủy
       if (filterType !== 'ALL' && item.cancellationType !== filterType) {
         return false;
       }
-      // Search term
+      // Tìm kiếm từ khóa
       if (searchTerm.trim() !== '') {
         const query = searchTerm.toLowerCase();
         const matchesName = item.cancelledByName?.toLowerCase().includes(query);
@@ -125,7 +125,7 @@ export default function LabelCancellationHistoryPage() {
     });
   }, [historyList, filterReason, filterType, searchTerm]);
 
-  // Reset to page 1 whenever filters change
+  // Quay về trang 1 khi thay đổi bộ lọc
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filterReason, filterType]);

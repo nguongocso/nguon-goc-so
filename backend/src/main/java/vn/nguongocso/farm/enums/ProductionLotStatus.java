@@ -1,9 +1,10 @@
 package vn.nguongocso.farm.enums;
 
+/** Trạng thái vòng đời của lô sản xuất. */
 public enum ProductionLotStatus {
-    DRAFT, // Bản nháp
+    DRAFT, // Nháp
 
-    PENDING, // Đang chờ duyệt
+    PENDING, // Chờ duyệt
 
     APPROVED, // Đã duyệt
 
@@ -21,5 +22,5 @@ public enum ProductionLotStatus {
 
     CANCELLED, // Đã hủy
 
-    DISPOSED // Đã loại bỏ (NCL-11-CN-005: lô không đạt kiểm nghiệm bị xử lý loại bỏ — trạng thái cuối)
+    DISPOSED // Đã tiêu hủy
 }

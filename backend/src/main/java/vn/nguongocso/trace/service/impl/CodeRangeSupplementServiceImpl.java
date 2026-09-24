@@ -57,19 +57,12 @@ import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.CodeRangeSupplementRepository;
 import vn.nguongocso.trace.service.CodeRangeSupplementService;
 
-/**
- * Triển khai dịch vụ yêu cầu cấp bổ sung dải mã truy xuất (NCL-04-CN-007).
- *
- * <p>
- * Bổ sung hạn mức = tăng {@code totalLimit} của dải mã hiện có của tổ chức
- * (không tạo dải mã mới vì {@code prefix} UNIQUE toàn hệ thống).
- */
+/** Triển khai dịch vụ yêu cầu cấp bổ sung dải mã truy xuất. */
 @Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementService {
-
     static final String MSG_NO_PERMISSION_CREATE = "Bạn không có quyền tạo yêu cầu cấp bổ sung dải mã.";
     static final String MSG_NO_PERMISSION_MANAGE = "Bạn không có quyền xử lý yêu cầu cấp bổ sung dải mã.";
     static final String MSG_ORG_NOT_FOUND = "Không tìm thấy tổ chức.";
@@ -295,21 +288,14 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
         return response;
     }
 
-    /**
-     * Kiểm tra vai trò của người dùng (belt-and-suspenders với {@code @PreAuthorize}).
-     */
+    /** Kiểm tra vai trò của người dùng (belt-and-suspenders với {@code @PreAuthorize}). */
     private void validateRole(CustomUserDetails currentUser, String expectedRole, String message) {
         if (!expectedRole.equals(currentUser.getRoleCode())) {
             throw new BusinessException(message);
         }
     }
 
-    /**
-     * Kiểm tra bằng chứng sản lượng thực: sự kiện phải tồn tại, thuộc loại
-     * thu hoạch (HARVEST) hoặc sơ chế (PREPROCESSING) và thuộc tổ chức yêu cầu.
-     *
-     * @return danh sách ID sự kiện đã khử trùng lặp, giữ nguyên thứ tự
-     */
+    /** Kiểm tra bằng chứng sản lượng thực: sự kiện phải tồn tại, thuộc loại thu hoạch (HARVEST) hoặc sơ chế (PREPROCESSING) và thuộc tổ chức yêu cầu. */
     private List<UUID> validateEvidence(UUID organizationId, List<UUID> evidenceEventIds) {
         if (evidenceEventIds == null || evidenceEventIds.isEmpty()) {
             throw new BusinessException(MSG_EVIDENCE_REQUIRED);
@@ -338,11 +324,7 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
         return distinctIds;
     }
 
-    /**
-     * Xác định một sự kiện có thuộc tổ chức hay không: qua lô hàng gắn kèm,
-     * hoặc qua {@code productionLotId} trong {@code eventData} (sự kiện
-     * thu hoạch/sơ chế chưa gắn lô hàng).
-     */
+    /** Xác định một sự kiện có thuộc tổ chức hay không: qua lô hàng gắn kèm, hoặc qua {@code productionLotId} trong {@code eventData} (sự kiện thu hoạch/sơ chế chưa gắn lô hàng). */
     private boolean belongsToOrganization(ChainEvent event, UUID organizationId) {
         if (event.getShipment() != null) {
             return event.getShipment().getOrganization() != null
@@ -370,14 +352,7 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
         }
     }
 
-    /**
-     * Liệt kê sự kiện bằng chứng sản lượng thực (HARVEST / PREPROCESSING) của
-     * tổ chức để VT-02 chọn khi tạo yêu cầu cấp bổ sung dải mã.
-     *
-     * <p>Bằng chứng có thể là sự kiện đã gắn lô hàng (tra tổ chức qua lô hàng)
-     * hoặc sự kiện tự do lưu {@code productionLotId} trong eventData. Kết quả
-     * sắp xếp mới nhất trước và giới hạn số lượng để dialog hiển thị gọn.</p>
-     */
+    /** Liệt kê sự kiện bằng chứng sản lượng thực (HARVEST / PREPROCESSING) của tổ chức để VT-02 chọn khi tạo yêu cầu cấp bổ sung dải mã. <p>Bằng chứng có thể là sự kiện đã gắn lô hàng (tra tổ chức qua lô hàng) hoặc sự kiện tự do lưu {@code productionLotId} trong eventData. Kết quả sắp xếp mới nhất trước và giới hạn số lượng để dialog hiển thị gọn.</p> */
     @Override
     public List<EvidenceEventResponse> listEvidenceEvents(CustomUserDetails currentUser) {
         validateRole(currentUser, ROLE_COOPERATIVE_MANAGER, MSG_NO_PERMISSION_CREATE);
@@ -445,13 +420,7 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
         }
     }
 
-    /**
-     * Resolve chi tiết các sự kiện bằng chứng từ list ID đã lưu để VT-01 xem
-     * khi duyệt (loại sự kiện, tên lô, thời điểm, người ghi).
-     *
-     * <p>Giữ đúng thứ tự ID gốc; sự kiện đã bị xóa thì bỏ qua (FE fallback
-     * hiển thị ID). Tải tên lô gộp một query duy nhất qua {@link #loadLotNames}.</p>
-     */
+    /** Resolve chi tiết các sự kiện bằng chứng từ list ID đã lưu để VT-01 xem khi duyệt (loại sự kiện, tên lô, thời điểm, người ghi). <p>Giữ đúng thứ tự ID gốc; sự kiện đã bị xóa thì bỏ qua (FE fallback hiển thị ID). Tải tên lô gộp một query duy nhất qua {@link #loadLotNames}.</p> */
     private List<EvidenceEventResponse> resolveEvidenceDetails(List<UUID> evidenceIds) {
         if (evidenceIds == null || evidenceIds.isEmpty()) {
             return List.of();
@@ -485,14 +454,7 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
                 .build();
     }
 
-    /**
-     * Trích xuất số lượng sản lượng từ {@code eventData} JSON của sự kiện.
-     *
-     * <p>Sự kiện thu hoạch (HARVEST) lưu ở trường "quantity"; sự kiện sơ chế
-     * (PREPROCESSING) lưu ở "outputQuantity"/"inputQuantity" nên phải ưu tiên
-     * key theo loại sự kiện, nếu không dialog bằng chứng sẽ không hiện sản
-     * lượng thực. Chấp nhận cả số và chuỗi số.</p>
-     */
+    /** Trích xuất số lượng sản lượng từ {@code eventData} JSON của sự kiện. <p>Sự kiện thu hoạch (HARVEST) lưu ở trường "quantity"; sự kiện sơ chế (PREPROCESSING) lưu ở "outputQuantity"/"inputQuantity" nên phải ưu tiên key theo loại sự kiện, nếu không dialog bằng chứng sẽ không hiện sản lượng thực. Chấp nhận cả số và chuỗi số.</p> */
     private BigDecimal extractQuantity(ChainEvent event) {
         String eventData = event.getEventData();
         if (eventData == null || eventData.isBlank()) {
@@ -541,12 +503,7 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
         return null;
     }
 
-    /**
-     * Gửi thông báo kết quả duyệt cho người tạo yêu cầu + quản lý HTX (VT-02)
-     * của tổ chức.
-     *
-     * @return số lượng thông báo đã tạo
-     */
+    /** Gửi thông báo kết quả duyệt cho người tạo yêu cầu + quản lý HTX (VT-02) của tổ chức. */
     private int notifyOrganization(CodeRangeSupplementRequest supplement, String title, String content) {
         UUID organizationId = supplement.getOrganization().getOrganizationId();
 
@@ -565,13 +522,7 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
         return notificationService.sendCodeRangeSupplementNotification(title, content, recipientIds);
     }
 
-    /**
-     * Gửi thông báo cho Quản trị viên nền tảng (VT-01) khi có yêu cầu
-     * cấp bổ sung dải mã mới được gửi.
-     *
-     * @param supplement yêu cầu cấp bổ sung dải mã vừa được lưu
-     * @return số lượng thông báo đã tạo
-     */
+    /** Gửi thông báo cho Quản trị viên nền tảng (VT-01) khi có yêu cầu cấp bổ sung dải mã mới được gửi. */
     private int notifyAdmins(CodeRangeSupplementRequest supplement) {
         List<OrganizationUser> admins = organizationUserRepository
                 .findAllByRole_Code(ROLE_PLATFORM_ADMIN);
@@ -642,10 +593,7 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
         }
     }
 
-    /**
-     * Chuyển đổi entity sang response DTO (kèm chi tiết bằng chứng đã resolve
-     * để VT-01 xem khi duyệt).
-     */
+    /** Chuyển đổi entity sang response DTO (kèm chi tiết bằng chứng đã resolve để VT-01 xem khi duyệt). */
     private CodeRangeSupplementResponse toResponse(CodeRangeSupplementRequest entity) {
         List<UUID> evidenceIds = fromEvidenceJson(entity.getEvidenceEventIds());
         CodeRangeSupplementResponse.UserInfo requestedBy = entity.getRequestedBy() != null

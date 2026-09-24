@@ -9,10 +9,11 @@ import java.util.Locale;
 
 import org.springframework.stereotype.Component;
 
-/** Sinh và băm mã tra cứu phản ánh công khai. */
+/**
+ * Sinh và băm mã tra cứu phản ánh công khai.
+*/
 @Component
 public class ProductFeedbackLookupCodeGenerator {
-
     private static final String ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
     private static final int RANDOM_CHARACTER_COUNT = 16;
     private static final int GROUP_SIZE = 4;
@@ -20,6 +21,7 @@ public class ProductFeedbackLookupCodeGenerator {
 
     private final SecureRandom secureRandom = new SecureRandom();
 
+    /** Sinh mã tra cứu mới. */
     public GeneratedLookupCode generate() {
         StringBuilder compactCode = new StringBuilder(PREFIX);
         for (int index = 0; index < RANDOM_CHARACTER_COUNT; index++) {
@@ -30,10 +32,12 @@ public class ProductFeedbackLookupCodeGenerator {
         return new GeneratedLookupCode(format(normalizedCode), sha256(normalizedCode));
     }
 
+    /** Băm mã tra cứu. */
     public String hash(String lookupCode) {
         return sha256(normalize(lookupCode));
     }
 
+    /** Chuẩn hóa mã tra cứu. */
     private String normalize(String lookupCode) {
         if (lookupCode == null) {
             throw new IllegalArgumentException("Mã tra cứu không hợp lệ");
@@ -55,6 +59,7 @@ public class ProductFeedbackLookupCodeGenerator {
         return normalized;
     }
 
+    /** Định dạng mã hiển thị. */
     private String format(String normalizedCode) {
         String randomPart = normalizedCode.substring(PREFIX.length());
         StringBuilder displayCode = new StringBuilder(PREFIX);
@@ -65,6 +70,7 @@ public class ProductFeedbackLookupCodeGenerator {
         return displayCode.toString();
     }
 
+    /** Băm SHA-256. */
     private String sha256(String normalizedCode) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -74,6 +80,7 @@ public class ProductFeedbackLookupCodeGenerator {
         }
     }
 
+    /** Cặp mã hiển thị và băm. */
     public record GeneratedLookupCode(String displayValue, String hash) {
     }
 }

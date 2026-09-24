@@ -9,21 +9,28 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+/** DTO response lịch sử hủy tem. */
+@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 public class LabelCancellationHistoryResponse {
     private UUID id;
+
     private UUID shipmentId;
+
     private String shipmentName;
+
     private String cancelledByName;
+
     private LocalDateTime cancelledAt;
+
     private Integer quantity;
+
     private String cancellationType;
+
     private String rangeFromCode;
+
     private String rangeToCode;
+
     private String reasonType;
+
     private String reasonNote;
 }

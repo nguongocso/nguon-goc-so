@@ -2,13 +2,16 @@ package vn.nguongocso.farm.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * Yêu cầu đóng phản hồi sản phẩm kèm lý do xử lý.
+*/
 @Getter
 @Setter
 public class CloseProductFeedbackRequest {
-
     @Size(max = 4000, message = "Nội dung xử lý không được vượt quá 4000 ký tự")
     private String processingContent;
 

@@ -4,5 +4,13 @@ import java.util.UUID;
 import lombok.Builder;
 import lombok.Data;
 
-@Data @Builder
-public class PartnerOrganizationResponse { private UUID id; private String code; private String name; }
+/** DTO response thông tin tổ chức đối tác. */
+@Data
+@Builder
+public class PartnerOrganizationResponse {
+    private UUID id;
+
+    private String code;
+
+    private String name;
+}

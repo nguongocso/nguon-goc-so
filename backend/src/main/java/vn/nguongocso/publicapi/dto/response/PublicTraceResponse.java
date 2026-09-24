@@ -1,4 +1,3 @@
-// PublicTraceResponse.java
 package vn.nguongocso.publicapi.dto.response;
 
 import lombok.Builder;
@@ -53,16 +52,11 @@ public class PublicTraceResponse {
 
     private List<PublicInspectionCriterionResultDto> inspections;
 
-    /** Đánh dấu dữ liệu thử nghiệm (Sandbox). */
+    @com.fasterxml.jackson.annotation.JsonProperty("is_test")
     private Boolean isTest;
 
-    /** Thông điệp thông báo dữ liệu thử nghiệm. */
+    @com.fasterxml.jackson.annotation.JsonProperty("test_notice")
     private String testNotice;
 
-    /**
-     * Ranh giới vùng trồng hiển thị công khai (QTN-12).
-     * Null khi lô sản xuất chưa gắn vùng trồng hoặc vùng trồng chưa được
-     * khoanh ranh giới.
-     */
     private PublicFarmAreaBoundaryDto farmAreaBoundary;
 }

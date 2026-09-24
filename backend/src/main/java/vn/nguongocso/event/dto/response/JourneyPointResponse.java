@@ -6,11 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * DTO phản hồi điểm trong hành trình của lô hàng.
- *
- * @author Team WEB 1
- */
+/** DTO phản hồi điểm trong hành trình của lô hàng. */
 @Data
 @Builder
 public class JourneyPointResponse {

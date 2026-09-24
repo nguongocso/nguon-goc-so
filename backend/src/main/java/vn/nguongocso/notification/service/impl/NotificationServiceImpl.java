@@ -40,15 +40,12 @@ import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
-/**
- * Triển khai dịch vụ thông báo.
- */
+/** Triển khai dịch vụ thông báo. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class NotificationServiceImpl implements NotificationService {
-
     private static final String NOTIFICATION_RESOURCE = "notification";
     private static final String NOTIFICATION_READ_ACTION = "READ";
 
@@ -94,10 +91,15 @@ public class NotificationServiceImpl implements NotificationService {
                     + "Vui lòng tạo yêu cầu kiểm nghiệm mới để đảm bảo tính hợp lệ của sản phẩm.";
 
     private final NotificationRepository notificationRepository;
+
     private final TraceCodeRepository traceCodeRepository;
+
     private final UserRepository userRepository;
+
     private final OrganizationUserRepository organizationUserRepository;
+
     private final CertificationRepository certificationRepository;
+
     private final PermissionChecker permissionChecker;
 
     private record InspectionResultNotificationParams(

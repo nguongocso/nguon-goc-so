@@ -10,31 +10,43 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * DTO phản hồi cho sự kiện nhập kho và đối chiếu số lượng.
- *
- * @author Team
- */
+/** DTO phản hồi cho sự kiện nhập kho và đối chiếu số lượng. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
 @Setter
 @Builder
 public class WarehouseReceiptResponse {
     private UUID id;
+
     private ChainEventType eventType;
+
     private UUID shipmentId;
+
     private String shipmentName;
+
     private String traceCode;
+
     private Double declaredQuantity;
+
     private Double receivedQuantity;
+
     private Double discrepancy;
+
     private Double discrepancyPercent;
+
     private Boolean isDiscrepancyExceeded;
+
     private Boolean reasonRequired;
+
     private String reason;
+
     private String conditionNote;
+
     private LocalDate receiptDate;
+
     private LocalDateTime recordedAt;
+
     private String recordedBy;
+
     private Boolean notificationSent;
 }

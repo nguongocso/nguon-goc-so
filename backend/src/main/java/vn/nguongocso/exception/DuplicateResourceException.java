@@ -1,8 +1,10 @@
 package vn.nguongocso.exception;
 
-/** Lớp ngoại lệ dùng để biểu thị lỗi khi có tài nguyên trùng lặp trong ứng dụng. */
-public class DuplicateResourceException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+/** Ngoại lệ dùng khi phát hiện tài nguyên bị trùng lặp trong hệ thống. */
+public class DuplicateResourceException extends BusinessException {
     public DuplicateResourceException(String message) {
-        super(message);
+        super(HttpStatus.CONFLICT, message);
     }
 }

@@ -10,45 +10,45 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import vn.nguongocso.farm.enums.MaterialGroup;
 
 /**
- * DTO phản hồi thông tin chi tiết vật tư đầu vào.
- */
+ * Thông tin chi tiết vật tư đầu vào.
+*/
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class InputMaterialResponse {
+    private UUID id;
 
-	private UUID id;
+    private String name;
 
-	private String name;
+    private MaterialGroup materialGroup;
 
-	private MaterialGroup materialGroup;
+    private String materialGroupDisplayName;
 
-	private String materialGroupDisplayName;
+    private String activeIngredient;
 
-	private String activeIngredient;
+    private String unit;
 
-	private String unit;
+    private Integer quarantineDays;
 
-	private Integer quarantineDays;
+    private Boolean applyToAllCrops;
 
-	private Boolean applyToAllCrops;
+    private Set<ProductCategoryResponse> applicableCropTypes;
 
-	private Set<ProductCategoryResponse> applicableCropTypes;
+    private String referenceSource;
 
-	private String referenceSource;
+    private List<String> imageUrls;
 
-	private List<String> imageUrls;
+    private Boolean isActive;
 
-	private Boolean isActive;
+    private UUID createdBy;
 
-	private UUID createdBy;
+    private LocalDateTime createdAt;
 
-	private LocalDateTime createdAt;
-
-	private LocalDateTime updatedAt;
+    private LocalDateTime updatedAt;
 }

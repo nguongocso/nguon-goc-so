@@ -1,17 +1,18 @@
 package vn.nguongocso.farm.dto.response;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
 import vn.nguongocso.farm.enums.ProductFeedbackStatus;
 
 /**
- * DTO phản hồi thông tin phản hồi sản phẩm.
- */
+ * Thông tin phản hồi sản phẩm.
+*/
 @Getter
 @Setter
 @Builder

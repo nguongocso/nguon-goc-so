@@ -1,17 +1,18 @@
 package vn.nguongocso.farm.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.LocalDate;
 import java.util.UUID;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
+import lombok.Getter;
+import lombok.Setter;
+
 /**
- * DTO yêu cầu cập nhật lô sản xuất.
- */
+ * Yêu cầu cập nhật lô sản xuất.
+*/
 @Getter
 @Setter
 public class UpdateProductionLotRequest {

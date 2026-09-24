@@ -4,27 +4,29 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Response từ LocationIQ API.
- */
+/** Response từ LocationIQ API. */
 @Getter
 @Setter
 public class LocationIQResponse {
-
     @JsonProperty("display_name")
     private String displayName;
 
     private Address address;
 
+    /** Thông tin địa chỉ từ LocationIQ. */
     @Getter
     @Setter
     public static class Address {
-
         private String village;
+
         private String town;
+
         private String city;
+
         private String county;
+
         private String state;
+
         private String country;
 
         @JsonProperty("city_district")

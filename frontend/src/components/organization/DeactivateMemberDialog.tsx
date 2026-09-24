@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, LoaderCircle, ShieldOff } from 'lucide-react';
-
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -28,21 +27,12 @@ const MAX_REASON_LENGTH = 500;
 
 interface DeactivateMemberDialogProps {
   member: OrganizationMember | null;
-  /** Đúng khi hook đang gọi API vô hiệu hóa. */
   deactivating: boolean;
   onClose: () => void;
   onConfirm: (userId: string, reason: string) => Promise<DeactivateOutcome>;
 }
 
-/**
- * Dialog vô hiệu hóa thành viên (NCL-01-CN-009, QTN-32).
- *
- * - Giai đoạn "confirm": hiển thị cảnh báo mất quyền + chấm dứt phiên, bắt
- *   buộc nhập lý do.
- * - Khi người dùng bấm **Tiếp tục**, mở thêm modal cảnh báo rủi ro trước
- *   khi gọi API vô hiệu hóa (không còn logic chuyển giao lô — hệ thống chưa
- *   có phân quyền ghi sự kiện theo lô, D-4).
- */
+/** Dialog vô hiệu hóa thành viên. */
 export const DeactivateMemberDialog = ({
   member,
   deactivating,
@@ -51,7 +41,6 @@ export const DeactivateMemberDialog = ({
 }: DeactivateMemberDialogProps) => {
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<string | null>(null);
-  /** true -> hiện modal cảnh báo rủi ro trước khi gọi API deactivate. */
   const [showWarning, setShowWarning] = useState(false);
 
   const resetState = useCallback(() => {
@@ -60,7 +49,6 @@ export const DeactivateMemberDialog = ({
     setShowWarning(false);
   }, []);
 
-  // Reset toàn bộ state mỗi khi mở dialog với thành viên mới.
   useEffect(() => {
     resetState();
   }, [member, resetState]);
@@ -85,15 +73,12 @@ export const DeactivateMemberDialog = ({
     return trimmed;
   };
 
-  /** Gọi API vô hiệu hóa thực sự + xử lý outcome trả về. */
   const commitDeactivation = async (trimmedReason: string) => {
     if (!member || deactivating) return;
 
     const outcome = await onConfirm(member.userId, trimmedReason);
 
     if (outcome.ok || outcome.fatal) {
-      // Thành công, hoặc lỗi không thể xử lý tiếp tại chỗ (403/404/409):
-      // toast đã hiển thị → đóng dialog, danh sách sẽ được refresh từ backend.
       handleClose();
     }
   };
@@ -120,7 +105,7 @@ export const DeactivateMemberDialog = ({
               <ShieldOff className="size-5 text-red-600" />
               Vô hiệu hóa thành viên
             </AlertDialogTitle>
-                        <AlertDialogDescription>
+            <AlertDialogDescription>
               <span className="mb-2 block">
                 Thao tác này sẽ thu hồi quyền truy cập và chấm dứt phiên làm
                 việc của thành viên ngay lập tức.
@@ -203,7 +188,6 @@ export const DeactivateMemberDialog = ({
         </AlertDialogPopup>
       </AlertDialog>
 
-      {/* Modal cảnh báo rủi ro trước khi thực hiện vô hiệu hóa. */}
       <Dialog open={showWarning} onOpenChange={setShowWarning}>
         <DialogPortal>
           <DialogOverlay className="fixed inset-0 bg-black/60" />

@@ -1,11 +1,14 @@
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { ExportOpenDataForm } from '@/components/export/ExportOpenDataForm';
 import { HelpButton } from '@/components/help/HelpButton';
 import { usePermission } from '@/hooks/usePermission';
 
-const ExportOpenDataPage = () => {
+/** Trang xuất dữ liệu mở (Open Data Export). Hiển thị biểu mẫu xuất dữ liệu và lối vào quản lý mẫu hồ sơ đối tác. */
+export const ExportOpenDataPage: React.FC = () => {
   const navigate = useNavigate();
   const isManager = usePermission(['VT-02']);
 
