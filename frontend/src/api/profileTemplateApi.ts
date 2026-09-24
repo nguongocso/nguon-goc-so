@@ -1,3 +1,4 @@
+import axios from 'axios';
 import apiClient from './axiosConfig';
 import type {
   ProfileTemplate,
@@ -278,5 +279,50 @@ export const getBatchProfileTemplates = async (
   } catch (err) {
     console.error('[profileTemplateApi] getBatchProfileTemplates - Thất bại:', err);
     throw err;
+  }
+};
+
+/**
+ * Yêu cầu xem trước file PDF hồ sơ theo cấu hình trường (đồng bộ 100% với xuất lô hàng).
+ * POST /api/v1/organizations/{orgId}/profile-templates/preview-pdf
+ */
+export const previewTemplatePdf = async (
+  organizationId: string,
+  data: {
+    name: string;
+    partnerName?: string;
+    selectedFieldKeys?: string[];
+    shipmentId?: string;
+  }
+): Promise<Blob> => {
+  try {
+    const response = await apiClient.post(
+      `/organizations/${organizationId}/profile-templates/preview-pdf`,
+      data,
+      {
+        responseType: 'blob',
+        timeout: 30000,
+      }
+    );
+    return response.data;
+  } catch (error: unknown) {
+    if (
+      axios.isAxiosError(error) &&
+      error.response?.data instanceof Blob &&
+      error.response.data.type?.includes('application/json')
+    ) {
+      const text = await error.response.data.text();
+      let message = text || 'Lỗi khi tạo bản xem trước PDF theo mẫu';
+      try {
+        const errJson = JSON.parse(text);
+        if (errJson?.message) {
+          message = errJson.message;
+        }
+      } catch {
+        // Giữ nguyên text
+      }
+      throw new Error(message);
+    }
+    throw error;
   }
 };
