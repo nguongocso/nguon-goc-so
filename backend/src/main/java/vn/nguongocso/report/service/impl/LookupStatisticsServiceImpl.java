@@ -84,7 +84,9 @@ public class LookupStatisticsServiceImpl implements LookupStatisticsService {
             startDateTime,
             endDateTime);
         List<LookupStatisticsResponse.LocationScanStats> byLocation = locationStatsRaw.stream()
-            .map(row -> new LookupStatisticsResponse.LocationScanStats((String) row[0], (Long) row[1]))
+            .map(row -> new LookupStatisticsResponse.LocationScanStats(
+                (String) row[0],
+                row[1] != null ? ((Number) row[1]).longValue() : 0L))
             .collect(Collectors.toList());
 
         List<Object[]> lotStatsRaw = traceCodeScanLogRepository.getStatsByProductionLot(
@@ -94,7 +96,10 @@ public class LookupStatisticsServiceImpl implements LookupStatisticsService {
             startDateTime,
             endDateTime);
         List<LookupStatisticsResponse.LotScanStats> byProductionLot = lotStatsRaw.stream()
-            .map(row -> new LookupStatisticsResponse.LotScanStats((UUID) row[0], (String) row[1], (Long) row[2],
+            .map(row -> new LookupStatisticsResponse.LotScanStats(
+                (UUID) row[0],
+                (String) row[1],
+                row[2] != null ? ((Number) row[2]).longValue() : 0L,
                 row[3] != null ? ((Number) row[3]).longValue() : 0L))
             .collect(Collectors.toList());
 
