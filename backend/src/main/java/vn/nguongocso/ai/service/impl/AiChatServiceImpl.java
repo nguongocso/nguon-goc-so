@@ -200,6 +200,7 @@ public class AiChatServiceImpl implements AiChatService {
                     candidateModel,
                     aiProperties.getApiKey());
 
+                long startTime = System.currentTimeMillis();
                 byte[] responseBytes = aiRestClient.post()
                     .uri(requestUrl)
                     .contentType(MediaType.APPLICATION_JSON)
@@ -209,6 +210,7 @@ public class AiChatServiceImpl implements AiChatService {
                     .retrieve()
                     .body(byte[].class);
 
+                long durationMs = System.currentTimeMillis() - startTime;
                 String responseBody = responseBytes != null ? new String(responseBytes, StandardCharsets.UTF_8) : "";
                 String aiReply = extractTextFromGeminiResponse(responseBody);
                 if (aiReply != null && !aiReply.isBlank()) {
@@ -241,7 +243,8 @@ public class AiChatServiceImpl implements AiChatService {
         log.error("Tất cả các mô hình Gemini trong chuỗi fallback đều không thành công. Chi tiết lỗi cuối: {}",
             lastErrorDetail);
         return generateLocalFallbackResponse(userMessage,
-            currentUser);
+            currentUser,
+            analyticsData);
     }
 
     /**
