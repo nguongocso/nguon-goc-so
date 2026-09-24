@@ -1,45 +1,42 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { getProductionLotDashboard, type DashboardResponse } from '@/api/productionLotApi';
+import { getProductionLots } from '@/api/productionLotApi';
 import { ProductionLotBoard } from '@/components/production-lot/ProductionLotBoard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PackageOpen, CheckCircle2, Sprout, PackageCheck } from 'lucide-react';
+import type { ProductionLot } from '@/types/productionLot';
 import { IndustryReportPanel } from '@/components/report/IndustryReportPanel';
 import { HelpButton } from '@/components/help/HelpButton';
 
 export function ManagementDashboard() {
-  const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
+  const [productionLots, setProductionLots] = useState<ProductionLot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadDashboard = useCallback(async () => {
+  const loadProductionLots = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await getProductionLotDashboard();
-      setDashboardData(data);
+      const data = await getProductionLots();
+      setProductionLots(data);
     } catch {
-      toast.error('Không thể tải dữ liệu thống kê bảng điều khiển');
+      toast.error('Không thể tải danh sách lô sản xuất');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadDashboard();
-  }, [loadDashboard]);
+    void loadProductionLots();
+  }, [loadProductionLots]);
 
   const statistics = useMemo(() => {
-    if (!dashboardData) {
-      return { total: 0, approved: 0, harvested: 0, packaged: 0 };
-    }
     // NCL-02-CN-006: lô đã hủy không tính vào tổng số lô đang canh tác
-    const cancelled = dashboardData.byStatus?.CANCELLED || 0;
-    const total = Math.max(0, (dashboardData.summary?.totalLots || 0) - cancelled);
-    const approved = dashboardData.byStatus?.APPROVED || 0;
-    const harvested = dashboardData.byStatus?.HARVESTED || 0;
-    const packaged = dashboardData.byStatus?.PACKAGED || 0;
+    const total = productionLots.filter((lot) => lot.status !== 'CANCELLED').length;
+    const approved = productionLots.filter((lot) => lot.status === 'APPROVED').length;
+    const harvested = productionLots.filter((lot) => lot.status === 'HARVESTED').length;
+    const packaged = productionLots.filter((lot) => lot.status === 'PACKAGED').length;
     return { total, approved, harvested, packaged };
-  }, [dashboardData]);
+  }, [productionLots]);
 
   const cards = [
     { title: 'Tổng số lô', value: statistics.total, icon: PackageOpen, iconClass: 'bg-info-bg text-info' },
@@ -91,11 +88,15 @@ export function ManagementDashboard() {
           </div>
 
           <ProductionLotBoard
+            lots={productionLots}
+            isLoading={isLoading}
             canCreate={false}
             canEdit={false}
             canSubmitForApproval={false}
             canApprove={false}
             canRecordFarmLog={false}
+            onRefresh={() => void loadProductionLots()}
+            isRefreshing={isLoading}
           />
         </TabsContent>
 
