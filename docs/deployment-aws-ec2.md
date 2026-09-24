@@ -129,9 +129,12 @@ echo -n 'your_locationiq_key'| base64
 
 ### Option A: Automated (GitHub Actions)
 
-Push to `develop` (staging) or `main` (production). The `ci-cd.yml` workflow:
+Push to `develop` deploys staging. Production runs when a matching
+`release/vX.Y.Z` or `hotfix/vX.Y.Z` merge commit reaches `main`, or when the
+workflow is dispatched manually with a release version. The `ci-cd.yml`
+workflow:
 
-1. Tests the backend (H2 profile) and builds/lints the frontend.
+1. Tests the backend (H2 profile), then lints, tests, and builds the frontend.
 2. Builds multi-stage Docker images and pushes them to GHCR.
 3. Applies `k8s/*.yaml` via `kubectl` using `KUBECONFIG_B64`.
 
@@ -143,8 +146,9 @@ Required repository secrets / GitHub environments:
 | `KUBE_NAMESPACE` | staging, production | namespace (default `nguongocso`) |
 | `GHCR_TOKEN` | (automatic) | push images to GHCR |
 
-> The images referenced by the manifests are tagged `:latest` on main and
-> `:edge` on develop. For production, pin the `type=sha` tag in each Deployment.
+> CI publishes convenience tags `:production`, `:develop`, or `:edge` depending
+> on the trigger. Kubernetes deployments are updated with the immutable commit
+> SHA tag rather than these mutable tags.
 
 ### Option B: Manual
 

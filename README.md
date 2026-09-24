@@ -210,7 +210,9 @@ cd frontend && npm run test
 
 ## Quy trình phát triển
 
-- Branch: `main` → production; `develop` → staging; `feature/*`, `bugfix/*` cho phát triển.
+- Branch: `develop` tự động deploy staging; `main` chứa bản production. Production
+  chỉ chạy khi merge đúng chuẩn từ `release/vX.Y.Z`/`hotfix/vX.Y.Z` hoặc chạy thủ
+  công kèm release version.
 - Commit convention: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`
 - CI/CD chi tiết: xem `docs/handover/DEPLOYMENT.md` và `docs/deployment-aws-ec2.md`
 
@@ -218,7 +220,8 @@ cd frontend && npm run test
 
 ## Đóng góp
 
-Fork → branch `feature/*` → commit → PR → `develop` → CI → staging verify → `main` → tag → production.
+Fork → branch `feature/*` → commit → PR → `develop` → CI → staging verify →
+`release/*`/`hotfix/*` → `main` → CI → production rollout → Git tag.
 
 ---
 
