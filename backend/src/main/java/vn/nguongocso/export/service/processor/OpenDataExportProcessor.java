@@ -309,37 +309,41 @@ public class OpenDataExportProcessor {
                 .build();
     }
 
-    private String convertToCsv(OpenDataSchema schema) {
-        StringBuilder sb = new StringBuilder();
+    String convertToCsv(OpenDataSchema schema) {
+        StringBuilder sb = new StringBuilder("\uFEFF");
         sb.append("shipmentId,name,productionLotName,productCategory,totalQuantity,unit,status,timeline,exportedAt\n");
+
+        if (schema == null || schema.getShipments() == null) {
+            return sb.toString();
+        }
 
         for (OpenDataSchema.ShipmentData s : schema.getShipments()) {
             String timelineJson;
             try {
-                timelineJson = objectMapper.writeValueAsString(s.getTimeline());
+                timelineJson = objectMapper.writeValueAsString(s.getTimeline() != null ? s.getTimeline() : Collections.emptyList());
             } catch (Exception e) {
                 timelineJson = "[]";
             }
 
-            sb.append(String.format("%s,%s,%s,%s,%.2f,%s,%s,\"%s\",%s\n",
-                    escapeCsv(s.getId().toString()),
+            sb.append(String.format(java.util.Locale.US, "%s,%s,%s,%s,%.2f,%s,%s,\"%s\",%s\n",
+                    escapeCsv(s.getId() != null ? s.getId().toString() : ""),
                     escapeCsv(s.getName()),
                     escapeCsv(s.getProductionLotName()),
                     escapeCsv(s.getProductCategory()),
-                    s.getTotalQuantity(),
+                    s.getTotalQuantity() != null ? s.getTotalQuantity() : 0.0,
                     escapeCsv(s.getUnit()),
-                    s.getStatus(),
+                    s.getStatus() != null ? s.getStatus() : "",
                     timelineJson.replace("\"", "\"\""),
-                    escapeCsv(schema.getExportedAt().toString())));
+                    escapeCsv(schema.getExportedAt() != null ? schema.getExportedAt().toString() : "")));
         }
         return sb.toString();
     }
 
-    private String escapeCsv(String value) {
+    String escapeCsv(String value) {
         if (value == null) {
             return "";
         }
-        if (value.contains(",") || value.contains("\"")) {
+        if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;
