@@ -17,7 +17,7 @@ import type {
 } from '@/types/profileTemplate';
 
 /** Quản lý danh sách, danh mục trường và thao tác CRUD cho mẫu hồ sơ truy xuất. */
-export const useProfileTemplates = (organizationId?: string) => {
+export const useProfileTemplates = (organizationId?: string, enabled = true) => {
   const [templates, setTemplates] = useState<ProfileTemplate[]>([]);
   const [availableFields, setAvailableFields] = useState<FieldGroupDefinition[]>([]);
   const [defaultTemplate, setDefaultTemplate] = useState<ProfileTemplate | null>(null);
@@ -25,7 +25,7 @@ export const useProfileTemplates = (organizationId?: string) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchTemplates = useCallback(async () => {
-    if (!organizationId) return;
+    if (!organizationId || !enabled) return;
 
     setLoading(true);
     setError(null);
@@ -38,16 +38,19 @@ export const useProfileTemplates = (organizationId?: string) => {
       const def = safeList.find((t) => t.isDefault) || null;
       setDefaultTemplate(def);
     } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
       const msg = toApiError(err, 'Không thể tải danh sách mẫu hồ sơ').message;
       setError(msg);
-      toast.error(msg);
+      if (status !== 403) {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, enabled]);
 
   const fetchAvailableFields = useCallback(async () => {
-    if (!organizationId) return;
+    if (!organizationId || !enabled) return;
 
     try {
       const data = await getAvailableFields(organizationId);
@@ -56,17 +59,20 @@ export const useProfileTemplates = (organizationId?: string) => {
         : ((data as unknown as { data?: FieldGroupDefinition[] })?.data || []);
       setAvailableFields(safeFields);
     } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
       const msg = toApiError(err, 'Không thể tải danh mục trường dữ liệu').message;
-      toast.error(msg);
+      if (status !== 403) {
+        toast.error(msg);
+      }
     }
-  }, [organizationId]);
+  }, [organizationId, enabled]);
 
   useEffect(() => {
-    if (organizationId) {
+    if (organizationId && enabled) {
       void fetchTemplates();
       void fetchAvailableFields();
     }
-  }, [organizationId, fetchTemplates, fetchAvailableFields]);
+  }, [organizationId, enabled, fetchTemplates, fetchAvailableFields]);
 
   const handleCreate = async (
     data: CreateProfileTemplateRequest,

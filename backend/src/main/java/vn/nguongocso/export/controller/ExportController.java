@@ -24,7 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.export.dto.request.ExportOpenDataRequest;
+import vn.nguongocso.export.dto.response.OpenDataExportJobResponse;
 import vn.nguongocso.export.service.ExportService;
+import vn.nguongocso.export.service.OpenDataAsyncExportService;
 import vn.nguongocso.export.service.ProfileTemplateService;
 
 /** Controller phụ trách xuất dữ liệu công khai và hồ sơ truy xuất theo mẫu đối tác. */
@@ -35,15 +37,24 @@ import vn.nguongocso.export.service.ProfileTemplateService;
 public class ExportController {
     private final ExportService exportService;
     private final ProfileTemplateService profileTemplateService;
+    private final OpenDataAsyncExportService openDataAsyncExportService;
 
-    /** Xuất dữ liệu open data theo định dạng yêu cầu. */
+    /** Xuất dữ liệu open data theo định dạng yêu cầu (hỗ trợ cả đồng bộ và bất đồng bộ qua tham số async). */
     @PostMapping("/open-data")
     @PreAuthorize("hasRole('VT-05')")
-    public ResponseEntity<Resource> exportOpenData(
+    public ResponseEntity<?> exportOpenData(
             @Valid @RequestBody ExportOpenDataRequest request,
+            @RequestParam(defaultValue = "false") boolean async,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        log.info("Nhận yêu cầu xuất open data: user={}", currentUser != null ? currentUser.getUsername() : "anonymous");
+        log.info("Nhận yêu cầu xuất open data: user={}, async={}",
+                currentUser != null ? currentUser.getUsername() : "anonymous", async);
+
+        if (async) {
+            OpenDataExportJobResponse jobResponse = openDataAsyncExportService.submitJob(request, currentUser);
+            return ResponseEntity.accepted().body(ApiResult.success(jobResponse));
+        }
+
         Resource file = exportService.exportOpenData(request, currentUser);
 
         String format = request.getFormat() != null ? request.getFormat().toLowerCase() : "json";
@@ -55,6 +66,37 @@ public class ExportController {
 
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String fileName = "export_" + timestamp + "." + format;
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .body(file);
+    }
+
+    /** Lấy trạng thái của tác vụ xuất dữ liệu bất đồng bộ. */
+    @GetMapping("/jobs/{jobId}")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-05')")
+    public ResponseEntity<ApiResult<OpenDataExportJobResponse>> getExportJob(@PathVariable UUID jobId) {
+        OpenDataExportJobResponse response = openDataAsyncExportService.getJobStatus(jobId);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /** Tải về tệp kết xuất của tác vụ đã hoàn thành. */
+    @GetMapping("/jobs/{jobId}/download")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-05')")
+    public ResponseEntity<Resource> downloadExportJob(@PathVariable UUID jobId) {
+        OpenDataExportJobResponse job = openDataAsyncExportService.getJobStatus(jobId);
+        Resource file = openDataAsyncExportService.getJobDownload(jobId);
+
+        String format = job.getFormat() != null ? job.getFormat().toLowerCase() : "json";
+        String contentType = switch (format) {
+            case "csv" -> "text/csv";
+            case "xml" -> MediaType.APPLICATION_XML_VALUE;
+            case "excel", "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            default -> MediaType.APPLICATION_JSON_VALUE;
+        };
+
+        String fileName = job.getFileName() != null ? job.getFileName() : ("export_" + jobId + "." + format);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))

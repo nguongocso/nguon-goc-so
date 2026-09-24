@@ -39,6 +39,10 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
         /** Lấy danh sách sự kiện không thuộc bất kỳ lô hàng nào, với các loại sự kiện nhất định. */
         List<ChainEvent> findByShipmentIsNullAndEventTypeIn(List<ChainEventType> eventTypes);
 
+        /** Lấy danh sách sự kiện chưa gắn lô hàng theo loại và danh sách tổ chức ghi nhận. */
+        List<ChainEvent> findByShipmentIsNullAndEventTypeInAndRecordedOrganizationIdIn(
+                Collection<ChainEventType> eventTypes, java.util.Set<UUID> organizationIds);
+
         /** Lấy danh sách sự kiện theo loại, gắn với lô hàng thuộc một tổ chức. */
         List<ChainEvent> findByEventTypeInAndShipment_Organization_OrganizationId(
                         List<ChainEventType> eventTypes, UUID organizationId);

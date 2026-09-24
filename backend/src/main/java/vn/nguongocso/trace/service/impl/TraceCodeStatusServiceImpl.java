@@ -221,11 +221,14 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
             return Collections.emptyMap();
         }
         List<UUID> ids = codes.stream().map(TraceCode::getId).toList();
-        List<Object[]> results = traceCodeScanLogRepository.countScansByTraceCodeIds(ids);
         Map<UUID, Long> map = new HashMap<>();
-        for (Object[] row : results) {
-            if (row.length >= 2 && row[0] instanceof UUID id && row[1] instanceof Number count) {
-                map.put(id, count.longValue());
+        List<List<UUID>> chunks = vn.nguongocso.common.util.QueryChunkUtils.chunkList(ids);
+        for (List<UUID> chunk : chunks) {
+            List<Object[]> results = traceCodeScanLogRepository.countScansByTraceCodeIds(chunk);
+            for (Object[] row : results) {
+                if (row.length >= 2 && row[0] instanceof UUID id && row[1] instanceof Number count) {
+                    map.put(id, count.longValue());
+                }
             }
         }
         return map;
