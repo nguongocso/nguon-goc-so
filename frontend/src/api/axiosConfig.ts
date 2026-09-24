@@ -1,306 +1,158 @@
-import axios from "axios";
+import axios from 'axios';
 
-import { getApiBaseUrl } from "@/config/runtimeConfig";
-
+import { getApiBaseUrl } from '@/config/runtimeConfig';
 import {
   getToken,
   getSelectionToken,
   removeSelectionToken,
-} from "@/utils/storage";
-
-import { handleSessionExpiry } from "@/utils/session";
+} from '@/utils/storage';
+import { handleSessionExpiry } from '@/utils/session';
 
 const baseURL = getApiBaseUrl();
 
 const apiClient = axios.create({
   baseURL,
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 
-/**
- * ============================================================
- * AUTH ENDPOINTS
- * ============================================================
- *
- * Những API này không được gửi ACCESS TOKEN.
- *
- * /auth/login
- *   -> username + password
- *   -> ORG_SELECTION JWT
- *
- * /auth/organizations
- *   -> ORG_SELECTION JWT
- *
- * /auth/select-organization
- *   -> ORG_SELECTION JWT
- */
-const NO_ACCESS_TOKEN_ENDPOINTS = [
-  "/auth/login",
-  "/public/inspection-result-entry",
+/** Danh sách các đường dẫn không được đính kèm Access Token trong tiêu đề Authorization. */
+const NO_ACCESS_TOKEN_ENDPOINTS: readonly string[] = [
+  '/auth/login',
+  '/public/inspection-result-entry',
 ];
 
-/**
- * ============================================================
- * SELECTION TOKEN ENDPOINTS
- * ============================================================
- *
- * Những API này sử dụng ORG_SELECTION JWT.
- */
-const SELECTION_TOKEN_ENDPOINTS = [
-  "/auth/organizations",
-  "/auth/select-organization",
+/** Danh sách các đường dẫn thuộc quy trình chọn tổ chức sử dụng Selection Token. */
+const SELECTION_TOKEN_ENDPOINTS: readonly string[] = [
+  '/auth/organizations',
+  '/auth/select-organization',
 ];
 
-/**
- * Kiểm tra URL có phải endpoint công khai (public) không cần xác thực người dùng.
- */
+/** Cấu trúc dữ liệu đại diện cho ApiResult của máy chủ. */
+interface ApiResultLike {
+  success: boolean;
+  [key: string]: unknown;
+}
+
+/** Kiểm tra URL có phải là đường dẫn công khai không cần xác thực hay không. */
 const isPublicEndpoint = (url?: string): boolean => {
-  if (!url) {
-    return false;
-  }
-  return url.includes("/public/inspection-result-entry") || url.includes("/public/trace");
+  if (!url) return false;
+  return (
+    url.includes('/public/inspection-result-entry') ||
+    url.includes('/public/trace')
+  );
 };
 
-/**
- * Kiểm tra URL có phải endpoint không sử dụng
- * ACCESS TOKEN hay không.
- */
-const isNoAccessTokenRequest = (
-  url?: string
-): boolean => {
-  if (!url) {
-    return false;
-  }
-
-  if (isPublicEndpoint(url)) {
-    return true;
-  }
+/** Kiểm tra URL yêu cầu có thuộc nhóm không được đính kèm Access Token hay không. */
+const isNoAccessTokenRequest = (url?: string): boolean => {
+  if (!url) return false;
+  if (isPublicEndpoint(url)) return true;
 
   return NO_ACCESS_TOKEN_ENDPOINTS.some(
     (endpoint) =>
       url === endpoint ||
       url.startsWith(`${endpoint}?`) ||
-      url.startsWith(`${endpoint}/`)
+      url.startsWith(`${endpoint}/`),
   );
 };
 
-/**
- * Kiểm tra request có sử dụng ORG_SELECTION JWT hay không.
- */
-const isSelectionTokenRequest = (
-  url?: string
-): boolean => {
-  if (!url) {
-    return false;
-  }
+/** Kiểm tra URL yêu cầu có thuộc quy trình chọn tổ chức sử dụng Selection Token hay không. */
+const isSelectionTokenRequest = (url?: string): boolean => {
+  if (!url) return false;
 
   return SELECTION_TOKEN_ENDPOINTS.some(
     (endpoint) =>
       url === endpoint ||
       url.startsWith(`${endpoint}?`) ||
-      url.startsWith(`${endpoint}/`)
+      url.startsWith(`${endpoint}/`),
   );
 };
 
-/**
- * ============================================================
- * REQUEST INTERCEPTOR
- * ============================================================
- */
+/** Kiểm tra nội dung phản hồi lỗi có phải là đối tượng ApiResult chuẩn của máy chủ hay không. */
+const isApiResultBody = (data: unknown): data is ApiResultLike => {
+  return Boolean(
+    data &&
+      typeof data === 'object' &&
+      typeof (data as { success?: unknown }).success === 'boolean',
+  );
+};
+
+/** Bộ chặn yêu cầu tự động gán token xác thực theo từng loại đường dẫn. */
 apiClient.interceptors.request.use(
   (config) => {
     const url = config.url;
 
-    /**
-     * ========================================================
-     * 1. LOGIN
-     * ========================================================
-     *
-     * POST /auth/login
-     *
-     * Tuyệt đối KHÔNG gửi:
-     *
-     * Authorization: Bearer <ACCESS_TOKEN>
-     *
-     * Login chỉ gửi username/password.
-     */
+    // 1. Endpoint đăng nhập hoặc công khai: tuyệt đối không gửi token
     if (isNoAccessTokenRequest(url)) {
       if (config.headers) {
         delete config.headers.Authorization;
       }
-
       return config;
     }
 
-    /**
-     * ========================================================
-     * 2. ORG SELECTION FLOW
-     * ========================================================
-     *
-     * GET  /auth/organizations
-     * POST /auth/select-organization
-     *
-     * Sử dụng ORG_SELECTION JWT.
-     */
+    // 2. Quy trình chọn tổ chức: sử dụng ORG_SELECTION JWT
     if (isSelectionTokenRequest(url)) {
       const selectionToken = getSelectionToken();
-
       if (selectionToken) {
-        config.headers.Authorization =
-          `Bearer ${selectionToken}`;
+        config.headers.Authorization = `Bearer ${selectionToken}`;
       } else if (config.headers) {
         delete config.headers.Authorization;
       }
-
       return config;
     }
 
-    /**
-     * ========================================================
-     * 3. ACCESS FLOW
-     * ========================================================
-     *
-     * Tất cả API còn lại sử dụng ACCESS JWT.
-     *
-     * Ví dụ:
-     *
-     * GET /auth/me
-     * GET /organizations
-     * GET /shipments
-     * POST /farm-logs
-     * ...
-     */
+    // 3. Các API được bảo vệ: sử dụng ACCESS JWT
     const accessToken = getToken();
-
     if (accessToken) {
-      config.headers.Authorization =
-        `Bearer ${accessToken}`;
+      config.headers.Authorization = `Bearer ${accessToken}`;
     } else if (config.headers) {
       delete config.headers.Authorization;
     }
 
     return config;
   },
-  (error) => {
+  (error: unknown) => {
     return Promise.reject(error);
-  }
+  },
 );
 
-/**
- * ============================================================
- * RESPONSE INTERCEPTOR
- * ============================================================
- *
- * Phân biệt các nguồn lỗi 401/403 từ backend:
- *
- *   1. 401 từ POST /auth/login
- *      → username/password KHÔNG ĐÚNG.
- *      → Trả lỗi về UI để hiển thị, TUYỆT ĐỐI KHÔNG logout/redirect
- *        (nếu không sẽ tạo vòng lặp: /login → 401 → /login → ...).
- *
- *   2. 401 từ ORG_SELECTION flow (/auth/organizations, /auth/select-organization)
- *      → ORG_SELECTION JWT hết hạn.
- *      → Chỉ xóa selection token; trang auth-flow tự xử lý hiển thị
- *        lỗi và quay về /login.
- *
- *   3. 401 từ protected API (còn lại)
- *      → ACCESS JWT không còn hợp lệ.
- *      → Logout tập trung: clear storage + reset state + /login.
- *
- *   4. 403 KHÔNG có body ApiResult (field "success")
- *      → Spring Security entry point mặc định (Http403ForbiddenEntryPoint):
- *        request CHƯA XÁC THỰC do token thiếu / hết hạn / không hợp lệ.
- *        (JwtAuthenticationFilter nuốt token lỗi rồi đi tiếp, và hệ thống
- *        không cấu hình entry point trả 401 — xem JwtAuthenticationFilter,
- *        SecurityConfig và các test backend ghi chú "403 vì chưa đăng nhập".)
- *      → Logout tập trung như (3).
- *
- *   5. 403 CÓ body ApiResult (field "success")
- *      → Lỗi PHÂN QUYỀN nghiệp vụ (AccessDenied / BusinessException 403).
- *      → KHÔNG logout, chỉ trả lỗi về UI.
- *
- * Logout tập trung do handleSessionExpiry() đảm nhiệm và là idempotent:
- * nhiều request đồng thời trả 401/403 cũng chỉ logout + redirect MỘT lần.
- */
-
-/**
- * Body response có phải là ApiResult của backend hay không.
- *
- * ApiResult luôn chứa field boolean "success"; trong khi đó 403 từ
- * entry point mặc định của Spring Security chỉ trả error JSON chuẩn
- * của Spring Boot (timestamp/status/error/path) hoặc body rỗng.
- */
-const isApiResultBody = (data: unknown): boolean =>
-  Boolean(
-    data &&
-      typeof data === "object" &&
-      typeof (data as { success?: unknown }).success === "boolean"
-  );
-
+/** Phân loại mã lỗi 401/403 để xử lý phiên hết hạn hoặc hiển thị thông báo phù hợp. */
 apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-
+  (response) => response,
   (error) => {
     const status = error.response?.status;
     const url: string | undefined = error.config?.url;
 
-    /**
-     * ======================================================
-     * 401 UNAUTHORIZED
-     * ======================================================
-     */
+    // Xử lý mã lỗi 401 (Unauthorized)
     if (status === 401) {
-      /**
-       * 401 từ LOGIN = sai username/password.
-       * Trả lỗi về UI, không clear auth, không redirect.
-       */
+      // 401 từ login: Sai thông tin đăng nhập, trả lỗi về UI để hiển thị
       if (isNoAccessTokenRequest(url)) {
         return Promise.reject(error);
       }
 
-      /**
-       * 401 từ ORG_SELECTION flow:
-       * chỉ gỡ selection token, trang auth-flow tự xử lý
-       * (toast + logout + quay về /login).
-       */
+      // 401 từ selection flow: Hết hạn selection token, gỡ token để form tự chuyển hướng
       if (isSelectionTokenRequest(url)) {
         removeSelectionToken();
-
         return Promise.reject(error);
       }
 
-      /**
-       * 401 từ protected API → token không còn hợp lệ.
-       */
+      // 401 từ API bảo vệ: Access token hết hạn/không hợp lệ, kích hoạt đăng xuất tập trung
       handleSessionExpiry();
-
       return Promise.reject(error);
     }
 
-    /**
-     * ======================================================
-     * 403 FORBIDDEN - CHƯA XÁC THỰC
-     * ======================================================
-     *
-     * Backend trả 403 (không có ApiResult body) khi ACCESS JWT
-     * thiếu / hết hạn / không hợp lệ trên endpoint protected.
-     * Xử lý như phiên đăng nhập đã mất.
-     */
+    // Xử lý mã lỗi 403 (Forbidden) do thiếu hoặc hỏng token từ Spring Security entry point
     if (status === 403 && !isApiResultBody(error.response?.data)) {
       if (isNoAccessTokenRequest(url)) {
         return Promise.reject(error);
       }
       handleSessionExpiry();
-
       return Promise.reject(error);
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default apiClient;

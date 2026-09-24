@@ -1,6 +1,7 @@
-import { CreatePreprocessingForm } from "./components/CreatePreprocessingForm";
-import { HelpButton } from "@/components/help/HelpButton";
+import { CreatePreprocessingForm } from './components/CreatePreprocessingForm';
+import { HelpButton } from '@/components/help/HelpButton';
 
+/** Trang ghi sự kiện sơ chế nông sản. */
 export default function CreatePreprocessingEventPage() {
   return (
     <div className="space-y-6">

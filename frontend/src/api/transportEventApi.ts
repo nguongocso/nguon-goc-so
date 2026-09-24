@@ -1,19 +1,16 @@
-import apiClient from "@/api/axiosConfig";
+import apiClient from '@/api/axiosConfig';
 import type {
   RecordTransportEventPayload,
   TransportEvent,
   TransportEventResponse,
-} from "@/types/transportEvent";
+} from '@/types/transportEvent';
 
-/**
- * Ghi sự kiện vận chuyển cho lô hàng được xác định bằng mã truy xuất.
- * POST /api/v1/chain-events/transport
- */
+/** Ghi sự kiện vận chuyển cho lô hàng được xác định bằng mã truy xuất. */
 export const recordTransportEvent = async (
   payload: RecordTransportEventPayload,
 ): Promise<TransportEvent> => {
   const response = await apiClient.post<TransportEventResponse>(
-    "/chain-events/transport",
+    '/chain-events/transport',
     payload,
   );
 

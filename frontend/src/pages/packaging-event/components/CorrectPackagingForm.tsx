@@ -1,18 +1,23 @@
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import {
   Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
 } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+
 import { correctPackagingSchema, type CorrectPackagingFormValues } from '@/utils/validators/packagingEventSchema';
 import { correctPackagingEvent } from '@/api/packagingApi';
-import { Label } from '../../../components/ui/label';
-import { Input } from '../../../components/ui/input';
-import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
-import { Button } from '../../../components/ui/button';
 import { getLocalDateString } from '@/utils/dateTime';
 
+import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
+
+/** Biểu mẫu đính chính thông tin sự kiện đóng gói. */
 export function CorrectPackagingForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -53,8 +58,11 @@ export function CorrectPackagingForm() {
       });
       toast.success('Đính chính sự kiện thành công');
       navigate('/production-lots');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Có lỗi xảy ra');
+    } catch (error: unknown) {
+      const message = isAxiosError(error)
+        ? (error.response?.data as { message?: string } | undefined)?.message
+        : undefined;
+      toast.error(message || 'Có lỗi xảy ra');
     }
   };
 
@@ -69,12 +77,21 @@ export function CorrectPackagingForm() {
           <div className="space-y-2">
             <Label htmlFor="packagingSpecification">Quy cách đóng gói mới *</Label>
             <Input id="packagingSpecification" {...register('packagingSpecification')} />
-            {errors.packagingSpecification && <p className="text-sm text-red-500">{errors.packagingSpecification.message}</p>}
+            {errors.packagingSpecification && (
+              <p className="text-sm text-red-500">
+                {errors.packagingSpecification.message}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="packagingDate">Ngày đóng gói mới *</Label>
-            <Input id="packagingDate" type="date" {...register('packagingDate')} max={getLocalDateString()} />
+            <Input
+              id="packagingDate"
+              type="date"
+              {...register('packagingDate')}
+              max={getLocalDateString()}
+            />
             {errors.packagingDate && <p className="text-sm text-red-500">{errors.packagingDate.message}</p>}
           </div>
 
@@ -90,9 +107,18 @@ export function CorrectPackagingForm() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => navigate(-1)}>Hủy</Button>
-          {/* CHANGED: thêm variant="edit" */}
-          <Button type="submit" disabled={isSubmitting} variant="edit">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate(-1)}
+          >
+            Hủy
+          </Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            variant="edit"
+          >
             {isSubmitting ? 'Đang xử lý...' : 'Đính chính'}
           </Button>
         </CardFooter>

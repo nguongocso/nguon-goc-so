@@ -88,7 +88,7 @@ function detectLayer(filePath) {
   if (norm.includes('service') || norm.endsWith('service.java') || norm.endsWith('serviceimpl.java')) return 'Backend - Service Layer';
   if (norm.includes('controller') || norm.endsWith('controller.java')) return 'Backend - Controller Layer';
   if (norm.includes('exception')) return 'Backend - Exception Layer';
-  
+
   if (norm.endsWith('.tsx') && norm.includes('components/')) return 'Frontend - Component';
   if (norm.endsWith('.tsx') && norm.includes('pages/')) return 'Frontend - Page';
   if (norm.includes('hooks/') || norm.startsWith('use')) return 'Frontend - Custom Hook';
@@ -472,7 +472,7 @@ function normalizeReviewResult(rawResult) {
  */
 function buildMarkdownComment(reviewResult) {
   const { passed, summary, violations, blockerCount = 0, majorCount = 0, minorCount = 0 } = reviewResult;
-  
+
   let statusIcon;
   if (passed) {
     statusIcon = violations.length === 0
