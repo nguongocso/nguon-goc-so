@@ -25,7 +25,7 @@ public class AiProperties {
     /**
      * Chuỗi danh sách mô hình ngôn ngữ ưu tiên (phân cách bằng dấu phẩy).
      */
-    private String model = "gemini-3.5-flash,gemini-3.6-flash,gemini-1.5-flash,gemini-2.0-flash";
+    private String model = "gemini-3-flash-preview,gemini-3.5-flash";
 
     /**
      * Địa chỉ cơ sở của API Google Gemini.
@@ -35,12 +35,12 @@ public class AiProperties {
     /**
      * Thời gian chờ thiết lập kết nối (giây).
      */
-    private int connectTimeoutSeconds = 5;
+    private int connectTimeoutSeconds = 10;
 
     /**
      * Thời gian chờ đọc dữ liệu phản hồi từ AI (giây).
      */
-    private int readTimeoutSeconds = 20;
+    private int readTimeoutSeconds = 60;
 
     /**
      * Lấy danh sách các mô hình theo thứ tự ưu tiên fallback.
@@ -49,7 +49,7 @@ public class AiProperties {
      */
     public List<String> getModelList() {
         if (model == null || model.isBlank()) {
-            return List.of("gemini-3.5-flash", "gemini-3.6-flash");
+            return List.of("gemini-3-flash-preview", "gemini-3.5-flash");
         }
         return Arrays.stream(model.split(","))
                 .map(String::trim)

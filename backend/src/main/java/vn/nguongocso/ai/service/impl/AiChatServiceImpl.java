@@ -160,16 +160,19 @@ public class AiChatServiceImpl implements AiChatService {
                         candidateModel,
                         aiProperties.getApiKey());
 
+                long startTime = System.currentTimeMillis();
                 String responseBody = aiRestClient.post()
                         .uri(requestUrl)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON, MediaType.ALL)
                         .body(requestPayload)
                         .retrieve()
                         .body(String.class);
 
+                long durationMs = System.currentTimeMillis() - startTime;
                 String aiReply = extractTextFromGeminiResponse(responseBody);
                 if (aiReply != null && !aiReply.isBlank()) {
-                    log.info("Gọi thành công mô hình Google Gemini: [{}]", candidateModel);
+                    log.info("Gọi thành công mô hình Google Gemini [{}] sau {}ms", candidateModel, durationMs);
                     List<String> dynamicQuestions = extractOrGenerateFollowUpQuestions(currentUser);
                     return AiChatResponse.builder()
                             .reply(aiReply)
@@ -376,21 +379,46 @@ public class AiChatServiceImpl implements AiChatService {
         // Contents (History + Current Message)
         List<Map<String, Object>> contents = new ArrayList<>();
 
-        if (history != null) {
-            for (AiChatMessageDto msg : history) {
-                if (msg.getContent() != null && !msg.getContent().isBlank()) {
-                    String geminiRole = "assistant".equalsIgnoreCase(msg.getRole())
-                            || "model".equalsIgnoreCase(msg.getRole())
-                                    ? "model"
-                                    : "user";
-                    contents.add(Map.of(
-                            "role", geminiRole,
-                            "parts", List.of(Map.of("text", msg.getContent()))));
+        if (history != null && !history.isEmpty()) {
+            // Gemini API yêu cầu lượt chat đầu tiên phải là của user, bỏ qua tin nhắn mở đầu của model nếu có
+            int firstUserIndex = -1;
+            for (int i = 0; i < history.size(); i++) {
+                String role = history.get(i).getRole();
+                if ("user".equalsIgnoreCase(role) || (!"assistant".equalsIgnoreCase(role) && !"model".equalsIgnoreCase(role))) {
+                    firstUserIndex = i;
+                    break;
+                }
+            }
+
+            if (firstUserIndex >= 0) {
+                String lastRole = null;
+                for (int i = firstUserIndex; i < history.size(); i++) {
+                    AiChatMessageDto msg = history.get(i);
+                    if (msg.getContent() != null && !msg.getContent().isBlank()) {
+                        String geminiRole = "assistant".equalsIgnoreCase(msg.getRole())
+                                || "model".equalsIgnoreCase(msg.getRole())
+                                        ? "model"
+                                        : "user";
+                        // Đảm bảo không có hai lượt liên tiếp cùng một role
+                        if (!geminiRole.equals(lastRole)) {
+                            contents.add(Map.of(
+                                    "role", geminiRole,
+                                    "parts", List.of(Map.of("text", msg.getContent()))));
+                            lastRole = geminiRole;
+                        }
+                    }
                 }
             }
         }
 
-        // Tin nhắn hiện tại của user
+        // Tin nhắn hiện tại của user (nếu tin nhắn trước đó cũng là user thì gộp hoặc đảm bảo role hợp lệ)
+        if (!contents.isEmpty() && "user".equals(contents.get(contents.size() - 1).get("role"))) {
+            // Thay thế hoặc cập nhật nội dung
+            contents.add(Map.of(
+                    "role", "model",
+                    "parts", List.of(Map.of("text", "..."))));
+        }
+
         contents.add(Map.of(
                 "role", "user",
                 "parts", List.of(Map.of("text", userMessage))));
