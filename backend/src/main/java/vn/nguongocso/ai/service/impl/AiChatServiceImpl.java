@@ -23,13 +23,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.ai.config.AiProperties;
+import vn.nguongocso.ai.dto.query.CertificationStatusDto;
+import vn.nguongocso.ai.dto.query.OrganizationAnalyticsDataDto;
 import vn.nguongocso.ai.dto.request.AiChatMessageDto;
 import vn.nguongocso.ai.dto.request.AiChatRequest;
 import vn.nguongocso.ai.dto.response.AiChatResponse;
 import vn.nguongocso.ai.dto.response.AiPromptSuggestionResponse;
 import vn.nguongocso.ai.service.AiChatService;
+import vn.nguongocso.ai.service.AiDataQueryService;
+import vn.nguongocso.ai.util.AiIntentDetector;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.organization.constant.RoleCode;
+import vn.nguongocso.organization.service.AreaScopeResult;
+import vn.nguongocso.organization.service.AreaScopeService;
 
 /**
  * Hiện thực dịch vụ xử lý hội thoại với Trợ lý AI Nguồn Gốc Số.
@@ -41,6 +47,8 @@ public class AiChatServiceImpl implements AiChatService {
     private final RestClient aiRestClient;
     private final ResourceLoader resourceLoader;
     private final ObjectMapper objectMapper;
+    private final AiDataQueryService aiDataQueryService;
+    private final AreaScopeService areaScopeService;
 
     private String systemKnowledge = "";
 
@@ -48,11 +56,15 @@ public class AiChatServiceImpl implements AiChatService {
             AiProperties aiProperties,
             @Qualifier("aiRestClient") RestClient aiRestClient,
             ResourceLoader resourceLoader,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            AiDataQueryService aiDataQueryService,
+            AreaScopeService areaScopeService) {
         this.aiProperties = aiProperties;
         this.aiRestClient = aiRestClient;
         this.resourceLoader = resourceLoader;
         this.objectMapper = objectMapper;
+        this.aiDataQueryService = aiDataQueryService;
+        this.areaScopeService = areaScopeService;
     }
 
     /**
@@ -86,13 +98,58 @@ public class AiChatServiceImpl implements AiChatService {
         String userMessage = request.getMessage() != null ? request.getMessage().trim() : "";
         List<AiChatMessageDto> history = request.getHistory() != null ? request.getHistory() : new ArrayList<>();
 
-        // Kiểm tra nếu API key chưa cấu hình thì trả về phản hồi hỗ trợ nội bộ mẫu
+        // TASK-AI-07: Chống truy vấn trái phép dữ liệu của tổ chức khác (Multi-Tenant Isolation)
+        if (currentUser != null && currentUser.getOrganizationId() != null) {
+            String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode() : "";
+            if (!RoleCode.ADMIN.equalsIgnoreCase(roleCode) && !RoleCode.REGULATOR.equalsIgnoreCase(roleCode)
+                    && AiIntentDetector.hasCrossOrgInquiryIntent(userMessage, currentUser.getOrganizationName(), currentUser.getOrganizationCode())) {
+                String notice = "Theo chính sách bảo mật cô lập dữ liệu đa tổ chức của Nguồn Gốc Số, bạn chỉ có quyền tra cứu số liệu nội bộ thuộc tổ chức của mình ("
+                        + (currentUser.getOrganizationName() != null ? currentUser.getOrganizationName() : "Tổ chức hiện tại")
+                        + "). Hệ thống không cung cấp thông tin của tổ chức khác.";
+                return AiChatResponse.builder()
+                        .reply(notice)
+                        .timestamp(LocalDateTime.now())
+                        .suggestedQuestions(extractOrGenerateFollowUpQuestions(currentUser))
+                        .build();
+            }
+        }
+
+        // TASK-AI-06: Nhận diện ý định tra cứu / thống kê số liệu thực tế (Intent Detection)
+        OrganizationAnalyticsDataDto analyticsData = null;
+        if (AiIntentDetector.hasAnalyticsIntent(userMessage)) {
+            if (currentUser == null) {
+                String publicNotice = "Tính năng tra cứu và thống kê số liệu nội bộ chỉ dành cho các thành viên Hợp tác xã, Doanh nghiệp hoặc Cơ quan quản lý đã đăng nhập. Bạn vui lòng đăng nhập tài khoản để xem số liệu.";
+                return AiChatResponse.builder()
+                        .reply(publicNotice)
+                        .timestamp(LocalDateTime.now())
+                        .suggestedQuestions(extractOrGenerateFollowUpQuestions(currentUser))
+                        .build();
+            }
+
+            String roleCode = currentUser.getRoleCode() != null ? currentUser.getRoleCode() : "";
+            if (RoleCode.REGULATOR.equalsIgnoreCase(roleCode) || "REGULATOR".equalsIgnoreCase(currentUser.getRoleName())) {
+                AreaScopeResult scope = areaScopeService.resolveOrganizationsForReports(currentUser, null);
+                if (scope.isEmptyScope()) {
+                    return AiChatResponse.builder()
+                            .reply("Bạn là Cán bộ Quản lý ngành nhưng hiện chưa được phân công địa bàn quản lý nào trong hệ thống. Vui lòng liên hệ Quản trị viên để được gán địa bàn.")
+                            .timestamp(LocalDateTime.now())
+                            .suggestedQuestions(extractOrGenerateFollowUpQuestions(currentUser))
+                            .build();
+                } else if (scope.isFiltered()) {
+                    analyticsData = aiDataQueryService.getTerritoryAnalytics(scope.getOrganizationIds(), "Địa bàn phân công");
+                }
+            } else if (currentUser.getOrganizationId() != null) {
+                analyticsData = aiDataQueryService.getFullOrganizationAnalytics(currentUser.getOrganizationId());
+            }
+        }
+
+        // Kiểm tra nếu API key chưa cấu hình thì trả về phản hồi hỗ trợ nội bộ mẫu (kèm số liệu nếu có)
         if (aiProperties.getApiKey() == null || aiProperties.getApiKey().isBlank()) {
-            return generateLocalFallbackResponse(userMessage, currentUser);
+            return generateLocalFallbackResponse(userMessage, currentUser, analyticsData);
         }
 
         List<String> candidateModels = aiProperties.getModelList();
-        String systemInstructionText = buildSystemInstruction(currentUser);
+        String systemInstructionText = buildSystemInstruction(currentUser, analyticsData);
         Map<String, Object> requestPayload = buildGeminiPayload(systemInstructionText, history, userMessage);
         String lastErrorDetail = null;
 
@@ -218,9 +275,9 @@ public class AiChatServiceImpl implements AiChatService {
     }
 
     /**
-     * Xây dựng chỉ dẫn hệ thống kèm thông tin vai trò người dùng hiện tại.
+     * Xây dựng chỉ dẫn hệ thống kèm thông tin vai trò người dùng và dữ liệu thực tế (nếu có).
      */
-    private String buildSystemInstruction(CustomUserDetails currentUser) {
+    private String buildSystemInstruction(CustomUserDetails currentUser, OrganizationAnalyticsDataDto analyticsData) {
         StringBuilder sb = new StringBuilder();
         sb.append(this.systemKnowledge);
         sb.append("\n\n---\n");
@@ -246,6 +303,62 @@ public class AiChatServiceImpl implements AiChatService {
                     "- Hãy hướng dẫn thân thiện về cách tra cứu sản phẩm công khai hoặc giới thiệu các tính năng của Nguồn Gốc Số.\n");
         }
 
+        // TASK-AI-06: Inject dữ liệu thực tế vào System Context
+        if (analyticsData != null) {
+            sb.append(formatAnalyticsPromptBlock(analyticsData));
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Định dạng khối ngữ cảnh số liệu thực tế để đưa vào Prompt cho AI (TASK-AI-06).
+     */
+    private String formatAnalyticsPromptBlock(OrganizationAnalyticsDataDto analytics) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n[DỮ LIỆU THỰC TẾ CỦA TỔ CHỨC HIỆN TẠI (Tổ chức: ")
+                .append(analytics.getOrganizationName() != null ? analytics.getOrganizationName() : "Nội bộ")
+                .append(analytics.getOrganizationCode() != null && !analytics.getOrganizationCode().isBlank()
+                        ? ", Mã: " + analytics.getOrganizationCode()
+                        : "")
+                .append(")]:\n");
+
+        if (analytics.getLotSummary() != null) {
+            sb.append("- Tổng số lô đang canh tác: ").append(analytics.getLotSummary().getActiveLotsCount())
+                    .append(" lô (Tổng diện tích: ").append(analytics.getLotSummary().getTotalAreaHectares()).append(" ha).\n");
+            sb.append("- Số lô đã thu hoạch: ").append(analytics.getLotSummary().getHarvestedLotsCount()).append(" lô.\n");
+            if (analytics.getLotSummary().getUpcomingHarvestLotNames() != null
+                    && !analytics.getLotSummary().getUpcomingHarvestLotNames().isEmpty()) {
+                sb.append("- Lô sắp thu hoạch gần nhất: ")
+                        .append(String.join(", ", analytics.getLotSummary().getUpcomingHarvestLotNames())).append(".\n");
+            }
+        }
+
+        if (analytics.getExpiringCertifications() != null && !analytics.getExpiringCertifications().isEmpty()) {
+            sb.append("- Chứng nhận sắp hết hạn trong 30 ngày: ");
+            List<String> certStrs = new ArrayList<>();
+            for (CertificationStatusDto c : analytics.getExpiringCertifications()) {
+                certStrs.add(c.getName() + " (Mã: " + c.getCode() + ", Tiêu chuẩn: " + c.getStandardName()
+                        + ", Hết hạn: " + c.getExpiryDate() + ", Còn: " + c.getDaysRemaining() + " ngày)");
+            }
+            sb.append(String.join("; ", certStrs)).append(".\n");
+        } else {
+            sb.append("- Chứng nhận sắp hết hạn trong 30 ngày: Không có chứng nhận nào sắp hết hạn.\n");
+        }
+
+        if (analytics.getAlertsSummary() != null) {
+            sb.append("- Cảnh báo gần đây: ").append(analytics.getAlertsSummary().getPendingScanAnomalyCount())
+                    .append(" cảnh báo quét bất thường đang chờ xử lý, ")
+                    .append(analytics.getAlertsSummary().getActiveRecallCasesCount()).append(" vụ việc thu hồi đang mở.\n");
+        }
+
+        if (analytics.getShipmentSummary() != null) {
+            sb.append("- Tình hình lô hàng: ").append(analytics.getShipmentSummary().getInTransitShipmentsCount())
+                    .append(" lô hàng đang lưu thông/vận chuyển, ")
+                    .append(analytics.getShipmentSummary().getPendingHandoverCount()).append(" biên bản bàn giao chờ đối tác tiếp nhận.\n");
+        }
+
+        sb.append("[HƯỚNG DẪN AI]: Hãy sử dụng chính xác các số liệu thực tế ở trên để phân tích và trả lời câu hỏi của người dùng một cách chuyên nghiệp, trung thực và chính xác.\n");
         return sb.toString();
     }
 
@@ -358,10 +471,64 @@ public class AiChatServiceImpl implements AiChatService {
     /**
      * Phản hồi dự phòng khi chưa cấu hình API Key thực tế (Môi trường Dev / Test).
      */
-    private AiChatResponse generateLocalFallbackResponse(String userMessage, CustomUserDetails currentUser) {
+    private AiChatResponse generateLocalFallbackResponse(String userMessage, CustomUserDetails currentUser,
+            OrganizationAnalyticsDataDto analytics) {
         String greeting = currentUser != null
                 ? "Xin chào " + currentUser.getFullName() + " (" + currentUser.getRoleName() + ")!"
                 : "Xin chào bạn!";
+
+        // TASK-AI-06: Nếu phát hiện ý định thống kê và có số liệu thực tế, định dạng báo cáo số liệu thực
+        if (analytics != null) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(greeting).append("\n\n");
+            sb.append("📊 **Báo cáo số liệu thực tế của ").append(analytics.getOrganizationName()).append(":**\n\n");
+
+            if (analytics.getLotSummary() != null) {
+                sb.append("• **Lô sản xuất & Vùng trồng:**\n");
+                sb.append("  - Đang canh tác: **").append(analytics.getLotSummary().getActiveLotsCount()).append(" lô** (Tổng diện tích: **")
+                        .append(analytics.getLotSummary().getTotalAreaHectares()).append(" ha**)\n");
+                sb.append("  - Đã thu hoạch: **").append(analytics.getLotSummary().getHarvestedLotsCount()).append(" lô**\n");
+                if (analytics.getLotSummary().getUpcomingHarvestLotNames() != null
+                        && !analytics.getLotSummary().getUpcomingHarvestLotNames().isEmpty()) {
+                    sb.append("  - Lô sắp thu hoạch: ")
+                            .append(String.join(", ", analytics.getLotSummary().getUpcomingHarvestLotNames())).append("\n");
+                }
+            }
+
+            if (analytics.getExpiringCertifications() != null && !analytics.getExpiringCertifications().isEmpty()) {
+                sb.append("• **Chứng nhận chất lượng sắp hết hạn trong 30 ngày:**\n");
+                for (CertificationStatusDto c : analytics.getExpiringCertifications()) {
+                    sb.append("  - ").append(c.getName()).append(" (Mã: `").append(c.getCode()).append("`, Tiêu chuẩn: ")
+                            .append(c.getStandardName()).append(") - Hết hạn ngày ").append(c.getExpiryDate())
+                            .append(" (còn ").append(c.getDaysRemaining()).append(" ngày)\n");
+                }
+            } else {
+                sb.append("• **Chứng nhận chất lượng:** Hiện không có chứng nhận nào sắp hết hạn trong 30 ngày tới.\n");
+            }
+
+            if (analytics.getAlertsSummary() != null) {
+                sb.append("• **Cảnh báo & Rủi ro:**\n");
+                sb.append("  - Cảnh báo quét bất thường: **").append(analytics.getAlertsSummary().getPendingScanAnomalyCount())
+                        .append(" cảnh báo** chờ xử lý\n");
+                sb.append("  - Vụ việc thu hồi: **").append(analytics.getAlertsSummary().getActiveRecallCasesCount())
+                        .append(" vụ việc** đang xử lý\n");
+            }
+
+            if (analytics.getShipmentSummary() != null) {
+                sb.append("• **Lưu thông & Bàn giao:**\n");
+                sb.append("  - Lô hàng đang lưu thông: **").append(analytics.getShipmentSummary().getInTransitShipmentsCount())
+                        .append(" lô**\n");
+                sb.append("  - Biên bản bàn giao chờ xác nhận: **").append(analytics.getShipmentSummary().getPendingHandoverCount())
+                        .append(" biên bản**\n");
+            }
+
+            sb.append("\n> *Dữ liệu được trích xuất thời gian thực trực tiếp từ cơ sở dữ liệu hệ thống Nguồn Gốc Số.*");
+            return AiChatResponse.builder()
+                    .reply(sb.toString())
+                    .timestamp(LocalDateTime.now())
+                    .suggestedQuestions(extractOrGenerateFollowUpQuestions(currentUser))
+                    .build();
+        }
 
         String content;
         String lowerMsg = userMessage.toLowerCase();
@@ -406,6 +573,7 @@ public class AiChatServiceImpl implements AiChatService {
                 .suggestedQuestions(extractOrGenerateFollowUpQuestions(currentUser))
                 .build();
     }
+
 
     /**
      * Phản hồi thân thiện khi gặp sự cố mạng hoặc lỗi từ máy chủ AI.
