@@ -9,6 +9,7 @@ import {
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AiChatWidget } from '@/components/ai/AiChatWidget';
 
 const BREAKPOINT_SIDEBAR_DESKTOP = '(min-width: 1280px)';
 const BREAKPOINT_SIDEBAR_TABLET = '(min-width: 768px) and (max-width: 1279px)';
@@ -162,6 +163,9 @@ export function MainLayout() {
           </BreadcrumbOverrideProvider>
         </main>
       </div>
+
+      {/* Trợ lý AI Chatbot Widget nổi toàn hệ thống */}
+      <AiChatWidget />
     </div>
   );
 }
