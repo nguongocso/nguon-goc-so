@@ -14,73 +14,64 @@ import type {
   UpdateProfileTemplateRequest,
 } from '@/types/profileTemplate';
 
-export const useProfileTemplates = (organizationId?: string) => {
+export const useProfileTemplates = (organizationId?: string, enabled = true) => {
   const [templates, setTemplates] = useState<ProfileTemplate[]>([]);
   const [availableFields, setAvailableFields] = useState<FieldGroupDefinition[]>([]);
   const [defaultTemplate, setDefaultTemplate] = useState<ProfileTemplate | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('[useProfileTemplates] Hook render: organizationId =', organizationId);
-
   const fetchTemplates = useCallback(async () => {
-    if (!organizationId) {
-      console.warn('[useProfileTemplates] fetchTemplates bỏ qua do organizationId rỗng');
+    if (!organizationId || !enabled) {
       return;
     }
-    console.log('[useProfileTemplates] Bắt đầu tải danh sách mẫu hồ sơ: orgId =', organizationId);
     setLoading(true);
     setError(null);
     try {
       const data = await getProfileTemplates(organizationId);
-      console.log('[useProfileTemplates] Kết quả nhận được từ getProfileTemplates:', data);
       const safeList = Array.isArray(data) ? data : ((data as unknown as { data?: ProfileTemplate[] })?.data || []);
       setTemplates(safeList);
       const def = safeList.find((t) => t.isDefault) || null;
       setDefaultTemplate(def);
-      console.log('[useProfileTemplates] Đã cập nhật templates:', safeList.length, 'mẫu. Mặc định:', def?.name);
     } catch (err: unknown) {
-      console.error('[useProfileTemplates] Lỗi khi tải danh sách mẫu hồ sơ:', err);
+      const status = (err as { response?: { status?: number } })?.response?.status;
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Không thể tải danh sách mẫu hồ sơ';
       setError(msg);
-      toast.error(msg);
+      if (status !== 403) {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, enabled]);
 
   const fetchAvailableFields = useCallback(async () => {
-    if (!organizationId) {
-      console.warn('[useProfileTemplates] fetchAvailableFields bỏ qua do organizationId rỗng');
+    if (!organizationId || !enabled) {
       return;
     }
-    console.log('[useProfileTemplates] Bắt đầu tải danh mục trường: orgId =', organizationId);
     try {
       const data = await getAvailableFields(organizationId);
-      console.log('[useProfileTemplates] Kết quả danh mục trường:', data);
       const safeFields = Array.isArray(data) ? data : ((data as unknown as { data?: FieldGroupDefinition[] })?.data || []);
       setAvailableFields(safeFields);
-      console.log('[useProfileTemplates] Đã cập nhật danh mục trường, số nhóm:', safeFields.length);
     } catch (err: unknown) {
-      console.error('[useProfileTemplates] Lỗi khi tải danh mục trường:', err);
+      const status = (err as { response?: { status?: number } })?.response?.status;
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Không thể tải danh mục trường dữ liệu';
-      toast.error(msg);
+      if (status !== 403) {
+        toast.error(msg);
+      }
     }
-  }, [organizationId]);
+  }, [organizationId, enabled]);
 
   useEffect(() => {
-    if (organizationId) {
-      console.log('[useProfileTemplates] useEffect kích hoạt tải dữ liệu cho orgId:', organizationId);
-      fetchTemplates();
-      fetchAvailableFields();
-    } else {
-      console.warn('[useProfileTemplates] useEffect: Chưa có organizationId');
+    if (organizationId && enabled) {
+      void fetchTemplates();
+      void fetchAvailableFields();
     }
-  }, [organizationId, fetchTemplates, fetchAvailableFields]);
+  }, [organizationId, enabled, fetchTemplates, fetchAvailableFields]);
 
   const handleCreate = async (data: CreateProfileTemplateRequest): Promise<ProfileTemplate> => {
     if (!organizationId) throw new Error('Chưa xác định tổ chức');
