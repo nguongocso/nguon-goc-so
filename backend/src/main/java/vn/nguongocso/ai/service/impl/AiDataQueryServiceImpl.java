@@ -25,6 +25,7 @@ import vn.nguongocso.alert.enums.AlertType;
 import vn.nguongocso.alert.repository.AlertRepository;
 import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.repository.CertificationRepository;
+import vn.nguongocso.farm.repository.FarmAreaRepository;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
@@ -44,6 +45,7 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 public class AiDataQueryServiceImpl implements AiDataQueryService {
 
     private final ProductionLotRepository productionLotRepository;
+    private final FarmAreaRepository farmAreaRepository;
     private final CertificationRepository certificationRepository;
     private final AlertRepository alertRepository;
     private final RecallCaseRepository recallCaseRepository;
@@ -56,15 +58,20 @@ public class AiDataQueryServiceImpl implements AiDataQueryService {
     public ProductionLotSummaryDto getProductionLotSummary(UUID organizationId) {
         if (organizationId == null) {
             return ProductionLotSummaryDto.builder()
+                    .totalLotsCount(0)
                     .activeLotsCount(0)
                     .harvestedLotsCount(0)
+                    .packagedLotsCount(0)
                     .totalAreaHectares(0.0)
                     .upcomingHarvestLotNames(List.of())
+                    .recentLotDetails(List.of())
                     .build();
         }
 
         long activeLots = 0;
         long harvestedLots = 0;
+        long totalLots = 0;
+        long packagedLots = 0;
         double totalArea = 0.0;
 
         List<Object[]> rows = productionLotRepository.getLotAggregateSummaryByOrgId(organizationId);
@@ -73,16 +80,48 @@ public class AiDataQueryServiceImpl implements AiDataQueryService {
             activeLots = row[0] != null ? ((Number) row[0]).longValue() : 0;
             harvestedLots = row[1] != null ? ((Number) row[1]).longValue() : 0;
             totalArea = row[2] != null ? Math.round(((Number) row[2]).doubleValue() * 100.0) / 100.0 : 0.0;
+            totalLots = row.length > 3 && row[3] != null ? ((Number) row[3]).longValue() : (activeLots + harvestedLots);
+            packagedLots = row.length > 4 && row[4] != null ? ((Number) row[4]).longValue() : 0;
+        }
+
+        // Ưu tiên diện tích thực tế từ các vùng trồng đang hoạt động nếu có
+        java.math.BigDecimal farmAreaSum = farmAreaRepository.sumAreaByOrganizationId(organizationId);
+        if (farmAreaSum != null && farmAreaSum.doubleValue() > 0.0) {
+            totalArea = Math.round(farmAreaSum.doubleValue() * 100.0) / 100.0;
         }
 
         List<String> upcomingLots = productionLotRepository.findUpcomingHarvestLotNames(
                 organizationId, LocalDate.now(), PageRequest.of(0, 3));
 
+        List<vn.nguongocso.farm.entity.ProductionLot> recentLots = productionLotRepository.findRecentLotsByOrgId(
+                organizationId, PageRequest.of(0, 5));
+        List<String> recentLotDetails = new ArrayList<>();
+        if (recentLots != null) {
+            for (vn.nguongocso.farm.entity.ProductionLot pl : recentLots) {
+                String faName = pl.getFarmArea() != null ? pl.getFarmArea().getName() : "Chưa gắn vùng";
+                java.math.BigDecimal faArea = pl.getFarmArea() != null ? pl.getFarmArea().getArea() : null;
+                String catName = pl.getProductCategory() != null ? pl.getProductCategory().getName() : "Nông sản";
+                String statusVi = formatLotStatusVietnamese(pl.getStatus());
+                String detail = String.format("%s (Nông sản: %s, Vùng trồng: %s%s, Trạng thái: %s%s%s)",
+                        pl.getName(),
+                        catName,
+                        faName,
+                        faArea != null ? " - " + faArea + " ha" : "",
+                        statusVi,
+                        pl.getPlantingDate() != null ? ", Ngày xuống giống: " + pl.getPlantingDate() : "",
+                        pl.getHarvestDate() != null ? ", Ngày thu hoạch: " + pl.getHarvestDate() : "");
+                recentLotDetails.add(detail);
+            }
+        }
+
         return ProductionLotSummaryDto.builder()
+                .totalLotsCount(totalLots)
                 .activeLotsCount(activeLots)
                 .harvestedLotsCount(harvestedLots)
+                .packagedLotsCount(packagedLots)
                 .totalAreaHectares(totalArea)
                 .upcomingHarvestLotNames(upcomingLots != null ? upcomingLots : List.of())
+                .recentLotDetails(recentLotDetails)
                 .build();
     }
 
@@ -217,6 +256,8 @@ public class AiDataQueryServiceImpl implements AiDataQueryService {
         // 1. Lot summary aggregate
         long activeLots = 0;
         long harvestedLots = 0;
+        long totalLots = 0;
+        long packagedLots = 0;
         double totalArea = 0.0;
         List<Object[]> lotRows = productionLotRepository.getLotAggregateSummaryByOrgIds(organizationIds);
         if (lotRows != null && !lotRows.isEmpty() && lotRows.get(0) != null) {
@@ -224,6 +265,34 @@ public class AiDataQueryServiceImpl implements AiDataQueryService {
             activeLots = row[0] != null ? ((Number) row[0]).longValue() : 0;
             harvestedLots = row[1] != null ? ((Number) row[1]).longValue() : 0;
             totalArea = row[2] != null ? Math.round(((Number) row[2]).doubleValue() * 100.0) / 100.0 : 0.0;
+            totalLots = row.length > 3 && row[3] != null ? ((Number) row[3]).longValue() : (activeLots + harvestedLots);
+            packagedLots = row.length > 4 && row[4] != null ? ((Number) row[4]).longValue() : 0;
+        }
+
+        java.math.BigDecimal territoryFarmAreaSum = farmAreaRepository.sumAreaByOrganizationIds(organizationIds);
+        if (territoryFarmAreaSum != null && territoryFarmAreaSum.doubleValue() > 0.0) {
+            totalArea = Math.round(territoryFarmAreaSum.doubleValue() * 100.0) / 100.0;
+        }
+
+        List<vn.nguongocso.farm.entity.ProductionLot> recentTerritoryLots = productionLotRepository.findRecentLotsByOrgIds(
+                organizationIds, PageRequest.of(0, 5));
+        List<String> recentTerritoryLotDetails = new ArrayList<>();
+        if (recentTerritoryLots != null) {
+            for (vn.nguongocso.farm.entity.ProductionLot pl : recentTerritoryLots) {
+                String faName = pl.getFarmArea() != null ? pl.getFarmArea().getName() : "Chưa gắn vùng";
+                java.math.BigDecimal faArea = pl.getFarmArea() != null ? pl.getFarmArea().getArea() : null;
+                String catName = pl.getProductCategory() != null ? pl.getProductCategory().getName() : "Nông sản";
+                String orgName = pl.getOrganization() != null ? pl.getOrganization().getName() : "Tổ chức";
+                String statusVi = formatLotStatusVietnamese(pl.getStatus());
+                String detail = String.format("%s - Đơn vị: %s (Nông sản: %s, Vùng: %s%s, Trạng thái: %s)",
+                        pl.getName(),
+                        orgName,
+                        catName,
+                        faName,
+                        faArea != null ? " - " + faArea + " ha" : "",
+                        statusVi);
+                recentTerritoryLotDetails.add(detail);
+            }
         }
 
         // 2. Expiring certs
@@ -264,10 +333,13 @@ public class AiDataQueryServiceImpl implements AiDataQueryService {
                 .organizationName(territoryName != null ? territoryName : "Địa bàn quản lý")
                 .organizationCode("TERRITORY")
                 .lotSummary(ProductionLotSummaryDto.builder()
+                        .totalLotsCount(totalLots)
                         .activeLotsCount(activeLots)
                         .harvestedLotsCount(harvestedLots)
+                        .packagedLotsCount(packagedLots)
                         .totalAreaHectares(totalArea)
                         .upcomingHarvestLotNames(List.of())
+                        .recentLotDetails(recentTerritoryLotDetails)
                         .build())
                 .expiringCertifications(certDtos)
                 .alertsSummary(RecentAlertsSummaryDto.builder()
@@ -279,5 +351,27 @@ public class AiDataQueryServiceImpl implements AiDataQueryService {
                         .pendingHandoverCount(pendingHandover)
                         .build())
                 .build();
+    }
+
+    /**
+     * Định dạng tên trạng thái vòng đời của lô sản xuất sang tiếng Việt chuẩn.
+     */
+    private String formatLotStatusVietnamese(vn.nguongocso.farm.enums.ProductionLotStatus status) {
+        if (status == null) {
+            return "Chưa xác định";
+        }
+        return switch (status) {
+            case DRAFT -> "Nháp";
+            case PENDING -> "Chờ duyệt";
+            case APPROVED -> "Đang canh tác (Đã duyệt)";
+            case REJECTED -> "Bị từ chối";
+            case HARVESTED -> "Đã thu hoạch";
+            case PREPROCESSED -> "Đã sơ chế";
+            case PACKAGED -> "Đã đóng gói";
+            case CLOSED -> "Đã đóng (Hoàn tất)";
+            case RECALLED -> "Đã thu hồi";
+            case CANCELLED -> "Đã hủy";
+            case DISPOSED -> "Đã tiêu hủy";
+        };
     }
 }

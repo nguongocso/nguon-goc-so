@@ -253,8 +253,15 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
     @Query("""
         SELECT 
             COALESCE(SUM(CASE WHEN pl.status = vn.nguongocso.farm.enums.ProductionLotStatus.APPROVED THEN 1 ELSE 0 END), 0),
-            COALESCE(SUM(CASE WHEN pl.status = vn.nguongocso.farm.enums.ProductionLotStatus.HARVESTED THEN 1 ELSE 0 END), 0),
-            COALESCE(SUM(fa.area), 0)
+            COALESCE(SUM(CASE WHEN pl.status IN (
+                vn.nguongocso.farm.enums.ProductionLotStatus.HARVESTED,
+                vn.nguongocso.farm.enums.ProductionLotStatus.PREPROCESSED,
+                vn.nguongocso.farm.enums.ProductionLotStatus.PACKAGED,
+                vn.nguongocso.farm.enums.ProductionLotStatus.CLOSED
+            ) THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(fa.area), 0),
+            COUNT(pl),
+            COALESCE(SUM(CASE WHEN pl.status = vn.nguongocso.farm.enums.ProductionLotStatus.PACKAGED THEN 1 ELSE 0 END), 0)
         FROM ProductionLot pl
         LEFT JOIN pl.farmArea fa
         WHERE pl.organization.organizationId = :organizationId
@@ -266,8 +273,15 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
     @Query("""
         SELECT 
             COALESCE(SUM(CASE WHEN pl.status = vn.nguongocso.farm.enums.ProductionLotStatus.APPROVED THEN 1 ELSE 0 END), 0),
-            COALESCE(SUM(CASE WHEN pl.status = vn.nguongocso.farm.enums.ProductionLotStatus.HARVESTED THEN 1 ELSE 0 END), 0),
-            COALESCE(SUM(fa.area), 0)
+            COALESCE(SUM(CASE WHEN pl.status IN (
+                vn.nguongocso.farm.enums.ProductionLotStatus.HARVESTED,
+                vn.nguongocso.farm.enums.ProductionLotStatus.PREPROCESSED,
+                vn.nguongocso.farm.enums.ProductionLotStatus.PACKAGED,
+                vn.nguongocso.farm.enums.ProductionLotStatus.CLOSED
+            ) THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(fa.area), 0),
+            COUNT(pl),
+            COALESCE(SUM(CASE WHEN pl.status = vn.nguongocso.farm.enums.ProductionLotStatus.PACKAGED THEN 1 ELSE 0 END), 0)
         FROM ProductionLot pl
         LEFT JOIN pl.farmArea fa
         WHERE pl.organization.organizationId IN :organizationIds
@@ -287,5 +301,33 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
     List<String> findUpcomingHarvestLotNames(
             @Param("organizationId") UUID organizationId,
             @Param("today") LocalDate today,
+            org.springframework.data.domain.Pageable pageable);
+
+    /** Lấy danh sách các lô sản xuất gần nhất của tổ chức để AI nắm thông tin chi tiết (TASK-AI-05). */
+    @Query("""
+        SELECT pl
+        FROM ProductionLot pl
+        LEFT JOIN FETCH pl.farmArea
+        LEFT JOIN FETCH pl.productCategory
+        WHERE pl.organization.organizationId = :organizationId
+          AND pl.status NOT IN (vn.nguongocso.farm.enums.ProductionLotStatus.CANCELLED, vn.nguongocso.farm.enums.ProductionLotStatus.DISPOSED)
+        ORDER BY pl.createdAt DESC
+        """)
+    List<ProductionLot> findRecentLotsByOrgId(
+            @Param("organizationId") UUID organizationId,
+            org.springframework.data.domain.Pageable pageable);
+
+    /** Lấy danh sách các lô sản xuất gần nhất theo danh sách tổ chức (TASK-AI-05 & TASK-AI-07). */
+    @Query("""
+        SELECT pl
+        FROM ProductionLot pl
+        LEFT JOIN FETCH pl.farmArea
+        LEFT JOIN FETCH pl.productCategory
+        WHERE pl.organization.organizationId IN :organizationIds
+          AND pl.status NOT IN (vn.nguongocso.farm.enums.ProductionLotStatus.CANCELLED, vn.nguongocso.farm.enums.ProductionLotStatus.DISPOSED)
+        ORDER BY pl.createdAt DESC
+        """)
+    List<ProductionLot> findRecentLotsByOrgIds(
+            @Param("organizationIds") Collection<UUID> organizationIds,
             org.springframework.data.domain.Pageable pageable);
 }

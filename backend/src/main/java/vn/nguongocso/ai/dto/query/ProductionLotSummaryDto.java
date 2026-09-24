@@ -17,15 +17,31 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class ProductionLotSummaryDto {
-    /** Số lượng lô đang trong giai đoạn canh tác (APPROVED). */
-    private long activeLotsCount;
+    /** Tổng số lô sản xuất (loại trừ đã hủy/tiêu hủy). */
+    @Builder.Default
+    private long totalLotsCount = 0;
 
-    /** Số lượng lô đã thu hoạch hoàn tất (HARVESTED). */
-    private long harvestedLotsCount;
+    /** Số lượng lô đang trong giai đoạn canh tác (APPROVED). */
+    @Builder.Default
+    private long activeLotsCount = 0;
+
+    /** Số lượng lô đã thu hoạch hoặc đã đóng gói hoàn tất (HARVESTED, PREPROCESSED, PACKAGED, CLOSED). */
+    @Builder.Default
+    private long harvestedLotsCount = 0;
+
+    /** Số lượng lô đã đóng gói thành phẩm sẵn sàng xuất bán (PACKAGED). */
+    @Builder.Default
+    private long packagedLotsCount = 0;
 
     /** Tổng diện tích canh tác (tính theo hecta). */
-    private double totalAreaHectares;
+    @Builder.Default
+    private double totalAreaHectares = 0.0;
 
     /** Danh sách tên hoặc mã các lô sắp đến ngày thu hoạch dự kiến gần nhất. */
-    private List<String> upcomingHarvestLotNames;
+    @Builder.Default
+    private List<String> upcomingHarvestLotNames = List.of();
+
+    /** Danh sách thông tin mô tả chi tiết các lô sản xuất gần nhất. */
+    @Builder.Default
+    private List<String> recentLotDetails = List.of();
 }

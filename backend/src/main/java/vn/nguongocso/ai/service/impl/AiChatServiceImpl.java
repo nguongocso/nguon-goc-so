@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.ai.config.AiProperties;
 import vn.nguongocso.ai.dto.query.CertificationStatusDto;
 import vn.nguongocso.ai.dto.query.OrganizationAnalyticsDataDto;
+import vn.nguongocso.ai.dto.query.ProductionLotSummaryDto;
 import vn.nguongocso.ai.dto.request.AiChatMessageDto;
 import vn.nguongocso.ai.dto.request.AiChatRequest;
 import vn.nguongocso.ai.dto.response.AiChatResponse;
@@ -116,7 +117,13 @@ public class AiChatServiceImpl implements AiChatService {
 
         // TASK-AI-06: Nhận diện ý định tra cứu / thống kê số liệu thực tế (Intent Detection)
         OrganizationAnalyticsDataDto analyticsData = null;
-        if (AiIntentDetector.hasAnalyticsIntent(userMessage)) {
+        boolean hasAnalytics = AiIntentDetector.hasAnalyticsIntent(userMessage);
+        log.info("Phân tích ý định thống kê: hasAnalytics={}, user={}, orgId={}",
+                hasAnalytics,
+                currentUser != null ? currentUser.getUsername() : "anonymous",
+                currentUser != null ? currentUser.getOrganizationId() : "null");
+
+        if (hasAnalytics) {
             if (currentUser == null) {
                 String publicNotice = "Tính năng tra cứu và thống kê số liệu nội bộ chỉ dành cho các thành viên Hợp tác xã, Doanh nghiệp hoặc Cơ quan quản lý đã đăng nhập. Bạn vui lòng đăng nhập tài khoản để xem số liệu.";
                 return AiChatResponse.builder()
@@ -143,6 +150,16 @@ public class AiChatServiceImpl implements AiChatService {
             }
         }
 
+        if (analyticsData != null && analyticsData.getLotSummary() != null) {
+            log.info("Đã trích xuất số liệu thực tế: totalLots={}, activeLots={}, harvestedLots={}, packagedLots={}, totalArea={}ha, recentLotsCount={}",
+                    analyticsData.getLotSummary().getTotalLotsCount(),
+                    analyticsData.getLotSummary().getActiveLotsCount(),
+                    analyticsData.getLotSummary().getHarvestedLotsCount(),
+                    analyticsData.getLotSummary().getPackagedLotsCount(),
+                    analyticsData.getLotSummary().getTotalAreaHectares(),
+                    analyticsData.getLotSummary().getRecentLotDetails() != null ? analyticsData.getLotSummary().getRecentLotDetails().size() : 0);
+        }
+
         // Kiểm tra nếu API key chưa cấu hình thì trả về phản hồi hỗ trợ nội bộ mẫu (kèm số liệu nếu có)
         if (aiProperties.getApiKey() == null || aiProperties.getApiKey().isBlank()) {
             return generateLocalFallbackResponse(userMessage, currentUser, analyticsData);
@@ -150,7 +167,7 @@ public class AiChatServiceImpl implements AiChatService {
 
         List<String> candidateModels = aiProperties.getModelList();
         String systemInstructionText = buildSystemInstruction(currentUser, analyticsData);
-        Map<String, Object> requestPayload = buildGeminiPayload(systemInstructionText, history, userMessage);
+        Map<String, Object> requestPayload = buildGeminiPayload(systemInstructionText, history, userMessage, analyticsData);
         String lastErrorDetail = null;
 
         for (String candidateModel : candidateModels) {
@@ -327,13 +344,27 @@ public class AiChatServiceImpl implements AiChatService {
                 .append(")]:\n");
 
         if (analytics.getLotSummary() != null) {
-            sb.append("- Tổng số lô đang canh tác: ").append(analytics.getLotSummary().getActiveLotsCount())
-                    .append(" lô (Tổng diện tích: ").append(analytics.getLotSummary().getTotalAreaHectares()).append(" ha).\n");
-            sb.append("- Số lô đã thu hoạch: ").append(analytics.getLotSummary().getHarvestedLotsCount()).append(" lô.\n");
-            if (analytics.getLotSummary().getUpcomingHarvestLotNames() != null
-                    && !analytics.getLotSummary().getUpcomingHarvestLotNames().isEmpty()) {
+            ProductionLotSummaryDto lotSummary = analytics.getLotSummary();
+            sb.append("- Tổng số lô sản xuất của tổ chức: ").append(lotSummary.getTotalLotsCount()).append(" lô.\n");
+            sb.append("- Tổng diện tích đất canh tác (Vùng trồng): ").append(lotSummary.getTotalAreaHectares()).append(" ha.\n");
+            sb.append("- Số lô đang trong vụ canh tác chăm sóc ngoài đồng (APPROVED): ").append(lotSummary.getActiveLotsCount()).append(" lô.\n");
+            sb.append("- Số lô đã thu hoạch hoặc đóng gói thành phẩm (HARVESTED, PACKAGED...): ").append(lotSummary.getHarvestedLotsCount()).append(" lô");
+            if (lotSummary.getPackagedLotsCount() > 0) {
+                sb.append(" (Trong đó có ").append(lotSummary.getPackagedLotsCount()).append(" lô đã đóng gói thành phẩm sẵn sàng cấp tem QR xuất bán)");
+            }
+            sb.append(".\n");
+
+            if (lotSummary.getRecentLotDetails() != null && !lotSummary.getRecentLotDetails().isEmpty()) {
+                sb.append("- Danh sách cụ thể các lô sản xuất của đơn vị:\n");
+                for (String detail : lotSummary.getRecentLotDetails()) {
+                    sb.append("  + ").append(detail).append("\n");
+                }
+            }
+
+            if (lotSummary.getUpcomingHarvestLotNames() != null
+                    && !lotSummary.getUpcomingHarvestLotNames().isEmpty()) {
                 sb.append("- Lô sắp thu hoạch gần nhất: ")
-                        .append(String.join(", ", analytics.getLotSummary().getUpcomingHarvestLotNames())).append(".\n");
+                        .append(String.join(", ", lotSummary.getUpcomingHarvestLotNames())).append(".\n");
             }
         }
 
@@ -362,6 +393,7 @@ public class AiChatServiceImpl implements AiChatService {
         }
 
         sb.append("[HƯỚNG DẪN AI]: Hãy sử dụng chính xác các số liệu thực tế ở trên để phân tích và trả lời câu hỏi của người dùng một cách chuyên nghiệp, trung thực và chính xác.\n");
+        sb.append("- Khi người dùng hỏi về số lượng lô, tình hình canh tác hoặc diện tích, hãy nêu rõ ràng: tổng số lô hiện có, diện tích vùng trồng, số lô đang canh tác chăm sóc ngoài đồng (APPROVED) và số lô đã thu hoạch/đóng gói thành phẩm (như PACKAGED - Đã đóng gói). Hãy liệt kê cụ thể tên các lô sản xuất (ví dụ: Lô Trồng Vải) kèm trạng thái thực tế để người dùng dễ dàng đối chiếu với danh sách hiển thị trên giao diện quản trị.\n");
         return sb.toString();
     }
 
@@ -369,7 +401,7 @@ public class AiChatServiceImpl implements AiChatService {
      * Đóng gói payload gửi sang Google Gemini API.
      */
     private Map<String, Object> buildGeminiPayload(String systemInstructionText, List<AiChatMessageDto> history,
-            String userMessage) {
+            String userMessage, OrganizationAnalyticsDataDto analyticsData) {
         Map<String, Object> payload = new HashMap<>();
 
         // System Instruction
@@ -411,17 +443,21 @@ public class AiChatServiceImpl implements AiChatService {
             }
         }
 
-        // Tin nhắn hiện tại của user (nếu tin nhắn trước đó cũng là user thì gộp hoặc đảm bảo role hợp lệ)
+        // Tin nhắn hiện tại của user kèm dữ liệu thực tế (nếu có)
         if (!contents.isEmpty() && "user".equals(contents.get(contents.size() - 1).get("role"))) {
-            // Thay thế hoặc cập nhật nội dung
             contents.add(Map.of(
                     "role", "model",
                     "parts", List.of(Map.of("text", "..."))));
         }
 
+        String finalUserMessage = userMessage;
+        if (analyticsData != null) {
+            finalUserMessage = userMessage + "\n\n" + formatAnalyticsPromptBlock(analyticsData);
+        }
+
         contents.add(Map.of(
                 "role", "user",
-                "parts", List.of(Map.of("text", userMessage))));
+                "parts", List.of(Map.of("text", finalUserMessage))));
 
         payload.put("contents", contents);
 

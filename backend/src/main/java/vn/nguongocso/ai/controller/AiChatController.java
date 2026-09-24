@@ -37,9 +37,10 @@ public class AiChatController {
     public ResponseEntity<ApiResult<AiChatResponse>> chat(
             @Valid @RequestBody AiChatRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-        log.info("Nhận câu hỏi AI từ người dùng: [{}], độ dài câu hỏi: {}",
+        log.info("Nhận câu hỏi AI từ người dùng: [{}], độ dài câu hỏi: {}, nội dung: [{}]",
                 currentUser != null ? currentUser.getUsername() : "Người tiêu dùng",
-                request.getMessage() != null ? request.getMessage().length() : 0);
+                request.getMessage() != null ? request.getMessage().length() : 0,
+                request.getMessage());
 
         AiChatResponse response = aiChatService.chat(request, currentUser);
         return ResponseEntity.ok(ApiResult.success(response));

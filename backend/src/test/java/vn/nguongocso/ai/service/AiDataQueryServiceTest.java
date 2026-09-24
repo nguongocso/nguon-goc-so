@@ -34,6 +34,7 @@ import vn.nguongocso.alert.repository.AlertRepository;
 import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.entity.Standard;
 import vn.nguongocso.certification.repository.CertificationRepository;
+import vn.nguongocso.farm.repository.FarmAreaRepository;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
@@ -52,6 +53,9 @@ class AiDataQueryServiceTest {
 
     @Mock
     private ProductionLotRepository productionLotRepository;
+
+    @Mock
+    private FarmAreaRepository farmAreaRepository;
 
     @Mock
     private CertificationRepository certificationRepository;

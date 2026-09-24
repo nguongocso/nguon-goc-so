@@ -45,6 +45,7 @@ public final class AiIntentDetector {
 
     /**
      * Nhận diện câu hỏi có chứa ý định tra cứu / thống kê số liệu nghiệp vụ hay không.
+     * Hỗ trợ cả tiếng Việt có dấu, không dấu và các biến thể mã hóa.
      *
      * @param message Tin nhắn người dùng
      * @return true nếu có ý định thống kê dữ liệu
@@ -54,13 +55,32 @@ public final class AiIntentDetector {
             return false;
         }
 
-        String normalized = message.toLowerCase(Locale.ROOT);
+        String rawLower = message.toLowerCase(Locale.ROOT);
+        String unaccented = removeAccents(message);
+
         for (String keyword : ANALYTICS_KEYWORDS) {
-            if (normalized.contains(keyword)) {
+            String keywordUnaccented = removeAccents(keyword);
+            if (rawLower.contains(keyword) || unaccented.contains(keywordUnaccented)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Loại bỏ dấu tiếng Việt để so khớp từ khóa linh hoạt và bền bỉ.
+     */
+    public static String removeAccents(String input) {
+        if (input == null) {
+            return "";
+        }
+        String normalized = java.text.Normalizer.normalize(input, java.text.Normalizer.Form.NFD);
+        return java.util.regex.Pattern.compile("\\p{InCombiningDiacriticalMarks}+")
+                .matcher(normalized)
+                .replaceAll("")
+                .replace('đ', 'd')
+                .replace('Đ', 'd')
+                .toLowerCase(Locale.ROOT);
     }
 
     /**
