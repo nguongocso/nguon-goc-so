@@ -13,22 +13,28 @@ export interface DossierCheckResponse {
 async function extractBlobErrorMessage(
   error: unknown,
   fallbackMessage: string,
-): Promise<string> {
+): Promise<string | null> {
   if (
-    isAxiosError(error) &&
-    error.response?.data instanceof Blob &&
-    error.response.data.type?.includes('application/json')
+    !isAxiosError(error) ||
+    !(error.response?.data instanceof Blob) ||
+    !error.response.data.type?.includes('application/json')
   ) {
+    return null;
+  }
+
+  try {
+    const text = await error.response.data.text();
+    if (!text) return fallbackMessage;
+
     try {
-      const text = await error.response.data.text();
-      if (!text) return fallbackMessage;
       const parsed = JSON.parse(text) as { message?: string };
       return parsed.message || text;
     } catch {
-      return fallbackMessage;
+      return text;
     }
+  } catch {
+    return null;
   }
-  return fallbackMessage;
 }
 
 /** Kiểm tra điều kiện xuất hồ sơ của một lô hàng theo quy định QTN-11. */
@@ -84,7 +90,8 @@ export const exportDossier = async (
       error,
       'Không đủ điều kiện hoặc lỗi khi tạo hồ sơ truy xuất',
     );
-    throw new Error(message);
+    if (message === null) throw error;
+    throw new Error(message, { cause: error });
   }
 };
 
@@ -164,7 +171,8 @@ export const exportGs1Dossier = async (
     return { blob: response.data as Blob, fileName };
   } catch (error: unknown) {
     const message = await extractBlobErrorMessage(error, 'Lỗi khi tạo hồ sơ GS1');
-    throw new Error(message);
+    if (message === null) throw error;
+    throw new Error(message, { cause: error });
   }
 };
 
@@ -235,7 +243,8 @@ export const exportBatchDossier = async (
       error,
       'Lỗi khi xuất bộ hồ sơ truy xuất hàng loạt',
     );
-    throw new Error(message);
+    if (message === null) throw error;
+    throw new Error(message, { cause: error });
   }
 };
 
