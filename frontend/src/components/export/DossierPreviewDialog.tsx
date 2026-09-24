@@ -15,8 +15,11 @@ export interface DossierPreviewDialogProps {
   shipmentName?: string;
   templateId?: string;
   templateName?: string;
+  organizationId?: string;
   activeFormat?: 'pdf' | 'json' | 'csv';
   initialData?: Record<string, unknown> | null;
+  selectedFieldKeys?: string[];
+  partnerName?: string | null;
 }
 
 /** Hiển thị bản xem trước hồ sơ PDF, CSV hoặc JSON và các thao tác liên quan. */
@@ -27,8 +30,11 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
   shipmentName,
   templateId,
   templateName,
+  organizationId,
   activeFormat = 'pdf',
   initialData,
+  selectedFieldKeys,
+  partnerName,
 }) => {
   const [format, setFormat] = useState<'pdf' | 'json' | 'csv'>(activeFormat);
   const [copied, setCopied] = useState(false);
@@ -45,6 +51,10 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
     open,
     shipmentId,
     templateId,
+    organizationId,
+    templateName,
+    partnerName,
+    selectedFieldKeys,
     format,
     initialData,
   });
@@ -58,10 +68,14 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
 
   const handleDownloadCurrent = () => {
     let blob: Blob | null = null;
-    let fileName = `dossier_profile_${shipmentName || shipmentId}.${format}`;
+    const rawName = (templateName || shipmentName || shipmentId || 'mau_ho_so').replace(
+      /\s+/g,
+      '_',
+    );
+    let fileName = `dossier_profile_${rawName}.${format}`;
     if (format === 'pdf' && pdfBlob) {
       blob = pdfBlob;
-      fileName = `Ho_so_truy_xuat_${shipmentName || shipmentId}.pdf`;
+      fileName = `Ho_so_truy_xuat_${rawName}.pdf`;
     } else if (format === 'csv' && csvContent) {
       blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     } else if (format === 'json' && jsonString) {

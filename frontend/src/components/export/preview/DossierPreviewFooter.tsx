@@ -87,7 +87,7 @@ export const DossierPreviewFooter: React.FC<DossierPreviewFooterProps> = ({
           </Button>
         )}
 
-        {!hasInitialData && hasShipmentId && (
+        {(hasInitialData || hasShipmentId) && (
           <Button
             type="button"
             size="sm"

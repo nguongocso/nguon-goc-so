@@ -2,14 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 
 import { exportDossier } from '@/api/dossierApi';
 import { exportShipmentWithTemplate } from '@/api/exportApi';
-import { getOpenDataPreview } from '@/api/profileTemplateApi';
+import { getOpenDataPreview, previewTemplatePdf } from '@/api/profileTemplateApi';
 import { toApiError } from '@/api/apiError';
+import { convertDossierDataToCsv } from '@/utils/dossierCsvConverter';
 
 /** Tham số đầu vào cho hook nạp dữ liệu xem trước hồ sơ. */
 export interface UseDossierPreviewDataParams {
   open: boolean;
   shipmentId?: string;
   templateId?: string;
+  organizationId?: string;
+  templateName?: string;
+  partnerName?: string | null;
+  selectedFieldKeys?: string[];
   format: 'pdf' | 'json' | 'csv';
   initialData?: Record<string, unknown> | null;
 }
@@ -19,6 +24,10 @@ export function useDossierPreviewData({
   open,
   shipmentId,
   templateId,
+  organizationId,
+  templateName,
+  partnerName,
+  selectedFieldKeys,
   format,
   initialData,
 }: UseDossierPreviewDataParams) {
@@ -52,17 +61,18 @@ export function useDossierPreviewData({
       setPdfUrl(null);
       setPdfBlob(null);
       setCsvContent(null);
-      if (!initialData) setJsonString('');
+      setJsonString('');
       setError(null);
       return;
     }
 
-    if (initialData && !shipmentId) {
+    if (initialData) {
       setJsonString(JSON.stringify(initialData, null, 2));
-      return;
+      setCsvContent(convertDossierDataToCsv(initialData));
     }
 
-    if (!shipmentId) return;
+    if ((format === 'json' || format === 'csv') && initialData) return;
+    if (!shipmentId && (format !== 'pdf' || !organizationId)) return;
 
     let isMounted = true;
     const fetchPreviewData = async () => {
@@ -71,7 +81,18 @@ export function useDossierPreviewData({
 
       try {
         if (format === 'pdf') {
-          const blob = await exportDossier(shipmentId, templateId);
+          let blob: Blob;
+          if (shipmentId) {
+            blob = await exportDossier(shipmentId, templateId);
+          } else if (organizationId) {
+            blob = await previewTemplatePdf(organizationId, {
+              name: templateName || 'Mẫu hồ sơ mới',
+              partnerName: partnerName || undefined,
+              selectedFieldKeys,
+            });
+          } else {
+            return;
+          }
           if (!isMounted) return;
           if (currentPdfUrlRef.current) URL.revokeObjectURL(currentPdfUrlRef.current);
           const url = URL.createObjectURL(blob);
@@ -79,11 +100,13 @@ export function useDossierPreviewData({
           setPdfBlob(blob);
           setPdfUrl(url);
         } else if (format === 'csv') {
+          if (!shipmentId) return;
           const blob = await exportShipmentWithTemplate(shipmentId, templateId, 'csv');
           if (!isMounted) return;
           const text = await blob.text();
           setCsvContent(text);
         } else {
+          if (!shipmentId) return;
           const res = await getOpenDataPreview(shipmentId, templateId);
           if (!isMounted) return;
           setJsonString(JSON.stringify(res, null, 2));
@@ -101,7 +124,17 @@ export function useDossierPreviewData({
     return () => {
       isMounted = false;
     };
-  }, [open, shipmentId, templateId, format, initialData]);
+  }, [
+    open,
+    shipmentId,
+    templateId,
+    organizationId,
+    templateName,
+    partnerName,
+    selectedFieldKeys,
+    format,
+    initialData,
+  ]);
 
   return {
     loading,

@@ -1,3 +1,5 @@
+import { isAxiosError } from 'axios';
+
 import type {
   ProfileTemplate,
   CreateProfileTemplateRequest,
@@ -9,6 +11,14 @@ import type {
 import apiClient from './axiosConfig';
 
 export type { ProfileTemplate };
+
+/** Dữ liệu dùng để tạo bản xem trước PDF theo cấu hình mẫu hồ sơ. */
+export interface PreviewTemplatePdfRequest {
+  name: string;
+  partnerName?: string;
+  selectedFieldKeys?: string[];
+  shipmentId?: string;
+}
 
 /** Cấu trúc bao bọc chuẩn ApiResult từ backend Spring Boot. */
 interface ApiResult<T> {
@@ -177,4 +187,40 @@ export const getBatchProfileTemplates = async (
   );
   const data = extractData(response.data);
   return Array.isArray(data) ? data.map(normalizeProfileTemplate) : [];
+};
+
+/** Tạo bản xem trước PDF theo cấu hình trường của mẫu hồ sơ. */
+export const previewTemplatePdf = async (
+  organizationId: string,
+  data: PreviewTemplatePdfRequest,
+): Promise<Blob> => {
+  try {
+    const response = await apiClient.post(
+      `/organizations/${organizationId}/profile-templates/preview-pdf`,
+      data,
+      {
+        responseType: 'blob',
+        timeout: 30000,
+      },
+    );
+    return response.data;
+  } catch (error: unknown) {
+    if (
+      !isAxiosError(error) ||
+      !(error.response?.data instanceof Blob) ||
+      !error.response.data.type?.includes('application/json')
+    ) {
+      throw error;
+    }
+
+    const text = await error.response.data.text();
+    let message = text || 'Lỗi khi tạo bản xem trước PDF theo mẫu';
+    try {
+      const parsed = JSON.parse(text) as { message?: string };
+      message = parsed.message || message;
+    } catch {
+      // Giữ nguyên nội dung phản hồi khi máy chủ không trả về JSON hợp lệ.
+    }
+    throw new Error(message, { cause: error });
+  }
 };

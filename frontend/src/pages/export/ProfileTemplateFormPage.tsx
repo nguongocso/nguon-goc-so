@@ -12,7 +12,7 @@ import {
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileFieldSelector } from '@/components/export/ProfileFieldSelector';
-import { DossierPreviewDialog } from '@/components/export/DossierPreviewDialog';
+import { ExportDossierDialog } from '@/components/export/ExportDossierDialog';
 import { ProfileTemplateMetaCard, type ProfileTemplateFormData } from './ProfileTemplateMetaCard';
 import { useProfileTemplateFormData } from './useProfileTemplateFormData';
 
@@ -187,11 +187,18 @@ export const ProfileTemplateFormPage: React.FC = () => {
         </Card>
       </form>
 
-      <DossierPreviewDialog
+      <ExportDossierDialog
         open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        templateName={formName || 'Bản xem trước'}
-        initialData={previewMockData}
+        onOpenChange={setPreviewOpen}
+        templatePreviewMode
+        templateInfo={{
+          name: formName || 'Mẫu hồ sơ mới',
+          partnerName: watch('partnerName') || undefined,
+          isDefault: Boolean(watch('isDefault')),
+          selectedFieldsCount: selectedFields.length,
+          selectedFieldKeys: selectedFields.map((field) => field.fieldKey),
+          mockData: previewMockData,
+        }}
       />
     </div>
   );

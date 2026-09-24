@@ -8,10 +8,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { DossierPreviewDialog } from './DossierPreviewDialog';
 import { DossierFormatSelector, type DossierExportFormat } from './DossierFormatSelector';
 import { ProfileTemplateSelector } from './ProfileTemplateSelector';
+import {
+  TemplatePreviewSummary,
+  type TemplatePreviewInfo,
+} from './TemplatePreviewSummary';
 
 import { exportDossier } from '@/api/dossierApi';
 import { exportShipmentWithTemplate } from '@/api/exportApi';
+import { previewTemplatePdf } from '@/api/profileTemplateApi';
 import { toApiError } from '@/api/apiError';
+import { convertDossierDataToCsv } from '@/utils/dossierCsvConverter';
 import { getLocalDateString } from '@/utils/dateTime';
 import { cn } from '@/lib/utils';
 import type { ProfileTemplate } from '@/types/profileTemplate';
@@ -20,10 +26,24 @@ import type { ProfileTemplate } from '@/types/profileTemplate';
 export interface ExportDossierDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  shipmentId: string;
-  shipmentName: string;
+  shipmentId?: string;
+  shipmentName?: string;
   shipmentCode?: string;
   cooperativeOrganizationId?: string;
+  templatePreviewMode?: boolean;
+  templateInfo?: TemplatePreviewInfo;
+}
+
+/** Kích hoạt tải Blob xuống thiết bị với tên tệp được chỉ định. */
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
 }
 
 /** Xuất hồ sơ PDF, JSON hoặc CSV theo mẫu của tổ chức hay mẫu mặc định. */
@@ -34,6 +54,8 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
   shipmentName,
   shipmentCode,
   cooperativeOrganizationId,
+  templatePreviewMode = false,
+  templateInfo,
 }) => {
   const { user } = useAuth();
   const organizationId = user?.organizationId || '';
@@ -55,6 +77,41 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
   }, [open]);
 
   const handleExport = async () => {
+    if (templatePreviewMode && templateInfo?.mockData) {
+      setIsExporting(true);
+      const rawName = (templateInfo.name || 'mau_ho_so').replace(/\s+/g, '_');
+
+      try {
+        let blob: Blob;
+        if (selectedFormat === 'pdf') {
+          blob = await previewTemplatePdf(organizationId, {
+            name: templateInfo.name || 'Mẫu hồ sơ mới',
+            partnerName: templateInfo.partnerName,
+            selectedFieldKeys: templateInfo.selectedFieldKeys,
+          });
+        } else if (selectedFormat === 'csv') {
+          const csv = convertDossierDataToCsv(templateInfo.mockData);
+          blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        } else {
+          const json = JSON.stringify(templateInfo.mockData, null, 2);
+          blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+        }
+
+        const prefix = selectedFormat === 'pdf' ? 'Ho_so_truy_xuat' : 'dossier_profile';
+        downloadBlob(
+          blob,
+          `${prefix}_${rawName}_${getLocalDateString()}.${selectedFormat}`,
+        );
+        toast.success(`Tải hồ sơ ${selectedFormat.toUpperCase()} mẫu thành công!`);
+        onOpenChange(false);
+      } catch (err: unknown) {
+        toast.error(toApiError(err, 'Có lỗi xảy ra khi tạo tệp mẫu xuất.').message);
+      } finally {
+        setIsExporting(false);
+      }
+      return;
+    }
+
     if (!shipmentId) return;
 
     setIsExporting(true);
@@ -72,14 +129,7 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
         fileName = `dossier_profile_${shipmentCode || shipmentId}_${getLocalDateString()}.${selectedFormat}`;
       }
       toast.dismiss(toastId);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      downloadBlob(blob, fileName);
       toast.success('Tải hồ sơ truy xuất thành công!');
       onOpenChange(false);
     } catch (err: unknown) {
@@ -114,7 +164,9 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
           </DialogHeader>
 
           <div className="space-y-5 py-3">
-            {templateOrgId && (
+            {templatePreviewMode && templateInfo ? (
+              <TemplatePreviewSummary info={templateInfo} />
+            ) : templateOrgId ? (
               <ProfileTemplateSelector
                 organizationId={templateOrgId}
                 open={open}
@@ -125,7 +177,7 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
                 disabled={isExporting}
                 showInfoText
               />
-            )}
+            ) : null}
 
             <DossierFormatSelector
               selectedFormat={selectedFormat}
@@ -151,7 +203,7 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setShowPreview(true)}
-                disabled={isExporting || !shipmentId}
+                disabled={isExporting || (!shipmentId && !templatePreviewMode)}
                 className="w-full sm:w-auto gap-1.5 text-xs"
               >
                 <Eye className="size-3.5" />
@@ -161,7 +213,7 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
                 type="button"
                 size="sm"
                 onClick={handleExport}
-                disabled={isExporting || !shipmentId}
+                disabled={isExporting || (!shipmentId && !templatePreviewMode)}
                 className={cn(
                   'w-full sm:w-auto gap-1.5 bg-emerald-600 hover:bg-emerald-700',
                   'text-white text-xs font-semibold',
@@ -188,10 +240,20 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
           open={showPreview}
           onClose={() => setShowPreview(false)}
           shipmentId={shipmentId}
-          shipmentName={shipmentName || shipmentCode}
+          shipmentName={
+            shipmentName || shipmentCode || (templatePreviewMode ? 'SHIP-MOCK-2026-DEMO' : undefined)
+          }
           templateId={activeTemplateId}
-          templateName={activeTemplate?.name || 'Mẫu mặc định'}
+          organizationId={organizationId}
+          templateName={
+            templatePreviewMode
+              ? templateInfo?.name || 'Mẫu đang tạo'
+              : activeTemplate?.name || 'Mẫu mặc định'
+          }
           activeFormat={selectedFormat}
+          initialData={templatePreviewMode ? templateInfo?.mockData : undefined}
+          selectedFieldKeys={templatePreviewMode ? templateInfo?.selectedFieldKeys : undefined}
+          partnerName={templatePreviewMode ? templateInfo?.partnerName : activeTemplate?.partnerName}
         />
       )}
     </>
