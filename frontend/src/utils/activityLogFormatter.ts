@@ -118,7 +118,11 @@ export const formatActionType = (action: string): string => {
 
     // API Key
     CREATE_API_KEY: 'Cấp API key đối tác',
+    CREATE_TEST_API_KEY: 'Cấp API key thử nghiệm',
     REVOKE_API_KEY: 'Thu hồi API key',
+    RENEW_API_KEY: 'Gia hạn API key',
+    UPDATE_API_KEY_QUOTA: 'Nâng hạn mức API key',
+    CONFIG_WEBHOOK: 'Cấu hình webhook thu hồi',
 
     // Inspection
     CREATE_INSPECTION_REQUEST: 'Tạo yêu cầu kiểm nghiệm',

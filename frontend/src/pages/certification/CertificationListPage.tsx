@@ -210,11 +210,11 @@ const CertificationListPage = () => {
               </TableCell>
               <TableCell className="text-center">
                 <Button
-                  variant="view"
+                  variant="outline"
                   size="sm"
                   onClick={() => setSelectedCertId(cert.id)}
                 >
-                  Xem
+                  Chi tiết
                 </Button>
               </TableCell>
             </TableRow>

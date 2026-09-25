@@ -116,7 +116,7 @@ describe('SentHandoverListPage - Danh sách phiếu bàn giao đã gửi cho VT-
 
     renderPage();
 
-    const detailBtn = await screen.findByRole('button', { name: /Xem chi tiết/i });
+    const detailBtn = await screen.findByRole('button', { name: /Chi tiết/i });
     await userEvent.click(detailBtn);
 
     expect(await screen.findByText('Chi tiết phiếu đã gửi: 3dd95ecb-978f-42f7-8b09-cf1a966872d0')).toBeInTheDocument();

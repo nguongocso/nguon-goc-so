@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Truck, Eye, XCircle } from "lucide-react";
+import { Truck, XCircle } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
@@ -217,8 +217,7 @@ export function ShipmentHandoverSentListPage() {
                       navigate(`/shipment-handovers/${handover.id}`)
                     }
                   >
-                    <Eye className="mr-1.5 h-4 w-4" />
-                    Xem chi tiết
+                    Chi tiết
                   </Button>
                   {/* Chỉ hiện nút Hủy khi phiếu đang chờ xác nhận */}
                   {handover.status === "PENDING_CONFIRMATION" && (

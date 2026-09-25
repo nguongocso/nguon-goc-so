@@ -7,7 +7,6 @@ import {
 import { DataTableShell } from '@/components/common/DataTableShell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
 import type { ActivityLog } from '@/types/activityLog';
 import { ActivityLogDetailDialog } from './ActivityLogDetailDialog';
 import {
@@ -60,7 +59,7 @@ export const ActivityLogTable = ({ logs, loading }: Props) => {
             <TableHead className="w-[160px]">Hành động</TableHead>
             <TableHead className="w-[150px]">Đối tượng</TableHead>
             <TableHead>Mô tả</TableHead>
-            <TableHead className="w-[110px] text-center">Thao tác</TableHead>
+            <TableHead className="w-[120px] text-center">Thao tác</TableHead>
           </>
         }
         body={
@@ -72,7 +71,7 @@ export const ActivityLogTable = ({ logs, loading }: Props) => {
               const description = formatActivityLogDescription(log.description, actionVal);
 
               return (
-                <TableRow key={log.id} className="transition-colors hover:bg-table-hover">
+                <TableRow key={log.id} className="transition-colors hover:bg-muted/40">
                   <TableCell className="whitespace-nowrap font-mono text-sm text-muted-foreground">
                     {formatDate(log.createdAt)}
                   </TableCell>
@@ -110,13 +109,13 @@ export const ActivityLogTable = ({ logs, loading }: Props) => {
                   </TableCell>
                   <TableCell className="text-center">
                     <Button
-                      variant="ghost"
-                      size="icon-sm"
+                      variant="outline"
+                      size="sm"
                       onClick={() => setSelectedLog(log)}
                       aria-label="Xem chi tiết thao tác"
                       title="Xem chi tiết thao tác"
                     >
-                      <Eye className="size-4" />
+                      Chi tiết
                     </Button>
                   </TableCell>
                 </TableRow>

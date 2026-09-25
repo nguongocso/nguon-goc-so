@@ -10,7 +10,7 @@ import type { ActivityLog, ActivityLogParams } from "@/types/activityLog";
 import { ActivityLogFilter } from "@/components/activity-log/ActivityLogFilter";
 import { ActivityLogTable } from "@/components/activity-log/ActivityLogTable";
 import { ListCard } from "@/components/common/ListCard";
-import { DataTablePagination } from "@/components/common/DataTablePagination";
+import { Pagination } from "@/components/common/Pagination";
 import { ListPageHeader } from "@/components/common/ListPageHeader";
 import { ListToolbar } from "@/components/common/ListToolbar";
 import { Button } from "@/components/ui/button";
@@ -109,12 +109,6 @@ export default function ActivityLogPage() {
   const handleReset = () => {
     setSearchParams({});
     setPage(0);
-  };
-
-  const goToPage = (newPage: number) => {
-    if (newPage >= 0 && newPage < pageInfo.totalPages) {
-      setPage(newPage);
-    }
   };
 
   const currentExportFilter = useMemo<ActivityLogExportFilterRequest>(() => ({
@@ -228,16 +222,17 @@ export default function ActivityLogPage() {
 
         <ActivityLogTable logs={logs} loading={loading} />
 
-        {/* Phân trang */}
-        {!loading && pageInfo.totalPages > 1 && (
-          <DataTablePagination
-            page={pageInfo.page}
-            pageSize={pageInfo.size}
-            totalElements={pageInfo.totalElements}
-            onPageChange={goToPage}
-            itemLabel="bản ghi"
-          />
-        )}
+        {/* Phân trang chuẩn hệ thống */}
+        <Pagination
+          currentPage={page}
+          totalPages={pageInfo.totalPages}
+          totalElements={pageInfo.totalElements}
+          pageSize={size}
+          loading={loading}
+          itemLabel="bản ghi"
+          alwaysShow
+          onPageChange={setPage}
+        />
       </ListCard>
 
       <ActivityLogExportDialog

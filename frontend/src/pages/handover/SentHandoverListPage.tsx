@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { FileSignature, Eye } from 'lucide-react';
+import { FileSignature } from 'lucide-react';
 import { HelpButton } from '@/components/help/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -215,8 +215,7 @@ export function SentHandoverListPage() {
                   size="sm"
                   onClick={() => navigate(`/handover/${handover.id}`)}
                 >
-                  <Eye className="mr-1.5 h-4 w-4" />
-                  Xem chi tiết
+                  Chi tiết
                 </Button>
               </TableCell>
             </TableRow>

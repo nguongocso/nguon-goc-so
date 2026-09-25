@@ -1,12 +1,6 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { DataTableShell } from "@/components/common/DataTableShell";
 import { getRoleLabel } from "@/config/roleAccess";
 import type { LoginHistoryItem } from "@/types/loginHistory";
 
@@ -30,86 +24,71 @@ const formatDate = (iso: string) => {
   }
 };
 
-const getResultBadgeClass = (result: string) => {
-  if (result === "SUCCESS") {
-    return "bg-emerald-100 text-emerald-800 hover:bg-emerald-100";
-  }
-
-  return "bg-red-100 text-red-800 hover:bg-red-100";
-};
-
-const getResultLabel = (result: string) => {
-  if (result === "SUCCESS") return "Thành công";
-  if (result === "FAILED") return "Thất bại";
-  return result;
-};
-
 export const LoginHistoryTable = ({ records, loading }: Props) => {
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  if (records.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        <p className="text-lg font-semibold">Chưa có lịch sử đăng nhập</p>
-        <p className="text-sm">Không tìm thấy dữ liệu phù hợp với bộ lọc hiện tại.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Thời gian</TableHead>
-            <TableHead>Tài khoản</TableHead>
-            <TableHead>Vai trò</TableHead>
-            <TableHead>Kết quả</TableHead>
-            <TableHead>IP</TableHead>
-            <TableHead>Quốc gia</TableHead>
-            <TableHead>Địa điểm mới</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <DataTableShell
+      loading={loading}
+      empty={!loading && records.length === 0}
+      colSpan={7}
+      loadingMessage="Đang tải lịch sử đăng nhập..."
+      emptyMessage="Chưa có lịch sử đăng nhập nào được ghi nhận."
+      header={
+        <>
+          <TableHead className="w-[180px]">Thời gian</TableHead>
+          <TableHead className="w-[160px]">Tài khoản</TableHead>
+          <TableHead className="w-[180px]">Vai trò</TableHead>
+          <TableHead className="w-[140px]">Kết quả</TableHead>
+          <TableHead className="w-[140px]">IP</TableHead>
+          <TableHead className="w-[120px]">Quốc gia</TableHead>
+          <TableHead className="w-[120px]">Địa điểm mới</TableHead>
+        </>
+      }
+      body={
+        <>
           {records.map((record) => (
-            <TableRow key={record.id}>
-              <TableCell className="whitespace-nowrap text-sm">
+            <TableRow key={record.id} className="transition-colors hover:bg-muted/40">
+              <TableCell className="whitespace-nowrap font-mono text-sm text-muted-foreground">
                 {formatDate(record.createdAt)}
               </TableCell>
               <TableCell>
-                <div>
-                  <div className="font-medium">{record.usernameInput || "—"}</div>
-                </div>
+                <div className="font-medium text-foreground">{record.usernameInput || "—"}</div>
               </TableCell>
               <TableCell>
-                {record.roleCode ? getRoleLabel(record.roleCode) : "—"}
+                <span className="text-sm text-foreground">
+                  {record.roleCode ? getRoleLabel(record.roleCode) : "—"}
+                </span>
               </TableCell>
               <TableCell>
-                <Badge className={getResultBadgeClass(record.result)}>
-                  {getResultLabel(record.result)}
-                </Badge>
+                {record.result === "SUCCESS" ? (
+                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                    Thành công
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-rose-200 bg-rose-50 text-rose-700">
+                    Thất bại
+                  </Badge>
+                )}
               </TableCell>
-              <TableCell className="font-mono text-xs">{record.ipAddress || "—"}</TableCell>
-              <TableCell>{record.countryCode || "—"}</TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">
+                {record.ipAddress || "—"}
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {record.countryCode || "—"}
+              </TableCell>
               <TableCell>
                 {record.isNewCountry ? (
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                  <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
                     Có
                   </Badge>
                 ) : (
-                  <span className="text-muted-foreground">Không</span>
+                  <span className="text-sm text-muted-foreground">Không</span>
                 )}
               </TableCell>
             </TableRow>
           ))}
-        </TableBody>
-      </Table>
-    </div>
+        </>
+      }
+    />
   );
 };
+

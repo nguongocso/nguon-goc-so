@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -14,6 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
+import { ListCard } from "@/components/common/ListCard";
+import { DataTableShell } from "@/components/common/DataTableShell";
+import { Pagination } from "@/components/common/Pagination";
 import type { PageResponse } from "@/types/common";
 import type {
   ProductFeedback,
@@ -42,7 +46,7 @@ export default function ProductFeedbackManagementPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
-  const [size, setSize] = useState(10);
+  const [size] = useState(10);
   const [keyword, setKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [status, setStatus] = useState<"ALL" | ProductFeedbackStatus>("ALL");
@@ -118,15 +122,22 @@ export default function ProductFeedbackManagementPage() {
         <Summary title="Kích thước trang" value={pageInfo.size} />
       </div>
 
-      <div className="rounded-xl border bg-white p-4 shadow-sm">
-        <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto_auto]">
+      {/* Toàn bộ Bộ lọc và Bảng danh sách nằm trọn vẹn trong khung trắng ListCard chuẩn của hệ thống */}
+      <ListCard>
+        <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto_auto] pb-3 border-b border-border/40">
           <Input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && applyFilters()}
             placeholder="Tìm theo nội dung, lô sản xuất hoặc mã tem..."
           />
-          <Select value={status} onValueChange={(value) => { setStatus(value as typeof status); setPage(0); }}>
+          <Select
+            value={status}
+            onValueChange={(value) => {
+              setStatus(value as typeof status);
+              setPage(0);
+            }}
+          >
             <SelectTrigger>
               <SelectValue>
                 {status === "ALL" ? "Tất cả trạng thái" : PRODUCT_FEEDBACK_STATUS_LABELS[status]}
@@ -134,10 +145,20 @@ export default function ProductFeedbackManagementPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-              {Object.entries(PRODUCT_FEEDBACK_STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+              {Object.entries(PRODUCT_FEEDBACK_STATUS_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Select value={severity} onValueChange={(value) => { setSeverity(value as typeof severity); setPage(0); }}>
+          <Select
+            value={severity}
+            onValueChange={(value) => {
+              setSeverity(value as typeof severity);
+              setPage(0);
+            }}
+          >
             <SelectTrigger>
               <SelectValue>
                 {severity === "ALL" ? "Tất cả mức độ" : PRODUCT_FEEDBACK_SEVERITY_LABELS[severity]}
@@ -145,76 +166,103 @@ export default function ProductFeedbackManagementPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">Tất cả mức độ</SelectItem>
-              {Object.entries(PRODUCT_FEEDBACK_SEVERITY_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+              {Object.entries(PRODUCT_FEEDBACK_SEVERITY_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Button onClick={applyFilters}><Search className="mr-2 h-4 w-4" />Tìm kiếm</Button>
-          <Button variant="outline" onClick={clearFilters}>Xóa lọc</Button>
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs font-semibold uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Lô sản xuất</th>
-                <th className="px-4 py-3">Nội dung phản ánh</th>
-                <th className="px-4 py-3">Trạng thái</th>
-                <th className="px-4 py-3">Mức độ</th>
-                <th className="px-4 py-3">Người xử lý</th>
-                <th className="px-4 py-3">Thời gian gửi</th>
-                <th className="px-4 py-3 text-center">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {loading ? (
-                <MessageRow colSpan={7} message="Đang tải dữ liệu..." />
-              ) : loadError ? (
-                <MessageRow colSpan={7} message={loadError} error />
-              ) : feedbacks.length === 0 ? (
-                <MessageRow colSpan={7} message="Không tìm thấy phản ánh phù hợp." />
-              ) : feedbacks.map((feedback) => (
-                <tr key={feedback.id} className="transition-colors hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{feedback.productionLotName}</td>
-                  <td className="max-w-xs px-4 py-3"><p className="truncate" title={feedback.content}>{feedback.content}</p></td>
-                  <td className="px-4 py-3"><ProductFeedbackStatusPill status={feedback.status} /></td>
-                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{PRODUCT_FEEDBACK_SEVERITY_LABELS[feedback.severity]}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{feedback.assignedToName || "Chưa gán"}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{formatProductFeedbackDate(feedback.createdAt)}</td>
-                  <td className="px-4 py-3 text-center"><Button variant="outline" size="sm" onClick={() => navigate(`/product-feedbacks/${feedback.id}`)}>Xem chi tiết</Button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Button onClick={applyFilters}>
+            <Search className="mr-2 h-4 w-4" />
+            Tìm kiếm
+          </Button>
+          <Button variant="outline" onClick={clearFilters}>
+            Xóa lọc
+          </Button>
         </div>
 
-        {!loading && !loadError && pageInfo.totalPages > 0 && (
-          <div className="flex flex-col-reverse items-center justify-between gap-3 border-t px-4 py-3 sm:flex-row">
-            <p className="text-xs text-muted-foreground">Hiển thị {pageInfo.page * pageInfo.size + 1}–{Math.min((pageInfo.page + 1) * pageInfo.size, pageInfo.totalElements)} trên {pageInfo.totalElements} phản ánh</p>
-            <div className="flex items-center gap-2">
-              <Select value={String(size)} onValueChange={(value) => { setSize(Number(value)); setPage(0); }}>
-                <SelectTrigger className="h-8 w-[90px] text-xs">
-                  <SelectValue>{size} dòng</SelectValue>
-                </SelectTrigger>
-                <SelectContent>{[5, 10, 20, 50].map((value) => <SelectItem key={value} value={String(value)}>{value} dòng</SelectItem>)}</SelectContent>
-              </Select>
-              <Button variant="outline" size="icon" className="h-8 w-8" disabled={pageInfo.first} onClick={() => setPage((value) => Math.max(0, value - 1))}><ChevronLeft className="h-4 w-4" /></Button>
-              <span className="min-w-[60px] text-center text-xs text-muted-foreground">{pageInfo.page + 1} / {pageInfo.totalPages}</span>
-              <Button variant="outline" size="icon" className="h-8 w-8" disabled={pageInfo.last} onClick={() => setPage((value) => value + 1)}><ChevronRight className="h-4 w-4" /></Button>
-            </div>
-          </div>
-        )}
-      </div>
+        <DataTableShell
+          colSpan={8}
+          loading={loading}
+          empty={!loading && (Boolean(loadError) || feedbacks.length === 0)}
+          loadingMessage="Đang tải danh sách phản ánh..."
+          emptyMessage={
+            loadError ||
+            (appliedKeyword || status !== "ALL" || severity !== "ALL"
+              ? "Không tìm thấy phản ánh nào phù hợp với bộ lọc."
+              : "Không có phản ánh nào từ người tiêu dùng.")
+          }
+          header={
+            <>
+              <TableHead className="w-14 text-center">STT</TableHead>
+              <TableHead>Lô sản xuất</TableHead>
+              <TableHead>Nội dung phản ánh</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead>Mức độ</TableHead>
+              <TableHead>Người xử lý</TableHead>
+              <TableHead>Thời gian gửi</TableHead>
+              <TableHead className="text-center">Thao tác</TableHead>
+            </>
+          }
+          body={feedbacks.map((feedback, index) => (
+            <TableRow key={feedback.id} className="transition-colors hover:bg-muted/40">
+              <TableCell className="text-center font-medium text-muted-foreground">
+                {page * size + index + 1}
+              </TableCell>
+              <TableCell className="font-semibold text-foreground">
+                {feedback.productionLotName}
+              </TableCell>
+              <TableCell className="max-w-xs">
+                <p className="truncate" title={feedback.content}>
+                  {feedback.content}
+                </p>
+              </TableCell>
+              <TableCell>
+                <ProductFeedbackStatusPill status={feedback.status} />
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-muted-foreground">
+                {PRODUCT_FEEDBACK_SEVERITY_LABELS[feedback.severity]}
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-muted-foreground">
+                {feedback.assignedToName || "Chưa gán"}
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-muted-foreground">
+                {formatProductFeedbackDate(feedback.createdAt)}
+              </TableCell>
+              <TableCell className="text-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/product-feedbacks/${feedback.id}`)}
+                >
+                  Chi tiết
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        />
 
+        <Pagination
+          currentPage={page}
+          totalPages={pageInfo.totalPages}
+          totalElements={pageInfo.totalElements}
+          pageSize={size}
+          loading={loading}
+          itemLabel="phản ánh"
+          alwaysShow
+          onPageChange={setPage}
+        />
+      </ListCard>
     </div>
   );
 }
 
 function Summary({ title, value }: { title: string; value: string | number }) {
-  return <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm"><p className="text-sm font-medium text-muted-foreground">{title}</p><p className="mt-1 text-2xl font-bold text-emerald-700">{value}</p></div>;
-}
-
-function MessageRow({ colSpan, message, error = false }: { colSpan: number; message: string; error?: boolean }) {
-  return <tr><td colSpan={colSpan} className={`px-4 py-12 text-center ${error ? "text-destructive" : "text-muted-foreground"}`}>{message}</td></tr>;
+  return (
+    <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
+      <p className="text-sm font-medium text-muted-foreground">{title}</p>
+      <p className="mt-1 text-2xl font-bold text-emerald-700">{value}</p>
+    </div>
+  );
 }
