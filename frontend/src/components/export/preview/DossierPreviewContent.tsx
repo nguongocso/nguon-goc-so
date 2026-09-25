@@ -11,7 +11,6 @@ export interface DossierPreviewContentProps {
   loading: boolean;
   error: string | null;
   format: 'pdf' | 'json' | 'csv';
-  initialData?: Record<string, unknown> | null;
   pdfUrl: string | null;
   csvContent: string | null;
   jsonString: string;
@@ -23,7 +22,6 @@ export const DossierPreviewContent: React.FC<DossierPreviewContentProps> = ({
   loading,
   error,
   format,
-  initialData,
   pdfUrl,
   csvContent,
   jsonString,
@@ -65,11 +63,11 @@ export const DossierPreviewContent: React.FC<DossierPreviewContentProps> = ({
     );
   }
 
-  if (format === 'pdf' && !initialData) {
+  if (format === 'pdf') {
     return <DossierPdfPreview pdfUrl={pdfUrl} />;
   }
 
-  if (format === 'csv' && !initialData) {
+  if (format === 'csv') {
     return <DossierCsvPreview csvContent={csvContent} />;
   }
 

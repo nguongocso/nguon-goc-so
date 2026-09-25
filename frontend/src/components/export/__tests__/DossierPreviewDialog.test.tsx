@@ -5,7 +5,7 @@ import { DossierPreviewDialog } from '../DossierPreviewDialog';
 
 import { exportDossier } from '@/api/dossierApi';
 import { exportShipmentWithTemplate } from '@/api/exportApi';
-import { getOpenDataPreview } from '@/api/profileTemplateApi';
+import { getOpenDataPreview, previewTemplatePdf } from '@/api/profileTemplateApi';
 
 vi.mock('@/api/dossierApi', () => ({
   exportDossier: vi.fn(),
@@ -17,6 +17,7 @@ vi.mock('@/api/exportApi', () => ({
 
 vi.mock('@/api/profileTemplateApi', () => ({
   getOpenDataPreview: vi.fn(),
+  previewTemplatePdf: vi.fn(),
 }));
 
 describe('DossierPreviewDialog Component Tests', () => {
@@ -127,4 +128,92 @@ describe('DossierPreviewDialog Component Tests', () => {
 
     expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:http://localhost/test-preview-blob');
   });
+
+  describe('Template Preview Mode with initialData', () => {
+    const mockInitialData = {
+      organization: { name: 'HTX Nông Nghiệp Đà Lạt' },
+      productionLot: { name: 'Lô cà rốt xuất khẩu' },
+      farmingCommitment: 'Cam kết chuẩn VietGAP',
+      cultivationLogs: [{ stage: 'Gieo hạt', date: '2026-08-01' }],
+    };
+
+    it('renders PDF preview via previewTemplatePdf when initialData is present and format is pdf', async () => {
+      const mockPdfBlob = new Blob(['%PDF-1.4 template preview'], { type: 'application/pdf' });
+      vi.mocked(previewTemplatePdf).mockResolvedValue(mockPdfBlob);
+
+      render(
+        <DossierPreviewDialog
+          open={true}
+          onClose={vi.fn()}
+          templateName="Mẫu chuẩn xuất khẩu"
+          organizationId="org-123"
+          activeFormat="pdf"
+          initialData={mockInitialData}
+          selectedFieldKeys={['productionLot.name', 'farmingCommitment']}
+        />
+      );
+
+      expect(await screen.findByTitle('Bản in PDF hồ sơ truy xuất')).toBeInTheDocument();
+      expect(previewTemplatePdf).toHaveBeenCalledWith('org-123', {
+        name: 'Mẫu chuẩn xuất khẩu',
+        partnerName: undefined,
+        selectedFieldKeys: ['productionLot.name', 'farmingCommitment'],
+      });
+    });
+
+    it('renders CSV preview table when initialData is present and format is csv', async () => {
+      render(
+        <DossierPreviewDialog
+          open={true}
+          onClose={vi.fn()}
+          templateName="Mẫu chuẩn xuất khẩu"
+          organizationId="org-123"
+          activeFormat="csv"
+          initialData={mockInitialData}
+        />
+      );
+
+      expect(await screen.findByText('HỒ SƠ TRUY XUẤT NGUỒN GỐC SẢN PHẨM')).toBeInTheDocument();
+      expect(screen.getByText('HTX Nông Nghiệp Đà Lạt')).toBeInTheDocument();
+      expect(screen.getByText('Lô cà rốt xuất khẩu')).toBeInTheDocument();
+      // Đảm bảo không gọi API exportShipmentWithTemplate vì đã có initialData
+      expect(exportShipmentWithTemplate).not.toHaveBeenCalled();
+    });
+
+    it('renders JSON preview with initialData when format is json', async () => {
+      render(
+        <DossierPreviewDialog
+          open={true}
+          onClose={vi.fn()}
+          templateName="Mẫu chuẩn xuất khẩu"
+          organizationId="org-123"
+          activeFormat="json"
+          initialData={mockInitialData}
+        />
+      );
+
+      expect(await screen.findByText(/application\/json/i)).toBeInTheDocument();
+      expect(await screen.findByText(/"name": "HTX Nông Nghiệp Đà Lạt"/i)).toBeInTheDocument();
+      // Đảm bảo không gọi getOpenDataPreview vì đã có initialData
+      expect(getOpenDataPreview).not.toHaveBeenCalled();
+    });
+
+    it('renders all format switcher tabs (PDF, CSV, JSON) even when initialData is provided', () => {
+      render(
+        <DossierPreviewDialog
+          open={true}
+          onClose={vi.fn()}
+          templateName="Mẫu chuẩn xuất khẩu"
+          organizationId="org-123"
+          activeFormat="pdf"
+          initialData={mockInitialData}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: /Bản in PDF/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Bảng CSV/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Dữ liệu JSON/i })).toBeInTheDocument();
+    });
+  });
 });
+
