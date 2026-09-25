@@ -146,12 +146,14 @@ cd frontend && npm run test            # Vitest
 
 | Branch | Tag |
 |---|---|
-| `main` | `latest` |
-| `develop` / khác | `edge` |
+| `main` | `production` |
+| `develop` | `develop` |
+| Các nhánh push khác được workflow theo dõi | `edge` |
+| Chạy thủ công | `staging` hoặc `production` theo environment đã chọn |
 | mọi build | thêm tag `github.sha` (SHA commit) |
 
-> Manifest k8s mặc định tham chiếu `:latest`. CI dùng `sed` thay tag
-> theo `image_tag` output rồi `kubectl apply`.
+> Manifest k8s mặc định có thể tham chiếu mutable tag, nhưng CI luôn thay image
+> của Deployment bằng tag `github.sha` trước khi rollout.
 
 ### 5.3 Build thủ công
 
@@ -192,6 +194,9 @@ dữ liệu demo VT-02 (chi tiết: [DEMO_DATA.md](./DEMO_DATA.md)).
 
 ## 7. Quy trình Release & CI/CD
 
+> Ma trận trigger as-is, sơ đồ luồng, phát hiện chưa kiểm chứng và các đề xuất
+> thay đổi policy được tách riêng tại [`docs/ci-cd-flow.md`](../ci-cd-flow.md).
+
 ### 7.1 Release Flow (Development → Staging → Production)
 
 ```text
@@ -199,7 +204,7 @@ feature/*
     ↓
 Pull Request → develop
     ↓
-CI: backend-test + frontend-build
+CI: backend-test + frontend lint/test/build
     ↓
 Build & Push Docker images (commit-SHA tag, immutable)
     ↓
@@ -207,39 +212,39 @@ Deploy → staging (namespace: staging)
     ↓
 Staging verification (TC-01, TC-03, TC-04)
     ↓
-Release Candidate (develop → main via Pull Request)
+Tạo release/vX.Y.Z hoặc hotfix/vX.Y.Z từ mã đã xác minh
     ↓
-main
+Merge branch release/hotfix vào main bằng merge commit đúng quy ước
     ↓
-Git tag v1.0.0 (annotated tag, trỏ đến release commit trên main)
-    ↓
-CI: backend-test + frontend-build
+CI: backend-test + frontend lint/test/build
     ↓
 Build & Push Docker images (commit-SHA tag, immutable)
     ↓
 Deploy → production (namespace: production)
     ↓
-rollout status + annotate change-cause + collect evidence
+annotate change-cause + rollout status
     ↓
-Validate traceability consistency (tag→commit→image→K8s)
+Git tag v1.0.0 (annotated tag, trỏ đến release commit trên main)
+    ↓
+collect evidence + validate traceability consistency (tag→commit→image→K8s)
 ```
 
 ### 7.2 CI/CD Workflow Steps (`.github/workflows/ci-cd.yml`)
 
 ```text
-[Push develop/main OR workflow_dispatch(staging|production)]
+[PR hoặc push nhánh được theo dõi OR workflow_dispatch(staging|production)]
         │
         ▼
 Job backend-test    → ./mvnw clean test -Dgit.commit=${GITHUB_SHA}
         │
         ▼
-Job frontend-build  → npm ci + npm run lint + npm run build
+Job frontend-build  → npm ci + npm run lint + npm test + npm run build
         │
         ▼
 Job build-push      → docker login GHCR
         │             build-args: GIT_COMMIT=${github.sha} + RELEASE_VERSION
         │             labels: org.opencontainers.image.revision + version
-        │             tags: latest/edge (convenience) + github.sha (immutable)
+        │             tags: production/develop/edge + github.sha (immutable)
         │
         ▼
 Job deploy          → environment: staging|production
@@ -264,7 +269,7 @@ Chạy thủ công:
 gh workflow run ci-cd.yml -f environment=staging
 
 # Deploy production
-gh workflow run ci-cd.yml -f environment=production
+gh workflow run ci-cd.yml -f environment=production -f release_version=1.0.0
 ```
 
 ---
@@ -352,7 +357,7 @@ git rev-parse HEAD          # → phải khớp với trên
 - Không dùng Git tag làm Docker deployment identity duy nhất.
 - Git tag dùng để nhận diện release.
 - **Commit SHA** là deployment identity (immutable).
-- Không deploy production bằng `latest` hoặc `edge`.
+- Không deploy production bằng mutable tag `production`, `develop` hoặc `edge`.
 
 ### 10.3 Traceability Validation (CI)
 
@@ -368,7 +373,7 @@ Git Tag (v1.0.0) → Commit SHA → Docker Image (:sha) → K8s Deployment
 
 ## 11. Rollback Procedure
 
-Rollback dựa trên **commit-SHA/image cụ thể** — không rollback bằng `latest`.
+Rollback dựa trên **commit-SHA/image cụ thể** — không rollback bằng mutable tag.
 
 ### 11.1 Xác định image cần rollback
 
@@ -420,7 +425,7 @@ Production đang chạy: v1.0.1 (commit B, image:...:commit-B)
 | Semantic release version (`1.0.0`) | ✅ | `pom.xml` + `package.json` + build-info + OCI labels + K8s labels |
 | Git tag (`v1.0.0`) | ✅ (trên main) | Annotated tag trỏ đến release commit |
 | Docker image tag `github.sha` | ✅ (GHCR + deploy) | Immutable — K8s deploy dùng đúng tag này |
-| `:latest` / `:edge` | ✅ (GHCR) | Chỉ convenience tag; deploy KHÔNG dùng |
+| `:production` / `:develop` / `:edge` | ✅ (GHCR) | Chỉ convenience tag; deploy KHÔNG dùng |
 | Build-info (`META-INF/build-info.properties`) | ✅ | `build.version=1.0.0`, `build.time`, `build.git.commit` |
 | OCI metadata | ✅ | `org.opencontainers.image.version` + `.revision` |
 | Actuator `/actuator/info` | ✅ (yêu cầu JWT) | Trả build version/time/commit; **không public** |
