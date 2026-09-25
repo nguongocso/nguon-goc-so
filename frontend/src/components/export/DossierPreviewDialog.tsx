@@ -124,7 +124,6 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
           setFormat={setFormat}
           templateName={templateName}
           shipmentName={shipmentName}
-          hasInitialData={Boolean(initialData)}
           isFullscreen={isFullscreen}
           setIsFullscreen={setIsFullscreen}
         />
@@ -134,7 +133,6 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
             loading={loading}
             error={error}
             format={format}
-            initialData={initialData}
             pdfUrl={pdfUrl}
             csvContent={csvContent}
             jsonString={jsonString}

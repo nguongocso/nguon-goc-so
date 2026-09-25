@@ -59,7 +59,7 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
 }) => {
   const { user } = useAuth();
   const organizationId = user?.organizationId || '';
-  const templateOrgId = cooperativeOrganizationId ?? organizationId;
+  const templateOrgId: string = cooperativeOrganizationId ?? organizationId;
 
   const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>(undefined);
   const [activeTemplate, setActiveTemplate] = useState<ProfileTemplate | null>(null);
@@ -84,7 +84,8 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
       try {
         let blob: Blob;
         if (selectedFormat === 'pdf') {
-          blob = await previewTemplatePdf(organizationId, {
+          const activeOrgId: string = templateOrgId ?? organizationId;
+          blob = await previewTemplatePdf(activeOrgId, {
             name: templateInfo.name || 'Mẫu hồ sơ mới',
             partnerName: templateInfo.partnerName,
             selectedFieldKeys: templateInfo.selectedFieldKeys,
@@ -244,7 +245,7 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
             shipmentName || shipmentCode || (templatePreviewMode ? 'SHIP-MOCK-2026-DEMO' : undefined)
           }
           templateId={activeTemplateId}
-          organizationId={organizationId}
+          organizationId={templateOrgId}
           templateName={
             templatePreviewMode
               ? templateInfo?.name || 'Mẫu đang tạo'
