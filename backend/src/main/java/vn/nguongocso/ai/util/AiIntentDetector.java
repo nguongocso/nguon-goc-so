@@ -7,7 +7,6 @@ import java.util.Locale;
  * Tiện ích nhận diện ý định (Intent Detection) và phát hiện truy vấn tổ chức chéo từ câu hỏi (TASK-AI-06, TASK-AI-07).
  */
 public final class AiIntentDetector {
-
     private static final List<String> ANALYTICS_KEYWORDS = List.of(
             "thống kê", "thong ke",
             "bao nhiêu lô", "bao nhieu lo",
@@ -29,16 +28,14 @@ public final class AiIntentDetector {
             "tình hình", "tinh hinh",
             "báo cáo", "bao cao",
             "bao nhiêu ha", "bao nhieu ha",
-            "tổng số", "tong so"
-    );
+            "tổng số", "tong so");
 
     private static final List<String> CROSS_ORG_KEYWORDS = List.of(
             "htx khác", "htx khac",
             "tổ chức khác", "to chuc khac",
             "doanh nghiệp khác", "doanh nghiep khac",
             "của htx", "cua htx",
-            "của tổ chức", "cua to chuc"
-    );
+            "của tổ chức", "cua to chuc");
 
     private AiIntentDetector() {
     }
@@ -46,9 +43,6 @@ public final class AiIntentDetector {
     /**
      * Nhận diện câu hỏi có chứa ý định tra cứu / thống kê số liệu nghiệp vụ hay không.
      * Hỗ trợ cả tiếng Việt có dấu, không dấu và các biến thể mã hóa.
-     *
-     * @param message Tin nhắn người dùng
-     * @return true nếu có ý định thống kê dữ liệu
      */
     public static boolean hasAnalyticsIntent(String message) {
         if (message == null || message.isBlank()) {
@@ -85,11 +79,6 @@ public final class AiIntentDetector {
 
     /**
      * Kiểm tra xem người dùng có đang cố tình hỏi thông tin của một tổ chức khác hay không.
-     *
-     * @param message        Tin nhắn người dùng
-     * @param currentOrgName Tên tổ chức hiện tại của người dùng
-     * @param currentOrgCode Mã tổ chức hiện tại của người dùng
-     * @return true nếu phát hiện ý định hỏi dữ liệu tổ chức khác
      */
     public static boolean hasCrossOrgInquiryIntent(String message, String currentOrgName, String currentOrgCode) {
         if (message == null || message.isBlank()) {
