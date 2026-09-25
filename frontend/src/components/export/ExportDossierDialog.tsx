@@ -84,7 +84,7 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
       try {
         let blob: Blob;
         if (selectedFormat === 'pdf') {
-          blob = await previewTemplatePdf(organizationId, {
+          blob = await previewTemplatePdf(templateOrgId || organizationId, {
             name: templateInfo.name || 'Mẫu hồ sơ mới',
             partnerName: templateInfo.partnerName,
             selectedFieldKeys: templateInfo.selectedFieldKeys,
@@ -244,7 +244,7 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
             shipmentName || shipmentCode || (templatePreviewMode ? 'SHIP-MOCK-2026-DEMO' : undefined)
           }
           templateId={activeTemplateId}
-          organizationId={organizationId}
+          organizationId={templateOrgId}
           templateName={
             templatePreviewMode
               ? templateInfo?.name || 'Mẫu đang tạo'

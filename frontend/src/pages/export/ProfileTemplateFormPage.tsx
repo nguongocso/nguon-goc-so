@@ -191,6 +191,7 @@ export const ProfileTemplateFormPage: React.FC = () => {
         open={previewOpen}
         onOpenChange={setPreviewOpen}
         templatePreviewMode
+        cooperativeOrganizationId={orgId}
         templateInfo={{
           name: formName || 'Mẫu hồ sơ mới',
           partnerName: watch('partnerName') || undefined,

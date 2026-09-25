@@ -33,7 +33,7 @@ export const DossierPreviewHeader: React.FC<DossierPreviewHeaderProps> = ({
   setFormat,
   templateName,
   shipmentName,
-  hasInitialData,
+  hasInitialData: _hasInitialData,
   isFullscreen,
   setIsFullscreen,
 }) => {
@@ -71,48 +71,46 @@ export const DossierPreviewHeader: React.FC<DossierPreviewHeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {!hasInitialData && (
-            <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-lg border text-xs">
-              <button
-                type="button"
-                onClick={() => setFormat('pdf')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
-                  format === 'pdf'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <FileText className="size-3.5 text-emerald-600" />
-                <span>Bản in PDF</span>
-              </button>
+          <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-lg border text-xs">
+            <button
+              type="button"
+              onClick={() => setFormat('pdf')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
+                format === 'pdf'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <FileText className="size-3.5 text-emerald-600" />
+              <span>Bản in PDF</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setFormat('csv')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
-                  format === 'csv'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <FileSpreadsheet className="size-3.5 text-emerald-600" />
-                <span>Bảng CSV</span>
-              </button>
+            <button
+              type="button"
+              onClick={() => setFormat('csv')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
+                format === 'csv'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <FileSpreadsheet className="size-3.5 text-emerald-600" />
+              <span>Bảng CSV</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setFormat('json')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
-                  format === 'json'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <FileJson className="size-3.5 text-emerald-600" />
-                <span>Dữ liệu JSON</span>
-              </button>
-            </div>
-          )}
+            <button
+              type="button"
+              onClick={() => setFormat('json')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
+                format === 'json'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <FileJson className="size-3.5 text-emerald-600" />
+              <span>Dữ liệu JSON</span>
+            </button>
+          </div>
 
           <Button
             type="button"

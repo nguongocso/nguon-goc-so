@@ -41,6 +41,7 @@ export function useDossierPreviewData({
   );
 
   const currentPdfUrlRef = useRef<string | null>(null);
+  const currentPdfBlobRef = useRef<Blob | null>(null);
 
   // Thu hồi URL Blob khi thành phần bị gỡ để tránh rò rỉ bộ nhớ.
   useEffect(() => {
@@ -48,6 +49,7 @@ export function useDossierPreviewData({
       if (currentPdfUrlRef.current) {
         URL.revokeObjectURL(currentPdfUrlRef.current);
         currentPdfUrlRef.current = null;
+        currentPdfBlobRef.current = null;
       }
     };
   }, []);
@@ -57,6 +59,7 @@ export function useDossierPreviewData({
       if (currentPdfUrlRef.current) {
         URL.revokeObjectURL(currentPdfUrlRef.current);
         currentPdfUrlRef.current = null;
+        currentPdfBlobRef.current = null;
       }
       setPdfUrl(null);
       setPdfBlob(null);
@@ -72,6 +75,12 @@ export function useDossierPreviewData({
     }
 
     if ((format === 'json' || format === 'csv') && initialData) return;
+    if (format === 'pdf' && currentPdfUrlRef.current && currentPdfBlobRef.current) {
+      setPdfUrl(currentPdfUrlRef.current);
+      setPdfBlob(currentPdfBlobRef.current);
+      setLoading(false);
+      return;
+    }
     if (!shipmentId && (format !== 'pdf' || !organizationId)) return;
 
     let isMounted = true;
@@ -97,6 +106,7 @@ export function useDossierPreviewData({
           if (currentPdfUrlRef.current) URL.revokeObjectURL(currentPdfUrlRef.current);
           const url = URL.createObjectURL(blob);
           currentPdfUrlRef.current = url;
+          currentPdfBlobRef.current = blob;
           setPdfBlob(blob);
           setPdfUrl(url);
         } else if (format === 'csv') {

@@ -23,7 +23,7 @@ export const DossierPreviewContent: React.FC<DossierPreviewContentProps> = ({
   loading,
   error,
   format,
-  initialData,
+  initialData: _initialData,
   pdfUrl,
   csvContent,
   jsonString,
@@ -65,11 +65,11 @@ export const DossierPreviewContent: React.FC<DossierPreviewContentProps> = ({
     );
   }
 
-  if (format === 'pdf' && !initialData) {
+  if (format === 'pdf') {
     return <DossierPdfPreview pdfUrl={pdfUrl} />;
   }
 
-  if (format === 'csv' && !initialData) {
+  if (format === 'csv') {
     return <DossierCsvPreview csvContent={csvContent} />;
   }
 
