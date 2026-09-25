@@ -22,7 +22,6 @@ export interface DossierPreviewHeaderProps {
   setFormat: (format: 'pdf' | 'json' | 'csv') => void;
   templateName?: string;
   shipmentName?: string;
-  hasInitialData: boolean;
   isFullscreen: boolean;
   setIsFullscreen: (fn: (prev: boolean) => boolean) => void;
 }
@@ -33,7 +32,6 @@ export const DossierPreviewHeader: React.FC<DossierPreviewHeaderProps> = ({
   setFormat,
   templateName,
   shipmentName,
-  hasInitialData: _hasInitialData,
   isFullscreen,
   setIsFullscreen,
 }) => {
