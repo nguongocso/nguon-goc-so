@@ -339,6 +339,17 @@ jobs:
           NS="${KUBE_NAMESPACE:-nguongocso}"
           kubectl -n "$NS" patch configmap backend-config -p '{"data":{"DB_NAME":"nguongocso_staging_db","SPRING_PROFILES_ACTIVE":"staging","SPRING_FLYWAY_LOCATIONS":"classpath:db/migration/schema,classpath:db/migration/data,classpath:db/migration-test/data"}}'
 
+      - name: Configure Chatbot Gemini API Key for staging
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+          CHATBOT_KEY: ${{ secrets.CHATBOT_GEMINI_API_KEY || secrets.GEMINI_API_KEY }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          if [ -n "${CHATBOT_KEY}" ]; then
+            kubectl -n "$NS" patch secret backend-secrets -p "{\"stringData\":{\"GEMINI_API_KEY\":\"${CHATBOT_KEY}\"}}" 2>/dev/null || \
+            kubectl -n "$NS" create secret generic backend-secrets --from-literal=GEMINI_API_KEY="${CHATBOT_KEY}" --dry-run=client -o yaml | kubectl apply -f -
+          fi
+
       - name: Restart deployments
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
@@ -507,6 +518,17 @@ jobs:
         run: |
           NS="${KUBE_NAMESPACE:-nguongocso}"
           kubectl -n "$NS" patch configmap backend-config -p '{"data":{"DB_NAME":"nguongocso_db","SPRING_PROFILES_ACTIVE":"prod","SPRING_FLYWAY_LOCATIONS":"classpath:db/migration/schema,classpath:db/migration/data"}}'
+
+      - name: Configure Chatbot Gemini API Key for production
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+          CHATBOT_KEY: ${{ secrets.CHATBOT_GEMINI_API_KEY || secrets.GEMINI_API_KEY }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          if [ -n "${CHATBOT_KEY}" ]; then
+            kubectl -n "$NS" patch secret backend-secrets -p "{\"stringData\":{\"GEMINI_API_KEY\":\"${CHATBOT_KEY}\"}}" 2>/dev/null || \
+            kubectl -n "$NS" create secret generic backend-secrets --from-literal=GEMINI_API_KEY="${CHATBOT_KEY}" --dry-run=client -o yaml | kubectl apply -f -
+          fi
 
       - name: Restart deployments
         env:
