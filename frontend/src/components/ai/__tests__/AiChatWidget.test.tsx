@@ -163,7 +163,7 @@ describe("AiChatWidget", () => {
     });
   });
 
-  it("đóng và thu nhỏ cửa sổ chat khi bấm nút đóng hoặc thu nhỏ", () => {
+  it("thu nhỏ cửa sổ chat khi bấm nút thu nhỏ", () => {
     render(
       <MemoryRouter>
         <AiChatWidget />
@@ -179,14 +179,6 @@ describe("AiChatWidget", () => {
     fireEvent.click(minimizeButton);
 
     // Cửa sổ chat ẩn đi, FAB hiện lại
-    expect(screen.queryByText("Trợ lý ảo Nguồn Gốc Số")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Mở Trợ lý AI")).toBeInTheDocument();
-
-    // Mở lại và bấm nút Đóng
-    fireEvent.click(screen.getByLabelText("Mở Trợ lý AI"));
-    const closeButton = screen.getByTitle("Đóng");
-    fireEvent.click(closeButton);
-
     expect(screen.queryByText("Trợ lý ảo Nguồn Gốc Số")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Mở Trợ lý AI")).toBeInTheDocument();
   });

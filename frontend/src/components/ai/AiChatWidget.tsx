@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Bot,
-  X,
   Send,
   Trash2,
   Minimize2,
@@ -294,15 +293,6 @@ export const AiChatWidget: React.FC = () => {
                 className="rounded-lg p-1.5 text-white/80 hover:bg-white/20 hover:text-white transition-colors cursor-pointer"
               >
                 <Minimize2 className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                title="Đóng"
-                aria-label="Đóng"
-                className="rounded-lg p-1.5 text-white/80 hover:bg-white/20 hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
