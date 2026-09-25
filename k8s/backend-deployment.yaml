@@ -71,6 +71,18 @@ spec:
                 secretKeyRef:
                   name: backend-secrets
                   key: LOCATIONIQ_API_KEY
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: GEMINI_API_KEY
+                  optional: true
+            - name: GEMINI_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: GEMINI_MODEL
+                  optional: true
             - name: JAVA_OPTS
               value: "-Xms256m -Xmx768m"
           resources:
