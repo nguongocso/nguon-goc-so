@@ -117,4 +117,17 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
          * Tìm tất cả cảnh báo theo trạng thái (NCL-08-CN-016).
          */
         java.util.List<Alert> findByStatus(AlertStatus status);
+
+        /** Đếm số lượng cảnh báo theo tổ chức, loại và trạng thái (TASK-AI-05). */
+        long countByOrganizationOrganizationIdAndTypeAndStatus(
+                        UUID organizationId,
+                        AlertType type,
+                        AlertStatus status);
+
+        /** Đếm số lượng cảnh báo theo danh sách tổ chức, loại và trạng thái (TASK-AI-05 & TASK-AI-07). */
+        long countByOrganizationOrganizationIdInAndTypeAndStatus(
+                        java.util.Collection<UUID> organizationIds,
+                        AlertType type,
+                        AlertStatus status);
 }
+

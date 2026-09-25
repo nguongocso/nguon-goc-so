@@ -17,17 +17,7 @@ services:
       - mysql_data:/var/lib/mysql
 
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "127.0.0.1",
-          "-u",
-          "root",
-          "-p${MYSQL_ROOT_PASSWORD}"
-        ]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}" ]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -78,6 +68,10 @@ services:
 
       LOCATIONIQ_API_KEY: ${LOCATIONIQ_API_KEY}
       LOCATIONIQ_BASE_URL: ${LOCATIONIQ_BASE_URL}
+
+      # Cấu hình AI Assistant (Google Gemini)
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash,gemini-3.6-flash,gemini-3.7-flash,gemini-3.8-flash,gemini-3.5-flash-lite}
 
       # Múi giờ nghiệp vụ (mặc định Asia/Ho_Chi_Minh). Dùng chung cho Clock
       # nghiệp vụ (app.timezone) và múi giờ mặc định của JVM.qw

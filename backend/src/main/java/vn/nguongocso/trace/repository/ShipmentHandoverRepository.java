@@ -76,4 +76,11 @@ public interface ShipmentHandoverRepository extends JpaRepository<ShipmentHandov
             @Param("status") ShipmentHandoverStatus status,
             @Param("keyword") String keyword,
             Pageable pageable);
+
+    /** Đếm số lượng biên bản bàn giao bên giao theo trạng thái (TASK-AI-05). */
+    long countByFromOrganizationOrganizationIdAndStatus(UUID orgId, ShipmentHandoverStatus status);
+
+    /** Đếm số lượng biên bản bàn giao bên giao theo danh sách tổ chức và trạng thái (TASK-AI-05 & TASK-AI-07). */
+    long countByFromOrganizationOrganizationIdInAndStatus(Collection<UUID> orgIds, ShipmentHandoverStatus status);
 }
+

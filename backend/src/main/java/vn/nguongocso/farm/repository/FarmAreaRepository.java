@@ -30,4 +30,12 @@ public interface FarmAreaRepository extends JpaRepository<FarmArea, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select farmArea from FarmArea farmArea where farmArea.id = :id")
     Optional<FarmArea> findByIdForBoundaryUpdate(@Param("id") UUID id);
+
+    /** Tính tổng diện tích (ha) các vùng trồng đang hoạt động của tổ chức. */
+    @Query("SELECT COALESCE(SUM(fa.area), 0.0) FROM FarmArea fa WHERE fa.organization.organizationId = :organizationId AND fa.isActive = true")
+    java.math.BigDecimal sumAreaByOrganizationId(@Param("organizationId") UUID organizationId);
+
+    /** Tính tổng diện tích (ha) các vùng trồng đang hoạt động theo danh sách tổ chức. */
+    @Query("SELECT COALESCE(SUM(fa.area), 0.0) FROM FarmArea fa WHERE fa.organization.organizationId IN :organizationIds AND fa.isActive = true")
+    java.math.BigDecimal sumAreaByOrganizationIds(@Param("organizationIds") java.util.Collection<UUID> organizationIds);
 }
