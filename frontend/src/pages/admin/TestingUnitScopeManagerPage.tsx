@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   BadgeCheck,
-  ListChecks,
   Loader2,
   RefreshCw,
   Save,
@@ -13,13 +12,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -52,13 +45,6 @@ const PAGE_SIZE = 10;
 /** Kích thước tải danh mục chỉ tiêu ACTIVE (đồng bộ convention AssignInspectionCriteriaPage). */
 const CATALOG_SIZE = 1000;
 
-type ScopeFilter = "all" | "accredited" | "not_accredited";
-
-const filterOptions: { value: ScopeFilter; label: string }[] = [
-  { value: "all", label: "Tất cả" },
-  { value: "accredited", label: "Đã công nhận" },
-  { value: "not_accredited", label: "Chưa công nhận" },
-];
 
 /**
  * Trang quản lý phạm vi công nhận của một đơn vị kiểm nghiệm.
@@ -83,9 +69,15 @@ export default function TestingUnitScopeManagerPage() {
 
   const [searchInput, setSearchInput] = useState("");
   const [keyword, setKeyword] = useState("");
-  const [filter, setFilter] = useState<ScopeFilter>("all");
+  const [unitFilter, setUnitFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [saving, setSaving] = useState(false);
+
+  /** Danh sách đơn vị tính duy nhất có trong danh mục đã tải (dùng cho bộ lọc). */
+  const unitOptions = useMemo(
+    () => Array.from(new Set(catalog.map((criterion) => criterion.unit))).sort(),
+    [catalog]
+  );
 
   // Load đơn vị kiểm nghiệm + phạm vi công nhận đã lưu (baseline).
   useEffect(() => {
@@ -175,6 +167,7 @@ export default function TestingUnitScopeManagerPage() {
     const next = searchInput.trim();
     if (next === keyword) return;
     setKeyword(next);
+    setUnitFilter("all");
     setPage(0);
   };
 
@@ -195,9 +188,9 @@ export default function TestingUnitScopeManagerPage() {
       );
   };
 
-  const handleFilterChange = (value: ScopeFilter | null) => {
+  const handleUnitFilterChange = (value: string | null) => {
     if (!value) return;
-    setFilter(value);
+    setUnitFilter(value);
     setPage(0);
   };
 
@@ -236,11 +229,9 @@ export default function TestingUnitScopeManagerPage() {
     }
   };
 
-  const visibleList = catalog.filter((criterion) => {
-    if (filter === "accredited") return accreditedIds.has(criterion.id);
-    if (filter === "not_accredited") return !accreditedIds.has(criterion.id);
-    return true;
-  });
+  const visibleList = catalog.filter(
+    (criterion) => unitFilter === "all" || criterion.unit === unitFilter
+  );
 
   const totalElements = visibleList.length;
   const totalPages = Math.max(1, Math.ceil(totalElements / PAGE_SIZE));
@@ -294,59 +285,36 @@ export default function TestingUnitScopeManagerPage() {
             <ShieldCheck className="size-6 text-emerald-600" />
             Phạm vi công nhận
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Đơn vị kiểm nghiệm:{" "}
-            <span className="font-semibold text-slate-900">{unit.name}</span>
-          </p>
-          <div className="flex items-center gap-2 mt-1.5">
-            <Badge
-              variant="outline"
-              className="rounded-full border-emerald-300 bg-emerald-50 text-xs text-emerald-800"
-            >
-              <BadgeCheck className="h-3 w-3 mr-1" />
-              {unit.accreditationCode}
-            </Badge>
-            {unit.accreditationExpiryDate && (
-              <span className="text-xs text-muted-foreground">
-                Hết hạn: {unit.accreditationExpiryDate}
-              </span>
-            )}
-          </div>
         </div>
-        <div>
+        <div className="flex flex-col items-stretch gap-2 sm:items-end sm:max-w-sm">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-right">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Đơn vị kiểm nghiệm
+            </p>
+            <p className="mt-0.5 text-sm font-semibold text-slate-900">
+              {unit.name}
+            </p>
+            <div className="mt-1.5 flex flex-wrap items-center justify-end gap-2">
+              <Badge
+                variant="outline"
+                className="rounded-full border-emerald-300 bg-emerald-50 text-xs text-emerald-800"
+              >
+                <BadgeCheck className="h-3 w-3 mr-1" />
+                {unit.accreditationCode}
+              </Badge>
+              {unit.accreditationExpiryDate && (
+                <span className="text-xs text-muted-foreground">
+                  Hết hạn: {unit.accreditationExpiryDate}
+                </span>
+              )}
+            </div>
+          </div>
           <HelpButton screenKey="testing-unit-accreditation-scope" />
         </div>
       </div>
 
       {/* Card danh sách chỉ tiêu */}
       <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-border bg-muted/40 p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                <ListChecks className="h-5 w-5" />
-              </div>
-              <div>
-                <CardTitle className="text-base font-semibold text-foreground">
-                  Chỉ tiêu được công nhận
-                </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                  Chọn các chỉ tiêu mà đơn vị được phép thực hiện kiểm nghiệm.
-                  Khi tạo yêu cầu với chỉ tiêu ngoài phạm vi, hệ thống sẽ cảnh báo.
-                </CardDescription>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge
-                variant="outline"
-                className="rounded-full border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-800"
-              >
-                Đã công nhận: {accreditedIds.size}/{catalog.length} chỉ tiêu
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-
         <CardContent className="p-5 space-y-4">
           {/* Toolbar Tìm kiếm & Lọc */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -360,16 +328,17 @@ export default function TestingUnitScopeManagerPage() {
                   className="h-9 pl-9"
                 />
               </form>
-              <Select value={filter} onValueChange={handleFilterChange}>
+              <Select value={unitFilter} onValueChange={handleUnitFilterChange}>
                 <SelectTrigger size="sm" className="w-full sm:w-[180px]">
                   <SelectValue>
-                    {filterOptions.find((opt) => opt.value === filter)?.label}
+                    {unitFilter === "all" ? "Tất cả đơn vị tính" : unitFilter}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {filterOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                  <SelectItem value="all">Tất cả đơn vị tính</SelectItem>
+                  {unitOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -390,6 +359,22 @@ export default function TestingUnitScopeManagerPage() {
             </Button>
           </div>
 
+          {/* Dòng thông báo phạm vi công nhận */}
+          <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+            <span className="font-medium text-slate-700">
+              Chỉ tiêu được công nhận
+            </span>
+            <span>
+              Chọn các chỉ tiêu mà đơn vị được phép thực hiện kiểm nghiệm. Khi
+              tạo yêu cầu với chỉ tiêu ngoài phạm vi, hệ thống sẽ cảnh báo.
+            </span>
+            <Badge
+              variant="outline"
+              className="rounded-full border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-800"
+            >
+              Đã công nhận: {accreditedIds.size}/{catalog.length} chỉ tiêu
+            </Badge>
+          </div>
 
           {/* Bảng danh sách chỉ tiêu */}
           <div className="rounded-md border overflow-x-auto">
@@ -398,8 +383,9 @@ export default function TestingUnitScopeManagerPage() {
                 <TableRow className="bg-muted/50">
                   <TableHead className="w-12 text-center">STT</TableHead>
                   <TableHead>Tên chỉ tiêu</TableHead>
-                  <TableHead>Đơn vị</TableHead>
-                  <TableHead>Ngưỡng tối đa</TableHead>
+                  <TableHead title="Giá trị lớn nhất được công nhận, kèm đơn vị tính">
+                    Ngưỡng tối đa
+                  </TableHead>
                   <TableHead className="text-center">Công nhận</TableHead>
                 </TableRow>
               </TableHeader>
@@ -407,7 +393,7 @@ export default function TestingUnitScopeManagerPage() {
                 {catalogLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={4}
                       className="h-32 text-center text-muted-foreground"
                     >
                       <div className="flex flex-col items-center justify-center gap-2">
@@ -419,7 +405,7 @@ export default function TestingUnitScopeManagerPage() {
                 ) : paginated.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={4}
                       className="h-32 text-center text-muted-foreground"
                     >
                       Không có chỉ tiêu nào phù hợp với bộ lọc hiện tại.
@@ -446,17 +432,14 @@ export default function TestingUnitScopeManagerPage() {
                             </p>
                           )}
                         </TableCell>
-                        <TableCell className="text-xs">
-                          {criterion.unit}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {Number(criterion.maxThreshold)}
+                        <TableCell
+                          className="text-xs whitespace-nowrap"
+                          title={`Ngưỡng tối đa được công nhận: ${Number(criterion.maxThreshold)} ${criterion.unit}`}
+                        >
+                          {Number(criterion.maxThreshold)} {criterion.unit}
                         </TableCell>
                         <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <span className="text-xs text-muted-foreground">
-                              {isSelected ? "Công nhận" : "Không"}
-                            </span>
+                          <div className="flex items-center justify-center">
                             <Switch
                               checked={isSelected}
                               size="sm"
