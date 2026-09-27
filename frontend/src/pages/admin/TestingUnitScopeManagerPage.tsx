@@ -351,30 +351,17 @@ export default function TestingUnitScopeManagerPage() {
           {/* Toolbar Tìm kiếm & Lọc */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-1 flex-wrap items-center gap-2">
-              <form onSubmit={handleSearch} className="flex flex-1 min-w-[200px] max-w-xs">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="Tìm theo tên chỉ tiêu..."
-                    className="h-9 pl-9 text-xs rounded-xl border-border"
-                  />
-                </div>
+              <form onSubmit={handleSearch} className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Tìm theo tên chỉ tiêu..."
+                  className="h-9 pl-9"
+                />
               </form>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                className="h-9 rounded-xl text-xs"
-              >
-                <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                Làm mới
-              </Button>
-
               <Select value={filter} onValueChange={handleFilterChange}>
-                <SelectTrigger className="h-9 w-auto min-w-[150px] rounded-xl text-xs">
+                <SelectTrigger size="sm" className="w-full sm:w-[180px]">
                   <SelectValue>
                     {filterOptions.find((opt) => opt.value === filter)?.label}
                   </SelectValue>
@@ -388,38 +375,64 @@ export default function TestingUnitScopeManagerPage() {
                 </SelectContent>
               </Select>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={catalogLoading}
+              className="shrink-0 self-start sm:self-auto"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${catalogLoading ? "animate-spin" : ""}`}
+              />
+              Làm mới
+            </Button>
           </div>
 
 
           {/* Bảng danh sách chỉ tiêu */}
-          {catalogLoading ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin mr-2 text-emerald-600" />
-              Đang tải danh sách chỉ tiêu...
-            </div>
-          ) : paginated.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
-              Không có chỉ tiêu nào phù hợp với bộ lọc hiện tại.
-            </div>
-          ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-12 text-center">STT</TableHead>
-                    <TableHead>Tên chỉ tiêu</TableHead>
-                    <TableHead>Đơn vị</TableHead>
-                    <TableHead>Ngưỡng tối đa</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead className="text-right">Công nhận</TableHead>
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-12 text-center">STT</TableHead>
+                  <TableHead>Tên chỉ tiêu</TableHead>
+                  <TableHead>Đơn vị</TableHead>
+                  <TableHead>Ngưỡng tối đa</TableHead>
+                  <TableHead className="text-center">Công nhận</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {catalogLoading ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="h-32 text-center text-muted-foreground"
+                    >
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <RefreshCw className="h-6 w-6 animate-spin text-emerald-600" />
+                        <span>Đang tải danh sách chỉ tiêu...</span>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginated.map((criterion, index) => {
-                    const isAccredited = accreditedIds.has(criterion.id);
+                ) : paginated.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="h-32 text-center text-muted-foreground"
+                    >
+                      Không có chỉ tiêu nào phù hợp với bộ lọc hiện tại.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginated.map((criterion, index) => {
                     const isSelected = selectedIds.has(criterion.id);
                     return (
-                      <TableRow key={criterion.id}>
+                      <TableRow
+                        key={criterion.id}
+                        className="hover:bg-muted/40 transition-colors"
+                      >
                         <TableCell className="text-center font-medium text-muted-foreground">
                           {startIndex + index + 1}
                         </TableCell>
@@ -433,17 +446,14 @@ export default function TestingUnitScopeManagerPage() {
                             </p>
                           )}
                         </TableCell>
-                        <TableCell className="text-xs">{criterion.unit}</TableCell>
+                        <TableCell className="text-xs">
+                          {criterion.unit}
+                        </TableCell>
                         <TableCell className="text-xs">
                           {Number(criterion.maxThreshold)}
                         </TableCell>
-                        <TableCell>
-                          <Badge variant={isAccredited ? "default" : "secondary"}>
-                            {isAccredited ? "Đã công nhận" : "Chưa công nhận"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-2">
                             <span className="text-xs text-muted-foreground">
                               {isSelected ? "Công nhận" : "Không"}
                             </span>
@@ -459,11 +469,11 @@ export default function TestingUnitScopeManagerPage() {
                         </TableCell>
                       </TableRow>
                     );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
           <Pagination
             currentPage={currentSafePage}
             totalPages={totalPages}

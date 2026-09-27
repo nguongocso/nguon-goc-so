@@ -209,6 +209,28 @@ export const LOCAL_HELP_CONTENT: Record<string, LocalHelpEntry> = {
       'Xác nhận khóa: Nhấn "Xác nhận khóa" để đưa tem về trạng thái ĐÃ KHÓA (LOCKED), lập tức hiển thị cảnh báo đỏ trên trang quét công khai của người tiêu dùng.',
     ],
   },
+  'testing-unit-management': {
+    title: 'Hướng dẫn quản lý đơn vị kiểm nghiệm',
+    steps: [
+      'Xem danh sách: Bảng liệt kê đơn vị kiểm nghiệm / phòng thí nghiệm gồm Tên đơn vị, Mã công nhận, Thông tin liên hệ, Ngày hết hạn và Trạng thái hoạt động.',
+      'Tìm kiếm và lọc: Nhập tên hoặc mã công nhận vào ô tìm kiếm, chọn trạng thái (Tất cả / Đang hoạt động / Ngừng hoạt động) để thu hẹp kết quả, nhấn "Làm mới" để tải lại dữ liệu.',
+      'Tạo đơn vị: Nhấn "Tạo đơn vị" ở góc trên bên phải, nhập đầy đủ thông tin đơn vị rồi lưu lại.',
+      'Quản lý phạm vi công nhận: Tại cột "Hành động", nhấn biểu tượng phạm vi để thêm, sửa hoặc xóa phạm vi công nhận của đơn vị.',
+      'Chỉnh sửa thông tin: Nhấn biểu tượng bút chì tại cột "Hành động" để cập nhật lại thông tin đơn vị.',
+      'Ngừng hoạt động: Nhấn biểu tượng vô hiệu hoá rồi xác nhận trong hộp thoại, đơn vị sẽ chuyển sang trạng thái "Ngừng hoạt động" và không còn xuất hiện khi tạo yêu cầu kiểm nghiệm.',
+    ],
+  },
+  'testing-unit-accreditation-scope': {
+    title: 'Hướng dẫn quản lý phạm vi công nhận',
+    steps: [
+      'Xem thông tin đơn vị: Tiêu đề hiển thị tên đơn vị, mã công nhận và ngày hết hạn của đơn vị kiểm nghiệm đang quản lý.',
+      'Tra cứu chỉ tiêu: Nhập tên chỉ tiêu vào ô tìm kiếm rồi nhấn Enter, dùng bộ lọc (Tất cả / Đã công nhận / Chưa công nhận) và nút "Làm mới" để tải lại danh mục chỉ tiêu.',
+      'Đọc bảng chỉ tiêu: Mỗi dòng gồm STT, Tên chỉ tiêu (kèm tiêu chuẩn tham chiếu), Đơn vị tính, Ngưỡng tối đa và cột "Công nhận" căn giữa.',
+      'Chọn chỉ tiêu công nhận: Bật công tắc tại cột "Công nhận" để đưa chỉ tiêu vào phạm vi, tắt công tắc để loại chỉ tiêu ra khỏi phạm vi.',
+      'Lưu thay đổi: Nhấn nút "Lưu phạm vi công nhận" ở cuối trang; hệ thống sẽ thay thế toàn bộ phạm vi bằng tập chỉ tiêu đang chọn.',
+      'Cảnh báo bỏ công nhận: Nếu bạn tắt công tắc của chỉ tiêu đã lưu trước đó, hệ thống hiển thị cảnh báo màu hổ phách phía trên nút lưu để bạn kiểm tra lại trước khi xác nhận.',
+    ],
+  },
   'admin-suspect-trace-code-locked': {
     title: 'Hướng dẫn mở khóa mã tem (Trạng thái Đã khóa)',
     steps: [
