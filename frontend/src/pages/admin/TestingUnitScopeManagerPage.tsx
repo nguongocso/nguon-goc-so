@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  BadgeCheck,
   Loader2,
   RefreshCw,
   Save,
@@ -11,7 +10,6 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -287,27 +285,18 @@ export default function TestingUnitScopeManagerPage() {
           </h1>
         </div>
         <div className="flex flex-col items-stretch gap-2 sm:items-end sm:max-w-sm">
-          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-right">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="rounded-xl border border-success/30 bg-success-bg p-3 text-right">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-success">
               Đơn vị kiểm nghiệm
             </p>
-            <p className="mt-0.5 text-sm font-semibold text-slate-900">
+            <p className="mt-0.5 text-sm font-semibold text-success-foreground">
               {unit.name}
             </p>
-            <div className="mt-1.5 flex flex-wrap items-center justify-end gap-2">
-              <Badge
-                variant="outline"
-                className="rounded-full border-emerald-300 bg-emerald-50 text-xs text-emerald-800"
-              >
-                <BadgeCheck className="h-3 w-3 mr-1" />
-                {unit.accreditationCode}
-              </Badge>
-              {unit.accreditationExpiryDate && (
-                <span className="text-xs text-muted-foreground">
-                  Hết hạn: {unit.accreditationExpiryDate}
-                </span>
-              )}
-            </div>
+            {unit.accreditationExpiryDate && (
+              <p className="mt-1 text-xs text-success">
+                Hết hạn: {unit.accreditationExpiryDate}
+              </p>
+            )}
           </div>
           <HelpButton screenKey="testing-unit-accreditation-scope" />
         </div>
@@ -360,21 +349,13 @@ export default function TestingUnitScopeManagerPage() {
           </div>
 
           {/* Dòng thông báo phạm vi công nhận */}
-          <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-            <span className="font-medium text-slate-700">
-              Chỉ tiêu được công nhận
-            </span>
-            <span>
-              Chọn các chỉ tiêu mà đơn vị được phép thực hiện kiểm nghiệm. Khi
-              tạo yêu cầu với chỉ tiêu ngoài phạm vi, hệ thống sẽ cảnh báo.
-            </span>
-            <Badge
-              variant="outline"
-              className="rounded-full border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-800"
-            >
-              Đã công nhận: {accreditedIds.size}/{catalog.length} chỉ tiêu
-            </Badge>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Đã công nhận{" "}
+            <span className="font-semibold text-slate-700">
+              {accreditedIds.size}/{catalog.length}
+            </span>{" "}
+            chỉ tiêu
+          </p>
 
           {/* Bảng danh sách chỉ tiêu */}
           <div className="rounded-md border overflow-x-auto">
@@ -383,10 +364,15 @@ export default function TestingUnitScopeManagerPage() {
                 <TableRow className="bg-muted/50">
                   <TableHead className="w-12 text-center">STT</TableHead>
                   <TableHead>Tên chỉ tiêu</TableHead>
-                  <TableHead title="Giá trị lớn nhất được công nhận, kèm đơn vị tính">
+                  <TableHead
+                    className="w-[140px]"
+                    title="Giá trị lớn nhất được công nhận, kèm đơn vị tính"
+                  >
                     Ngưỡng tối đa
                   </TableHead>
-                  <TableHead className="text-center">Công nhận</TableHead>
+                  <TableHead className="w-[120px] text-center">
+                    Công nhận
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -422,7 +408,7 @@ export default function TestingUnitScopeManagerPage() {
                         <TableCell className="text-center font-medium text-muted-foreground">
                           {startIndex + index + 1}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-normal">
                           <p className="text-xs font-semibold leading-snug text-foreground">
                             {criterion.name}
                           </p>
