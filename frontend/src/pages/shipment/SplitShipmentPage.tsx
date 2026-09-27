@@ -172,7 +172,7 @@ export default function SplitShipmentPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-8">
+    <div className="w-full space-y-6 pb-8">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-emerald-100 p-2 text-emerald-700">
