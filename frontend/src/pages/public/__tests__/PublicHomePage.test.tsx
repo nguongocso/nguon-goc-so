@@ -49,6 +49,22 @@ describe("PublicHomePage unified search", () => {
     vi.clearAllMocks();
   });
 
+  it("renders the traceability hero with an accessible lookup form", () => {
+    renderPage();
+
+    expect(screen.getByTestId("public-home-hero")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", {
+        name: "Kỹ thuật viên và người nông dân kiểm tra nông sản trong vườn",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Mã truy xuất hoặc mã phản ánh")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Truy xuất" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Quét mã QR bằng camera" }),
+    ).toBeInTheDocument();
+  });
+
   it("identifies feedback codes correctly via isProductFeedbackLookupCode helper", () => {
     expect(isProductFeedbackLookupCode("PA-7K2M-9Q4X-H8NP-3R5T")).toBe(true);
     expect(isProductFeedbackLookupCode("pa-7k2m-9q4x-h8np-3r5t")).toBe(true);
@@ -62,9 +78,9 @@ describe("PublicHomePage unified search", () => {
   it("navigates to /public/trace/:codeValue when entering normal trace code", () => {
     renderPage();
 
-    const input = screen.getByPlaceholderText(/Nhập mã tra cứu hoặc mã phản ánh/i);
+    const input = screen.getByLabelText("Mã truy xuất hoặc mã phản ánh");
     fireEvent.change(input, { target: { value: "HTX00000001" } });
-    fireEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
+    fireEvent.click(screen.getByRole("button", { name: "Truy xuất" }));
 
     expect(mockNavigate).toHaveBeenCalledWith("/public/trace/HTX00000001");
     expect(lookupPublicProductFeedback).not.toHaveBeenCalled();
@@ -78,9 +94,9 @@ describe("PublicHomePage unified search", () => {
 
     renderPage();
 
-    const input = screen.getByPlaceholderText(/Nhập mã tra cứu hoặc mã phản ánh/i);
+    const input = screen.getByLabelText("Mã truy xuất hoặc mã phản ánh");
     fireEvent.change(input, { target: { value: "PA-7K2M-9Q4X-H8NP-3R5T" } });
-    fireEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
+    fireEvent.click(screen.getByRole("button", { name: "Truy xuất" }));
 
     expect(mockNavigate).not.toHaveBeenCalled();
     await waitFor(() => {
@@ -100,9 +116,9 @@ describe("PublicHomePage unified search", () => {
 
     renderPage();
 
-    const input = screen.getByPlaceholderText(/Nhập mã tra cứu hoặc mã phản ánh/i);
+    const input = screen.getByLabelText("Mã truy xuất hoặc mã phản ánh");
     fireEvent.change(input, { target: { value: "PA-0000-0000-0000-0000" } });
-    fireEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
+    fireEvent.click(screen.getByRole("button", { name: "Truy xuất" }));
 
     expect(await screen.findByText("Không tìm thấy phản ánh")).toBeInTheDocument();
     expect(
