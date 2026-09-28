@@ -269,9 +269,6 @@ export const InspectionCriterionFormContent = ({
           {errors.name && (
             <p className="text-sm text-red-500">{errors.name.message}</p>
           )}
-          <p className="text-xs text-muted-foreground">
-            Tên chỉ tiêu không được trùng trong cùng một Tiêu chuẩn chất lượng.
-          </p>
         </div>
 
         {/* Tên chỉ tiêu tiếng Anh */}
