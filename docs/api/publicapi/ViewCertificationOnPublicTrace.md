@@ -102,6 +102,10 @@ Không hiển thị bất kỳ nút thao tác (gắn/gỡ/sửa) nào trên tran
 
 Xử lý các mã lỗi 404/410 bằng trang thông báo phù hợp (mã không hợp lệ / sản phẩm đã bị thu hồi).
 
+8.1. Mở rộng: hiển thị tệp chứng nhận
+
+Tài liệu này ban đầu chỉ mô tả trả về thông tin chữ. Phần **hiển thị hình ảnh chứng nhận đã được gán** (các trường `hasDocument`, `documentFileName`, `documentContentType`, `documentFileSize`, `documentUrl` và endpoint tải tệp công khai) được mô tả tại [PublicCertificationDocumentOnPublicTrace.md](./PublicCertificationDocumentOnPublicTrace.md).
+
 9. Kế hoạch triển khai (Backend)
 
 Ánh xạ Test Case ↔ Xử lý backend

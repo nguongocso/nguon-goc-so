@@ -36,6 +36,7 @@ import vn.nguongocso.certification.enums.CertificationVerificationStatus;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
+import vn.nguongocso.certification.service.CertificationService;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
@@ -106,6 +107,8 @@ public class PublicTraceServiceImpl implements PublicTraceService {
     private final InspectionCriterionResultRepository inspectionCriterionResultRepository;
 
     private final ReverseGeocodingService reverseGeocodingService;
+
+    private final CertificationService certificationService;
 
     /** Lấy thông tin truy xuất công khai (chế độ đọc thuần túy). */
     @Override
@@ -546,6 +549,14 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                             ? cert.getStandard().getNameEn()
                             : null;
 
+                    // Chỉ trả metadata tài liệu + URL tương đối, không lộ document_storage_path.
+                    boolean hasDocument = cert.getDocumentStoragePath() != null
+                            && !cert.getDocumentStoragePath().isBlank();
+                    String documentUrl = hasDocument
+                            ? "/api/v1/public/trace/" + codeValue + "/certifications/"
+                                    + cert.getId() + "/document"
+                            : null;
+
                     return PublicCertificationResponse.builder()
                             .certificationId(cert.getId())
                             .certificationName(cert.getName())
@@ -559,6 +570,11 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                             .publicStatus(publicStatus)
                             .status(legacyStatus)
                             .statusLabel(statusLabel)
+                            .hasDocument(hasDocument)
+                            .documentFileName(hasDocument ? cert.getDocumentFileName() : null)
+                            .documentContentType(hasDocument ? cert.getDocumentContentType() : null)
+                            .documentFileSize(hasDocument ? cert.getDocumentFileSize() : null)
+                            .documentUrl(documentUrl)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -569,6 +585,50 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .hasCertification(!certResponses.isEmpty())
                 .certifications(certResponses)
                 .build();
+    }
+
+    /**
+     * Lấy tệp tài liệu của chứng nhận thuộc lô của mã tem đang tra cứu.
+     * Chỉ cho xem khi chứng nhận thực sự được gắn cho lô đó và chưa bị từ chối,
+     * tránh lộ tệp của chứng nhận thuộc lô khác qua URL đoán được.
+     */
+    @Override
+    public CertificationService.DocumentResource getPublicCertificationDocument(
+            String codeValue,
+            UUID certificationId) {
+        ProductionLot lot = resolvePublicLot(codeValue);
+
+        ProductionLotCertification attached = productionLotCertificationRepository
+                .findByProductionLotId(lot.getId())
+                .stream()
+                .filter(plc -> plc.getCertification() != null
+                        && certificationId.equals(plc.getCertification().getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Chứng nhận không thuộc lô sản xuất của mã tem này."));
+
+        Certification cert = attached.getCertification();
+        if (cert.getVerificationStatus() == CertificationVerificationStatus.REJECTED) {
+            throw new ResourceNotFoundException("Không tìm thấy chứng nhận.");
+        }
+
+        return certificationService.getPublicDocumentResource(cert.getId());
+    }
+
+    /**
+     * Tra cứu lô sản xuất tương ứng mã tem, áp dụng cùng quy tắc với các
+     * endpoint tra cứu công khai khác (chỉ trả về khi mã tem tồn tại).
+     */
+    private ProductionLot resolvePublicLot(String codeValue) {
+        TraceCode traceCode = traceCodeRepository.findByCodeValue(codeValue)
+                .orElseThrow(() -> new ResourceNotFoundException("Mã lô hàng không tồn tại."));
+
+        Shipment shipment = traceCode.getShipment();
+        if (shipment == null || shipment.getProductionLot() == null) {
+            throw new ResourceNotFoundException("Không tìm thấy lô hàng liên kết.");
+        }
+
+        return shipment.getProductionLot();
     }
 
     /** Lấy danh sách kết quả kiểm nghiệm công khai của lô hàng. */

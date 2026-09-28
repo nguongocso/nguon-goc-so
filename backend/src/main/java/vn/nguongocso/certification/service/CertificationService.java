@@ -108,6 +108,14 @@ public interface CertificationService {
                         CustomUserDetails currentUser);
 
         /**
+         * Lấy tệp tài liệu chứng nhận cho trang tra cứu công khai.
+         * Không kiểm tra vai trò: quyền xem công khai do lớp trên
+         * (PublicTraceService) đảm bảo chứng nhận thực sự được gắn cho lô của
+         * mã tem đang tra cứu.
+         */
+        DocumentResource getPublicDocumentResource(UUID certificationId);
+
+        /**
          * Xác thực chứng nhận của tổ chức (VT-01).
          */
         CertificationVerificationResponse verifyCertificate(

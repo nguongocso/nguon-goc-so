@@ -27,6 +27,10 @@ import type { VatTuCache } from '@/lib/offline/farmLogDb';
 import { uploadAttachment } from '@/api/attachmentApi';
 import { AttachmentManager } from './AttachmentManager';
 import { InputMaterialSelect } from '@/components/input-material/InputMaterialSelect';
+import {
+  CameraCaptureButton,
+  CameraCaptureDialog,
+} from '@/components/common/CameraCaptureDialog';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -152,12 +156,10 @@ export function CreateFarmLogForm({
   const MAX_ATTACHMENTS = 5;
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const fileArray = Array.from(files);
+  /** Thêm danh sách tệp vào danh sách chứng từ sau khi kiểm tra MIME và dung lượng. */
+  const addFiles = (fileArray: File[]) => {
     const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
 
     for (const f of fileArray) {
@@ -181,6 +183,22 @@ export function CreateFarmLogForm({
       f.type.startsWith('image/') ? URL.createObjectURL(f) : ''
     );
     setFilePreviews((prev) => [...prev, ...newPreviews]);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    // Xoá giá trị để chọn lại cùng một tệp vẫn kích hoạt được onChange.
+    e.target.value = '';
+    if (!files) return;
+
+    addFiles(Array.from(files));
+  };
+
+  /** Nhận ảnh chụp từ camera (mở camera thật, không phải hộp thoại chọn tệp). */
+  const handleCameraCapture = (file: File) => {
+    addFiles([
+      new File([file], `anh-nhat-ky-${Date.now()}.jpg`, { type: 'image/jpeg' }),
+    ]);
   };
 
   const removeFile = (index: number) => {
@@ -674,7 +692,13 @@ export function CreateFarmLogForm({
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Nút chụp ảnh: mở camera thật, tách biệt với nút chọn tệp */}
+                  <CameraCaptureButton
+                    disabled={isSubmitting || attachmentFiles.length >= MAX_ATTACHMENTS}
+                    onClick={() => setCameraOpen(true)}
+                    className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  />
                   <Button
                     type="button"
                     variant="outline"
@@ -686,7 +710,7 @@ export function CreateFarmLogForm({
                     className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                   >
                     <Upload className="mr-2 size-4 text-slate-500" />
-                    Chọn tệp đính kèm
+                    Chọn tệp
                   </Button>
                   <span className="text-xs text-slate-400">
                     Hỗ trợ JPG, PNG, PDF (Tối đa 5MB)
@@ -866,6 +890,13 @@ export function CreateFarmLogForm({
           </div>
         </div>
       </aside>
+
+      {/* Hộp thoại chụp ảnh: bấm "Chụp ảnh ngay" phải mở camera, không mở hộp thoại chọn tệp */}
+      <CameraCaptureDialog
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={handleCameraCapture}
+      />
     </div>
   );
 }

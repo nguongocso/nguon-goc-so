@@ -8,6 +8,18 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+
+import vn.nguongocso.certification.service.CertificationService;
+import vn.nguongocso.exception.ResourceNotFoundException;
+import vn.nguongocso.publicapi.dto.response.PublicCertificationResponse;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -103,6 +115,9 @@ class PublicTraceServiceImplTest {
     @Mock
     private ReverseGeocodingService reverseGeocodingService;
 
+    @Mock
+    private CertificationService certificationService;
+
     private PublicTraceServiceImpl publicTraceService;
 
     private TraceCode traceCode;
@@ -125,7 +140,8 @@ class PublicTraceServiceImplTest {
                 productionLotCertificationRepository,
                 inspectionRequestRepository,
                 inspectionCriterionResultRepository,
-                reverseGeocodingService);
+                reverseGeocodingService,
+                certificationService);
 
         shipment = new Shipment();
         shipment.setId(UUID.randomUUID());
@@ -199,6 +215,107 @@ class PublicTraceServiceImplTest {
                 .expiryDate(expiryDate)
                 .verificationStatus(status)
                 .build();
+    }
+
+    @Test
+    void publicCertificationsShouldExposeDocumentMetadataAndPublicUrl() {
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô xoài");
+        shipment.setProductionLot(lot);
+
+        Certification withDoc = certification("GLOBALGAP", CertificationVerificationStatus.VERIFIED,
+                LocalDate.now().plusDays(30));
+        withDoc.setDocumentFileName("globalgap.png");
+        withDoc.setDocumentContentType("image/png");
+        withDoc.setDocumentFileSize(204800L);
+        withDoc.setDocumentStoragePath("/app/uploads/certifications/" + withDoc.getId() + "/document.png");
+
+        Certification withoutDoc = certification("VIEJGAP", CertificationVerificationStatus.VERIFIED,
+                LocalDate.now().plusDays(30));
+
+        when(productionLotCertificationRepository.findByProductionLotId(lot.getId())).thenReturn(List.of(
+                ProductionLotCertification.builder().certification(withDoc).build(),
+                ProductionLotCertification.builder().certification(withoutDoc).build()));
+
+        PublicLotCertificationsResponse response = publicTraceService.getPublicCertifications(codeValue);
+
+        assertEquals(2, response.getCertifications().size());
+
+        PublicCertificationResponse first = response.getCertifications().get(0);
+        assertTrue(first.getHasDocument());
+        assertEquals("globalgap.png", first.getDocumentFileName());
+        assertEquals("image/png", first.getDocumentContentType());
+        assertEquals(204800L, first.getDocumentFileSize());
+        assertEquals(
+                "/api/v1/public/trace/" + codeValue + "/certifications/" + withDoc.getId() + "/document",
+                first.getDocumentUrl());
+
+        // Không có tệp thì hasDocument = false và không trả URL.
+        PublicCertificationResponse second = response.getCertifications().get(1);
+        assertFalse(second.getHasDocument());
+        assertNull(second.getDocumentUrl());
+        assertNull(second.getDocumentFileName());
+    }
+
+    @Test
+    void getPublicCertificationDocument_WhenCertAttachedToLot_ShouldDelegateToCertificationService() {
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô xoài");
+        shipment.setProductionLot(lot);
+
+        Certification cert = certification("GLOBALGAP", CertificationVerificationStatus.VERIFIED,
+                LocalDate.now().plusDays(30));
+        when(productionLotCertificationRepository.findByProductionLotId(lot.getId())).thenReturn(List.of(
+                ProductionLotCertification.builder().certification(cert).build()));
+
+        Resource file = new ByteArrayResource(new byte[] { 1, 2, 3 });
+        CertificationService.DocumentResource documentResource = new CertificationService.DocumentResource(
+                file, MediaType.IMAGE_PNG, "globalgap.png");
+        when(certificationService.getPublicDocumentResource(cert.getId())).thenReturn(documentResource);
+
+        CertificationService.DocumentResource result = publicTraceService
+                .getPublicCertificationDocument(codeValue, cert.getId());
+
+        assertSame(documentResource, result);
+        verify(certificationService).getPublicDocumentResource(cert.getId());
+    }
+
+    @Test
+    void getPublicCertificationDocument_WhenCertNotAttachedToLot_ShouldThrow404() {
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô xoài");
+        shipment.setProductionLot(lot);
+
+        Certification other = certification("OTHER", CertificationVerificationStatus.VERIFIED,
+                LocalDate.now().plusDays(30));
+        when(productionLotCertificationRepository.findByProductionLotId(lot.getId())).thenReturn(List.of(
+                ProductionLotCertification.builder().certification(other).build()));
+
+        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class,
+                () -> publicTraceService.getPublicCertificationDocument(codeValue, UUID.randomUUID()));
+
+        assertTrue(ex.getMessage().contains("không thuộc lô sản xuất"));
+        verify(certificationService, never()).getPublicDocumentResource(any());
+    }
+
+    @Test
+    void getPublicCertificationDocument_WhenCertRejected_ShouldThrow404() {
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô xoài");
+        shipment.setProductionLot(lot);
+
+        Certification rejected = certification("REJECTED", CertificationVerificationStatus.REJECTED,
+                LocalDate.now().plusDays(30));
+        when(productionLotCertificationRepository.findByProductionLotId(lot.getId())).thenReturn(List.of(
+                ProductionLotCertification.builder().certification(rejected).build()));
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> publicTraceService.getPublicCertificationDocument(codeValue, rejected.getId()));
+        verify(certificationService, never()).getPublicDocumentResource(any());
     }
 
     @Test

@@ -58,4 +58,22 @@ public class PublicCertificationResponse {
 
     /** Nhãn hiển thị cho người tiêu dùng (Đang chờ xác thực, Đã đạt chuẩn, Đã hết hạn). */
     private String statusLabel;
+
+    /** Chứng nhận có tệp đính kèm để hiển thị ảnh hay không. */
+    private Boolean hasDocument;
+
+    /** Tên tệp tài liệu chứng nhận (chỉ dùng hiển thị, không lộ đường dẫn lưu trữ). */
+    private String documentFileName;
+
+    /** Kiểu nội dung tệp (image/jpeg, image/png, application/pdf). */
+    private String documentContentType;
+
+    /** Dung lượng tệp (byte). */
+    private Long documentFileSize;
+
+    /**
+     * Đường dẫn tương đối để tải/xem tệp tài liệu trên trang tra cứu công khai.
+     * Chỉ trả về khi {@link #hasDocument} = true.
+     */
+    private String documentUrl;
 }

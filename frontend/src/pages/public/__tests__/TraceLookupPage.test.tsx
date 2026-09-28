@@ -150,3 +150,75 @@ describe("TraceLookupPage English Public Lookup (NCL-06-CN-004)", () => {
     expect(screen.getByText("WARNING: This shipment has been recalled. Reason: Pesticide excess")).toBeInTheDocument();
   });
 });
+
+describe("TraceLookupPage hiển thị tệp chứng nhận", () => {
+  const certWithDocument = {
+    ...mockCertData,
+    certifications: [
+      {
+        ...mockCertData.certifications[0],
+        hasDocument: true,
+        documentFileName: "globalgap.png",
+        documentContentType: "image/png",
+        documentFileSize: 204800,
+        documentUrl:
+          "/api/v1/public/trace/TC-TEST-001/certifications/cert-1/document",
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    sessionStorage.setItem("public_lookup_lang", "vi");
+    vi.mocked(getPublicTrace).mockResolvedValue(mockTraceData);
+    vi.mocked(getPublicInspections).mockResolvedValue(mockInspectionData);
+  });
+
+  it("hiển thị ảnh chứng nhận và trỏ đúng URL tải tệp", async () => {
+    vi.mocked(getPublicCertifications).mockResolvedValue(certWithDocument);
+
+    renderPage();
+
+    const image = (await screen.findByAltText(
+      /Chứng nhận công khai - GLOBALGAP-001/
+    )) as HTMLImageElement;
+    expect(image.getAttribute("src")).toContain(
+      "/api/v1/public/trace/TC-TEST-001/certifications/cert-1/document"
+    );
+  });
+
+  it("hiển thị nút mở tệp khi chứng nhận là PDF", async () => {
+    vi.mocked(getPublicCertifications).mockResolvedValue({
+      ...certWithDocument,
+      certifications: [
+        {
+          ...certWithDocument.certifications[0],
+          documentContentType: "application/pdf",
+          documentFileName: "globalgap.pdf",
+        },
+      ],
+    });
+
+    renderPage();
+
+    const link = (await screen.findByText("Mở tệp chứng nhận")).closest("a");
+    expect(link).toHaveAttribute(
+      "href",
+      expect.stringContaining("/certifications/cert-1/document")
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  it("không hiển thị gì khi chứng nhận chưa có tệp đính kèm", async () => {
+    vi.mocked(getPublicCertifications).mockResolvedValue(mockCertData);
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText("Chứng nhận GlobalGAP")).toBeInTheDocument();
+    });
+    expect(screen.queryByAltText(/Chứng nhận công khai/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Mở tệp chứng nhận")).not.toBeInTheDocument();
+  });
+});

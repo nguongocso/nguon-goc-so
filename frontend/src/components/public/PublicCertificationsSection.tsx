@@ -1,14 +1,24 @@
+import { useState } from 'react';
 import {
   Award,
   BadgeCheck,
   CalendarDays,
   CircleAlert,
   FileCheck2,
+  FileText,
+  ImageOff,
   Landmark,
   LoaderCircle,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { getAssetUrl } from '@/config/runtimeConfig';
 import type {
   PublicCertification,
   PublicLotCertificationsResponse,
@@ -95,7 +105,95 @@ function CertificationCard({ certification }: { certification: PublicCertificati
           </div>
         </div>
       </dl>
+
+      <CertificationDocument certification={certification} />
     </article>
+  );
+}
+
+/** Kiểu MIME được phép hiển thị ảnh nội tuyến (không phải PDF). */
+const isDisplayableImage = (contentType?: string | null) =>
+  contentType === 'image/jpeg' || contentType === 'image/png';
+
+/**
+ * Hiển thị tệp chứng nhận đã được gán cho lô:
+ *  - Ảnh JPG/PNG: hiện thumbnail, bấm để phóng to.
+ *  - PDF: nút mở tệp ở tab mới.
+ * Không hiện gì nếu chứng nhận chưa có tệp đính kèm.
+ */
+function CertificationDocument({
+  certification,
+}: {
+  certification: PublicCertification;
+}) {
+  const { t } = useLanguage();
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  const rawUrl = certification.documentUrl;
+  const documentUrl = rawUrl ? getAssetUrl(rawUrl) : undefined;
+  const showImage =
+    Boolean(documentUrl) && isDisplayableImage(certification.documentContentType);
+
+  if (!documentUrl) return null;
+
+  if (!showImage) {
+    return (
+      <div className="mt-4 border-t border-gray-100 pt-3">
+        <a
+          href={documentUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 underline-offset-2 hover:underline"
+        >
+          <FileText className="h-4 w-4 shrink-0" />
+          {t('cert_document_open')}
+        </a>
+      </div>
+    );
+  }
+
+  if (imageFailed) {
+    return (
+      <p className="mt-4 flex items-center gap-2 border-t border-gray-100 pt-3 text-sm text-gray-500">
+        <ImageOff className="h-4 w-4 shrink-0" />
+        {t('cert_document_load_error')}
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-4 border-t border-gray-100 pt-3">
+      <button
+        type="button"
+        onClick={() => setPreviewOpen(true)}
+        className="block w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-50"
+        title={t('cert_document_preview')}
+      >
+        <img
+          src={documentUrl}
+          alt={`${t('certifications_title')} - ${certification.certificationCode}`}
+          loading="lazy"
+          onError={() => setImageFailed(true)}
+          className="h-56 w-full bg-white object-contain"
+        />
+      </button>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="w-full max-w-sm sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {certification.certificationName} — {certification.certificationCode}
+            </DialogTitle>
+          </DialogHeader>
+          <img
+            src={documentUrl}
+            alt={`${t('certifications_title')} - ${certification.certificationCode}`}
+            className="mx-auto max-h-[70vh] w-full rounded-md object-contain"
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
