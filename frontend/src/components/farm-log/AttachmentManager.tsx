@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { getAttachments, uploadAttachment, deleteAttachment, viewAttachment, downloadAttachment } from '@/api/attachmentApi';
+import { toApiError } from '@/api/apiError';
 import type { Attachment } from '@/types/attachment';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -101,8 +102,8 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
       setIsLoading(true);
       const data = await getAttachments(logId);
       setAttachments(data);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể tải danh sách chứng từ');
+    } catch (error: unknown) {
+      toast.error(toApiError(error, 'Không thể tải danh sách chứng từ').message);
     } finally {
       setIsLoading(false);
     }
@@ -161,8 +162,8 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
       setDescription('');
       await loadAttachments();
       onUpdate?.(logId, 'upload');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Tải lên thất bại');
+    } catch (error: unknown) {
+      toast.error(toApiError(error, 'Tải lên thất bại').message);
     } finally {
       setIsUploading(false);
     }
@@ -178,8 +179,8 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
       setPreviewType(contentType);
       setPreviewFileName(att.fileName);
       setPreviewOpen(true);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể xem chứng từ');
+    } catch (error: unknown) {
+      toast.error(toApiError(error, 'Không thể xem chứng từ').message);
     } finally {
       setViewingId(null);
     }
@@ -219,8 +220,8 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
       setDownloadingId(att.id);
       await downloadAttachment(att.id, att.fileName);
       toast.success('Tải ảnh xuống thành công.');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Tải xuống thất bại');
+    } catch (error: unknown) {
+      toast.error(toApiError(error, 'Tải xuống thất bại').message);
     } finally {
       setDownloadingId(null);
     }
@@ -240,8 +241,8 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
       setDeleteTarget(null);
       await loadAttachments();
       onUpdate?.(logId, 'delete');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Xóa thất bại');
+    } catch (error: unknown) {
+      toast.error(toApiError(error, 'Xóa thất bại').message);
     } finally {
       setIsDeleting(false);
     }

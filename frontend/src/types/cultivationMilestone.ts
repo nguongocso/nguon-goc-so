@@ -37,3 +37,20 @@ export interface CultivationMilestoneQueryParams {
   page?: number;
   size?: number;
 }
+
+/** Một mốc canh tác bắt buộc còn thiếu khi đóng gói (NCL-09-CN-011). */
+export interface MissingMilestoneItem {
+  name: string;
+  activityType: string | null;
+}
+
+/**
+ * Kết quả kiểm tra lô đã đủ mốc canh tác bắt buộc (loại nông sản + tiêu chuẩn
+ * của lô) để ghi sự kiện đóng gói.
+ * GET /api/v1/cultivation-milestones/eligibility?productionLotId=...
+ */
+export interface MilestoneEligibilityResponse {
+  productionLotId: string;
+  eligible: boolean;
+  missingMilestones: MissingMilestoneItem[];
+}

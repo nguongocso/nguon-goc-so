@@ -4,6 +4,7 @@ import {
     ORGANIZATION_CODE_REGEX,
 } from './constants';
 import { ChainEventType } from '@/enums/chainEventType';
+import { getLocalDateString } from '@/utils/dateTime';
 
 // ============================================================
 // Login
@@ -56,10 +57,15 @@ export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 
 // ============================================================
-// User Profile (Hồ sơ người dùng)
+// User Profile (Hồ sơ người dùng - NCL-01-CN-010)
 // ============================================================
 
 export const userProfileSchema = z.object({
+  fullName: z
+    .string()
+    .min(1, "Họ và tên không được để trống")
+    .max(255, "Họ và tên tối đa 255 ký tự"),
+
   phone: z
     .string()
     .optional()
@@ -84,6 +90,31 @@ export const userProfileSchema = z.object({
 
 export type UserProfileFormValues = z.infer<typeof userProfileSchema>;
 
+// ============================================================
+// Change Password (Đổi mật khẩu chủ động - NCL-01-CN-010)
+// ============================================================
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .min(1, "Vui lòng nhập mật khẩu hiện tại"),
+    newPassword: z
+      .string()
+      .min(6, "Mật khẩu mới phải có ít nhất 6 ký tự")
+      .max(100, "Mật khẩu không được vượt quá 100 ký tự"),
+    confirmNewPassword: z
+      .string()
+      .min(1, "Vui lòng xác nhận mật khẩu mới"),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: "Mật khẩu xác nhận không khớp",
+    path: ["confirmNewPassword"],
+  });
+
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
+
+
 
 // ============================================================
 // Organization Profile
@@ -96,6 +127,10 @@ export const organizationProfileSchema = z.object({
     ),
 
     address: z.string().optional(),
+
+    provinceId: z.string().optional().nullable(),
+
+    communeId: z.string().optional().nullable(),
 
     phone: z
         .string()
@@ -520,6 +555,95 @@ export type MobileEventFormValues =
 
 
 // ============================================================
+// Nhật ký canh tác ngoại tuyến (NCL-10-CN-012, MVP)
+// ============================================================
+
+export const HOAT_DONG_CANH_TAC = [
+    'PLANTING',
+    'WATERING',
+    'FERTILIZING',
+    'PESTICIDE',
+    'WEEDING',
+    'HARVESTING',
+    'OTHER',
+] as const;
+
+export const farmLogOfflineSchema = z.object({
+    productionLotId: z
+        .string()
+        .uuid(
+            'Vui lòng chọn lô sản xuất',
+        ),
+
+    activityType: z.enum(
+        HOAT_DONG_CANH_TAC,
+        {
+            required_error:
+                'Vui lòng chọn loại hoạt động',
+        },
+    ),
+
+    material: z
+        .string()
+        .max(
+            255,
+            'Tên vật tư không được vượt quá 255 ký tự',
+        )
+        .optional(),
+
+    quantity: z.preprocess(
+        (giaTri) =>
+            giaTri === '' ||
+            giaTri === null ||
+            giaTri === undefined
+                ? undefined
+                : giaTri,
+        z.coerce
+            .number({
+                invalid_type_error:
+                    'Số lượng phải là số',
+            })
+            .positive(
+                'Số lượng phải lớn hơn 0',
+            )
+            .optional(),
+    ),
+
+    unit: z
+        .string()
+        .max(
+            50,
+            'Đơn vị không được vượt quá 50 ký tự',
+        )
+        .optional(),
+
+    executedDate: z
+        .string()
+        .date(
+            'Ngày thực hiện không hợp lệ',
+        )
+        .refine(
+            // So sánh chuỗi YYYY-MM-DD theo giờ local (miễn nhiễm múi giờ):
+            // `new Date('YYYY-MM-DD')` là nửa đêm UTC, ở UTC+7 sẽ lớn hơn
+            // nửa đêm local và làm ngày hôm nay bị báo "tương lai".
+            (ngay) => ngay <= getLocalDateString(),
+            'Ngày thực hiện không được ở tương lai',
+        ),
+
+    notes: z
+        .string()
+        .max(
+            1000,
+            'Ghi chú không được vượt quá 1000 ký tự',
+        )
+        .optional(),
+});
+
+export type FarmLogOfflineFormValues =
+    z.infer<typeof farmLogOfflineSchema>;
+
+
+// ============================================================
 // Standard (NCL-09-CN-002)
 // ============================================================
 
@@ -583,11 +707,25 @@ export const createCertificationSchema = z
 
         issuedBy: z
             .string()
+            .min(
+                1,
+                'Cơ quan cấp không được để trống',
+            )
             .max(
                 255,
                 'Cơ quan cấp tối đa 255 ký tự',
+            ),
+
+        document: z
+            .instanceof(File, { message: 'Vui lòng chọn tệp chứng nhận' })
+            .refine(
+                (file) => file.size <= 5 * 1024 * 1024,
+                'Tệp chứng nhận không được vượt quá 5 MiB',
             )
-            .optional(),
+            .refine(
+                (file) => ['application/pdf', 'image/jpeg', 'image/png'].includes(file.type),
+                'Chỉ chấp nhận tệp PDF, JPEG hoặc PNG',
+            ),
 
         issueDate: z
             .string()
@@ -703,6 +841,9 @@ export const exportOpenDataSchema = z
                     'Vui lòng chọn định dạng',
             },
         ),
+
+        /** NCL-07-CN-007 — Mã mẫu hồ sơ truy xuất áp dụng (tùy chọn) */
+        templateId: z.string().uuid('Mã mẫu hồ sơ không hợp lệ').optional(),
     })
     .superRefine((data, ctx) => {
         if (

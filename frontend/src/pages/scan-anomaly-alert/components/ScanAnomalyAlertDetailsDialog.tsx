@@ -88,11 +88,13 @@ export function ScanAnomalyAlertDetailsDialog({
               />
               <DetailField label="Mã TraceCode" mono value={alert.relatedEntityId} />
               <DetailField label="Thời điểm tạo" value={formatDateTime(alert.createdAt)} />
-              <DetailField label="Số lượt quét" value={`${alert.details.scanCount} lượt`} />
-              <DetailField
-                label="Ngưỡng cấu hình"
-                value={`${alert.details.thresholdConfigured} vị trí`}
-              />
+              <DetailField label="Số lượt quét" value={`${alert.details?.scanCount ?? 1} lượt`} />
+              {alert.details?.thresholdConfigured != null && (
+                <DetailField
+                  label="Ngưỡng cấu hình"
+                  value={`${alert.details.thresholdConfigured} vị trí`}
+                />
+              )}
               {alert.status === 'RESOLVED' && (
                 <>
                   <DetailField label="Xử lý lúc" value={formatDateTime(alert.resolvedAt)} />
@@ -101,49 +103,51 @@ export function ScanAnomalyAlertDetailsDialog({
               )}
             </DetailSection>
 
-            <DetailSection
-              title={`Các vị trí đã quét (${alert.details.locations.length})`}
-              icon={<MapPin className="h-4 w-4 text-amber-600" />}
-              contentClassName="overflow-hidden p-0"
-            >
-              <div className="overflow-x-auto bg-card">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-14">STT</TableHead>
-                      <TableHead>Vĩ độ</TableHead>
-                      <TableHead>Kinh độ</TableHead>
-                      <TableHead>Thời gian quét</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {alert.details.locations.map((location, index) => (
-                      <TableRow
-                        key={`${location.latitude}-${location.longitude}-${location.scannedAt}`}
-                      >
-                        <TableCell>{index + 1}</TableCell>
-
-                        <TableCell className="font-mono text-xs">
-                          {location.latitude != null
-                            ? location.latitude.toFixed(6)
-                            : '—'}
-                        </TableCell>
-
-                        <TableCell className="font-mono text-xs">
-                          {location.longitude != null
-                            ? location.longitude.toFixed(6)
-                            : '—'}
-                        </TableCell>
-
-                        <TableCell className="whitespace-nowrap text-sm">
-                          {formatDateTime(location.scannedAt)}
-                        </TableCell>
+            {alert.details?.locations && alert.details.locations.length > 0 && (
+              <DetailSection
+                title={`Các vị trí đã quét (${alert.details.locations.length})`}
+                icon={<MapPin className="h-4 w-4 text-amber-600" />}
+                contentClassName="overflow-hidden p-0"
+              >
+                <div className="overflow-x-auto bg-card">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-14">STT</TableHead>
+                        <TableHead>Vĩ độ</TableHead>
+                        <TableHead>Kinh độ</TableHead>
+                        <TableHead>Thời gian quét</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </DetailSection>
+                    </TableHeader>
+                    <TableBody>
+                      {alert.details.locations.map((location, index) => (
+                        <TableRow
+                          key={`${location.latitude}-${location.longitude}-${location.scannedAt}`}
+                        >
+                          <TableCell>{index + 1}</TableCell>
+
+                          <TableCell className="font-mono text-xs">
+                            {location.latitude != null
+                              ? location.latitude.toFixed(6)
+                              : '—'}
+                          </TableCell>
+
+                          <TableCell className="font-mono text-xs">
+                            {location.longitude != null
+                              ? location.longitude.toFixed(6)
+                              : '—'}
+                          </TableCell>
+
+                          <TableCell className="whitespace-nowrap text-sm">
+                            {formatDateTime(location.scannedAt)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </DetailSection>
+            )}
 
             <DialogFooter>
               <Button variant="outline" onClick={onClose}>Đóng</Button>

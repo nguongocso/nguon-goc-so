@@ -22,16 +22,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.organization.enums.AdministrativeUnitLevel;
 
-/**
- * Đơn vị hành chính trong danh mục dùng chung (cấp tỉnh / cấp xã).
- *
- * <p>
- * Cây tự tham chiếu qua {@code parent_id}; {@code province_id} denormalize
- * trỏ về đơn vị gốc cấp tỉnh để lọc "toàn bộ đơn vị dưới một tỉnh" mà không
- * phải duyệt cây. Mã đơn vị theo bảng mã hành chính quốc gia
- * (Quyết định 19/2025/QĐ-TTg, hiệu lực 01/07/2025).
- * </p>
- */
+/** Đơn vị hành chính trong danh mục dùng chung (cấp tỉnh / cấp xã). */
 @Entity
 @Table(name = "administrative_units")
 @Getter
@@ -40,41 +31,41 @@ import vn.nguongocso.organization.enums.AdministrativeUnitLevel;
 @AllArgsConstructor
 @Builder
 public class AdministrativeUnit {
-	@Id
-	@Column(name = "id")
-	@JdbcTypeCode(SqlTypes.CHAR)
-	private UUID id;
+    @Id
+    @Column(name = "id")
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID id;
 
-	/** Mã hành chính chính thức (duy nhất toàn quốc). */
-	@Column(nullable = false, unique = true, length = 20)
-	private String code;
+    /** Mã hành chính chính thức (duy nhất toàn quốc). */
+    @Column(nullable = false, unique = true, length = 20)
+    private String code;
 
-	/** Tên đơn vị (không kèm tiền tố "Tỉnh"/"Thành phố"/"Phường"/"Xã"). */
-	@Column(nullable = false)
-	private String name;
+    /** Tên đơn vị hành chính. */
+    @Column(nullable = false)
+    private String name;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 20)
-	private AdministrativeUnitLevel level;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private AdministrativeUnitLevel level;
 
-	/** Đơn vị cha (NULL với cấp tỉnh). */
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "parent_id")
-	private AdministrativeUnit parent;
+    /** Đơn vị cha (NULL với cấp tỉnh). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private AdministrativeUnit parent;
 
-	/** Đơn vị gốc cấp tỉnh chứa đơn vị này (NULL với chính cấp tỉnh). */
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "province_id")
-	private AdministrativeUnit province;
+    /** Đơn vị gốc cấp tỉnh chứa đơn vị này (NULL với chính cấp tỉnh). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "province_id")
+    private AdministrativeUnit province;
 
-	@Column(nullable = false)
-	@Builder.Default
-	private boolean active = true;
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
 
-	@PrePersist
-	public void prePersist() {
-		if (id == null) {
-			id = UUID.randomUUID();
-		}
-	}
+    @PrePersist
+    public void prePersist() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+    }
 }

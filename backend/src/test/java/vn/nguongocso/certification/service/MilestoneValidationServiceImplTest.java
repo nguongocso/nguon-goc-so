@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import vn.nguongocso.certification.dto.response.MilestoneValidationResult;
 import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.entity.CultivationMilestone;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
@@ -199,5 +200,80 @@ class MilestoneValidationServiceImplTest {
         List<String> missing = service.validateMilestoneCompletion(lot);
 
         assertThat(missing).isEmpty();
+    }
+
+    // ===== NCL-09-CN-011 mở rộng: findMissingMilestones trả entity =====
+
+    // 1:1 — 2 mốc cùng FERTILIZING nhưng chỉ 1 log -> trả entity "Bón phân đợt 2"
+    @Test
+    void findMissing_shouldReturnEntitiesForMissingMilestones() {
+        Standard standard = Standard.builder().id(UUID.randomUUID()).name("GlobalGAP").build();
+        lot.setCertifications(List.of(certWithStandard(standard)));
+
+        CultivationMilestone a = milestone(1L, "Bón phân đợt 1", "FERTILIZING");
+        CultivationMilestone b = milestone(2L, "Bón phân đợt 2", "FERTILIZING");
+        when(milestoneRepository.findMandatoryMilestonesForValidation(
+                        categoryId, List.of(standard.getId())))
+                .thenReturn(List.of(a, b));
+        when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId))
+                .thenReturn(List.of(log(FarmActivityType.FERTILIZING, false)));
+
+        List<CultivationMilestone> missing = service.findMissingMilestones(lot);
+
+        assertThat(missing).hasSize(1);
+        assertThat(missing.get(0).getName()).isEqualTo("Bón phân đợt 2");
+        assertThat(missing.get(0).getActivityType()).isEqualTo("FERTILIZING");
+    }
+
+    // Đủ log cho mọi mốc -> rỗng
+    @Test
+    void findMissing_shouldReturnEmptyWhenAllSatisfied() {
+        Standard standard = Standard.builder().id(UUID.randomUUID()).name("VietGAP").build();
+        lot.setCertifications(List.of(certWithStandard(standard)));
+
+        CultivationMilestone planting = milestone(1L, "Gieo trồng", "PLANTING");
+        when(milestoneRepository.findMandatoryMilestonesForValidation(
+                        categoryId, List.of(standard.getId())))
+                .thenReturn(List.of(planting));
+        when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId))
+                .thenReturn(List.of(log(FarmActivityType.PLANTING, false)));
+
+        assertThat(service.findMissingMilestones(lot)).isEmpty();
+    }
+
+    // NCL-09-CN-011: Lô không có nhật ký nhưng không có mốc bắt buộc -> eligible = true (cho phép đóng gói)
+    @Test
+    void validate_shouldReturnEligibleTrueWhenLotHasNoFarmLogsAndNoMandatoryMilestones() {
+        lot.setCertifications(List.of());
+        when(milestoneRepository.findMandatoryMilestonesForValidation(categoryId, List.of()))
+                .thenReturn(List.of());
+
+        MilestoneValidationResult result = service.validateMilestoneCompletion(lot);
+
+        assertThat(result.isEligible()).isTrue();
+        assertThat(result).isEmpty();
+        assertThat(result.getMessage()).isNull();
+    }
+
+    // NCL-09-CN-011: Lô không có nhật ký và có mốc bắt buộc -> eligible = false kèm danh sách mốc thiếu
+    @Test
+    void validate_shouldReturnEligibleFalseWhenLotHasNoFarmLogsAndHasMandatoryMilestones() {
+        Standard standard = Standard.builder().id(UUID.randomUUID()).name("VietGAP").build();
+        lot.setCertifications(List.of(certWithStandard(standard)));
+
+        CultivationMilestone planting = milestone(1L, "Gieo trồng", "PLANTING");
+        CultivationMilestone harvesting = milestone(2L, "Thu hoạch", "HARVESTING");
+
+        when(milestoneRepository.findMandatoryMilestonesForValidation(
+                categoryId, List.of(standard.getId())))
+                .thenReturn(List.of(planting, harvesting));
+        when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId))
+                .thenReturn(List.of());
+
+        MilestoneValidationResult result = service.validateMilestoneCompletion(lot);
+
+        assertThat(result.isEligible()).isFalse();
+        assertThat(result).containsExactly("Gieo trồng", "Thu hoạch");
+        assertThat(result.getMessage()).isEqualTo("Lô chưa đủ mốc canh tác bắt buộc trước khi đóng gói.");
     }
 }

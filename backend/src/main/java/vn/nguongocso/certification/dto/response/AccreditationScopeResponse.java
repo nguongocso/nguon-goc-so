@@ -8,13 +8,11 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Response một dòng phạm vi công nhận của đơn vị kiểm nghiệm
- * (NCL-11-CN-006 Phase 2).
+ * Response một dòng phạm vi công nhận của đơn vị kiểm nghiệm (NCL-11-CN-006 Phase 2).
  */
 @Getter
 @Builder
 public class AccreditationScopeResponse {
-
     @JsonProperty("id")
     private UUID id;
 
@@ -24,7 +22,6 @@ public class AccreditationScopeResponse {
     @JsonProperty("testingUnitName")
     private String testingUnitName;
 
-    /** Id chỉ tiêu trong danh mục dùng chung (inspection_criterion_catalog.id). */
     @JsonProperty("criterionDefinitionId")
     private Long criterionDefinitionId;
 

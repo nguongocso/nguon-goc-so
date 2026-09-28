@@ -32,7 +32,7 @@ public class ProductionLotCertificationController {
      * Cho phép VT-01, VT-02 và VT-03 xem (VT-03 cần để ghi sự kiện).
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')") // ✅ Thêm VT-03
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<List<ProductionLotCertificationResponse>>> getCertificationsOfLot(
             @PathVariable UUID lotId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {

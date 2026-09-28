@@ -24,7 +24,6 @@ import {
 import type { InvitationPublicResponse } from '@/types/invitation';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
-// Helper chỉ dùng roleName
 const getRoleDisplay = (roleName?: string): string => {
   const map: Record<string, string> = {
     'EVENT_RECORDER': 'Người ghi sự kiện',
@@ -40,14 +39,12 @@ const getRoleDisplay = (roleName?: string): string => {
   return map[roleName || ''] || roleName || 'Vai trò không xác định';
 };
 
-const JoinOrganizationPage: React.FC = () => {
+export const JoinOrganizationPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
 
-  const [invitation, setInvitation] = useState<InvitationPublicResponse | null>(
-    null
-  );
+  const [invitation, setInvitation] = useState<InvitationPublicResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -89,7 +86,7 @@ const JoinOrganizationPage: React.FC = () => {
       } catch (err: any) {
         setError(
           err.response?.data?.message ||
-          'Thư mời không hợp lệ hoặc đã hết hạn.'
+          'Thư mời không hợp lệ hoặc đã hết hạn.',
         );
       } finally {
         setLoading(false);
@@ -118,9 +115,8 @@ const JoinOrganizationPage: React.FC = () => {
       toast.success(
         invitation?.isExistingUser
           ? 'Xác nhận thành công! Bạn đã tham gia tổ chức.'
-          : 'Đăng ký thành công! Bạn đã tham gia tổ chức.'
+          : 'Đăng ký thành công! Bạn đã tham gia tổ chức.',
       );
-      // Chuyển hướng đến trang đăng nhập sau vài giây
       setTimeout(() => {
         navigate('/login');
       }, 3000);

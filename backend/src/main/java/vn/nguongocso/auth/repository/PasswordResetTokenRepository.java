@@ -18,56 +18,35 @@ import vn.nguongocso.auth.entity.PasswordResetToken;
  */
 @Repository
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, UUID> {
+        /**
+         * Tìm kiếm bản ghi token theo chuỗi băm token hash.
+         */
+        Optional<PasswordResetToken> findByTokenHash(String tokenHash);
 
-    /**
-     * Tìm kiếm bản ghi token theo chuỗi băm token hash.
-     *
-     * @param tokenHash chuỗi SHA-256 băm của token
-     * @return Optional chứa thực thể token nếu tìm thấy
-     */
-    Optional<PasswordResetToken> findByTokenHash(String tokenHash);
+        /**
+         * Tìm kiếm token chưa sử dụng và chưa hết hạn theo token hash.
+         */
+        Optional<PasswordResetToken> findByTokenHashAndIsUsedFalseAndExpiresAtAfter(
+                        String tokenHash,
+                        LocalDateTime now);
 
-    /**
-     * Tìm kiếm token chưa sử dụng và chưa hết hạn theo token hash.
-     *
-     * @param tokenHash chuỗi SHA-256 băm của token
-     * @param now       thời điểm hiện tại
-     * @return Optional chứa thực thể token nếu hợp lệ
-     */
-    Optional<PasswordResetToken> findByTokenHashAndIsUsedFalseAndExpiresAtAfter(
-            String tokenHash,
-            LocalDateTime now
-    );
+        /**
+         * Lấy danh sách các token chưa sử dụng của một người dùng.
+         */
+        List<PasswordResetToken> findByUser_UserIdAndIsUsedFalse(UUID userId);
 
-    /**
-     * Lấy danh sách các token chưa sử dụng của một người dùng.
-     *
-     * @param userId định danh người dùng
-     * @return danh sách token còn hiệu lực
-     */
-    List<PasswordResetToken> findByUser_UserIdAndIsUsedFalse(UUID userId);
+        /**
+         * Đếm số lượng yêu cầu đặt lại mật khẩu được tạo sau một thời điểm nhất định.
+         */
+        long countByUser_UserIdAndCreatedAtAfter(UUID userId, LocalDateTime time);
 
-    /**
-     * Đếm số lượng yêu cầu đặt lại mật khẩu được tạo sau một thời điểm nhất định.
-     *
-     * @param userId định danh người dùng
-     * @param time   thời điểm mốc
-     * @return số lượng yêu cầu
-     */
-    long countByUser_UserIdAndCreatedAtAfter(UUID userId, LocalDateTime time);
-
-    /**
-     * Tiêu thụ token một cách atomic để chống race condition khi 2 request gửi đồng thời.
-     *
-     * @param tokenHash chuỗi hash của token
-     * @param now       thời điểm hiện tại
-     * @return số dòng cập nhật (1 nếu thành công, 0 nếu token đã dùng hoặc hết hạn)
-     */
-    @Modifying
-    @Query("UPDATE PasswordResetToken p SET p.isUsed = true "
-            + "WHERE p.tokenHash = :tokenHash AND p.isUsed = false AND p.expiresAt > :now")
-    int consumeToken(
-            @Param("tokenHash") String tokenHash,
-            @Param("now") LocalDateTime now
-    );
+        /**
+         * Tiêu thụ token một cách atomic để chống race condition khi 2 request gửi đồng thời.
+         */
+        @Modifying
+        @Query("UPDATE PasswordResetToken p SET p.isUsed = true "
+                        + "WHERE p.tokenHash = :tokenHash AND p.isUsed = false AND p.expiresAt > :now")
+        int consumeToken(
+                        @Param("tokenHash") String tokenHash,
+                        @Param("now") LocalDateTime now);
 }

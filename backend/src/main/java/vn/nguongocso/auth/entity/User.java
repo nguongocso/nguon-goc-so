@@ -17,8 +17,7 @@ import org.hibernate.type.SqlTypes;
 import vn.nguongocso.auth.enums.UserStatus;
 
 /**
- * Thực thể người dùng, bao gồm thông tin đăng nhập, thông tin cá nhân và trạng
- * thái.
+ * Thực thể người dùng, bao gồm thông tin đăng nhập, thông tin cá nhân và trạng thái.
  */
 @Entity
 @Table(name = "users")
@@ -47,6 +46,9 @@ public class User {
 
     @Column
     private String email;
+
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

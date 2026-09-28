@@ -4,7 +4,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.report.dto.response.CropAreaAnalysisResponse;
@@ -16,8 +19,6 @@ import java.util.UUID;
 
 /**
  * Controller phân tích diện tích canh tác.
- *
- * @author Triệu Văn Đại
  */
 @RestController
 @RequestMapping("/api/v1/reports/crop-area-analysis")
@@ -26,8 +27,7 @@ public class CropAreaAnalysisController {
     private final CropAreaAnalysisService cropAreaAnalysisService;
 
     /**
-     * Lấy phân tích diện tích canh tác theo năm, khu vực canh tác, loại sản phẩm và
-     * tổ chức.
+     * Lấy phân tích diện tích canh tác theo năm, khu vực canh tác, loại sản phẩm và tổ chức.
      */
     @GetMapping
     public ResponseEntity<ApiResult<CropAreaAnalysisResponse>> getAnalysis(

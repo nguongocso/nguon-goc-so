@@ -18,18 +18,20 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.farm.enums.ProductionLotImportStatus;
 import vn.nguongocso.organization.entity.Organization;
 
 /**
  * Lưu lịch sử nhập dữ liệu lô sản xuất từ tệp.
- */
+*/
 @Entity
 @Table(name = "production_lot_import_history")
 @Getter
@@ -70,6 +72,7 @@ public class ProductionLotImportHistory {
     @Column(name = "imported_at", nullable = false)
     private LocalDateTime importedAt;
 
+    /** Thiết lập thời điểm nhập dữ liệu trước khi lưu mới. */
     @PrePersist
     public void prePersist() {
         this.importedAt = LocalDateTime.now();

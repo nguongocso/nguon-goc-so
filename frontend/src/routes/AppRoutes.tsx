@@ -33,6 +33,8 @@ import OrganizationProfilePage from "@/pages/organization/OrganizationProfilePag
 
 import CreateProductionLotPage from "@/pages/production-lot/CreateProductionLotPage";
 import ProductionLotListPage from "@/pages/production-lot/ProductionLotListPage";
+import ProductionLotInspectionPage from "@/pages/production-lot/ProductionLotInspectionPage";
+import { ChainProgressPage } from "@/pages/production-lot/ChainProgressPage";
 
 import RecordTransportEventPage from "@/pages/transport-event/RecordTransportEventPage";
 
@@ -59,10 +61,18 @@ import TestingUnitFormPage from "@/pages/admin/TestingUnitFormPage";
 import TestingUnitScopeManagerPage from "@/pages/admin/TestingUnitScopeManagerPage";
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
 import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
+import AnomalyThresholdPage from "@/pages/admin/AnomalyThresholdPage";
+import CategoryOverridePage from "@/pages/admin/CategoryOverridePage";
+import CertificateVerificationPage from "@/pages/admin/CertificateVerificationPage";
+import CertificateVerificationDetailPage from "@/pages/admin/CertificateVerificationDetailPage";
 
 // ===== Packaging =====
 import CreatePackagingEventPage from "@/pages/packaging-event/CreatePackagingEventPage";
 import CorrectPackagingEventPage from "@/pages/packaging-event/CorrectPackagingEventPage";
+
+// ===== Coop Warehouse =====
+import CreateCoopWarehouseEntryPage from "@/pages/coop-warehouse/CreateCoopWarehouseEntryPage";
+import CreateCoopWarehouseExitPage from "@/pages/coop-warehouse/CreateCoopWarehouseExitPage";
 
 // ===== Preprocessing =====
 import CreatePreprocessingEventPage from "@/pages/preprocessing-event/CreatePreprocessingEventPage";
@@ -83,11 +93,22 @@ import { ShipmentDetailPage } from "@/pages/public/shipment/ShipmentDetailPage";
 import CreateShipmentPage from "@/pages/shipment/CreateShipmentPage";
 import LabelCancellationHistoryPage from "@/pages/shipment/LabelCancellationHistoryPage";
 import CancelLabelsPage from "@/pages/shipment/CancelLabelsPage";
+import BatchDossierExportPage from "@/pages/shipment/BatchDossierExportPage";
+import ShipmentTraceCodesPage from "@/pages/shipment/ShipmentTraceCodesPage";
+import SplitShipmentPage from "@/pages/shipment/SplitShipmentPage";
+
+// ===== Shipment handover (NCL-05-CN-008 / NCL-05-CN-009) =====
+import { HandoverDetailPage } from "@/pages/shipment-handover/HandoverDetailPage";
+import { HandoverListPage } from "@/pages/handover/HandoverListPage";
+import { SentHandoverListPage } from "@/pages/handover/SentHandoverListPage";
+import { ShipmentHandoverReceivedListPage } from "@/pages/shipment-handover/ShipmentHandoverReceivedListPage";
+import { ShipmentHandoverSentListPage } from "@/pages/shipment-handover/ShipmentHandoverSentListPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
 import TraceLookupPage from "@/pages/public/TraceLookupPage";
 import JoinOrganizationPage from "@/pages/public/JoinOrganizationPage";
+import DataPortalDocsPage from "@/pages/public/DataPortalDocsPage";
 
 // ===== Reports =====
 import LookupStatisticsPage from "@/pages/report/LookupStatisticsPage";
@@ -98,8 +119,12 @@ import FailedEventLogsPage from "@/pages/report/FailedEventLogsPage";
 import CropAreaAnalysisPage from "@/pages/report/CropAreaAnalysisPage";
 import IndustryReportPage from "@/pages/report/IndustryReportPage";
 import SeasonYieldComparisonPage from "@/pages/report/SeasonYieldComparisonPage";
+import TerritoryAlertLotListPage from "@/pages/report/TerritoryAlertLotListPage";
+import TerritoryAlertLotDetailPage from "@/pages/report/TerritoryAlertLotDetailPage";
+import OrganizationUsagePage from "@/pages/report/OrganizationUsagePage";
 
 // ===== Alerts =====
+import AggregateAlertPage from "@/pages/alert/AggregateAlertPage";
 import ScanAnomalyAlertPage from "@/pages/scan-anomaly-alert/ScanAnomalyAlertPage";
 
 // ===== Farm area =====
@@ -127,6 +152,8 @@ import NotificationsPage from "@/pages/notification/NotificationsPage";
 
 // ===== Export Open Data =====
 import ExportOpenDataPage from "@/pages/export/ExportOpenDataPage";
+import ProfileTemplateListPage from "@/pages/export/ProfileTemplateListPage";
+import ProfileTemplateFormPage from "@/pages/export/ProfileTemplateFormPage";
 
 // ===== Import Production Lot =====
 import ImportProductionLotPage from "@/pages/production-lot/ImportProductionLotPage";
@@ -137,15 +164,22 @@ import RolePermissionConfigPage from "@/pages/permission/RolePermissionConfigPag
 // ===== Scan Quick Event =====
 import ScanQuickEventPage from "@/pages/scan-anomaly-alert/components/ScanQuickEventPage";
 
+// ===== Impact Scope Tracing (NCL-08-CN-010) =====
+import ImpactScopeTracePage from "@/pages/trace/ImpactScopeTracePage";
+
 // ===== Organization Detail =====
 import OrganizationDetailPage from "@/pages/organization/OrganizationDetailPage";
 
-// ===== Partner API Keys (NCL-12-CN-001) =====
+// ===== Partner API Keys (NCL-12-CN-001 / NCL-12-CN-004) =====
 import PartnerApiKeyListPage from "@/pages/apiKey/PartnerApiKeyListPage";
 import CreatePartnerApiKeyPage from "@/pages/apiKey/CreatePartnerApiKeyPage";
+import CreateTestPartnerApiKeyPage from "@/pages/apiKey/CreateTestPartnerApiKeyPage";
+import PartnerWebhookNotificationHistoryPage from "@/pages/apiKey/PartnerWebhookNotificationHistoryPage";
+
 
 // ===== Product Feedback =====
 import ProductFeedbackManagementPage from "@/pages/product-feedback/ProductFeedbackManagementPage";
+import ProductFeedbackDetailPage from "@/pages/product-feedback/ProductFeedbackDetailPage";
 
 // ===== Mobile =====
 import RecordMobileEventPage from "@/pages/mobile/RecordMobileEventPage";
@@ -164,8 +198,21 @@ import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequ
 import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
 import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDetailPage";
 
+// ===== Bulk Recall requests (NCL-08-CN-011) =====
+import { BulkRecallRequestDetailPage } from "@/pages/recall-request/BulkRecallRequestDetailPage";
+import { BulkRecallRequestListPage } from "@/pages/recall-request/BulkRecallRequestListPage";
+import { CreateBulkRecallRequestPage } from "@/pages/recall-request/CreateBulkRecallRequestPage";
+
+// ===== Code range supplement (NCL-04-CN-007) =====
+import { CodeRangeSupplementListPage } from "@/pages/admin/CodeRangeSupplementListPage";
+import { CodeRangeSupplementDetailPage } from "@/pages/admin/CodeRangeSupplementDetailPage";
+import { CodeRangeSupplementPage } from "@/pages/shipment/CodeRangeSupplementPage";
+
 // ===== Area assignment (NCL-670 / NCL-742) =====
 import { AreaAssignmentPage } from "@/pages/admin/AreaAssignmentPage";
+
+// ===== Inspection result entry portal (NCL-11-CN-007) =====
+import { InspectionResultEntryPage } from "@/pages/public/InspectionResultEntryPage";
 
 // =====================================================
 // Constants
@@ -324,10 +371,37 @@ const AppRoutes = () => (
         />
 
         <Route
+            path="/public/product-feedbacks/lookup"
+            element={<Navigate to="/" replace />}
+        />
+
+        <Route
             path="/join"
             element={<JoinOrganizationPage />}
         />
 
+        {/* NCL-12-CN-004: Trang tài liệu cổng dữ liệu công khai cho bên thứ ba */}
+        <Route
+            path="/portal"
+            element={<DataPortalDocsPage />}
+        />
+
+        <Route
+            path="/docs/api"
+            element={<DataPortalDocsPage />}
+        />
+
+        <Route
+            path="/public/portal-docs"
+            element={<DataPortalDocsPage />}
+        />
+
+
+        {/* NCL-11-CN-007: Cổng nhập kết quả dành cho đơn vị kiểm nghiệm */}
+        <Route
+            path="/inspection-result-entry/:token"
+            element={<InspectionResultEntryPage />}
+        />
 
         {/* =================================================
         PROTECTED ROUTES
@@ -484,6 +558,28 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="chain-progress"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <ChainProgressPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="farm/chain-progress"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <ChainProgressPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="production-lots/create"
                 element={
                     <RoleRoute
@@ -509,9 +605,20 @@ const AppRoutes = () => (
                 path="production-lots/:id"
                 element={
                     <RoleRoute
-                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                        allowedRoles={["VT-01", "VT-02", "VT-03", "VT-05"]}
                     >
                         <ProductionLotDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:id/create-bulk-recall-request"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-02", "VT-03"]}
+                    >
+                        <CreateBulkRecallRequestPage />
                     </RoleRoute>
                 }
             />
@@ -539,6 +646,28 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="production-lots/:lotId/inspection"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-02"]}
+                    >
+                        <ProductionLotInspectionPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:id/inspection"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-02"]}
+                    >
+                        <ProductionLotInspectionPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="production-lots/import"
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
@@ -556,6 +685,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
                         <ShipmentDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="shipments/:id/split"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.shipmentSplit}>
+                        <SplitShipmentPage />
                     </RoleRoute>
                 }
             />
@@ -592,6 +730,96 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
                         <CancelLabelsPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="shipments/batch-dossier-export"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.batchDossierExport}>
+                        <BatchDossierExportPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-05-CN-008/CN-009: Danh sách phiếu bàn giao nhận của tổ chức hiện tại.
+            Route tĩnh được đặt trước route động :id để khớp đúng path này. */}
+            <Route
+                path="shipment-handovers/received"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.handoverReceivedView}>
+                        <ShipmentHandoverReceivedListPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-05-CN-008/CN-009: Danh sách phiếu bàn giao đã gửi của tổ chức hiện tại (VT-02).
+            Route tĩnh được đặt trước route động :id để khớp đúng path này. */}
+            <Route
+                path="shipment-handovers/sent"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.handoverSentView}>
+                        <ShipmentHandoverSentListPage />
+                    </RoleRoute>
+                }
+            />
+            {/* NCL-05-CN-008/CN-009: Chi tiết phiếu bàn giao lô hàng.
+            Backend chặn nếu tổ chức hiện tại không phải bên giao/bên nhận. */}
+            <Route
+                path="shipment-handovers/:id"
+                element={
+                    <RoleRoute allowedRoles={AUTHENTICATED_ROLE_CODES}>
+                        <HandoverDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* VT-04: Danh sách phiếu bàn giao nhận */}
+            <Route
+                path="handover"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.handoverList}>
+                        <HandoverListPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* VT-02: Danh sách phiếu bàn giao đã gửi */}
+            <Route
+                path="handover/sent"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.sentHandoverList}>
+                        <SentHandoverListPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* Chi tiết phiếu bàn giao (VT-02 bên giao, VT-04 bên nhận) */}
+            <Route
+                path="handover/:id"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.handoverReceivedView}>
+                        <HandoverDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-04-CN-008: Xem và tra cứu trạng thái từng mã tem trong lô hàng */}
+            <Route
+                path="shipments/:shipmentId/trace-codes"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.traceCodeView}>
+                        <ShipmentTraceCodesPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/shipments/:shipmentId/trace-codes"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.traceCodeView}>
+                        <ShipmentTraceCodesPage />
                     </RoleRoute>
                 }
             />
@@ -698,6 +926,32 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.packagingEventCorrect}
                     >
                         <CorrectPackagingEventPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* =================================================
+          COOP WAREHOUSE (NCL-05-CN-011)
+      ================================================= */}
+
+            <Route
+                path="coop-warehouse-events/entry"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.packagingEventCreate}
+                    >
+                        <CreateCoopWarehouseEntryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="coop-warehouse-events/exit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.packagingEventCreate}
+                    >
+                        <CreateCoopWarehouseExitPage />
                     </RoleRoute>
                 }
             />
@@ -876,6 +1130,24 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="admin/certifications"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.certificateVerification}>
+                        <CertificateVerificationPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/certifications/:certificateId"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.certificateVerification}>
+                        <CertificateVerificationDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="admin/inspection-criteria/create"
                 element={
                     <RoleRoute
@@ -1004,6 +1276,34 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* NCL-08-CN-014 - Cấu hình ngưỡng quét bất thường */}
+            <Route
+                path="admin/anomaly-thresholds"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.anomalyThresholdConfig}>
+                        <AnomalyThresholdPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/anomaly-thresholds/categories/create"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.anomalyThresholdConfig}>
+                        <CategoryOverridePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/anomaly-thresholds/categories/:id/edit"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.anomalyThresholdConfig}>
+                        <CategoryOverridePage />
+                    </RoleRoute>
+                }
+            />
+
             {/* NCL-670 / NCL-742 - Phân công địa bàn quản lý */}
             <Route
                 path="admin/account-areas"
@@ -1095,6 +1395,35 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* NCL-07-CN-006: Danh sách và chi tiết lô có cảnh báo theo địa bàn cho VT-05 */}
+            <Route
+                path="reports/alert-lots"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.territoryAlertLots}>
+                        <TerritoryAlertLotListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="reports/alert-lots/:lotId"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.territoryAlertLots}>
+                        <TerritoryAlertLotDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-07-CN-008: Mức độ sử dụng nền tảng theo tổ chức cho VT-01 */}
+            <Route
+                path="reports/organization-usage"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.organizationUsage}>
+                        <OrganizationUsagePage />
+                    </RoleRoute>
+                }
+            />
+
 
             {/* =================================================
           NOTIFICATIONS
@@ -1117,6 +1446,17 @@ const AppRoutes = () => (
       ================================================= */}
 
             <Route
+                path="alerts"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.aggregateAlerts}
+                    >
+                        <AggregateAlertPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="alerts/scan-anomaly"
                 element={
                     <RoleRoute
@@ -1135,7 +1475,7 @@ const AppRoutes = () => (
             <Route
                 path="certifications"
                 element={
-                    <RoleRoute allowedRoles={["VT-02"]}>
+                    <RoleRoute allowedRoles={["VT-01", "VT-02"]}>
                         <CertificationListPage />
                     </RoleRoute>
                 }
@@ -1209,6 +1549,25 @@ const AppRoutes = () => (
                 }
             />
 
+            <Route
+                path="integration/api-keys/create-test"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
+                        <CreateTestPartnerApiKeyPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="integration/api-keys/:id/notifications"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
+                        <PartnerWebhookNotificationHistoryPage />
+                    </RoleRoute>
+                }
+            />
+
+
 
             {/* =================================================
           EXPORT OPEN DATA
@@ -1221,6 +1580,43 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.exportOpenData}
                     >
                         <ExportOpenDataPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* =================================================
+          PROFILE TEMPLATES (NCL-07-CN-007)
+      ================================================= */}
+
+            <Route
+                path="export/profile-templates"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.profileTemplateManage}
+                    >
+                        <ProfileTemplateListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="export/profile-templates/new"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.profileTemplateManage}
+                    >
+                        <ProfileTemplateFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="export/profile-templates/:id/edit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.profileTemplateManage}
+                    >
+                        <ProfileTemplateFormPage />
                     </RoleRoute>
                 }
             />
@@ -1330,6 +1726,13 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* NCL-10-CN-012: offline là chế độ của /farm-logs/create —
+               giữ redirect để bookmark cũ không gãy */}
+            <Route
+                path="mobile/farm-log"
+                element={<Navigate to="/farm-logs/create" replace />}
+            />
+
 
             {/* =================================================
           INVITATION
@@ -1383,6 +1786,73 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* ===========================================================
+          BULK RECALL REQUEST (NCL-08-CN-011)
+          Danh sách yêu cầu thu hồi theo phạm vi ảnh hưởng
+      =========================================================== */}
+            <Route
+                path="recall-requests/bulk"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestManage}
+                    >
+                        <BulkRecallRequestListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="recall-requests/bulk/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestManage}
+                    >
+                        <BulkRecallRequestDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+
+
+            {/* =================================================
+          CODE RANGE SUPPLEMENT (NCL-04-CN-007)
+          Trang tạo yêu cầu (VT-02): mở từ tab "Lô hàng & Mã QR"
+          của chi tiết lô sản xuất và màn hình tạo lô hàng.
+      ================================================= */}
+
+            <Route
+                path="code-range-supplements/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementCreate}
+                    >
+                        <CodeRangeSupplementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/code-range-supplements"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementManage}
+                    >
+                        <CodeRangeSupplementListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/code-range-supplements/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementManage}
+                    >
+                        <CodeRangeSupplementDetailPage />
+                    </RoleRoute>
+                }
+            />
+
             {/* =================================================
           PRODUCT FEEDBACK
       ================================================= */}
@@ -1396,6 +1866,37 @@ const AppRoutes = () => (
                         }
                     >
                         <ProductFeedbackManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="product-feedbacks/:feedbackId"
+                element={
+                    <RoleRoute
+                        allowedRoles={
+                            ROLE_ACCESS.productFeedbackManagement
+                        }
+                    >
+                        <ProductFeedbackDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+
+            {/* =================================================
+          IMPACT SCOPE TRACING (NCL-08-CN-010)
+      ================================================= */}
+
+            <Route
+                path="trace/impact-scope"
+                element={
+                    <RoleRoute
+                        allowedRoles={
+                            ROLE_ACCESS.impactScopeTrace
+                        }
+                    >
+                        <ImpactScopeTracePage />
                     </RoleRoute>
                 }
             />

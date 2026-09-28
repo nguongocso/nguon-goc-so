@@ -1,0 +1,245 @@
+# BỘ TRI THỨC NGHIỆP VỤ CỐT LÕI HỆ THỐNG NGUỒN GỐC SỐ (KNOWLEDGE BASE)
+
+## 1. TỔNG QUAN SẢN PHẨM & BỐI CẢNH PHÁP LÝ (PRODUCT OVERVIEW & LEGAL CONTEXT)
+- **Tên dự án:** Nguồn Gốc Số
+- **Phụ đề (Tagline):** Truy xuất nguồn gốc nông sản bằng mã QR theo chuẩn GS1
+- **Lĩnh vực:** Nông nghiệp, chuỗi cung ứng và an toàn thực phẩm.
+- **Bối cảnh thực tế & Căn cứ pháp lý:**
+  + Truy xuất nguồn gốc đang trở thành yêu cầu chính sách bắt buộc tại Việt Nam theo **Luật số 78 năm 2025 của Quốc hội** (có hiệu lực từ ngày **01 tháng 01 năm 2026**), gắn liền với Hệ thống truy xuất nguồn gốc quốc gia (vận hành từ ngày **23 tháng 12 năm 2025**) và Nền tảng truy xuất nông sản toàn quốc theo chuẩn GS1 (vận hành từ ngày **01 tháng 7 năm 2026**).
+  + Thực trạng: Hợp tác xã (HTX), nông hộ, cơ sở đóng gói và doanh nghiệp xuất khẩu gặp nhiều khó khăn trong việc chứng minh nguồn gốc vì chuỗi cung ứng qua nhiều khâu trung gian và phần lớn dữ liệu còn ghi chép thủ công bằng sổ tay.
+  + Hạn chế của tem truyền thống: Tem mã một chiều hiện nay trên thị trường phần lớn chỉ chứa thông tin quảng bá thương hiệu tĩnh, không phản ánh được chuỗi hành trình và các sự kiện thực tế diễn ra qua từng mắt xích.
+- **Tầm nhìn sản phẩm (Vision):**
+  Trở thành lớp sổ cái hành trình cho nông sản Việt, nơi mỗi lô hàng mang theo một câu chuyện dữ liệu minh bạch từ đồng ruộng đến kệ hàng. Nền tảng giúp hợp tác xã và nông hộ nhỏ vốn thiếu nguồn lực công nghệ dễ dàng đáp ứng yêu cầu truy xuất nguồn gốc theo luật, sử dụng chính sự minh bạch đó để nâng cao giá trị và niềm tin cho nông sản trên thị trường trong nước lẫn xuất khẩu.
+- **Mục tiêu sản phẩm (7 Mục tiêu trọng tâm):**
+  1. Số hóa các mắt xích của chuỗi từ trồng trọt, thu hoạch đến sơ chế, đóng gói, vận chuyển và bán thành các sự kiện truy xuất cụ thể.
+  2. Cho phép người tiêu dùng quét mã phản hồi nhanh (QR Code) để xem hành trình thật của sản phẩm mà không cần cài đặt ứng dụng phức tạp.
+  3. Chuẩn hóa dữ liệu theo chuẩn GS1 quốc tế (GTIN, GLN, SSCC, EPCIS) để tương thích với hệ thống quốc gia ở mức mô phỏng.
+  4. Giảm thiểu tối đa thời gian chuẩn bị hồ sơ truy xuất khi xuất bán cho hệ thống siêu thị lớn hoặc đối tác xuất khẩu.
+  5. Chống gian lận tem giả bằng mã định danh duy nhất (UUID), kiểm soát chặt chẽ số lần cấp tem và phát hiện quét bất thường.
+  6. Hỗ trợ hợp tác xã và nông hộ ghi nhật ký canh tác điện tử làm bằng chứng an toàn thực phẩm (VietGAP, GlobalGAP).
+  7. Cung cấp báo cáo thống kê sản lượng, diện tích và tình trạng lô hàng phục vụ cán bộ quản lý ngành nông nghiệp.
+- **Giá trị cốt lõi:** Minh bạch hành trình thật thay cho tem quảng bá một chiều; tuân thủ chuẩn GS1 và quy định pháp luật; gia tăng giá trị thương phẩm cho nông sản Việt.
+- **Phạm vi sản phẩm tối thiểu (MVP):**
+  + Trong phạm vi: Khai báo lô và nhật ký canh tác; cấp dải mã và sinh mã truy xuất duy nhất; ghi sự kiện chuỗi đa vai trò; trang tra cứu công khai cho người tiêu dùng; bảng điều khiển cơ bản; kiểm soát cấp và kích hoạt tem; xử lý ngoại lệ và kích hoạt thu hồi lô hàng; xuất hồ sơ truy xuất.
+  + Ngoài phạm vi: Chưa tích hợp trực tiếp vào cơ sở dữ liệu quốc gia (chuẩn GS1 ở mức mô phỏng / tự định nghĩa lược đồ); chưa sử dụng công nghệ blockchain (chuỗi khối); chưa kết nối cảm biến IoT kho lạnh tự động; chưa triển khai cảnh báo gian lận nâng cao bằng học sâu (deep learning).
+
+---
+
+## 2. HỆ THỐNG VAI TRÒ & PHÂN QUYỀN (ROLES & PERMISSIONS MATRIX)
+Hệ thống Nguồn Gốc Số chuẩn hóa 6 vai trò chính (mã từ VT-01 đến VT-06) tương ứng với các loại tổ chức: COOPERATIVE (Hợp tác xã), ENTERPRISE (Doanh nghiệp), GOVERNMENT (Cơ quan nhà nước), SYSTEM (Hệ thống).
+
+### VT-01: Quản trị viên nền tảng (RoleCode: `VT-01` / `ADMIN`)
+- **Tổ chức:** Hệ thống (SYSTEM)
+- **Mô tả:** Người quản lý toàn bộ hệ thống, khởi tạo tài khoản tổ chức và cấp dải mã truy xuất.
+- **Mục tiêu:** Bảo đảm nền tảng vận hành ổn định, bảo mật và kiểm soát việc cấp phát mã cho các tổ chức.
+- **Quyền hạn chính:**
+  + Tạo và duyệt tổ chức mới;
+  + Cấp phát dải mã truy xuất (Code Range);
+  + Xác thực tính pháp lý của giấy chứng nhận chất lượng do HTX tải lên (`PENDING` -> `VERIFIED` hoặc `REJECTED`);
+  + Xem toàn bộ dữ liệu, nhật ký hoạt động hệ thống và xử lý cảnh báo quét bất thường.
+- **Dữ liệu được truy cập:** Toàn bộ danh sách tổ chức, dải mã, chứng nhận, cảnh báo và nhật ký kiểm toán toàn hệ thống.
+- **Giới hạn quyền:** Không trực tiếp tạo hoặc ghi nhật ký canh tác, sự kiện của một hợp tác xã cụ thể.
+
+### VT-02: Quản lý hợp tác xã (RoleCode: `VT-02` / `ORG_MANAGER`)
+- **Tổ chức:** Hợp tác xã (COOPERATIVE)
+- **Mô tả:** Người đại diện hợp tác xã khai báo vùng trồng, quản lý thành viên, lô sản xuất và tạo lô hàng cấp mã.
+- **Mục tiêu:** Quản trị dữ liệu truy xuất nội bộ của HTX và phát hành lô hàng minh bạch ra thị trường.
+- **Quyền hạn chính:**
+  + Khai báo, chỉnh sửa vùng trồng (Farm Area) và bản đồ ranh giới;
+  + Tạo lô sản xuất, duyệt lô sản xuất (`PENDING` -> `APPROVED`);
+  + Phân công thành viên ghi sự kiện;
+  + Tạo lô hàng vận chuyển (Shipment), in và kích hoạt tem QR (`ACTIVATED`);
+  + Lập phiếu bàn giao điện tử cho đối tác thu mua;
+  + Kích hoạt quy trình thu hồi lô sản xuất / lô hàng khi có sự cố;
+  + Xuất hồ sơ truy xuất điện tử (PDF/CSV).
+- **Dữ liệu được truy cập:** Toàn bộ vùng trồng, lô sản xuất, nhật ký canh tác, lô hàng và tem trong phạm vi HTX mình.
+- **Giới hạn quyền:** Chỉ thao tác trong phạm vi tổ chức của mình, tuyệt đối không truy cập dữ liệu của HTX khác.
+
+### VT-03: Người ghi sự kiện (RoleCode: `VT-03` / `EVENT_RECORDER`)
+- **Đối tượng:** Nông dân (FARMER), Người vận chuyển (TRANSPORTER), Người đóng gói (PACKAGER).
+- **Mô tả:** Thành viên trực tiếp tham gia sản xuất hoặc mắt xích vận hành ghi các sự kiện trong chuỗi.
+- **Mục tiêu:** Ghi chép nhật ký canh tác và sự kiện chuỗi chính xác theo từng lô hàng được giao.
+- **Quyền hạn chính:**
+  + Ghi chép nhật ký canh tác (chỉ khi lô ở trạng thái `APPROVED` hoặc `HARVESTED`): gieo giống, bón phân, tưới tiêu, phun thuốc BVTV, làm cỏ;
+  + Đính kèm hình ảnh vật tư, hiện trường, tuân thủ thời gian cách ly (PHI);
+  + Quét mã ghi nhận sự kiện chuyển giao, sơ chế, đóng gói, vận chuyển;
+  + Báo cáo sự cố mùa vụ hoặc sâu bệnh bất thường.
+- **Dữ liệu được truy cập:** Nhật ký canh tác, thông tin lô và sự kiện của các lô sản xuất được phân công.
+- **Giới hạn quyền:** Không cấp mã tem, không duyệt lô sản xuất, không cấp quyền hoặc xem thông tin tài chính của tổ chức.
+
+### VT-04: Doanh nghiệp thu mua (RoleCode: `VT-04` / `PROCUREMENT`)
+- **Tổ chức:** Doanh nghiệp thu mua, chế biến hoặc xuất khẩu (ENTERPRISE)
+- **Mô tả:** Đối tác thương mại thu mua nông sản từ HTX, ghi nhận sự kiện tiếp nhận và yêu cầu hồ sơ truy xuất.
+- **Mục tiêu:** Xác minh nguồn gốc chuỗi sự kiện và lấy hồ sơ phục vụ phân phối bán lẻ hoặc xuất khẩu.
+- **Quyền hạn chính:**
+  + Tiếp nhận và ký xác nhận phiếu bàn giao điện tử (`ACCEPTED` hoặc `REJECTED`);
+  + Ghi nhận sự kiện chuỗi thu mua (PROCUREMENT), nhập kho (WAREHOUSE_RECEIPT), chia tách lô hàng (SPLIT);
+  + Xem toàn bộ dòng sự kiện (Event Lineage) của lô hàng đã nhận;
+  + Yêu cầu và tải hồ sơ truy xuất sản phẩm;
+  + Cấu hình khóa tích hợp API đối tác (Partner API Key) để đồng bộ dữ liệu vào hệ thống ERP nội bộ.
+- **Dữ liệu được truy cập:** Sự kiện thu mua, thông tin hồ sơ của các lô hàng mà doanh nghiệp có liên kết tiếp nhận.
+- **Giới hạn quyền:** Không được chỉnh sửa nhật ký canh tác hay thông tin vùng trồng nội bộ của HTX.
+
+### VT-05: Cán bộ quản lý ngành (RoleCode: `VT-05` / `REGULATOR`)
+- **Tổ chức:** Cơ quan quản lý nhà nước, Chi cục/Sở Nông nghiệp & PTNT (GOVERNMENT)
+- **Mô tả:** Cán bộ chuyên môn theo dõi diện tích, sản lượng và giám sát chất lượng an toàn trên địa bàn phụ trách.
+- **Mục tiêu:** Giám sát, thanh tra và tổng hợp tình hình thực thi truy xuất nguồn gốc nông sản theo quy định luật.
+- **Quyền hạn chính:**
+  + Xem báo cáo tổng hợp diện tích, sản lượng, mùa vụ theo vùng trồng, xã/huyện/tỉnh phụ trách;
+  + Giám sát tình trạng cấp mã, cảnh báo quét bất thường, kiểm tra chứng nhận hết hạn;
+  + Phối hợp và giám sát các vụ việc thu hồi lô hàng vi phạm an toàn thực phẩm;
+  + Xuất báo cáo thống kê phục vụ công tác thanh tra, quản lý ngành.
+- **Dữ liệu được truy cập:** Dữ liệu báo cáo tổng hợp, cảnh báo bất thường trên địa bàn phân công quản lý.
+- **Giới hạn quyền:** Chỉ có quyền xem và xuất báo cáo, không tạo hoặc sửa đổi dữ liệu nghiệp vụ của HTX và Doanh nghiệp.
+
+### VT-06: Người tiêu dùng tra cứu (RoleCode: `VT-06` / `CONSUMER`)
+- **Mô tả:** Người mua hàng hoặc công chúng quét mã QR để tra cứu thông tin mà không cần đăng nhập.
+- **Mục tiêu:** Kiểm tra nguồn gốc xuất xứ, độ tin cậy và sự minh bạch của sản phẩm trước khi quyết định mua.
+- **Quyền hạn chính:**
+  + Quét mã QR xem hành trình minh bạch: tên sản phẩm, HTX sản xuất, chứng nhận VietGAP, nhật ký bón phân/phun thuốc, thời điểm thu hoạch;
+  + Xem thông tin cảnh báo thu hồi nếu lô hàng đang có sự cố;
+  + Gửi phản hồi hoặc khiếu nại chất lượng sản phẩm về hệ thống.
+- **Dữ liệu được truy cập:** Chỉ xem các thông tin công khai của lô hàng đã được kích hoạt tem (`ACTIVE`).
+- **Giới hạn quyền:** Không cần tài khoản đăng nhập, không xem dữ liệu nội bộ bảo mật, không có quyền sửa bất kỳ dữ liệu nào.
+
+---
+
+## 3. TOÀN BỘ VÒNG ĐỜI VÀ MÃ TRẠNG THÁI (LIFECYCLE & STATUS ENUMS)
+
+### 3.1. Vòng đời Lô sản xuất (`ProductionLotStatus`)
+Lô sản xuất trải qua các trạng thái tuần tự và kiểm soát nghiêm ngặt:
+1. `DRAFT` (Nháp): Lô mới được tạo thông tin ban đầu, chưa được cấp phép canh tác chính thức.
+2. `PENDING` (Chờ duyệt): Đã hoàn thiện thông tin và gửi lên Quản lý HTX (VT-02) xem xét duyệt.
+3. `APPROVED` (Đã duyệt): Quản lý HTX đã phê duyệt. **Chỉ khi ở trạng thái này mới được ghi Nhật ký canh tác (Farm Log)**.
+4. `HARVESTED` (Đã thu hoạch): Lô đã hoàn thành chu kỳ sinh trưởng và thu hoạch nông sản xong. Vẫn có thể ghi chép hoạt động thu hoạch.
+5. `PREPROCESSED` (Đã sơ chế): Nông sản sau thu hoạch đã qua khâu làm sạch, phân loại, sơ chế.
+6. `PACKAGED` (Đã đóng gói): Đã hoàn thành đóng gói vào bao bì thương phẩm.
+7. `CLOSED` (Đã đóng): Lô sản xuất đã được phân bổ hoặc đóng gói hết vào các lô hàng vận chuyển.
+- **Trạng thái ngoại lệ:**
+  + `REJECTED` (Bị từ chối): Quản lý HTX từ chối duyệt lô khi thông tin khai báo chưa hợp lệ.
+  + `CANCELLED` (Đã hủy): Người tạo chủ động hủy lô khi còn ở trạng thái `DRAFT` hoặc `PENDING`.
+  + `RECALLED` (Đã thu hồi): Lô bị thu hồi do phát hiện sự cố chất lượng hoặc vi phạm an toàn thực phẩm.
+  + `DISPOSED` (Đã tiêu hủy): Nông sản bị hư hỏng, nhiễm bệnh hoặc bắt buộc tiêu hủy theo quyết định xử lý.
+
+### 3.2. Vòng đời Lô hàng vận chuyển (`ShipmentStatus`)
+Lô hàng đại diện cho đơn vị hàng hóa xuất kho và lưu thông:
+1. `DRAFT` (Mới tạo): Khởi tạo liên kết với một hoặc nhiều lô sản xuất nguồn (Lineage).
+2. `CODE_PRINTED` (Đã in/cấp mã): Hệ thống đã cấp dải mã định danh và tem QR cho lô hàng.
+3. `ACTIVATED` (Đã kích hoạt tem): Quản lý HTX kích hoạt tem trước khi xuất xưởng. Người tiêu dùng quét mã bắt đầu tra cứu được dữ liệu thật.
+4. `SPLIT` (Đã tách lô): Lô hàng lớn được doanh nghiệp thu mua tách thành các lô con phân phối.
+5. `RECALLING` (Đang thu hồi): Lệnh thu hồi được phát động, đang tiến hành thu gom sản phẩm trên thị trường.
+6. `RECALLED` (Đã thu hồi): Toàn bộ lô hàng đã thu hồi và xử lý xong.
+
+### 3.3. Trạng thái Phiếu bàn giao thu mua (`ShipmentHandoverStatus`)
+Quản lý việc chuyển giao quyền sở hữu và trách nhiệm hàng hóa:
+- `PENDING_CONFIRMATION` (Chờ xác nhận): HTX lập biên bản bàn giao, gửi yêu cầu tới Doanh nghiệp thu mua.
+- `ACCEPTED` (Đã tiếp nhận): Doanh nghiệp thu mua kiểm tra hàng thực tế, quét mã và xác nhận ký nhận thành công.
+- `REJECTED` (Đã từ chối): Doanh nghiệp thu mua từ chối nhận hàng do sai lệch số lượng hoặc phẩm chất không đạt.
+- `EXPIRED` (Hết hạn): Quá thời gian quy định mà doanh nghiệp chưa thao tác xác nhận.
+- `CANCELLED` (Đã hủy): HTX chủ động hủy yêu cầu bàn giao trước khi bên mua xác nhận.
+
+### 3.4. Trạng thái Tem & Mã truy xuất (`TraceCodeStatus`)
+Quản lý vòng đời của từng tem QR dán trên sản phẩm:
+- `INACTIVE` (Chưa kích hoạt): Mã đã sinh và cấp dải nhưng chưa kích hoạt lưu thông. Quét mã sẽ báo tem chưa kích hoạt.
+- `ACTIVE` (Đã kích hoạt): Tem đang lưu hành hợp lệ trên thị trường. Quét mã hiển thị đầy đủ thông tin hành trình.
+- `SUSPECT` (Nghi vấn): Hệ thống phát hiện tần suất quét bất thường hoặc khoảng cách địa lý phi lý (nghi tem giả mạo).
+- `LOCKED` (Đã khóa): Cơ quan chức năng hoặc HTX tạm khóa tem phục vụ thanh tra, kiểm tra.
+- `RECALLED` (Đã thu hồi): Tem thuộc lô hàng có lệnh thu hồi. Khi quét mã, hệ thống hiển thị cảnh báo đỏ nguy hiểm.
+- `CANCELLED` (Đã hủy): Tem bị hủy do lỗi in ấn, nhòe mực hoặc rách vỡ trong quá trình dán bao bì.
+
+### 3.5. Trạng thái Kiểm nghiệm nông sản (`InspectionRequestStatus` & `InspectionValidityStatus`)
+- **Yêu cầu kiểm nghiệm (`InspectionRequestStatus`):**
+  + `PENDING_RESULT`: Đã gửi mẫu đến phòng kiểm nghiệm, đang chờ kết quả phân tích.
+  + `PASSED`: Mẫu kiểm nghiệm đạt các chỉ tiêu an toàn theo quy chuẩn kỹ thuật.
+  + `FAILED`: Mẫu kiểm nghiệm không đạt (vượt ngưỡng dư lượng thuốc BVTV, kim loại nặng, vi sinh vật).
+  + `CANCELLED`: Yêu cầu kiểm nghiệm đã bị hủy.
+- **Hiệu lực kiểm nghiệm của Lô (`InspectionValidityStatus`):**
+  + `NOT_REQUIRED`: Sản phẩm thuộc nhóm nông sản không bắt buộc phải có phiếu kiểm nghiệm định kỳ.
+  + `NO_VALID_RESULT`: Lô bắt buộc kiểm nghiệm nhưng chưa có phiếu kết quả đạt hợp lệ.
+  + `VALID`: Kết quả kiểm nghiệm đạt, còn hạn và nằm ngoài ngưỡng cảnh báo hết hạn.
+  + `EXPIRING`: Kết quả kiểm nghiệm sắp hết hạn hiệu lực (nằm trong ngưỡng cảnh báo sớm của hệ thống).
+  + `EXPIRED`: Kết quả kiểm nghiệm đã quá ngày hết hạn hiệu lực, cần lấy mẫu kiểm nghiệm lại.
+
+### 3.6. Trạng thái Xác thực Chứng nhận (`CertificationVerificationStatus` & `CertificationValidityStatus`)
+- **Xác thực bởi Quản trị viên nền tảng VT-01 (`CertificationVerificationStatus`):**
+  + `PENDING`: Giấy chứng nhận mới tải lên, chờ Quản trị viên đối soát với cơ quan cấp chứng nhận.
+  + `VERIFIED`: Đã xác thực giấy chứng nhận là thật và có giá trị pháp lý.
+  + `REJECTED`: Từ chối chứng nhận nếu phát hiện giả mạo hoặc thông tin không khớp.
+- **Hiệu lực theo thời gian (`CertificationValidityStatus` / `CertificationStatus`):**
+  + `VALID`: Chứng nhận còn trong thời hạn hiệu lực.
+  + `EXPIRED`: Chứng nhận đã hết hiệu lực theo ngày cấp phép.
+
+### 3.7. Vụ việc Thu hồi (`RecallCaseStatus` & `RecallRequestStatus`)
+- **Vụ việc thu hồi (`RecallCaseStatus`):** `OPEN` (Đang mở xử lý và thu hồi ngoài thị trường) -> `CLOSED` (Đã thu hồi xử lý hoàn tất).
+- **Yêu cầu thu hồi (`RecallRequestStatus` / `BulkRecallRequestStatus`):** `PENDING` (Chờ duyệt) -> `APPROVED` (Đã duyệt kích hoạt) -> `COMPLETED` (Đã hoàn tất) / `REJECTED` (Bị bác bỏ).
+
+### 3.8. Các loại Sự kiện trong Chuỗi (`ChainEventType`)
+Hệ thống ghi nhận 13 loại sự kiện chuỗi cung ứng:
+1. `HARVEST` (Thu hoạch): Ghi nhận sản lượng thu hái từ ruộng vườn.
+2. `PREPROCESSING` (Sơ chế): Rửa sạch, phân loại quy cách, xử lý nhiệt/chiếu xạ.
+3. `PACKAGING` (Đóng gói): Đóng gói vào bao bì và dán nhãn định danh.
+4. `TRANSPORT` (Vận chuyển): Giao hàng cho đơn vị vận tải, ghi nhận biển số xe và hành trình.
+5. `PROCUREMENT` (Thu mua): Doanh nghiệp tiếp nhận và nhập vào kho hàng.
+6. `CORRECTION` (Sửa lỗi): Bản ghi hiệu chỉnh khi có sự cố nhầm lẫn dữ liệu trước đó (đảm bảo tính minh bạch kiểm toán).
+7. `WAREHOUSE_RECEIPT` (Nhập kho): Ghi nhận nhập kho doanh nghiệp hoặc tổng kho phân phối.
+8. `STORAGE_CONDITION` (Theo dõi bảo quản): Cập nhật nhiệt độ, độ ẩm bảo quản nông sản.
+9. `HANDOVER` (Bàn giao): Sự kiện ký nhận biên bản bàn giao giữa hai bên.
+10. `WAREHOUSE_ENTRY` (Nhập kho HTX): Nông sản từ nông hộ chuyển về kho trung tâm HTX.
+11. `WAREHOUSE_EXIT` (Xuất kho HTX): Nông sản xuất kho HTX đi giao hàng.
+12. `SPLIT` (Tách lô): Chia tách một lô lớn thành nhiều lô nhỏ phục vụ bán lẻ.
+13. `FARM_LOG` (Nhật ký canh tác): Các hoạt động làm đất, gieo giống, chăm sóc trong thời gian canh tác.
+
+### 3.9. Cảnh báo hệ thống (`AlertType` & `AlertStatus`)
+- **Trạng thái cảnh báo (`AlertStatus`):** `PENDING` (Chờ xử lý) -> `RESOLVED` (Đã giải quyết).
+- **Loại cảnh báo (`AlertType`):**
+  + `SCAN_ANOMALY`: Quét mã bất thường (tần suất quá cao trong thời gian ngắn hoặc khoảng cách địa lý nhảy vọt).
+  + `CERT_EXPIRING`: Giấy chứng nhận chất lượng của tổ chức sắp hết hiệu lực (trước 30 ngày).
+  + `CERT_EXPIRED`: Giấy chứng nhận đã hết hạn, hệ thống tự động khóa quyền kích hoạt tem liên quan.
+  + `INSPECTION_EXPIRING`: Kết quả kiểm nghiệm của lô sản xuất sắp hết hiệu lực.
+  + `INSPECTION_EXPIRED`: Kết quả kiểm nghiệm của lô đã hết hạn hiệu lực.
+
+---
+
+## 4. QUY TRÌNH NGHIỆP VỤ THỰC TẾ CHI TIẾT
+
+### 4.1. Quy trình Tạo Vùng trồng & Lô sản xuất:
+1. **Bước 1 (Khai báo vùng trồng):** Quản lý HTX (VT-02) khai báo tên vùng trồng, tọa độ địa lý, diện tích, phân bổ cho các hộ nông dân.
+2. **Bước 2 (Tạo lô sản xuất):** Quản lý HTX tạo Lô sản xuất, chọn Vùng trồng, Giống cây trồng, Diện tích, Ngày bắt đầu mùa vụ và Ngày dự kiến thu hoạch. Trạng thái ban đầu là `DRAFT`.
+3. **Bước 3 (Phê duyệt):** Quản lý HTX kiểm tra và chuyển trạng thái lô sang `APPROVED`. Khi lô đã `APPROVED`, người ghi sự kiện mới được phép ghi nhật ký.
+
+### 4.2. Quy trình Ghi Nhật ký Canh tác chuẩn VietGAP/GlobalGAP:
+1. Nông dân (VT-03) truy cập hệ thống, chọn Lô sản xuất đang canh tác (`APPROVED` hoặc `HARVESTED`).
+2. Chọn loại hoạt động canh tác: Gieo giống, Bón phân, Phun thuốc BVTV, Tưới nước, Làm cỏ, Thu hoạch.
+3. Nhập chi tiết tên vật tư nông nghiệp (chỉ dùng danh mục cho phép), liều lượng và ghi rõ thời gian cách ly (PHI) bắt buộc.
+4. Chụp và tải ảnh thực tế (bao bì vật tư, cảnh ruộng đồng) làm bằng chứng minh bạch.
+
+### 4.3. Quy trình Cấp Tem, Đóng gói & Kích hoạt Tem QR:
+1. Khi thu hoạch xong, lô chuyển sang `HARVESTED` và `PREPROCESSED`.
+2. Tạo Lô hàng xuất bán (Shipment), liên kết với Lô sản xuất nguồn (Lineage).
+3. Quản lý HTX yêu cầu cấp dải mã định danh duy nhất theo chuẩn GS1 và in tem QR dán lên từng bao bì sản phẩm (`CODE_PRINTED`).
+4. Trước khi hàng rời kho xuất xưởng, Quản lý HTX thực hiện thao tác **Kích hoạt tem** (`ACTIVATED`). Kể từ lúc này, mã QR mới chuyển sang trạng thái hợp lệ để người tiêu dùng quét tra cứu.
+
+### 4.4. Quy trình Bàn giao Thu mua & Chia tách Lô hàng:
+1. HTX lập phiếu bàn giao điện tử (Shipment Handover) gửi đến Doanh nghiệp thu mua (VT-04). Trạng thái phiếu là `PENDING_CONFIRMATION`.
+2. Doanh nghiệp thu mua kiểm tra hàng thực tế và xác nhận ký nhận trên ứng dụng -> Phiếu chuyển sang `ACCEPTED`. Nếu phát hiện hư hỏng hoặc phẩm cấp sai lệch, bên mua từ chối -> Phiếu chuyển `REJECTED`.
+3. Sau khi tiếp nhận, nếu Doanh nghiệp thu mua chia nhỏ kiện hàng để phân phối vào chuỗi bán lẻ, họ thực hiện thao tác tách lô (`SPLIT`). Hệ thống tự động truy vết phả hệ quan hệ Cha - Con (Parent - Child) để bảo đảm nguồn gốc ban đầu không bao giờ bị đứt đoạn.
+
+### 4.5. Quy trình Xử lý Cảnh báo Quét Bất thường & Kích hoạt Thu hồi:
+1. Khi một tem QR bị quét liên tục nhiều lần trong vài phút tại các vị trí cách xa nhau, hệ thống phát hiện `SCAN_ANOMALY` và chuyển trạng thái tem sang `SUSPECT` (Nghi vấn).
+2. Quản trị viên (VT-01) hoặc Quản lý HTX (VT-02) nhận thông báo, tiến hành thanh tra:
+   + Nếu xác định tem bị in lậu / làm giả: Chuyển trạng thái tem sang `LOCKED` hoặc phát lệnh thu hồi `RECALL`.
+   + Khi lệnh thu hồi được kích hoạt, hệ thống gửi thông báo đẩy đến Doanh nghiệp thu mua, cán bộ quản lý ngành (VT-05) và chuyển cảnh báo sang màu đỏ nguy hiểm khi bất kỳ người tiêu dùng nào quét phải tem đó.
+
+---
+
+## 5. QUY TẮC PHẢN HỒI CỦA TRỢ LÝ AI (AI RESPONSE BEHAVIOR RULES)
+1. **Ngôn phong & Thể hiện:**
+   + Luôn sử dụng tiếng Việt chuẩn mực, lịch sự, nhã nhặn, mang tính đồng hành và hỗ trợ tích cực.
+   + Trình bày khoa học: Sử dụng bullet points, in đậm các từ khóa nghiệp vụ quan trọng, chia bước rõ ràng (Bước 1, Bước 2...).
+2. **Tuân thủ Ngữ cảnh Vai trò:**
+   + Căn cứ vào danh tính và vai trò của người dùng (`VT-01` đến `VT-06`) để đưa ra câu trả lời tập trung vào thẩm quyền và trách nhiệm của họ.
+   + Ví dụ: Người dùng là Nông dân (`VT-03`) thì hướng dẫn chi tiết cách ghi nhật ký, thời gian cách ly PHI; Người dùng là Quản lý HTX (`VT-02`) thì hướng dẫn duyệt lô, tạo lô hàng, xuất hồ sơ; Người tiêu dùng (`VT-06`) thì hướng dẫn cách quét mã và hiểu các thông tin hiển thị trên tem.
+3. **Phạm vi Chuyên môn & Chống Bịa Đặt (Zero Hallucination):**
+   + AI chỉ trả lời các câu hỏi liên quan đến nông nghiệp, truy xuất nguồn gốc, an toàn thực phẩm, tiêu chuẩn chất lượng và hướng dẫn sử dụng hệ thống Nguồn Gốc Số.
+   + Tuyệt đối từ chối trả lời các chủ đề ngoài lề (chính trị, giải trí, lập trình không liên quan, nội dung độc hại...) bằng lời nhắn nhã nhặn: *"Tôi là Trợ lý AI chuyên biệt của Nguồn Gốc Số, xin phép chỉ hỗ trợ các câu hỏi liên quan đến nông nghiệp và truy xuất nguồn gốc nông sản."*
+   + Tuyệt đối không bịa đặt quy trình, điều luật hay trạng thái không có thật trong hệ thống; phải luôn căn cứ vào bộ tri thức này và dữ liệu hệ thống cung cấp.

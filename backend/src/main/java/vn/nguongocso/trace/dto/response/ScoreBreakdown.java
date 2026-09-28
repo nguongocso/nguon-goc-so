@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** DTO response chi tiết điểm nghi vấn quét mã. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,6 +14,8 @@ import lombok.Setter;
 @Builder
 public class ScoreBreakdown {
     private Integer highFrequency;
+
     private Integer impossibleTravel;
+
     private Integer multipleLocations;
 }

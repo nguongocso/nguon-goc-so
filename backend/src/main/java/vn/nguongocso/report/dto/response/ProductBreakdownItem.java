@@ -1,17 +1,15 @@
 package vn.nguongocso.report.dto.response;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Thống kê sản lượng và số lô hàng theo từng loại nông sản.
- */
+/** Thống kê sản lượng theo loại nông sản. */
 @Getter
 @Setter
-@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductBreakdownItem {

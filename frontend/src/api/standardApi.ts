@@ -6,10 +6,6 @@ import type {
   StandardListResponse,
 } from '@/types/standard';
 
-/**
- * Tạo mới tiêu chuẩn
- * POST /api/v1/standards
- */
 export const createStandard = async (
   data: CreateStandardRequest
 ): Promise<Standard> => {
@@ -20,10 +16,6 @@ export const createStandard = async (
   return response.data.data;
 };
 
-/**
- * Cập nhật tiêu chuẩn
- * PUT /api/v1/standards/{standardId}
- */
 export const updateStandard = async (
   standardId: string,
   data: UpdateStandardRequest
@@ -35,10 +27,6 @@ export const updateStandard = async (
   return response.data.data;
 };
 
-/**
- * Lấy danh sách tiêu chuẩn (có phân trang, lọc)
- * GET /api/v1/standards
- */
 export const getStandards = async (params?: {
   isActive?: boolean;
   page?: number;

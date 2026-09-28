@@ -58,7 +58,12 @@ export const ProductCategoryList = ({
             <TableCell className="text-center font-medium text-muted-foreground">
                 {startIndex + index + 1}
             </TableCell>
-            <TableCell className="font-medium">{category.name}</TableCell>
+            <TableCell className="font-medium">
+                <div>{category.name}</div>
+                {category.nameEn && (
+                    <div className="text-xs text-muted-foreground font-normal font-sans italic">{category.nameEn}</div>
+                )}
+            </TableCell>
             <TableCell>{category.group}</TableCell>
             <TableCell>
                 {(() => {

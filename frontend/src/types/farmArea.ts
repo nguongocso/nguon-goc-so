@@ -104,3 +104,38 @@ export interface CreateFarmAreaResponse {
   data: FarmArea;
   timestamp: string;
 }
+
+/** Tọa độ một đỉnh (vĩ độ, kinh độ). */
+export interface LatLng {
+  latitude: number;
+  longitude: number;
+}
+
+/** Dữ liệu phản hồi ranh giới vùng trồng (CV-04). */
+export interface FarmAreaBoundaryResponse {
+  id: string;
+  name: string;
+  organizationId?: string;
+  declaredArea: number;
+  declaredAreaUnit: AreaUnit;
+  calculatedArea: number | null;
+  points: LatLng[];
+  areaDeviationPercentage?: number | null;
+  thresholdPercentage: number;
+  updatedAt?: string | null;
+}
+
+/** Dữ liệu yêu cầu cập nhật ranh giới vùng trồng (CV-04). */
+export interface UpdateFarmAreaBoundaryRequest {
+  points: LatLng[];
+  confirmed: boolean;
+}
+
+/** Cấu trúc lỗi chi tiết khi chênh lệch diện tích vượt ngưỡng (HTTP 409). */
+export interface AreaDeviationErrorData {
+  code: 'AREA_DEVIATION_CONFIRMATION_REQUIRED';
+  declaredArea: number;
+  calculatedArea: number;
+  deviationPercentage: number;
+  thresholdPercentage: number;
+}

@@ -1,11 +1,19 @@
 package vn.nguongocso.permission.service.impl;
 
-import lombok.RequiredArgsConstructor;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import lombok.RequiredArgsConstructor;
 import vn.nguongocso.auth.entity.Role;
+import vn.nguongocso.auth.repository.RoleRepository;
 import vn.nguongocso.auth.security.SecurityUtils;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.exception.BusinessException;
@@ -16,38 +24,23 @@ import vn.nguongocso.permission.repository.OrganizationRolePermissionRepository;
 import vn.nguongocso.permission.repository.PermissionRepository;
 import vn.nguongocso.permission.repository.RolePermissionRepository;
 import vn.nguongocso.permission.service.PermissionChecker;
-import vn.nguongocso.auth.repository.RoleRepository;
 
-import java.util.Optional;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Collections;
-
-/**
- * Service kiểm tra quyền của người dùng.
- */
+/** Service kiểm tra quyền của người dùng. */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PermissionCheckerImpl implements PermissionChecker {
-
     private final PermissionRepository permissionRepository;
+
     private final RoleRepository roleRepository;
+
     private final RolePermissionRepository rolePermissionRepository;
+
     private final OrganizationRolePermissionRepository organizationRolePermissionRepository;
 
-    /**
-     * Kiểm tra quyền của người dùng hiện tại đối với một resource và action cụ thể.
-     * Nếu người dùng không có quyền, ném ra BusinessException với mã lỗi 403.
-     *
-     * @param resource Tên resource (ví dụ: "production_lot").
-     * @param action   Tên action (ví dụ: "view", "create", "update", "delete").
-     */
+    /** Kiểm tra quyền của người dùng hiện tại đối với tài nguyên và hành động. */
     @Override
     public void check(String resource, String action) {
-
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
 
         Permission permission = permissionRepository
@@ -66,20 +59,15 @@ public class PermissionCheckerImpl implements PermissionChecker {
         boolean enabled;
 
         if (organizationPermission.isPresent()) {
-
-            enabled = Boolean.TRUE.equals(
-                    organizationPermission.get().getEnabled());
-
+            enabled = Boolean.TRUE.equals(organizationPermission.get().getEnabled());
         } else {
-
-            RolePermission defaultPermission = rolePermissionRepository
+            // Dùng quyền mặc định của vai trò
+            enabled = rolePermissionRepository
                     .findByRole_RoleIdAndPermission_PermissionId(
                             role.getRoleId(),
                             permission.getPermissionId())
-                    .orElseThrow(() -> new BusinessException(
-                            "Permission mặc định chưa được cấu hình."));
-
-            enabled = Boolean.TRUE.equals(defaultPermission.getEnabled());
+                    .map(rolePermission -> Boolean.TRUE.equals(rolePermission.getEnabled()))
+                    .orElse(Boolean.FALSE);
         }
 
         if (!enabled) {
@@ -89,11 +77,7 @@ public class PermissionCheckerImpl implements PermissionChecker {
         }
     }
 
-    /**
-     * Lấy danh sách tất cả permissions mà người dùng hiện tại có quyền truy cập.
-     *
-     * @return Danh sách permission codes (resource:action) mà người dùng có quyền.
-     */
+    /** Lấy danh sách tất cả permissions mà người dùng hiện tại có quyền truy cập. */
     @Override
     public List<String> getPermissionsForCurrentUser() {
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
@@ -117,7 +101,7 @@ public class PermissionCheckerImpl implements PermissionChecker {
             }
         }
 
-        // Lấy tất cả ghi đè của HTX cho vai trò đó (nếu user thuộc HTX)
+        // Lấy tất cả ghi đè của HTX cho vai trò đó
         if (currentUser.getOrganizationId() != null) {
             List<OrganizationRolePermission> orgPermissions = organizationRolePermissionRepository
                     .findByOrganization_OrganizationIdAndRole_RoleId(
@@ -131,7 +115,7 @@ public class PermissionCheckerImpl implements PermissionChecker {
             }
         }
 
-        // Lấy danh sách permission codes (resource:action) có trạng thái enabled = true
+        // Lấy danh sách permission codes đang có hiệu lực
         List<String> enabledPermissions = new ArrayList<>();
         List<Permission> allPermissions = permissionRepository.findAll();
 

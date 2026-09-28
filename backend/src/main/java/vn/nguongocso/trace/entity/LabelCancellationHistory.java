@@ -22,9 +22,7 @@ import lombok.Setter;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.organization.entity.Organization;
 
-/**
- * Thực thể đại diện cho một đợt hủy tem truy xuất.
- */
+/** Thực thể đại diện cho một đợt hủy tem truy xuất. */
 @Getter
 @Setter
 @Entity
@@ -57,7 +55,7 @@ public class LabelCancellationHistory {
     private Integer quantity;
 
     @Column(name = "cancellation_type", nullable = false, length = 20)
-    private String cancellationType; // 'RANGE' hoặc 'SINGLE'
+    private String cancellationType;
 
     @Column(name = "range_from_code", length = 100)
     private String rangeFromCode;

@@ -7,19 +7,22 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Yêu cầu cấp mới khóa truy cập dành cho đối tác bên thứ ba.
+*/
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateApiKeyRequest {
-
     @NotBlank(message = "Tên đối tác không được để trống")
     @Size(max = 255, message = "Tên đối tác không vượt quá 255 ký tự")
     private String partnerName;

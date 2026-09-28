@@ -9,9 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Lược đồ dữ liệu công khai được sử dụng để xuất dữ liệu.
- */
+/** Lược đồ dữ liệu công khai được sử dụng để xuất dữ liệu. */
 @Getter
 @Setter
 @Builder

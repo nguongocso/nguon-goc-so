@@ -14,6 +14,8 @@ interface PaginationProps {
   loading?: boolean;
   /** Nhãn đơn vị tính (ví dụ: "khóa", "tổ chức", "chỉ tiêu") */
   itemLabel?: string;
+  /** Luôn hiển thị thanh phân trang kể cả khi danh sách chỉ có một trang */
+  alwaysShow?: boolean;
   /** Callback khi chuyển trang */
   onPageChange: (page: number) => void;
 }
@@ -31,15 +33,21 @@ export const Pagination: React.FC<PaginationProps> = ({
   pageSize,
   loading = false,
   itemLabel = 'mục',
+  alwaysShow = false,
   onPageChange,
 }) => {
-  if (totalPages <= 1) return null;
+  if (totalElements === 0 || (!alwaysShow && totalPages <= 1)) return null;
 
   const startItem = currentPage * pageSize + 1;
   const endItem = Math.min((currentPage + 1) * pageSize, totalElements);
 
   return (
-    <div className="flex items-center justify-between pt-2 text-xs sm:text-sm text-muted-foreground">
+    <div
+      className={
+        'flex flex-col items-center justify-between gap-3 pt-2 text-xs ' +
+        'text-muted-foreground sm:flex-row sm:text-sm'
+      }
+    >
       <div>
         Hiển thị {startItem} - {endItem} trên tổng số {totalElements} {itemLabel}
       </div>

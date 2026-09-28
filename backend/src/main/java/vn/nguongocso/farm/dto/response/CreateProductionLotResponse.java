@@ -1,16 +1,18 @@
 package vn.nguongocso.farm.dto.response;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+import vn.nguongocso.certification.dto.response.InspectionValidityResponse;
+
 /**
- * DTO phản hồi thông tin lô sản xuất.
- */
+ * Thông tin lô sản xuất.
+*/
 @Getter
 @Setter
 @Builder
@@ -47,7 +49,27 @@ public class CreateProductionLotResponse {
 
         private String approvedByName;
 
+        private String cancellationReason;
+
+        private String cancellationNote;
+
+        private String cancelledByName;
+
+        private LocalDateTime cancelledAt;
+
+        private String disposalReason;
+
+        private String handlingMeasure;
+
+        private String disposalNote;
+
+        private String disposedByName;
+
+        private LocalDateTime disposedAt;
+
         private LocalDateTime createdAt;
 
         private LocalDateTime updatedAt;
+
+        private InspectionValidityResponse inspectionValidity;
 }

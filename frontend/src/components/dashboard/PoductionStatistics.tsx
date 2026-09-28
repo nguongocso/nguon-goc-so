@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { DashboardResponse } from '@/api/productionLotApi';
+import { PRODUCTION_LOT_STATUS_LABELS } from '@/components/production-lot/ProductionLotStatusBadge';
 
 interface ProductionStatisticsProps {
   data: DashboardResponse | null;
@@ -22,24 +23,13 @@ interface ProductionStatisticsProps {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#FF6B6B', '#845EC2'];
 
-const statusLabels: Record<string, string> = {
-  DRAFT: 'Bản nháp',
-  PENDING: 'Chờ duyệt',
-  APPROVED: 'Đã duyệt',
-  REJECTED: 'Bị từ chối',
-  HARVESTED: 'Đã thu hoạch',
-  PREPROCESSED: 'Đã sơ chế',
-  PACKAGED: 'Đã đóng gói',
-  CLOSED: 'Đã kết thúc',
-};
-
 export const ProductionStatistics = ({ data, isLoading = false }: ProductionStatisticsProps) => {
   // Chuyển byStatus object sang mảng cho PieChart
   const statusStats = useMemo(() => {
     if (!data?.byStatus) return [];
     return Object.entries(data.byStatus)
       .map(([key, value]) => ({
-        name: statusLabels[key] || key,
+        name: PRODUCTION_LOT_STATUS_LABELS[key as keyof typeof PRODUCTION_LOT_STATUS_LABELS] || key,
         value: value,
       }))
       .filter((item) => item.value > 0);

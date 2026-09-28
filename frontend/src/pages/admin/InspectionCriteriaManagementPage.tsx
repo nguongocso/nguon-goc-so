@@ -1,8 +1,9 @@
 import {useEffect, useState, useMemo} from "react";
 import {useNavigate} from "react-router-dom";
 import {toast} from "sonner";
-import {Eye, EyeOff, Pencil, Plus, Trash2, FlaskConical} from "lucide-react";
+import {Eye, EyeOff, Pencil, Plus, Trash2, FlaskConical, SlidersHorizontal} from "lucide-react";
 import {Button} from "@/components/ui/button";
+import {InspectionExpiryThresholdDialog} from "@/components/certification/InspectionExpiryThresholdDialog";
 import {TableCell, TableHead, TableRow} from "@/components/ui/table";
 import {
     AlertDialog,
@@ -60,6 +61,7 @@ export default function InspectionCriteriaManagementPage() {
     const [togglingId, setTogglingId] = useState<number | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<InspectionCriterion | null>(null);
     const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+    const [thresholdDialogOpen, setThresholdDialogOpen] = useState(false);
 
     const fetchAll = async () => {
         setLoading(true);
@@ -86,6 +88,7 @@ export default function InspectionCriteriaManagementPage() {
             const matchKeyword =
                 !q ||
                 c.name.toLowerCase().includes(q) ||
+                (c.nameEn?.toLowerCase().includes(q) ?? false) ||
                 (c.referenceStandard?.toLowerCase().includes(q) ?? false);
             const matchStatus = status === "ALL" || c.status === status;
             return matchKeyword && matchStatus;
@@ -144,7 +147,7 @@ export default function InspectionCriteriaManagementPage() {
     };
 
     useSetBreadcrumb([
-        {label: "Dashboard", href: "/dashboard"},
+        {label: "Tổng quan", href: "/dashboard"},
         {label: "Chỉ tiêu kiểm nghiệm"},
     ]);
 
@@ -165,7 +168,12 @@ export default function InspectionCriteriaManagementPage() {
             <TableCell className="text-center font-medium text-muted-foreground">
                 {safePage * PAGE_SIZE + index + 1}
             </TableCell>
-            <TableCell className="font-medium text-foreground">{criterion.name}</TableCell>
+            <TableCell>
+                <div className="font-medium text-foreground">{criterion.name}</div>
+                {criterion.nameEn && (
+                    <div className="text-xs text-muted-foreground italic">{criterion.nameEn}</div>
+                )}
+            </TableCell>
             <TableCell>{criterion.unit}</TableCell>
             <TableCell className="text-center">{criterion.maxThreshold}</TableCell>
             <TableCell>{criterion.referenceStandard || "—"}</TableCell>
@@ -239,9 +247,19 @@ export default function InspectionCriteriaManagementPage() {
                     <>
                         <HelpButton screenKey="admin-inspection-criteria" />
                         {canManage && (
-                            <Button variant="create" size="sm" onClick={() => navigate("/admin/inspection-criteria/create")}>
-                                <Plus className="h-4 w-4 mr-1" /> Thêm chỉ tiêu
-                            </Button>
+                            <>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setThresholdDialogOpen(true)}
+                                    title="Cấu hình ngưỡng số ngày cảnh báo kiểm nghiệm sắp hết hiệu lực"
+                                >
+                                    <SlidersHorizontal className="h-4 w-4 mr-1.5" /> Cấu hình ngưỡng cảnh báo
+                                </Button>
+                                <Button variant="create" size="sm" onClick={() => navigate("/admin/inspection-criteria/create")}>
+                                    <Plus className="h-4 w-4 mr-1" /> Thêm chỉ tiêu
+                                </Button>
+                            </>
                         )}
                     </>
                 }
@@ -320,6 +338,11 @@ export default function InspectionCriteriaManagementPage() {
                     </AlertDialogFooter>
                 </AlertDialogPopup>
             </AlertDialog>
+
+            <InspectionExpiryThresholdDialog
+                open={thresholdDialogOpen}
+                onClose={() => setThresholdDialogOpen(false)}
+            />
         </div>
     );
 }

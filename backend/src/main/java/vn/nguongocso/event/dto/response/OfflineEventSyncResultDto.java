@@ -4,9 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import java.util.UUID;
 
-/**
- * DTO phản hồi kết quả đồng bộ một sự kiện ngoại tuyến.
- */
+/** DTO phản hồi kết quả đồng bộ một sự kiện ngoại tuyến. */
 @Getter
 @Builder
 public class OfflineEventSyncResultDto {

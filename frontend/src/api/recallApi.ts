@@ -1,6 +1,8 @@
 // src/api/recallApi.ts
 // Theo tài liệu API: Thu hồi lô (NCL-08-CN-003) & Thu hồi lô sản xuất 2 bước (NCL-08-CN-008)
+// Thu hồi theo phạm vi ảnh hưởng (NCL-08-CN-011)
 import apiClient from './axiosConfig';
+import { getToken } from '@/utils/storage';
 import type { ApiResult } from '@/types/auth';
 import type { RecallRequest, RecallResponse, RecallInfoResponse } from '@/types/recall';
 import type {
@@ -11,9 +13,16 @@ import type {
   RecallRequestListParams,
   RejectRecallRequestPayload,
 } from '@/types/recallRequest';
+import type {
+  ApproveBulkRecallRequestPayload,
+  BulkRecallRequest,
+  BulkRecallRequestListParams,
+  CreateBulkRecallRequestPayload,
+  RejectBulkRecallRequestPayload,
+} from '@/types/bulkRecall';
 
 /**
- * Thu hồi một lô hàng đang hiệu lực.
+ * Thu hồi một lô hàng còn hiệu lực.
  * POST /api/v1/shipments/{shipmentId}/recall
  */
 export const recallShipment = async (
@@ -112,4 +121,129 @@ export const rejectRecallRequest = async (
     payload,
   );
   return response.data.data;
+};
+
+// =========================================================
+// NCL-08-CN-011 - Thu hồi theo phạm vi ảnh hưởng (Bulk Recall)
+// =========================================================
+
+/**
+ * Tạo yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (VT-02).
+ * POST /api/v1/recall-requests/bulk
+ */
+export const createBulkRecallRequest = async (
+  payload: CreateBulkRecallRequestPayload,
+): Promise<BulkRecallRequest> => {
+  const response = await apiClient.post<ApiResult<BulkRecallRequest>>(
+    '/recall-requests/bulk',
+    payload,
+  );
+  return response.data.data;
+};
+
+/**
+ * Lấy danh sách yêu cầu thu hồi hàng loạt (VT-02), hỗ trợ lọc theo trạng thái + phân trang.
+ * GET /api/v1/recall-requests/bulk?status=&page=&size=
+ */
+export const getBulkRecallRequests = async (
+  params: BulkRecallRequestListParams = {},
+): Promise<PageResponse<BulkRecallRequest>> => {
+  const response = await apiClient.get<ApiResult<PageResponse<BulkRecallRequest>>>(
+    '/recall-requests/bulk',
+    { params },
+  );
+  return response.data.data;
+};
+
+/**
+ * Lấy chi tiết một yêu cầu thu hồi hàng loạt (VT-02).
+ * GET /api/v1/recall-requests/bulk/{id}
+ */
+export const getBulkRecallRequest = async (id: string): Promise<BulkRecallRequest> => {
+  const response = await apiClient.get<ApiResult<BulkRecallRequest>>(
+    `/recall-requests/bulk/${id}`,
+  );
+  return response.data.data;
+};
+
+/**
+ * Phê duyệt yêu cầu thu hồi hàng loạt (VT-02).
+ * PUT /api/v1/recall-requests/bulk/{id}/approve
+ */
+export const approveBulkRecallRequest = async (
+  id: string,
+  payload: ApproveBulkRecallRequestPayload = {},
+): Promise<BulkRecallRequest> => {
+  const response = await apiClient.put<ApiResult<BulkRecallRequest>>(
+    `/recall-requests/bulk/${id}/approve`,
+    payload,
+  );
+  return response.data.data;
+};
+
+/**
+ * Từ chối yêu cầu thu hồi hàng loạt (VT-02).
+ * PUT /api/v1/recall-requests/bulk/{id}/reject
+ */
+export const rejectBulkRecallRequest = async (
+  id: string,
+  payload: RejectBulkRecallRequestPayload,
+): Promise<BulkRecallRequest> => {
+  const response = await apiClient.put<ApiResult<BulkRecallRequest>>(
+    `/recall-requests/bulk/${id}/reject`,
+    payload,
+  );
+  return response.data.data;
+};
+
+/**
+ * Kết thúc vụ việc thu hồi gắn liền với yêu cầu thu hồi hàng loạt (VT-02 - NCL-08-CN-012).
+ * PUT /api/v1/recall-requests/bulk/{id}/close
+ */
+export const closeBulkRecallRequest = async (
+  id: string,
+  payload: import('@/types/bulkRecall').CloseBulkRecallRequestPayload,
+): Promise<BulkRecallRequest> => {
+  const response = await apiClient.put<ApiResult<BulkRecallRequest>>(
+    `/recall-requests/bulk/${id}/close`,
+    payload,
+  );
+  return response.data.data;
+};
+
+/**
+ * Tải lên tệp biên bản đính kèm vụ việc thu hồi (hỗ trợ PDF, Word .docx, .doc - NCL-08-CN-012).
+ * POST /api/v1/recall-requests/bulk/evidence
+ */
+export const uploadRecallEvidence = async (
+  file: File,
+): Promise<import('@/types/bulkRecall').RecallEvidenceFile> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await apiClient.post<
+    ApiResult<import('@/types/bulkRecall').RecallEvidenceFile>
+  >('/recall-requests/bulk/evidence', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data.data;
+};
+
+/**
+ * Lấy URL tải về hoặc xem trực tiếp tệp biên bản đính kèm có kèm JWT token xác thực.
+ */
+export const getEvidenceDownloadUrl = (fileId: string): string => {
+  const token = getToken();
+  return token
+    ? `/api/v1/recall-requests/bulk/evidence/${fileId}?token=${encodeURIComponent(token)}`
+    : `/api/v1/recall-requests/bulk/evidence/${fileId}`;
+};
+
+/**
+ * Mở tệp biên bản trong tab mới của trình duyệt để xem trực tiếp (PDF) hoặc tải về (Word).
+ */
+export const openEvidenceInNewTab = (fileId: string): void => {
+  const url = getEvidenceDownloadUrl(fileId);
+  window.open(url, '_blank', 'noopener,noreferrer');
 };

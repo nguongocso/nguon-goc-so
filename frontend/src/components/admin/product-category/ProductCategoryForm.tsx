@@ -27,6 +27,7 @@ const emptyToUndefined = {
 
 const formSchema = z.object({
   name: z.string().min(1, "Tên không được để trống").max(255),
+  nameEn: z.string().max(255).optional(),
   group: z.string().min(1, "Nhóm hàng không được để trống").max(100),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
@@ -70,6 +71,7 @@ export const ProductCategoryForm = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      nameEn: "",
       group: "",
       description: "",
       isActive: true,
@@ -85,6 +87,7 @@ export const ProductCategoryForm = ({
   useEffect(() => {
     if (category) {
       setValue("name", category.name);
+      setValue("nameEn", category.nameEn || "");
       setValue("group", category.group);
       setValue("description", category.description || "");
       setValue("isActive", category.isActive);
@@ -115,6 +118,7 @@ export const ProductCategoryForm = ({
       if (category) {
         await updateProductCategory(category.id, {
           name: values.name,
+          nameEn: values.nameEn || undefined,
           group: values.group,
           description: values.description || undefined,
           isActive: values.isActive || false,
@@ -127,6 +131,7 @@ export const ProductCategoryForm = ({
       } else {
         await createProductCategory({
           name: values.name,
+          nameEn: values.nameEn || undefined,
           group: values.group,
           description: values.description || undefined,
           tempMin: values.tempMin,
@@ -153,19 +158,35 @@ export const ProductCategoryForm = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Tên */}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="name" className="text-sm font-medium">
-              Tên loại nông sản <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="name"
-              {...register("name")}
-              placeholder="VD: Xoài Cát Chu"
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500">{errors.name.message}</p>
-            )}
+          {/* Tên & Tên tiếng Anh */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="name" className="text-sm font-medium">
+                Tên loại nông sản <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="name"
+                {...register("name")}
+                placeholder="VD: Xoài Cát Chu"
+              />
+              {errors.name && (
+                <p className="text-sm text-red-500">{errors.name.message}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="nameEn" className="text-sm font-medium">
+                Tên tiếng Anh (English Name)
+              </Label>
+              <Input
+                id="nameEn"
+                {...register("nameEn")}
+                placeholder="VD: Cat Chu Mango"
+              />
+              {errors.nameEn && (
+                <p className="text-sm text-red-500">{errors.nameEn.message}</p>
+              )}
+            </div>
           </div>
 
           {/* Nhóm hàng */}

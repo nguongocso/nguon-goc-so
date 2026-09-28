@@ -12,8 +12,7 @@ import vn.nguongocso.alert.entity.ActivityLog;
 import vn.nguongocso.alert.repository.ActivityLogRepository;
 
 /**
- * Lắng nghe sự kiện ghi nhật ký hoạt động của người dùng và lưu vào cơ sở dữ
- * liệu.
+ * Lắng nghe sự kiện ghi nhật ký hoạt động của người dùng và lưu vào cơ sở dữ liệu.
  */
 @Component
 @Slf4j
@@ -23,12 +22,10 @@ public class ActivityLogListener {
 
     /**
      * Xử lý sự kiện ActivityLogEvent và lưu thông tin vào cơ sở dữ liệu.
-     *
-     * @param event sự kiện ghi nhật ký hoạt động
      */
-    @Async // Thực thi bất đồng bộ trên một Thread Pool riêng biệt
+    @Async
     @EventListener
-    @Transactional(propagation = Propagation.REQUIRES_NEW) // Tạo transaction mới hoàn toàn biệt lập
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleActivityLogEvent(ActivityLogEvent event) {
         try {
             ActivityLog activityLog = ActivityLog.builder()
@@ -36,14 +33,16 @@ public class ActivityLogListener {
                     .userId(event.getUserId())
                     .username(event.getUsername())
                     .fullName(event.getFullName())
+                    .actorRole(event.getActorRole())
                     .action(event.getAction())
                     .description(event.getDescription())
                     .entityType(event.getEntityType())
                     .entityId(event.getEntityId())
+                    .beforeValue(event.getBeforeValue())
+                    .afterValue(event.getAfterValue())
                     .ipAddress(event.getIpAddress())
                     .createdAt(event.getTimestamp())
                     .build();
-
             activityLogRepository.save(activityLog);
             log.debug("Lưu vết thao tác thành công: {} bởi {}", event.getAction(), event.getUsername());
         } catch (Exception e) {

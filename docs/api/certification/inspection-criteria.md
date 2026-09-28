@@ -532,3 +532,56 @@ FARMER bị chặn ở `anyRequest().authenticated()` + không có trang nghiệ
 | D-6 | Trả trường `referenced` trong response chỉ tiêu | Hỗ trợ UX TC-05: frontend biết khi nào được phép xóa |
 | D-7 | Không sửa QTN-21 (`LotService.activateQR`) | Logic chặn đã chạy trên dữ liệu cấu hình; story chỉ bổ sung nguồn cấu hình |
 | D-8 | Enforce quyền bằng `@PreAuthorize("hasRole('PLATFORM_ADMIN')")` | `@EnableMethodSecurity` đã bật sẵn; đúng yêu cầu QTN-17 §4.5 |
+
+---
+
+## 14. Cấu hình ngưỡng cảnh báo hết hiệu lực kiểm nghiệm (NCL-11-CN-004)
+
+### 14.1 Lấy cấu hình ngưỡng cảnh báo hiện tại
+- **Method:** `GET`
+- **Endpoint:** `/api/v1/inspection-criteria/expiry-threshold`
+- **Quyền:** `hasRole('VT-01')` (Quản trị viên nền tảng)
+- **Response thành công (200 OK):**
+```json
+{
+  "code": 200,
+  "message": "Thành công",
+  "data": {
+    "warningThresholdDays": 15,
+    "updatedAt": "2026-09-11T07:30:00",
+    "updatedByName": "Admin Hệ Thống"
+  }
+}
+```
+
+### 14.2 Cập nhật cấu hình ngưỡng cảnh báo
+- **Method:** `PUT`
+- **Endpoint:** `/api/v1/inspection-criteria/expiry-threshold`
+- **Quyền:** `hasRole('VT-01')` (Quản trị viên nền tảng)
+- **Request Body:**
+```json
+{
+  "warningThresholdDays": 20
+}
+```
+- **Validation:**
+  - `warningThresholdDays`: Bắt buộc, số nguyên từ 1 đến 365.
+- **Response thành công (200 OK):**
+```json
+{
+  "code": 200,
+  "message": "Cập nhật cấu hình ngưỡng cảnh báo thành công",
+  "data": {
+    "warningThresholdDays": 20,
+    "updatedAt": "2026-09-11T07:35:00",
+    "updatedByName": "Admin Hệ Thống"
+  }
+}
+```
+- **Response lỗi nghiệp vụ (400 Bad Request):**
+```json
+{
+  "code": 400,
+  "message": "Ngưỡng cảnh báo phải nằm trong khoảng từ 1 đến 365 ngày"
+}
+```

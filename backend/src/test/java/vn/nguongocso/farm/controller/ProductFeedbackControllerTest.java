@@ -13,7 +13,8 @@ import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.config.SecurityConfig;
 import vn.nguongocso.auth.service.CustomUserDetailsService;
 import vn.nguongocso.farm.dto.request.CreateProductFeedbackRequest;
-import vn.nguongocso.farm.dto.response.ProductFeedbackResponse;
+import vn.nguongocso.farm.dto.response.PublicProductFeedbackCreatedResponse;
+import vn.nguongocso.farm.enums.ProductFeedbackStatus;
 import vn.nguongocso.farm.service.ProductFeedbackService;
 
 import java.util.UUID;
@@ -52,11 +53,12 @@ class ProductFeedbackControllerTest {
         CreateProductFeedbackRequest request = new CreateProductFeedbackRequest();
         request.setContent("Thông tin sản phẩm bị sai lệch");
 
-        ProductFeedbackResponse response = ProductFeedbackResponse.builder()
-                .id(UUID.randomUUID())
+        UUID feedbackId = UUID.randomUUID();
+        PublicProductFeedbackCreatedResponse response = PublicProductFeedbackCreatedResponse.builder()
+                .id(feedbackId)
                 .productionLotId(lotId)
-                .productionLotName("Lô chè Long Cốc")
-                .content(request.getContent())
+                .status(ProductFeedbackStatus.NEW)
+                .lookupCode("PA-7K2M-9Q4X-H8NP-3R5T")
                 .build();
 
         when(productFeedbackService.createFeedback(eq(lotId), any(CreateProductFeedbackRequest.class)))
@@ -68,8 +70,12 @@ class ProductFeedbackControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.content").value(request.getContent()))
-                .andExpect(jsonPath("$.data.productionLotName").value("Lô chè Long Cốc"));
+                .andExpect(jsonPath("$.data.id").value(feedbackId.toString()))
+                .andExpect(jsonPath("$.data.productionLotId").value(lotId.toString()))
+                .andExpect(jsonPath("$.data.status").value("NEW"))
+                .andExpect(jsonPath("$.data.lookupCode").value("PA-7K2M-9Q4X-H8NP-3R5T"))
+                .andExpect(jsonPath("$.data.content").doesNotExist())
+                .andExpect(jsonPath("$.data.productionLotName").doesNotExist());
     }
 
     @Test

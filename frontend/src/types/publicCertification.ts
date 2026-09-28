@@ -1,8 +1,9 @@
-export type PublicCertificationStatus = "VALID" | "EXPIRED";
+export type PublicCertificationStatus = 'VALID' | 'EXPIRED';
 
 export interface PublicCertification {
   certificationId: string;
   certificationName: string;
+  certificationNameEn?: string | null;
   certificationCode: string;
   issuedBy: string | null;
   issueDate: string | null;

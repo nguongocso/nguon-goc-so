@@ -2,6 +2,7 @@
 // NCL-01-CN-006 - Hook lấy nội dung hướng dẫn sử dụng theo màn hình
 import { useCallback, useEffect, useState } from 'react';
 import { getHelp } from '@/api/helpApi';
+import { toApiError } from '@/api/apiError';
 import type { HelpContent } from '@/types/help';
 
 /** Cache trong bộ nhớ theo screenKey — tránh gọi lại API khi mở lại drawer. */
@@ -19,12 +20,14 @@ interface UseHelpResult {
 }
 
 export const useHelp = (screenKey: string): UseHelpResult => {
+  // State: nội dung, trạng thái tải và lỗi
   const [data, setData] = useState<HelpContent | null>(() =>
     cache.has(screenKey) ? cache.get(screenKey)! : null,
   );
   const [isLoading, setIsLoading] = useState<boolean>(() => !cache.has(screenKey));
   const [error, setError] = useState<string | null>(null);
 
+  // Handlers: tải nội dung hướng dẫn
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -32,15 +35,21 @@ export const useHelp = (screenKey: string): UseHelpResult => {
       const result = await getHelp(screenKey);
       cache.set(screenKey, result);
       setData(result);
-    } catch (err: any) {
-      const message =
-        err.response?.data?.message || 'Không thể tải hướng dẫn sử dụng.';
+    } catch (err: unknown) {
+      // Chuẩn hoá lỗi API để tránh treo UI khi tải hướng dẫn thất bại
+      const message = toApiError(err, 'Không thể tải hướng dẫn sử dụng.').message;
       setError(message);
     } finally {
       setIsLoading(false);
     }
   }, [screenKey]);
 
+  const refetch = useCallback(async () => {
+    cache.delete(screenKey);
+    await load();
+  }, [load, screenKey]);
+
+  // Effects: đồng bộ cache khi screenKey thay đổi
   useEffect(() => {
     // Đồng bộ dữ liệu từ cache khi screenKey thay đổi (tránh hiển thị
     // nội dung của màn hình cũ nếu cache đã có sẵn)
@@ -52,11 +61,6 @@ export const useHelp = (screenKey: string): UseHelpResult => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenKey]);
-
-  const refetch = useCallback(async () => {
-    cache.delete(screenKey);
-    await load();
-  }, [load, screenKey]);
 
   return { data, isLoading, error, refetch };
 };

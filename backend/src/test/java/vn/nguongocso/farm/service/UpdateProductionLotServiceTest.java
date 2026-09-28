@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.Role;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -135,6 +136,7 @@ class UpdateProductionLotServiceTest {
         assertThat(response.getName()).isEqualTo("Lô cà chua mới");
         assertThat(response.getExpectedQuantity()).isEqualTo(500.0);
         verify(productionLotRepository, times(1)).save(any(ProductionLot.class));
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
     }
 
     @Test

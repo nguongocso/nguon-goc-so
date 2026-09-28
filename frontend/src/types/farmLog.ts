@@ -46,6 +46,7 @@ export interface CreateFarmLogRequest {
   unit: string | null;
   executedDate: string;
   notes: string | null;
+  milestoneId?: number;
 }
 
 export type FarmLogResponse = FarmLog;

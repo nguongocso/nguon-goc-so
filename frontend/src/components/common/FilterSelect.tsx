@@ -17,6 +17,7 @@ interface FilterSelectProps {
   onValueChange: (value: string | null) => void;
   options: FilterOption[];
   placeholder?: string;
+  ariaLabel?: string;
   className?: string;
   size?: 'default' | 'sm';
 }
@@ -26,6 +27,7 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
   onValueChange,
   options,
   placeholder,
+  ariaLabel,
   className,
   size = 'default',
 }) => {
@@ -33,8 +35,15 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
 
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger size={size} className={cn('w-full sm:w-48', className)}>
-        {selectedLabel || placeholder || 'Chọn...'}
+      <SelectTrigger
+        size={size}
+        aria-label={ariaLabel}
+        title={selectedLabel || placeholder || undefined}
+        className={cn('w-full sm:w-auto min-w-[200px]', className)}
+      >
+        <span className="flex-1 text-left truncate pr-1">
+          {selectedLabel || placeholder || 'Chọn...'}
+        </span>
       </SelectTrigger>
       <SelectContent>
         {options.map((opt) => (

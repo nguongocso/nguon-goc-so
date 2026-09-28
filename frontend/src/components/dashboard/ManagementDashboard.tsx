@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { getProductionLots } from '@/api/productionLotApi';
 import { ProductionLotBoard } from '@/components/production-lot/ProductionLotBoard';
@@ -13,23 +13,25 @@ export function ManagementDashboard() {
   const [productionLots, setProductionLots] = useState<ProductionLot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadProductionLots = async () => {
-      try {
-        setIsLoading(true);
-        const data = await getProductionLots();
-        setProductionLots(data);
-      } catch {
-        toast.error('Không thể tải danh sách lô sản xuất');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    void loadProductionLots();
+  const loadProductionLots = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const data = await getProductionLots();
+      setProductionLots(data);
+    } catch {
+      toast.error('Không thể tải danh sách lô sản xuất');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    void loadProductionLots();
+  }, [loadProductionLots]);
+
   const statistics = useMemo(() => {
-    const total = productionLots.length;
+    // NCL-02-CN-006: lô đã hủy không tính vào tổng số lô đang canh tác
+    const total = productionLots.filter((lot) => lot.status !== 'CANCELLED').length;
     const approved = productionLots.filter((lot) => lot.status === 'APPROVED').length;
     const harvested = productionLots.filter((lot) => lot.status === 'HARVESTED').length;
     const packaged = productionLots.filter((lot) => lot.status === 'PACKAGED').length;
@@ -86,11 +88,15 @@ export function ManagementDashboard() {
           </div>
 
           <ProductionLotBoard
+            lots={productionLots}
+            isLoading={isLoading}
             canCreate={false}
             canEdit={false}
             canSubmitForApproval={false}
             canApprove={false}
             canRecordFarmLog={false}
+            onRefresh={() => void loadProductionLots()}
+            isRefreshing={isLoading}
           />
         </TabsContent>
 

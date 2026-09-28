@@ -6,17 +6,15 @@ import lombok.Builder;
 import lombok.Data;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 
-/**
- * Thông tin mã truy xuất.
- */
+/** DTO response thông tin mã truy xuất. */
 @Data
 @Builder
 public class TraceCodeResponse {
-	private UUID id;
+    private UUID id;
 
-	private String codeValue;
+    private String codeValue;
 
-	private String qrImage;
+    private String qrImage;
 
-	private TraceCodeStatus status;
+    private TraceCodeStatus status;
 }

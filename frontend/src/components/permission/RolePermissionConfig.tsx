@@ -20,14 +20,12 @@ export const RolePermissionConfig: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Tự động tải vai trò Người ghi sự kiện (VT-03) và danh sách quyền
   useEffect(() => {
     const fetchRoleAndPermissions = async () => {
       if (!organizationId) return;
       try {
         setLoading(true);
         const rolesData = await getOrganizationRoles(organizationId);
-        // Tìm vai trò VT-03 (Người ghi sự kiện)
         const eventRecorderRole = rolesData.find((r) => r.roleCode === 'VT-03') || {
           roleId: 3,
           roleCode: 'VT-03',
@@ -51,9 +49,9 @@ export const RolePermissionConfig: React.FC = () => {
       prev.map((group) => ({
         ...group,
         permissions: group.permissions.map((p) =>
-          p.permissionId === permissionId ? { ...p, isEnabled: enabled, isDefault: false } : p
+          p.permissionId === permissionId ? { ...p, isEnabled: enabled, isDefault: false } : p,
         ),
-      }))
+      })),
     );
   };
 
@@ -94,7 +92,6 @@ export const RolePermissionConfig: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Banner thông tin vai trò */}
       <div className="flex items-center justify-between gap-4 flex-wrap bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -116,7 +113,6 @@ export const RolePermissionConfig: React.FC = () => {
         </div>
       </div>
 
-      {/* Danh sách nhóm quyền */}
       {loading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
@@ -140,7 +136,6 @@ export const RolePermissionConfig: React.FC = () => {
         </div>
       )}
 
-      {/* Nút lưu */}
       <div className="flex justify-end">
         <Button variant="create" onClick={handleSave} disabled={saving || loading}>
           {saving ? (

@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * DTO yêu cầu tạo mới loại nông sản.
- */
+ * Yêu cầu tạo mới loại nông sản.
+*/
 @Getter
 @Setter
 @Builder
@@ -22,6 +22,9 @@ public class CreateProductCategoryRequest {
     @NotBlank(message = "Tên loại nông sản không được để trống")
     @Size(max = 255, message = "Tên loại nông sản không vượt quá 255 ký tự")
     private String name;
+
+    @Size(max = 255, message = "Tên tiếng Anh không vượt quá 255 ký tự")
+    private String nameEn;
 
     @NotBlank(message = "Nhóm hàng không được để trống")
     @Size(max = 100, message = "Tên nhóm hàng không vượt quá 100 ký tự")

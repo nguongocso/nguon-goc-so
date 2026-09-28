@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * DTO thông tin tổ chức trong hồ sơ truy xuất của đối tác.
+*/
 @Getter
 @Setter
 @Builder
@@ -13,9 +16,14 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PartnerOrgInfoResponse {
     private String organizationId;
+
     private String organizationName;
+
     private String organizationCode;
+
     private String address;
+
     private String phone;
+
     private String email;
 }

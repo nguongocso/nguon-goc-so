@@ -54,8 +54,11 @@ public class DossierControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
-        @MockitoBean
-        private PermissionChecker permissionChecker;
+    @MockitoBean
+    private PermissionChecker permissionChecker;
+
+    @MockitoBean
+    private vn.nguongocso.export.service.ProfileTemplateService profileTemplateService;
 
     private UUID shipmentId;
     private CustomUserDetails userDetails;
@@ -134,5 +137,27 @@ public class DossierControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF))
                 .andExpect(header().exists("Content-Disposition"))
                 .andExpect(content().bytes(mockPdfBytes));
+    }
+
+    @Test
+    void exportBatchDossierPdf_shouldReturnBadRequest_whenShipmentIdsExceedsMax() throws Exception {
+        java.util.List<UUID> exceedShipmentIds = new java.util.ArrayList<>();
+        for (int i = 0; i < 21; i++) {
+            exceedShipmentIds.add(UUID.randomUUID());
+        }
+
+        String requestJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(
+                vn.nguongocso.report.dto.request.BatchDossierExportRequest.builder()
+                        .shipmentIds(exceedShipmentIds)
+                        .title("Test Batch Dossier Exceed")
+                        .build()
+        );
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/shipments/dossiers/batch-export")
+                        .with(user(userDetails))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
     }
 }

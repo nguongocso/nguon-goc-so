@@ -15,10 +15,12 @@ export interface OfflineEvent {
   images: string[];
   deviceSource?: string;
   eventData: Record<string, any>;
-  status?: 'pending' | 'syncing' | 'failed' | 'success' | 'invalid';
+  status?: 'pending' | 'syncing' | 'failed' | 'success' | 'invalid' | 'da-ghi';
   errorMessage?: string;
   retryCount?: number;
   lastSyncAttempt?: number;
+  /** ID bản ghi `farm_logs` sau khi nội dung đã đồng bộ, dùng để tải ảnh ở pha 2. */
+  farmLogId?: string;
 }
 
 export interface OfflineSyncRequest {

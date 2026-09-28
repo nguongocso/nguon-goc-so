@@ -18,9 +18,9 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.trace.service.QRCodeService;
 
+/** Triển khai dịch vụ sinh và lưu file ảnh QR cho mã truy xuất. */
 @Service
 @Slf4j
-/** Sinh và lưu file ảnh QR cho mã truy xuất. */
 public class QRCodeServiceImpl implements QRCodeService {
 	@Value("${qr.image.storage.path:./files/qr}")
 

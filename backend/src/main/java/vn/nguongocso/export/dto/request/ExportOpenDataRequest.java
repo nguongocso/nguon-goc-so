@@ -7,9 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO yêu cầu xuất dữ liệu công khai.
- */
+/** DTO yêu cầu xuất dữ liệu công khai. */
 @Getter
 @Setter
 public class ExportOpenDataRequest {

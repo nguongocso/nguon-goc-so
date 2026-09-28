@@ -12,7 +12,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -26,7 +28,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import vn.nguongocso.auth.service.CustomUserDetailsService;
 import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.config.SecurityConfig;
+import vn.nguongocso.farm.dto.request.LatLngDto;
 import vn.nguongocso.permission.service.PermissionChecker;
+import vn.nguongocso.publicapi.dto.response.PublicFarmAreaBoundaryDto;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionCriterionResultDto;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
 import vn.nguongocso.publicapi.dto.response.PublicTraceResponse;
@@ -165,5 +169,69 @@ class PublicTraceControllerTest {
                 .andExpect(jsonPath("$.data.inspections[0].passed").value(true));
 
         verify(publicTraceService).getPublicInspections(codeValue);
+    }
+
+    /**
+     * TC-08: GET /public/trace/{codeValue} trả về farmAreaBoundary khi vùng trồng đã khoanh ranh giới.
+     */
+    @Test
+    void getPublicTrace_ShouldReturnFarmAreaBoundary_WhenBoundaryExists() throws Exception {
+        String codeValue = "TC08-CODE";
+        UUID farmAreaId = UUID.randomUUID();
+        List<LatLngDto> points = List.of(
+                new LatLngDto(21.0285, 105.8542),
+                new LatLngDto(21.0300, 105.8560),
+                new LatLngDto(21.0270, 105.8580));
+        PublicFarmAreaBoundaryDto boundary = PublicFarmAreaBoundaryDto.builder()
+                .id(farmAreaId)
+                .name("Vùng trồng chè A")
+                .calculatedArea(new BigDecimal("1.2500"))
+                .points(points)
+                .build();
+
+        PublicTraceResponse response = PublicTraceResponse.builder()
+                .codeValue(codeValue)
+                .productionLotId(UUID.randomUUID())
+                .productName("Chè Tân Cương")
+                .shipmentCode("SHIP-001")
+                .shipmentStatus("ACTIVATED")
+                .recalled(false)
+                .locked(false)
+                .events(Collections.emptyList())
+                .farmAreaBoundary(boundary)
+                .build();
+
+        when(publicTraceService.getPublicTrace(
+                eq(codeValue), any(), any(), anyString(), any())).thenReturn(response);
+
+        mockMvc.perform(get("/api/v1/public/trace/{codeValue}", codeValue))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.farmAreaBoundary.name").value("Vùng trồng chè A"))
+                .andExpect(jsonPath("$.data.farmAreaBoundary.calculatedArea").value(1.25))
+                .andExpect(jsonPath("$.data.farmAreaBoundary.points").isArray())
+                .andExpect(jsonPath("$.data.farmAreaBoundary.points.length()").value(3))
+                .andExpect(jsonPath("$.data.farmAreaBoundary.points[0].latitude").value(21.0285))
+                .andExpect(jsonPath("$.data.farmAreaBoundary.points[0].longitude").value(105.8542));
+
+        verify(publicTraceService, never()).recordPublicScan(any(), any(), any(), any(), any());
+    }
+
+    /**
+     * TC-08b: GET /public/trace/{codeValue} trả farmAreaBoundary = null khi chưa khoanh ranh giới.
+     */
+    @Test
+    void getPublicTrace_ShouldReturnNullFarmAreaBoundary_WhenNoBoundary() throws Exception {
+        String codeValue = "TC08B-CODE";
+        PublicTraceResponse response = buildResponse(codeValue);
+        // farmAreaBoundary không set → null
+
+        when(publicTraceService.getPublicTrace(
+                eq(codeValue), any(), any(), anyString(), any())).thenReturn(response);
+
+        mockMvc.perform(get("/api/v1/public/trace/{codeValue}", codeValue))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.farmAreaBoundary").doesNotExist());
     }
 }

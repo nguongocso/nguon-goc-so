@@ -23,9 +23,7 @@ import lombok.Setter;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.trace.enums.RecallStatus;
 
-/**
- * Thực thể đại diện cho một đợt thu hồi lô hàng.
- */
+/** Thực thể đại diện cho một đợt thu hồi lô hàng. */
 @Entity
 @Table(name = "recalls")
 @Getter

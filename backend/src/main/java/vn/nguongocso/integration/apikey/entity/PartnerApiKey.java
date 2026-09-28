@@ -3,9 +3,6 @@ package vn.nguongocso.integration.apikey.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,20 +15,23 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.organization.entity.Organization;
 
 /**
- * Thực thể lưu trữ khóa truy cập dành cho đối tác bên thứ ba (NCL-12-CN-001).
- * <p>
- * Lưu băm SHA-256 của khóa và tích hợp các chỉ số thống kê đếm lượt gọi.
- */
+ * Thực thể lưu trữ khóa truy cập dành cho đối tác bên thứ ba.
+*/
 @Entity
 @Table(name = "partner_api_keys")
 @Getter
@@ -40,7 +40,6 @@ import vn.nguongocso.organization.entity.Organization;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PartnerApiKey {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -71,6 +70,10 @@ public class PartnerApiKey {
     private PartnerApiKeyStatus status;
 
     @Builder.Default
+    @Column(name = "is_test", nullable = false)
+    private Boolean isTest = false;
+
+    @Builder.Default
     @Column(name = "total_calls", nullable = false)
     private Long totalCalls = 0L;
 
@@ -87,6 +90,16 @@ public class PartnerApiKey {
     @Column(name = "last_call_ip", length = 45)
     private String lastCallIp;
 
+    @Column(name = "webhook_url", length = 500)
+    private String webhookUrl;
+
+    @Column(name = "webhook_secret", length = 64)
+    private String webhookSecret;
+
+    @Builder.Default
+    @Column(name = "is_webhook_active", nullable = false)
+    private Boolean isWebhookActive = true;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
@@ -101,6 +114,9 @@ public class PartnerApiKey {
     @Column(name = "revoked_at")
     private LocalDateTime revokedAt;
 
+    /**
+     * Thiết lập giá trị mặc định trước khi lưu mới.
+     */
     @PrePersist
     protected void onCreate() {
         if (status == null) {
@@ -114,6 +130,12 @@ public class PartnerApiKey {
         }
         if (failedCalls == null) {
             failedCalls = 0L;
+        }
+        if (isTest == null) {
+            isTest = false;
+        }
+        if (isWebhookActive == null) {
+            isWebhookActive = true;
         }
     }
 }

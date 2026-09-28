@@ -14,6 +14,7 @@ import { getLocalDateTimeString } from '@/utils/dateTime';
 import { toast } from 'sonner';
 import { KeyRound, Loader2, ShieldAlert } from 'lucide-react';
 import { createApiKey } from '@/api/apiKeyApi';
+import { toApiError } from '@/api/apiError';
 import type { PartnerApiKeyResponse } from '@/types/apiKey';
 import { selectAllOnFocus, preventMouseUpCollapse } from '@/utils/inputUtils';
 
@@ -89,8 +90,9 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
       toast.success(`Khóa API cho "${newKey.partnerName}" đã được tạo thành công!`);
       resetForm();
       onSuccess(newKey);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể tạo khóa API đối tác');
+    } catch (error: unknown) {
+      // Chuẩn hoá lỗi API để tránh treo trạng thái tải
+      toast.error(toApiError(error, 'Không thể tạo khóa API đối tác').message);
     } finally {
       setLoading(false);
     }

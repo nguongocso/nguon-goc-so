@@ -7,6 +7,8 @@ export interface RecallUserInfo {
 
 export interface RecallRequest {
   id: string;
+  shipmentId: string | null;
+  shipmentName: string | null;
   lotId: string;
   lotName: string;
   requestedBy: RecallUserInfo | null;
@@ -24,7 +26,7 @@ export interface RecallRequest {
 }
 
 export interface CreateRecallRequestPayload {
-  lotId: string;
+  shipmentId: string;
   reason: string;
   evidence?: string;
 }

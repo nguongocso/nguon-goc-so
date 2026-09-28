@@ -165,7 +165,7 @@ export default function TestingUnitListPage() {
     !!unit.accreditationExpiryDate && unit.accreditationExpiryDate < today;
 
   useSetBreadcrumb([
-    { label: "Dashboard", href: "/dashboard" },
+    { label: "Tổng quan", href: "/dashboard" },
     { label: "Đơn vị kiểm nghiệm" },
   ]);
 

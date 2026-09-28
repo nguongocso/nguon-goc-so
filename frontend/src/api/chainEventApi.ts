@@ -1,9 +1,11 @@
 import type { RecordMobileEventRequest } from '@/types/chainEvent';
-import apiClient from './axiosConfig';
 import type { ChainEventResponse } from '@/types/packaging';
 import type { OfflineSyncRequest, OfflineSyncResponse } from '@/types/offlineEvent';
 import type { ScanLookupResponse } from '@/types/scan';
 
+import apiClient from './axiosConfig';
+
+/** Lấy danh sách dòng thời gian sự kiện của lô hàng. */
 export const getShipmentTimeline = async (shipmentId: string): Promise<ChainEventResponse[]> => {
   const response = await apiClient.get<{ data: ChainEventResponse[] }>(
     `/shipments/${shipmentId}/chain-events`
@@ -11,6 +13,7 @@ export const getShipmentTimeline = async (shipmentId: string): Promise<ChainEven
   return response.data.data;
 };
 
+/** Ghi nhận sự kiện chuỗi cung ứng từ thiết bị di động. */
 export const recordMobileEvent = async (
   data: RecordMobileEventRequest
 ): Promise<ChainEventResponse> => {
@@ -21,10 +24,7 @@ export const recordMobileEvent = async (
   return response.data.data;
 };
 
-/**
- * Đồng bộ danh sách sự kiện ngoại tuyến
- * POST /api/v1/chain-events/sync
- */
+/** Đồng bộ danh sách sự kiện ngoại tuyến. */
 export const syncOfflineEvents = async (
   payload: OfflineSyncRequest
 ): Promise<OfflineSyncResponse> => {
@@ -34,11 +34,13 @@ export const syncOfflineEvents = async (
   );
   return response.data.data;
 };
+
+/** Tra cứu thông tin từ mã truy xuất khi quét mã. */
 export const scanLookupTraceCode = async (
   code: string,
 ): Promise<ScanLookupResponse> => {
   const response = await apiClient.get<{ data: ScanLookupResponse }>(
-    "/chain-events/scan-lookup",
+    '/chain-events/scan-lookup',
     { params: { codeValue: code } },
   );
 

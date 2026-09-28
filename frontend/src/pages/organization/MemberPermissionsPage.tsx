@@ -1,4 +1,4 @@
-import { MemberList } from "@/components/organization/MemberList";
+import { MemberList } from '@/components/organization/MemberList';
 
 const MemberPermissionsPage = () => {
   return <MemberList />;

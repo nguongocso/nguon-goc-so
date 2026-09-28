@@ -24,14 +24,20 @@ import org.springframework.data.domain.Pageable;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CultivationMilestoneRequest;
 import vn.nguongocso.certification.dto.response.CultivationMilestoneResponse;
+import vn.nguongocso.certification.dto.response.MilestoneEligibilityResponse;
 import vn.nguongocso.certification.entity.CultivationMilestone;
 import vn.nguongocso.certification.entity.Standard;
 import vn.nguongocso.certification.repository.CultivationMilestoneRepository;
 import vn.nguongocso.certification.repository.StandardRepository;
+import vn.nguongocso.certification.service.MilestoneValidationService;
 import vn.nguongocso.certification.service.impl.CultivationMilestoneServiceImpl;
 import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.exception.ResourceNotFoundException;
 import vn.nguongocso.farm.entity.ProductCategory;
+import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.ProductCategoryRepository;
+import vn.nguongocso.farm.repository.ProductionLotRepository;
+import vn.nguongocso.organization.entity.Organization;
 
 /**
  * Tests for CultivationMilestoneServiceImpl — trùng tên theo (loại, tiêu chuẩn),
@@ -49,6 +55,12 @@ class CultivationMilestoneServiceImplTest {
     @Mock
     private StandardRepository standardRepository;
 
+    @Mock
+    private MilestoneValidationService milestoneValidationService;
+
+    @Mock
+    private ProductionLotRepository productionLotRepository;
+
     private CultivationMilestoneServiceImpl service;
 
     private CultivationMilestoneRequest request;
@@ -56,7 +68,8 @@ class CultivationMilestoneServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new CultivationMilestoneServiceImpl(
-                milestoneRepository, productCategoryRepository, standardRepository);
+                milestoneRepository, productCategoryRepository, standardRepository,
+                milestoneValidationService, productionLotRepository);
         request = new CultivationMilestoneRequest();
         request.setName("Bón phân đợt 1");
         request.setActivityType("FERTILIZING");
@@ -220,5 +233,105 @@ class CultivationMilestoneServiceImplTest {
         verify(milestoneRepository).search(nullable(String.class), nullable(String.class),
                 nullable(UUID.class), nullable(UUID.class), org.mockito.ArgumentMatchers.eq(false),
                 org.mockito.ArgumentMatchers.eq(pageable));
+    }
+
+    // ===== NCL-09-CN-011: getPackagingEligibility =====
+
+    private ProductionLot lotOfOrg(UUID lotId, UUID orgId) {
+        Organization organization = Organization.builder()
+                .organizationId(orgId)
+                .name("HTX Nông sản sạch")
+                .build();
+        return ProductionLot.builder().id(lotId).organization(organization).build();
+    }
+
+    // TC: lô không tồn tại -> ResourceNotFoundException (404)
+    @Test
+    void getPackagingEligibility_shouldThrowWhenLotNotFound() {
+        UUID lotId = UUID.randomUUID();
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getPackagingEligibility(lotId, plainUser()))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Không tìm thấy lô sản xuất.");
+        verify(milestoneValidationService, never()).findMissingMilestones(any());
+    }
+
+    // TC: user khác tổ chức -> 403, không gọi validate
+    @Test
+    void getPackagingEligibility_shouldRejectForeignOrganization() {
+        UUID lotId = UUID.randomUUID();
+        ProductionLot lot = lotOfOrg(lotId, UUID.randomUUID());
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+
+        CustomUserDetails user = mock(CustomUserDetails.class);
+        when(user.getRoleCode()).thenReturn("VT-02");
+        when(user.getOrganizationId()).thenReturn(UUID.randomUUID());
+
+        assertThatThrownBy(() -> service.getPackagingEligibility(lotId, user))
+                .isInstanceOf(BusinessException.class);
+        verify(milestoneValidationService, never()).findMissingMilestones(any());
+    }
+
+    // TC: VT-01 bỏ qua ranh giới tổ chức
+    @Test
+    void getPackagingEligibility_shouldBypassOrganizationForAdmin() {
+        UUID lotId = UUID.randomUUID();
+        ProductionLot lot = lotOfOrg(lotId, UUID.randomUUID());
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+        when(milestoneValidationService.findMissingMilestones(lot)).thenReturn(List.of());
+
+        MilestoneEligibilityResponse response =
+                service.getPackagingEligibility(lotId, admin());
+
+        assertThat(response.isEligible()).isTrue();
+        assertThat(response.getProductionLotId()).isEqualTo(lotId);
+        assertThat(response.getMissingMilestones()).isEmpty();
+    }
+
+    // TC: cùng tổ chức, đủ mốc -> eligible
+    @Test
+    void getPackagingEligibility_shouldReturnEligibleWhenNoMissing() {
+        UUID lotId = UUID.randomUUID();
+        UUID orgId = UUID.randomUUID();
+        ProductionLot lot = lotOfOrg(lotId, orgId);
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+
+        CustomUserDetails user = mock(CustomUserDetails.class);
+        when(user.getRoleCode()).thenReturn("VT-02");
+        when(user.getOrganizationId()).thenReturn(orgId);
+        when(milestoneValidationService.findMissingMilestones(lot)).thenReturn(List.of());
+
+        MilestoneEligibilityResponse response = service.getPackagingEligibility(lotId, user);
+
+        assertThat(response.isEligible()).isTrue();
+        assertThat(response.getMissingMilestones()).isEmpty();
+    }
+
+    // TC: thiếu mốc -> trả đúng tên + activityType
+    @Test
+    void getPackagingEligibility_shouldReturnMissingMilestones() {
+        UUID lotId = UUID.randomUUID();
+        UUID orgId = UUID.randomUUID();
+        ProductionLot lot = lotOfOrg(lotId, orgId);
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+
+        CustomUserDetails user = mock(CustomUserDetails.class);
+        when(user.getRoleCode()).thenReturn("VT-02");
+        when(user.getOrganizationId()).thenReturn(orgId);
+
+        CultivationMilestone missingFertilizing = CultivationMilestone.builder()
+                .id(2L).name("Bón phân đợt 2").activityType("FERTILIZING")
+                .isMandatory(true).build();
+        when(milestoneValidationService.findMissingMilestones(lot))
+                .thenReturn(List.of(missingFertilizing));
+
+        MilestoneEligibilityResponse response = service.getPackagingEligibility(lotId, user);
+
+        assertThat(response.isEligible()).isFalse();
+        assertThat(response.getMissingMilestones()).hasSize(1);
+        assertThat(response.getMissingMilestones().get(0).getName()).isEqualTo("Bón phân đợt 2");
+        assertThat(response.getMissingMilestones().get(0).getActivityType())
+                .isEqualTo("FERTILIZING");
     }
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
+import { toApiError } from "@/api/apiError";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -28,9 +29,12 @@ import {
   Pencil,
   MoreHorizontal,
   ClipboardList,
+  AlertTriangle,
 } from "lucide-react";
 import { getFarmLogs } from "@/api/farmLogApi";
+import { getMilestoneReminders } from "@/api/milestoneReminderApi";
 import type { FarmLog } from "@/types/farmLog";
+import type { MilestoneReminder } from "@/types/milestoneReminder";
 import { useNavigate } from "react-router-dom";
 import type { PageResponse } from "@/types/common";
 import { useAuth } from "@/hooks/useAuth";
@@ -87,6 +91,7 @@ export function FarmLogList({
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
+  const [openReminders, setOpenReminders] = useState<MilestoneReminder[]>([]);
 
   // Bộ lọc client
   const [searchTerm, setSearchTerm] = useState("");
@@ -130,10 +135,9 @@ export function FarmLogList({
         first: response.first,
         last: response.last,
       });
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message ||
-        "Không thể tải lịch sử nhật ký canh tác.";
+    } catch (error: unknown) {
+      // Chuẩn hoá lỗi API để hiển thị và luôn reset trạng thái tải
+      const message = toApiError(error, "Không thể tải lịch sử nhật ký canh tác.").message;
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -143,6 +147,23 @@ export function FarmLogList({
   useEffect(() => {
     loadLogs();
   }, [productionLotId, page, size]);
+
+  useEffect(() => {
+    if (!productionLotId) return;
+    const fetchReminders = async () => {
+      try {
+        const res = await getMilestoneReminders({
+          lotId: productionLotId,
+          status: 'OPEN',
+          size: 10,
+        });
+        setOpenReminders(res.items || []);
+      } catch {
+        setOpenReminders([]);
+      }
+    };
+    void fetchReminders();
+  }, [productionLotId]);
 
   // Lọc client
   const filteredLogs = useMemo(() => {
@@ -224,6 +245,46 @@ export function FarmLogList({
         </div>
       </CardHeader>
       <CardContent className="p-4 space-y-4">
+        {/* NCL-03-CN-007: Cảnh báo mốc canh tác bắt buộc quá hạn chưa ghi */}
+        {openReminders.length > 0 && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50/90 p-3.5 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+              <div>
+                <p className="font-semibold text-sm">
+                  Lô này có {openReminders.length} mốc canh tác bắt buộc quá hạn cần hoàn thành:
+                </p>
+                <div className="flex flex-wrap gap-2 mt-1.5">
+                  {openReminders.map((r) => (
+                    <Badge
+                      key={r.id}
+                      variant="outline"
+                      className="border-amber-400 bg-white text-xs font-medium text-amber-950 py-0.5"
+                    >
+                      {r.milestoneName} (Quá hạn {r.overdueDays} ngày)
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {canCreate && (
+              <Button
+                type="button"
+                size="sm"
+                variant="create"
+                onClick={() =>
+                  navigate(
+                    `/farm-logs/create?productionLotId=${productionLotId}&activityType=${openReminders[0].activityType}`
+                  )
+                }
+                className="shrink-0 self-end sm:self-center"
+              >
+                Ghi mốc này ngay
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Bộ lọc */}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
           <div className="relative">

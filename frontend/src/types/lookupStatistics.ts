@@ -43,13 +43,21 @@ export interface AbnormalScanResponse {
 
 export interface AbnormalScansPage {
   content: AbnormalScanResponse[];
-  pageable: {
-    pageNumber: number;
-    pageSize: number;
+  page?: {
+    size: number;
+    number: number;
     totalElements: number;
     totalPages: number;
-    last: boolean;
   };
+  pageable?: {
+    pageNumber?: number;
+    pageSize?: number;
+    totalElements?: number;
+    totalPages?: number;
+    last?: boolean;
+  };
+  totalPages?: number;
+  totalElements?: number;
 }
 
 export interface LookupStatisticsParams {

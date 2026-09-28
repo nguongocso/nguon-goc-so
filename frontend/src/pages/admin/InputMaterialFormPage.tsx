@@ -45,7 +45,7 @@ export const InputMaterialFormPage = () => {
   const [material, setMaterial] = useState<InputMaterial | null>(null);
 
   useSetBreadcrumb([
-    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Tổng quan', href: '/dashboard' },
     { label: 'Danh mục vật tư', href: '/admin/input-materials' },
     { label: isEditMode ? (material ? `Chỉnh sửa: ${material.name}` : 'Chỉnh sửa vật tư') : 'Khai báo vật tư mới' },
   ]);

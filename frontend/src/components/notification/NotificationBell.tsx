@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NotificationPanel } from '@/components/notification/NotificationPanel';
+import { resolveNotificationTarget } from '@/lib/notificationHelpers';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,10 +20,11 @@ export const NotificationBell = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { unreadCount: apiUnreadCount, refresh: refreshUnreadCount } = useUnreadCount();
-  const { items, isLoading, load, markAsRead } = useNotifications({
+  const { items, isLoading, load, markAsRead, markAllAsRead } = useNotifications({
     size: 8,
     autoLoad: false,
   });
+  const [isMarkingAllAsRead, setIsMarkingAllAsRead] = useState(false);
 
   const isMissingEmail = Boolean(
     user &&
@@ -30,25 +32,47 @@ export const NotificationBell = () => {
     (!user.email || user.email.trim() === '')
   );
 
+  const isMissingTerritory = Boolean(
+    user &&
+    hasAnyRole(user.roleCode, ROLE_ACCESS.organizationProfile) &&
+    user.roleCode === 'VT-02' &&
+    (!user.organizationProvinceId || !user.organizationCommuneId)
+  );
+
   const emailNoticeKey = user ? `session_read_email_notice_${user.userId}` : '';
   const [isEmailNoticeRead, setIsEmailNoticeRead] = useState<boolean>(() => {
     return emailNoticeKey ? sessionStorage.getItem(emailNoticeKey) === 'true' : false;
   });
 
-  // Đồng bộ trạng thái đã đọc khi user thay đổi hoặc email cập nhật
+  const territoryNoticeKey = user?.organizationId
+    ? `session_read_org_territory_notice_${user.organizationId}`
+    : '';
+  const [isTerritoryNoticeRead, setIsTerritoryNoticeRead] = useState<boolean>(() => {
+    return territoryNoticeKey ? sessionStorage.getItem(territoryNoticeKey) === 'true' : false;
+  });
+
+  // Đồng bộ trạng thái đã đọc khi user thay đổi hoặc email/địa bàn cập nhật
   useEffect(() => {
     if (emailNoticeKey) {
       setIsEmailNoticeRead(sessionStorage.getItem(emailNoticeKey) === 'true');
     }
   }, [emailNoticeKey, user?.email]);
 
-  // Tổng số lượng thông báo chưa đọc (bao gồm thông báo nhắc email nếu chưa đọc)
+  useEffect(() => {
+    if (territoryNoticeKey) {
+      setIsTerritoryNoticeRead(sessionStorage.getItem(territoryNoticeKey) === 'true');
+    }
+  }, [territoryNoticeKey, user?.organizationProvinceId, user?.organizationCommuneId]);
+
+  // Tổng số lượng thông báo chưa đọc (bao gồm thông báo nhắc email và nhắc địa bàn nếu chưa đọc)
   const totalUnreadCount =
-    apiUnreadCount + (isMissingEmail && !isEmailNoticeRead ? 1 : 0);
+    apiUnreadCount +
+    (isMissingEmail && !isEmailNoticeRead ? 1 : 0) +
+    (isMissingTerritory && !isTerritoryNoticeRead ? 1 : 0);
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
-    if (nextOpen) {     
+    if (nextOpen) {
       void load(0);
       void refreshUnreadCount();
     }
@@ -57,6 +81,22 @@ export const NotificationBell = () => {
   const handleItemClick = (notification: NotificationResponse) => {
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
+    }
+    setOpen(false);
+
+    const target = resolveNotificationTarget(notification);
+    if (target) {
+      navigate(target);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    setIsMarkingAllAsRead(true);
+    try {
+      await markAllAsRead();
+      await refreshUnreadCount();
+    } finally {
+      setIsMarkingAllAsRead(false);
     }
   };
 
@@ -67,6 +107,15 @@ export const NotificationBell = () => {
     }
     setOpen(false);
     navigate('/profile');
+  };
+
+  const handleTerritoryNoticeClick = () => {
+    if (territoryNoticeKey) {
+      sessionStorage.setItem(territoryNoticeKey, 'true');
+      setIsTerritoryNoticeRead(true);
+    }
+    setOpen(false);
+    navigate('/organizations/profile');
   };
 
   return (
@@ -98,6 +147,13 @@ export const NotificationBell = () => {
           isMissingEmail={isMissingEmail}
           isEmailNoticeRead={isEmailNoticeRead}
           onEmailNoticeClick={handleEmailNoticeClick}
+          isMissingTerritory={isMissingTerritory}
+          isTerritoryNoticeRead={isTerritoryNoticeRead}
+          onTerritoryNoticeClick={handleTerritoryNoticeClick}
+          unreadCount={apiUnreadCount}
+          onMarkAllAsRead={handleMarkAllAsRead}
+          isMarkingAllAsRead={isMarkingAllAsRead}
+          onClose={() => setOpen(false)}
         />
       </DropdownMenuContent>
     </DropdownMenu>

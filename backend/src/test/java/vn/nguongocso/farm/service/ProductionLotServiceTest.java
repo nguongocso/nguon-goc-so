@@ -11,12 +11,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.certification.service.InspectionEligibilityService;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
+import vn.nguongocso.farm.dto.request.CancelProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
+import vn.nguongocso.farm.dto.request.DisposeProductionLotRequest;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.ProductCategory;
@@ -28,8 +32,15 @@ import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.farm.service.impl.ProductionLotServiceImpl;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
+import vn.nguongocso.organization.constant.RoleCode;
+import vn.nguongocso.organization.service.AreaScopeResult;
+import vn.nguongocso.organization.service.AreaScopeService;
+import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.repository.ShipmentRepository;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,7 +62,16 @@ public class ProductionLotServiceTest {
     private ProductCategoryRepository productCategoryRepository;
 
     @Mock
+    private ShipmentRepository shipmentRepository;
+
+    @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private InspectionEligibilityService inspectionEligibilityService;
+
+    @Mock
+    private AreaScopeService areaScopeService;
 
     @InjectMocks
     private ProductionLotServiceImpl productionLotService;
@@ -67,8 +87,12 @@ public class ProductionLotServiceTest {
         userId = UUID.randomUUID();
         lotId = UUID.randomUUID();
         userDetails = mock(CustomUserDetails.class);
-        when(userDetails.getOrganizationId()).thenReturn(orgId);
-        when(userDetails.getUserId()).thenReturn(userId);
+        lenient().when(userDetails.getOrganizationId()).thenReturn(orgId);
+        lenient().when(userDetails.getUserId()).thenReturn(userId);
+
+        // NCL-11-CN-005 (QTN-30): mặc định lô không có kết luận FAILED.
+        lenient().when(inspectionEligibilityService.hasLatestFailedConclusion(any(ProductionLot.class)))
+                .thenReturn(false);
     }
 
     @Test
@@ -95,6 +119,7 @@ public class ProductionLotServiceTest {
         // Then
         assertThat(response.getStatus()).isEqualTo(ProductionLotStatus.APPROVED.name());
         verify(productionLotRepository).save(lot);
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
         assertThat(lot.getApprovedBy()).isEqualTo(approver);
         assertThat(lot.getApprovalNotes()).isNull();
     }
@@ -117,6 +142,12 @@ public class ProductionLotServiceTest {
                 .build();
 
         return lot;
+    }
+
+    private Organization defaultOrg() {
+        Organization org = new Organization();
+        org.setOrganizationId(orgId);
+        return org;
     }
 
     @Test
@@ -182,6 +213,158 @@ public class ProductionLotServiceTest {
                 .hasMessage("Chỉ có thể duyệt lô đang ở trạng thái chờ duyệt");
     }
 
+    // =========================================================
+    // NCL-02-CN-006: Hủy lô sản xuất và ghi lý do
+    // =========================================================
+
+    @Test
+    void cancelProductionLot_shouldCancelLot_whenCancellableAndNoTraceCodes() {
+        // Given
+        ProductionLot lot = createPendingLot();
+        User canceller = new User();
+        canceller.setUserId(userId);
+        canceller.setFullName("Quản lý HTX");
+
+        CancelProductionLotRequest request = new CancelProductionLotRequest();
+        request.setReason("khai báo nhầm");
+        request.setNote("Khai báo sai vùng trồng");
+
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+        when(shipmentRepository.findByProductionLotId(lotId)).thenReturn(List.of());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(canceller));
+        when(productionLotRepository.save(any(ProductionLot.class))).thenReturn(lot);
+
+        // When
+        CreateProductionLotResponse response =
+                productionLotService.cancelProductionLot(lotId, request, userDetails);
+
+        // Then
+        assertThat(response.getStatus()).isEqualTo(ProductionLotStatus.CANCELLED.name());
+        assertThat(lot.getStatus()).isEqualTo(ProductionLotStatus.CANCELLED);
+        assertThat(lot.getCancellationReason()).isEqualTo("khai báo nhầm");
+        assertThat(lot.getCancellationNote()).isEqualTo("Khai báo sai vùng trồng");
+        assertThat(lot.getCancelledBy()).isEqualTo(canceller);
+        assertThat(lot.getCancelledAt()).isNotNull();
+        verify(productionLotRepository).save(lot);
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
+    }
+
+    @Test
+    void cancelProductionLot_shouldThrow_whenNotBelongToOrg() {
+        // Given — QTN-01: cách ly dữ liệu giữa các tổ chức
+        ProductionLot lot = createPendingLot();
+        Organization otherOrg = new Organization();
+        otherOrg.setOrganizationId(UUID.randomUUID());
+        lot.setOrganization(otherOrg);
+
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+
+        CancelProductionLotRequest request = new CancelProductionLotRequest();
+        request.setReason("sâu bệnh");
+        request.setNote("Sâu bệnh nặng toàn vùng");
+
+        // When & Then
+        assertThatThrownBy(() -> productionLotService.cancelProductionLot(lotId, request, userDetails))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô sản xuất không thuộc tổ chức của bạn");
+        verify(productionLotRepository, never()).save(any(ProductionLot.class));
+    }
+
+    @Test
+    void cancelProductionLot_shouldThrow_whenLotInTerminalState() {
+        // Given
+        ProductionLot lot = createPendingLot();
+        lot.setStatus(ProductionLotStatus.CANCELLED);
+
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+
+        CancelProductionLotRequest request = new CancelProductionLotRequest();
+        request.setReason("lý do khác");
+        request.setNote("Lô đã hủy trước đó");
+
+        // When & Then
+        assertThatThrownBy(() -> productionLotService.cancelProductionLot(lotId, request, userDetails))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô đã ở trạng thái CANCELLED, không thể hủy");
+        verify(productionLotRepository, never()).save(any(ProductionLot.class));
+    }
+
+    @Test
+    void cancelProductionLot_shouldThrow_whenLotHasTraceCodes() {
+        // Given — TC-02: lô đã sinh mã truy xuất phải dùng luồng thu hồi
+        ProductionLot lot = createPendingLot();
+
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+        when(shipmentRepository.findByProductionLotId(lotId))
+                .thenReturn(List.of(mock(Shipment.class)));
+
+        CancelProductionLotRequest request = new CancelProductionLotRequest();
+        request.setReason("khai báo nhầm");
+        request.setNote("Lô đã đóng gói sinh mã rồi");
+
+        // When & Then
+        assertThatThrownBy(() -> productionLotService.cancelProductionLot(lotId, request, userDetails))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô đã sinh mã truy xuất, không thể hủy. Vui lòng sử dụng luồng thu hồi lô");
+        verify(productionLotRepository, never()).save(any(ProductionLot.class));
+    }
+
+    @Test
+    void cancelProductionLot_shouldCancelPackagedLot_whenNoTraceCodes() {
+        // Given — theo tài liệu gốc (I77/J77): điều kiện hủy duy nhất là
+        // "chưa sinh mã truy xuất"; lô PACKAGED chưa tạo lô hàng vẫn được hủy.
+        ProductionLot lot = createPendingLot();
+        lot.setStatus(ProductionLotStatus.PACKAGED);
+        User canceller = new User();
+        canceller.setUserId(userId);
+        canceller.setFullName("Quản lý HTX");
+
+        CancelProductionLotRequest request = new CancelProductionLotRequest();
+        request.setReason("Khai báo nhầm");
+        request.setNote("Đóng gói nhầm lô của vụ trước");
+
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+        when(shipmentRepository.findByProductionLotId(lotId)).thenReturn(List.of());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(canceller));
+        when(productionLotRepository.save(any(ProductionLot.class))).thenReturn(lot);
+
+        // When
+        CreateProductionLotResponse response =
+                productionLotService.cancelProductionLot(lotId, request, userDetails);
+
+        // Then
+        assertThat(response.getStatus()).isEqualTo(ProductionLotStatus.CANCELLED.name());
+        assertThat(lot.getStatus()).isEqualTo(ProductionLotStatus.CANCELLED);
+        verify(productionLotRepository).save(lot);
+    }
+
+    @Test
+    void cancelProductionLot_shouldCancelLot_whenNoteIsBlank() {
+        // "Tại sao?" (diễn giải) KHÔNG bắt buộc — chỉ reason bắt buộc
+        // (quyết định người dùng 2026-09-04).
+        ProductionLot lot = createPendingLot();
+        User canceller = new User();
+        canceller.setUserId(userId);
+        canceller.setFullName("Quản lý HTX");
+
+        CancelProductionLotRequest request = new CancelProductionLotRequest();
+        request.setReason("Lý do khác");
+        request.setNote(null);
+
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+        when(shipmentRepository.findByProductionLotId(lotId)).thenReturn(List.of());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(canceller));
+        when(productionLotRepository.save(any(ProductionLot.class))).thenReturn(lot);
+
+        CreateProductionLotResponse response =
+                productionLotService.cancelProductionLot(lotId, request, userDetails);
+
+        assertThat(response.getStatus()).isEqualTo(ProductionLotStatus.CANCELLED.name());
+        assertThat(lot.getCancellationReason()).isEqualTo("Lý do khác");
+        assertThat(lot.getCancellationNote()).isNull();
+        verify(productionLotRepository).save(lot);
+    }
+
     private CreateProductionLotRequest createLotRequest(UUID farmAreaId) {
         CreateProductionLotRequest request = new CreateProductionLotRequest();
         request.setName("Lô xoài Cát Chu");
@@ -231,5 +414,121 @@ public class ProductionLotServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Khu vực canh tác này không thuộc tổ chức của bạn");
         verify(productionLotRepository, never()).save(any(ProductionLot.class));
+    }
+
+    // =========================================================
+    // NCL-11-CN-005 (QTN-30): Loại bỏ lô sản xuất
+    // =========================================================
+
+    @Test
+    void disposeProductionLot_shouldDispose_whenValid() {
+        // Given — lô PACKAGED thuộc tổ chức, chưa có shipment
+        ProductionLot lot = createPendingLot();
+        lot.setStatus(ProductionLotStatus.PACKAGED);
+        lot.setOrganization(defaultOrg());
+        User disposer = new User();
+        disposer.setUserId(userId);
+        disposer.setFullName("Quản lý HTX");
+
+        DisposeProductionLotRequest request = new DisposeProductionLotRequest();
+        request.setReason("Kết quả kiểm nghiệm không đạt dư lượng thuốc bảo vệ thực vật");
+        request.setHandlingMeasure("Phá hủy toàn bộ 200 kg tại khu cách ly");
+        request.setNote("Giám sát bởi Trạm BVTV huyện");
+
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+        when(shipmentRepository.findByProductionLotId(lotId)).thenReturn(List.of());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(disposer));
+        when(productionLotRepository.save(any(ProductionLot.class))).thenReturn(lot);
+
+        // When
+        CreateProductionLotResponse response =
+                productionLotService.disposeProductionLot(lotId, request, userDetails);
+
+        // Then
+        assertThat(response.getStatus()).isEqualTo(ProductionLotStatus.DISPOSED.name());
+        assertThat(lot.getStatus()).isEqualTo(ProductionLotStatus.DISPOSED);
+        assertThat(lot.getDisposalReason()).isEqualTo(request.getReason());
+        assertThat(lot.getHandlingMeasure()).isEqualTo(request.getHandlingMeasure());
+        assertThat(lot.getDisposalNote()).isEqualTo(request.getNote());
+        assertThat(lot.getDisposedBy()).isEqualTo(disposer);
+        assertThat(lot.getDisposedAt()).isNotNull();
+        verify(productionLotRepository).save(lot);
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
+    }
+
+    @Test
+    void disposeProductionLot_shouldThrow_whenNotBelongToOrg() {
+        // Given — QTN-01: cách ly dữ liệu giữa các tổ chức
+        ProductionLot lot = createPendingLot();
+        lot.setStatus(ProductionLotStatus.PACKAGED);
+        Organization otherOrg = new Organization();
+        otherOrg.setOrganizationId(UUID.randomUUID());
+        lot.setOrganization(otherOrg);
+
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+
+        DisposeProductionLotRequest request = new DisposeProductionLotRequest();
+        request.setReason("lý do");
+        request.setHandlingMeasure("biện pháp");
+
+        // When & Then
+        assertThatThrownBy(() ->
+                productionLotService.disposeProductionLot(lotId, request, userDetails))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô sản xuất không thuộc tổ chức của bạn");
+        verify(productionLotRepository, never()).save(any(ProductionLot.class));
+    }
+
+    @Test
+    void getAllProductionLots_whenOrgManager_shouldFindByOrganizationId() {
+        // Given
+        when(userDetails.getRoleCode()).thenReturn(RoleCode.ORG_MANAGER);
+        ProductionLot lot = createPendingLot();
+        when(productionLotRepository.findByOrganization_OrganizationId(orgId)).thenReturn(List.of(lot));
+
+        // When
+        List<CreateProductionLotResponse> responses = productionLotService.getAllProductionLots(userDetails);
+
+        // Then
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).getId()).isEqualTo(lot.getId());
+        verify(productionLotRepository).findByOrganization_OrganizationId(orgId);
+        verifyNoInteractions(areaScopeService);
+    }
+
+    @Test
+    void getAllProductionLots_whenRegulatorWithAssignedArea_shouldFindInOrganizations() {
+        // Given
+        when(userDetails.getRoleCode()).thenReturn(RoleCode.REGULATOR);
+        UUID coopOrgId = UUID.randomUUID();
+        AreaScopeResult scope = AreaScopeResult.of(Set.of(coopOrgId));
+        when(areaScopeService.resolveOrganizationsForReports(userDetails, null)).thenReturn(scope);
+
+        ProductionLot lot = createPendingLot();
+        when(productionLotRepository.findAllInOrganizationsWithDetails(Set.of(coopOrgId))).thenReturn(List.of(lot));
+
+        // When
+        List<CreateProductionLotResponse> responses = productionLotService.getAllProductionLots(userDetails);
+
+        // Then
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).getId()).isEqualTo(lot.getId());
+        verify(productionLotRepository).findAllInOrganizationsWithDetails(Set.of(coopOrgId));
+        verify(productionLotRepository, never()).findByOrganization_OrganizationId(any());
+    }
+
+    @Test
+    void getAllProductionLots_whenRegulatorWithUnassignedArea_shouldReturnEmpty() {
+        // Given
+        when(userDetails.getRoleCode()).thenReturn(RoleCode.REGULATOR);
+        when(areaScopeService.resolveOrganizationsForReports(userDetails, null)).thenReturn(AreaScopeResult.emptyScope());
+
+        // When
+        List<CreateProductionLotResponse> responses = productionLotService.getAllProductionLots(userDetails);
+
+        // Then
+        assertThat(responses).isEmpty();
+        verify(productionLotRepository, never()).findAllInOrganizationsWithDetails(any());
+        verify(productionLotRepository, never()).findByOrganization_OrganizationId(any());
     }
 }

@@ -10,38 +10,52 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
+
+import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.integration.apikey.dto.request.CreateApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.CreateTestApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.RenewApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.UpdateApiKeyQuotaRequest;
+import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyPageResponse;
 import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyResponse;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
+import vn.nguongocso.integration.partner.dto.request.PartnerWebhookRegistrationRequest;
+import vn.nguongocso.integration.partner.dto.response.PartnerWebhookNotificationResponse;
+import vn.nguongocso.integration.partner.dto.response.PartnerWebhookResponse;
+import vn.nguongocso.integration.partner.dto.response.WebhookTestPingResponse;
+import vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus;
+import vn.nguongocso.integration.partner.service.PartnerWebhookService;
 
 /**
- * Controller quản lý khóa truy cập dành cho Quản lý Hợp tác xã (VT-02).
- * <p>
- * Phân quyền nghiêm ngặt: Chỉ tài khoản có vai trò VT-02 mới được phép thực hiện (TC-04).
- */
+ * Controller quản lý khóa truy cập dành cho Quản lý Hợp tác xã.
+*/
 @RestController
 @RequestMapping("/api/v1/organization/api-keys")
 @RequiredArgsConstructor
 public class PartnerApiKeyController {
-
     private static final Logger log = LoggerFactory.getLogger(PartnerApiKeyController.class);
 
     private final PartnerApiKeyService partnerApiKeyService;
+    private final PartnerWebhookService partnerWebhookService;
 
     /**
-     * Cấp mới khóa truy cập cho bên thứ ba (TC-01, TC-03).
+     * Cấp mới khóa truy cập cho bên thứ ba.
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
@@ -57,22 +71,38 @@ public class PartnerApiKeyController {
     }
 
     /**
+     * Cấp mới khóa thử nghiệm cho đối tác bên thứ ba.
+     */
+    @PostMapping("/test")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<PartnerApiKeyResponse>> createTestApiKey(
+            @Valid @RequestBody CreateTestApiKeyRequest request) {
+
+        log.info("Nhận yêu cầu cấp khóa thử nghiệm cho đối tác '{}', limit={}/h",
+                request.getPartnerName(), request.getRateLimitPerHour());
+
+        PartnerApiKeyResponse response = partnerApiKeyService.createTestApiKey(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResult.success(201, response));
+    }
+
+    /**
      * Lấy danh sách khóa truy cập thuộc Hợp tác xã hiện tại.
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
-    public ResponseEntity<ApiResult<Page<PartnerApiKeyResponse>>> getOrganizationApiKeys(
+    public ResponseEntity<ApiResult<PartnerApiKeyPageResponse>> getOrganizationApiKeys(
             @RequestParam(required = false) PartnerApiKeyStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<PartnerApiKeyResponse> responses = partnerApiKeyService.getOrganizationApiKeys(status, pageable);
+        PartnerApiKeyPageResponse responses = partnerApiKeyService.getOrganizationApiKeys(status, pageable);
         return ResponseEntity.ok(ApiResult.success(responses));
     }
 
     /**
-     * Thu hồi khóa truy cập (TC-02).
+     * Thu hồi khóa truy cập.
      */
     @PostMapping("/{id}/revoke")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
@@ -81,6 +111,91 @@ public class PartnerApiKeyController {
 
         log.info("Nhận yêu cầu thu hồi khóa truy cập id={}", id);
         PartnerApiKeyResponse response = partnerApiKeyService.revokeApiKey(id);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Gia hạn khóa truy cập.
+     */
+    @PatchMapping("/{id}/expiry")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<PartnerApiKeyResponse>> renewApiKey(
+            @PathVariable UUID id,
+            @RequestBody @Valid RenewApiKeyRequest request) {
+        PartnerApiKeyResponse response = partnerApiKeyService.renewApiKey(id, request);
+        return ResponseEntity.ok(ApiResult.success(200, response));
+    }
+
+    /**
+     * Nâng hạn mức khóa truy cập.
+     */
+    @PatchMapping("/{id}/quota")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<PartnerApiKeyResponse>> updateApiKeyQuota(
+            @PathVariable UUID id,
+            @RequestBody @Valid UpdateApiKeyQuotaRequest request) {
+        PartnerApiKeyResponse response = partnerApiKeyService.updateApiKeyQuota(id, request);
+        return ResponseEntity.ok(ApiResult.success(200, response));
+    }
+
+    /**
+     * Lấy thông tin cấu hình Webhook của một khóa API.
+     */
+    @GetMapping("/{id}/webhook")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<PartnerWebhookResponse>> getWebhookConfig(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        log.info("Lấy thông tin cấu hình webhook cho apiKeyId={}", id);
+        var response = partnerWebhookService.getWebhookForOrganizationKey(id, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Đăng ký hoặc cập nhật địa chỉ nhận thông báo Webhook cho khóa API.
+     */
+    @PutMapping("/{id}/webhook")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<PartnerWebhookResponse>> registerWebhook(
+            @PathVariable UUID id,
+            @Valid @RequestBody PartnerWebhookRegistrationRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        log.info("Cập nhật địa chỉ nhận thông báo webhook cho apiKeyId={}", id);
+        var response = partnerWebhookService.registerWebhookForOrganizationKey(id, request, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Bắn thử nghiệm webhook kiểm tra kết nối tới máy chủ đối tác.
+     */
+    @PostMapping("/{id}/webhook/test-ping")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<WebhookTestPingResponse>> testPingWebhook(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        log.info("Bắn thử nghiệm webhook cho apiKeyId={}", id);
+        var response = partnerWebhookService.sendTestPing(id, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Xem lịch sử thông báo thu hồi đã gửi cho khóa API đối tác.
+     */
+    @GetMapping("/{id}/notifications")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<Page<PartnerWebhookNotificationResponse>>> getNotifications(
+            @PathVariable UUID id,
+            @RequestParam(required = false) WebhookDeliveryStatus deliveryStatus,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        PageRequest pageable = PageRequest.of(page, size);
+        var response = partnerWebhookService.getNotificationsForOrganizationKey(id, deliveryStatus, pageable,
+                currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }
 }

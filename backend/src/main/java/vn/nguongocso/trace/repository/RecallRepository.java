@@ -9,18 +9,12 @@ import org.springframework.stereotype.Repository;
 import vn.nguongocso.trace.entity.Recall;
 import vn.nguongocso.trace.entity.Shipment;
 
-/**
- * Repository quản lý các đợt thu hồi.
- */
+/** Repository quản lý các đợt thu hồi. */
 @Repository
 public interface RecallRepository extends JpaRepository<Recall, UUID> {
-    /**
-     * Lấy bản ghi thu hồi mới nhất của một lô hàng.
-     */
+    /** Lấy bản ghi thu hồi mới nhất của một lô hàng. */
     Optional<Recall> findTopByShipmentOrderByRecalledAtDesc(Shipment shipment);
 
-    /**
-     * Lấy bản ghi thu hồi của một lô hàng theo shipmentId.
-     */
+    /** Lấy bản ghi thu hồi của một lô hàng theo ID lô hàng. */
     Optional<Recall> findByShipmentId(UUID shipmentId);
 }

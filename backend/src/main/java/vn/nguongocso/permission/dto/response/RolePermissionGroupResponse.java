@@ -5,9 +5,7 @@ import lombok.Getter;
 
 import java.util.List;
 
-/**
- * Response DTO cho một nhóm quyền của vai trò.
- */
+/** Response DTO cho một nhóm quyền của vai trò. */
 @Getter
 @Builder
 public class RolePermissionGroupResponse {

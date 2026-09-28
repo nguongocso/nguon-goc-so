@@ -8,9 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Yêu cầu tạo lời mời tham gia tổ chức.
- */
+/** Yêu cầu tạo lời mời tham gia tổ chức. */
 @Getter
 @Setter
 public class CreateInvitationRequest {

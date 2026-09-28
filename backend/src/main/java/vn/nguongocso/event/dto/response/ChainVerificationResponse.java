@@ -10,23 +10,31 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Kết quả kiểm chứng tính toàn vẹn dòng sự kiện của một lô hàng.
- */
+/** Kết quả kiểm chứng tính toàn vẹn dòng sự kiện của một lô hàng. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
 @Setter
 @Builder
 public class ChainVerificationResponse {
     private UUID shipmentId;
+
     private String shipmentName;
+
     private Integer totalEvents;
+
     private Boolean isIntegrityVerified;
-    private String verificationStatus; // "INTACT", "BROKEN"
+
+    private String verificationStatus;
+
     private Integer failedEventIndex;
+
     private UUID failedEventId;
+
     private String failureReason;
+
     private LocalDateTime verifiedAt;
+
     private String hashAlgorithm;
+
     private List<EventVerificationItem> events;
 }

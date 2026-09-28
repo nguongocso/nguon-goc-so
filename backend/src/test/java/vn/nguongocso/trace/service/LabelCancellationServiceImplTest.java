@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -107,7 +108,14 @@ class LabelCancellationServiceImplTest {
         when(currentUserDetails.getUsername()).thenReturn("manager");
         when(currentUserDetails.getRoleCode()).thenReturn("VT-02");
 
+        when(authentication.getPrincipal()).thenReturn(currentUserDetails);
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        doNothing().when(permissionChecker).check(any(), any());
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -176,6 +184,7 @@ class LabelCancellationServiceImplTest {
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> labelCancellationService.cancelTraceCodes(shipmentId, request));
 
+        assertNotNull(exception.getMessage());
         assertTrue(exception.getMessage().contains("Không thể hủy tem đã kích hoạt"));
         assertTrue(exception.getMessage().contains("Khóa mã (LOCKED) hoặc Thu hồi (RECALLED)"));
     }
@@ -199,6 +208,7 @@ class LabelCancellationServiceImplTest {
 
         BusinessException ex1 = assertThrows(BusinessException.class,
                 () -> labelCancellationService.cancelTraceCodes(shipmentId, requestWrongPrefix));
+        assertNotNull(ex1.getMessage());
         assertTrue(ex1.getMessage().contains("không đúng tiền tố dải mã 'GGJ'"));
 
         // Request with non-existent start code
@@ -214,6 +224,27 @@ class LabelCancellationServiceImplTest {
 
         BusinessException ex2 = assertThrows(BusinessException.class,
                 () -> labelCancellationService.cancelTraceCodes(shipmentId, requestNonExistent));
+        assertNotNull(ex2.getMessage());
         assertTrue(ex2.getMessage().contains("không tồn tại trong lô hàng này"));
+    }
+
+    @Test
+    @DisplayName("Chặn khi thao tác trên lô hàng của tổ chức khác")
+    void testCancelLabels_DifferentOrganization_ThrowsException() {
+        UUID otherOrgId = UUID.randomUUID();
+        when(currentUserDetails.getOrganizationId()).thenReturn(otherOrgId);
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+
+        CancelTraceCodesRequest request = CancelTraceCodesRequest.builder()
+                .cancelType("SINGLE")
+                .codeValues(List.of("PREFIX-0001"))
+                .reasonType("PRINT_ERROR")
+                .build();
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> labelCancellationService.cancelTraceCodes(shipmentId, request));
+
+        assertNotNull(exception.getMessage());
+        assertEquals("Bạn không có quyền thao tác trên lô hàng của tổ chức khác.", exception.getMessage());
     }
 }

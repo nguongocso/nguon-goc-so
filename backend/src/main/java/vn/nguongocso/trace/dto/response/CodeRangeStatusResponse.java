@@ -5,9 +5,7 @@ import lombok.Data;
 
 import java.util.UUID;
 
-/**
- * Response trả về thông tin trạng thái của một dải mã truy xuất.
- */
+/** DTO response trạng thái dải mã truy xuất. */
 @Data
 @Builder
 public class CodeRangeStatusResponse {
@@ -25,5 +23,5 @@ public class CodeRangeStatusResponse {
 
     private Double usagePercent;
 
-    private String status; // OK, NEARLY_EXHAUSTED, EXHAUSTED
+    private String status;
 }

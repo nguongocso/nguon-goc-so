@@ -26,22 +26,17 @@ import vn.nguongocso.common.PageResponse;
 
 /**
  * Controller quản lý danh mục đơn vị kiểm nghiệm dùng chung.
- * <p>
- * QTN-17: chỉ Quản trị viên nền tảng (VT-01) được chỉnh sửa danh mục dùng chung;
- * các vai trò khác chỉ được tra cứu.
  */
 @RestController
 @RequestMapping("/api/v1/testing-units")
 @RequiredArgsConstructor
 public class TestingUnitController {
-
         private final TestingUnitService testingUnitService;
 
         private final AccreditationScopeService accreditationScopeService;
 
         /**
          * Tạo mới đơn vị kiểm nghiệm trong danh mục dùng chung.
-         *
          * POST /api/v1/testing-units
          */
         @PostMapping
@@ -50,8 +45,7 @@ public class TestingUnitController {
                         @Valid @RequestBody CreateTestingUnitRequest request,
                         @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-                TestingUnitResponse response =
-                                testingUnitService.createTestingUnit(request, currentUser);
+                TestingUnitResponse response = testingUnitService.createTestingUnit(request, currentUser);
 
                 return ResponseEntity.status(HttpStatus.CREATED)
                                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
@@ -59,7 +53,6 @@ public class TestingUnitController {
 
         /**
          * Cập nhật thông tin một đơn vị kiểm nghiệm.
-         *
          * PUT /api/v1/testing-units/{testingUnitId}
          */
         @PutMapping("/{testingUnitId}")
@@ -69,15 +62,14 @@ public class TestingUnitController {
                         @Valid @RequestBody UpdateTestingUnitRequest request,
                         @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-                TestingUnitResponse response =
-                                testingUnitService.updateTestingUnit(testingUnitId, request, currentUser);
+                TestingUnitResponse response = testingUnitService.updateTestingUnit(testingUnitId, request,
+                                currentUser);
 
                 return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
         }
 
         /**
          * Lấy danh sách đơn vị kiểm nghiệm (phân trang, lọc theo trạng thái).
-         *
          * GET /api/v1/testing-units?isActive=&page=&size=
          */
         @GetMapping
@@ -90,8 +82,7 @@ public class TestingUnitController {
 
                 Pageable pageable = PageRequest.of(page, size);
 
-                Page<TestingUnitResponse> result =
-                                testingUnitService.getTestingUnits(isActive, pageable, currentUser);
+                Page<TestingUnitResponse> result = testingUnitService.getTestingUnits(isActive, pageable, currentUser);
 
                 return ResponseEntity.ok(
                                 ApiResult.success(
@@ -101,7 +92,6 @@ public class TestingUnitController {
 
         /**
          * Lấy phạm vi công nhận của một đơn vị kiểm nghiệm.
-         *
          * GET /api/v1/testing-units/{testingUnitId}/accreditation-scopes
          */
         @GetMapping("/{testingUnitId}/accreditation-scopes")
@@ -109,8 +99,8 @@ public class TestingUnitController {
         public ResponseEntity<ApiResult<AccreditationScopeSummaryResponse>> getAccreditationScopes(
                         @PathVariable UUID testingUnitId) {
 
-                AccreditationScopeSummaryResponse response =
-                                accreditationScopeService.getAccreditationScope(testingUnitId);
+                AccreditationScopeSummaryResponse response = accreditationScopeService
+                                .getAccreditationScope(testingUnitId);
 
                 return ResponseEntity.ok(
                                 ApiResult.success(HttpStatus.OK.value(), response));
@@ -118,7 +108,6 @@ public class TestingUnitController {
 
         /**
          * Cập nhật (REPLACE-ALL) phạm vi công nhận của một đơn vị kiểm nghiệm.
-         *
          * PUT /api/v1/testing-units/{testingUnitId}/accreditation-scopes
          */
         @PutMapping("/{testingUnitId}/accreditation-scopes")
@@ -128,11 +117,10 @@ public class TestingUnitController {
                         @Valid @RequestBody UpdateAccreditationScopeRequest request,
                         @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-                AccreditationScopeSummaryResponse response =
-                                accreditationScopeService.updateAccreditationScope(
-                                                testingUnitId,
-                                                request.getCriterionDefinitionIds(),
-                                                currentUser);
+                AccreditationScopeSummaryResponse response = accreditationScopeService.updateAccreditationScope(
+                                testingUnitId,
+                                request.getCriterionDefinitionIds(),
+                                currentUser);
 
                 return ResponseEntity.ok(
                                 ApiResult.success(HttpStatus.OK.value(), response));
@@ -140,7 +128,6 @@ public class TestingUnitController {
 
         /**
          * Vô hiệu hoá đơn vị kiểm nghiệm (soft delete, isActive = false).
-         *
          * DELETE /api/v1/testing-units/{testingUnitId}
          */
         @DeleteMapping("/{testingUnitId}")

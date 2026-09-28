@@ -13,7 +13,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UpdateTestingUnitRequest {
-
     @NotBlank(message = "Tên đơn vị kiểm nghiệm không được để trống.")
     @Size(max = 255, message = "Tên đơn vị kiểm nghiệm không được vượt quá 255 ký tự.")
     private String name;

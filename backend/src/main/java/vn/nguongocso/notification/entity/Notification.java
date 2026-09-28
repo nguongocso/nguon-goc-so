@@ -7,9 +7,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -20,13 +19,11 @@ import lombok.Setter;
 import vn.nguongocso.alert.enums.NotificationType;
 import vn.nguongocso.auth.entity.User;
 
+/** Thực thể thông báo. */
 @Getter
 @Setter
 @Entity
 @Table(name = "notifications")
-/**
- * Thực thể thông báo.
- */
 public class Notification {
     @Id
     @Column(name = "id", nullable = false, updatable = false)
@@ -37,7 +34,7 @@ public class Notification {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = NotificationTypeConverter.class)
     @Column(nullable = false)
     private NotificationType type;
 
@@ -46,6 +43,11 @@ public class Notification {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    /** ID thực thể nghiệp vụ liên kết. */
+    @Column(name = "entity_id")
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID entityId;
 
     @Column(nullable = false)
     private Boolean isRead = false;

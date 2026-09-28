@@ -1,0 +1,84 @@
+package vn.nguongocso.farm.controller;
+
+import java.util.List;
+import java.util.UUID;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.common.ApiResult;
+import vn.nguongocso.common.PageResponse;
+import vn.nguongocso.farm.dto.response.MilestoneReminderResponse;
+import vn.nguongocso.farm.dto.response.MilestoneScanResult;
+import vn.nguongocso.farm.enums.MilestoneReminderStatus;
+import vn.nguongocso.farm.service.MilestoneReminderService;
+import vn.nguongocso.organization.constant.RoleCode;
+
+/**
+ * Quản lý nhắc lịch ghi nhật ký theo mốc canh tác bắt buộc (NCL-03-CN-007).
+*/
+@Slf4j
+@RestController
+@RequestMapping("/api/v1/milestone-reminders")
+@RequiredArgsConstructor
+public class MilestoneReminderController {
+    private final MilestoneReminderService milestoneReminderService;
+
+    /**
+     * Kích hoạt quét mốc quá hạn và tạo nhắc việc.
+     */
+    @PostMapping("/scan")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
+    public ResponseEntity<ApiResult<MilestoneScanResult>> triggerScan(
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        MilestoneScanResult result;
+        if (currentUser != null && !RoleCode.ADMIN.equals(currentUser.getRoleCode()) && currentUser.getOrganizationId() != null) {
+            result = milestoneReminderService.scanOverdueMilestonesForOrganization(currentUser.getOrganizationId());
+        } else {
+            result = milestoneReminderService.scanOverdueMilestones();
+        }
+
+        return ResponseEntity.ok(ApiResult.success(result));
+    }
+
+    /**
+     * Lấy danh sách nhắc việc có phân trang.
+     */
+    @GetMapping
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
+    public ResponseEntity<ApiResult<PageResponse<MilestoneReminderResponse>>> getReminders(
+            @RequestParam(required = false) MilestoneReminderStatus status,
+            @RequestParam(required = false) UUID lotId,
+            @PageableDefault(size = 20) Pageable pageable,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        PageResponse<MilestoneReminderResponse> response = milestoneReminderService.getReminders(
+                status, lotId, pageable, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Lấy danh sách nhắc việc đang mở của người dùng hiện tại.
+     */
+    @GetMapping("/my-active")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
+    public ResponseEntity<ApiResult<List<MilestoneReminderResponse>>> getMyActiveReminders(
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        List<MilestoneReminderResponse> response = milestoneReminderService.getMyActiveReminders(currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+}

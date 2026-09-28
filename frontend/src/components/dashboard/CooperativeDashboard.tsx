@@ -3,10 +3,10 @@ import { CheckCircle2, Clock3, FileText, PackageOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { getProductionLots, getProductionLotDashboard, type DashboardResponse } from '@/api/productionLotApi';
+import { getProductionLotDashboard, type DashboardResponse } from '@/api/productionLotApi';
 import { ProductionLotBoard } from '@/components/production-lot/ProductionLotBoard';
 import { ProductionStatistics } from '@/components/dashboard/PoductionStatistics';
-import type { ProductionLot } from '@/types/productionLot';
+import { MilestoneReminderCard } from '@/components/farm-log/MilestoneReminderCard';
 import LookupStatisticsPage from '@/pages/report/LookupStatisticsPage';
 import { HelpButton } from '@/components/help/HelpButton';
 
@@ -15,7 +15,6 @@ interface CooperativeDashboardProps {
 }
 
 export function CooperativeDashboard({ initialTab }: CooperativeDashboardProps) {
-  const [productionLots, setProductionLots] = useState<ProductionLot[]>([]);
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -23,12 +22,8 @@ export function CooperativeDashboard({ initialTab }: CooperativeDashboardProps) 
     const loadData = async () => {
       try {
         setIsLoading(true);
-        // Gọi song song: danh sách lô cho thẻ thống kê và dữ liệu cho biểu đồ
-        const [lots, dashData] = await Promise.all([
-          getProductionLots(),
-          getProductionLotDashboard()
-        ]);
-        setProductionLots(lots);
+        // Chỉ gọi API dashboard tổng hợp, loại bỏ gọi getProductionLots() thừa
+        const dashData = await getProductionLotDashboard();
         setDashboardData(dashData);
       } catch {
         toast.error('Không thể tải dữ liệu bảng điều khiển');
@@ -39,12 +34,18 @@ export function CooperativeDashboard({ initialTab }: CooperativeDashboardProps) 
     void loadData();
   }, []);
 
-  const statistics = useMemo(() => ({
-    total: productionLots.length,
-    draft: productionLots.filter((lot) => lot.status === 'DRAFT').length,
-    pending: productionLots.filter((lot) => lot.status === 'PENDING').length,
-    approved: productionLots.filter((lot) => lot.status === 'APPROVED').length,
-  }), [productionLots]);
+  const statistics = useMemo(() => {
+    if (!dashboardData) {
+      return { total: 0, draft: 0, pending: 0, approved: 0 };
+    }
+    // NCL-02-CN-006: lô đã hủy không tính vào tổng số lô đang canh tác
+    const cancelled = dashboardData.byStatus?.CANCELLED || 0;
+    const total = Math.max(0, (dashboardData.summary?.totalLots || 0) - cancelled);
+    const draft = dashboardData.byStatus?.DRAFT || 0;
+    const pending = dashboardData.byStatus?.PENDING || 0;
+    const approved = dashboardData.byStatus?.APPROVED || 0;
+    return { total, draft, pending, approved };
+  }, [dashboardData]);
 
   const defaultTab = initialTab === 'lookup-stats' ? 'lookup-stats' : 'overview';
 
@@ -98,6 +99,9 @@ export function CooperativeDashboard({ initialTab }: CooperativeDashboardProps) 
 
           {/* Biểu đồ sản lượng */}
           <ProductionStatistics data={dashboardData} isLoading={isLoading} />
+
+          {/* NCL-03-CN-007: Thẻ nhắc lịch ghi nhật ký mốc canh tác */}
+          <MilestoneReminderCard />
 
           {/* Bảng danh sách lô */}
           <ProductionLotBoard />

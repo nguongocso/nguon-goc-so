@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { z } from 'zod';
 import { LoaderCircle, Send, MapPin } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,16 +9,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { useProcurementEvent } from '@/hooks/useProcurementEvent';
 
-const formSchema = z.object({
-  shipmentId: z.string().min(1, 'Vui lòng nhập mã lô hàng').uuid('Mã lô hàng không hợp lệ (UUID)'),
-  receivedQuantity: z.coerce.number().positive('Số lượng thực nhận phải lớn hơn 0'),
-  notes: z.string().max(500, 'Ghi chú tối đa 500 ký tự').optional(),
-  latitude: z.coerce.number().min(-90).max(90).optional(),
-  longitude: z.coerce.number().min(-180).max(180).optional(),
-});
+import { procurementEventSchema, type ProcurementEventFormValues } from '@/utils/procurementEventSchema';
 
-type FormValues = z.infer<typeof formSchema>;
-
+/** Biểu mẫu ghi nhận sự kiện thu mua nông sản. */
 export function ProcurementEventForm() {
   const [shipmentId, setShipmentId] = useState('');
   const [receivedQuantity, setReceivedQuantity] = useState('');
@@ -29,14 +22,15 @@ export function ProcurementEventForm() {
 
   const { data, isLoading, error, submit, reset } = useProcurementEvent();
 
-  const validate = (): FormValues | null => {
-    const result = formSchema.safeParse({
+  const validate = (): ProcurementEventFormValues | null => {
+    const result = procurementEventSchema.safeParse({
       shipmentId,
       receivedQuantity,
       notes: notes || undefined,
       latitude: latitude || undefined,
       longitude: longitude || undefined,
     });
+
     if (!result.success) {
       setFormError(result.error.issues[0]?.message ?? 'Dữ liệu không hợp lệ');
       return null;
@@ -144,7 +138,12 @@ export function ProcurementEventForm() {
       )}
 
       <div className="flex gap-2">
-        <Button type="submit" variant="view" disabled={isLoading} className="flex-1">
+        <Button
+          type="submit"
+          variant="view"
+          disabled={isLoading}
+          className="flex-1"
+        >
           {isLoading ? (
             <LoaderCircle className="size-4 animate-spin" />
           ) : (
@@ -152,7 +151,12 @@ export function ProcurementEventForm() {
           )}
           {isLoading ? 'Đang ghi nhận...' : 'Ghi sự kiện thu mua'}
         </Button>
-        <Button type="button" variant="outline" onClick={handleReset} disabled={isLoading}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleReset}
+          disabled={isLoading}
+        >
           Làm mới
         </Button>
       </div>

@@ -1,14 +1,14 @@
 package vn.nguongocso.farm.dto.response;
 
-import lombok.Builder;
-import lombok.Data;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import lombok.Builder;
+import lombok.Data;
+
 /**
- * DTO phản hồi thông tin tệp đính kèm.
- */
+ * Thông tin tệp đính kèm.
+*/
 @Data
 @Builder
 public class AttachmentResponse {

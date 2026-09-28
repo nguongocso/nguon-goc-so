@@ -146,6 +146,7 @@ class AreaScopeReportIntegrationTest {
 
     private long shipQtyA1 = 100;
     private long shipQtyB = 50;
+    private ProductionLot lotA1;
 
     @BeforeEach
     void setUp() {
@@ -255,7 +256,7 @@ class AreaScopeReportIntegrationTest {
                 .id(UUID.randomUUID()).organization(orgB).name(areaNameB)
                 .area(BigDecimal.TEN).areaUnit(AreaUnit.HA).cropType(catB).build());
 
-        ProductionLot lotA1 = productionLotRepository.save(ProductionLot.builder()
+        lotA1 = productionLotRepository.save(ProductionLot.builder()
                 .organization(orgA1).productCategory(catA1).farmArea(areaA1)
                 .name("Lô A1-" + suffix).expectedQuantity(1000.0).actualQuantity(900.0)
                 .expectedQuantityUnit("kg")
@@ -390,6 +391,49 @@ class AreaScopeReportIntegrationTest {
         assertThat(response.getTotalShipments()).isZero();
         assertThat(response.getTotalQuantity()).isZero();
         assertThat(response.getProductBreakdown()).isEmpty();
+    }
+
+    @Test
+    void ncl701_splitParentIsExcludedFromShipmentQuantityReports() {
+        Shipment parent = new Shipment();
+        parent.setId(UUID.randomUUID());
+        parent.setOrganization(orgA1);
+        parent.setProductionLot(lotA1);
+        parent.setName("Lô cha đã tách");
+        parent.setTotalQuantity(100);
+        parent.setStatus(ShipmentStatus.SPLIT);
+        shipmentRepository.save(parent);
+
+        Shipment firstChild = new Shipment();
+        firstChild.setId(UUID.randomUUID());
+        firstChild.setOrganization(orgA1);
+        firstChild.setProductionLot(lotA1);
+        firstChild.setParentShipment(parent);
+        firstChild.setName("Lô con 40 tem");
+        firstChild.setTotalQuantity(40);
+        firstChild.setStatus(ShipmentStatus.CODE_PRINTED);
+        shipmentRepository.save(firstChild);
+
+        Shipment secondChild = new Shipment();
+        secondChild.setId(UUID.randomUUID());
+        secondChild.setOrganization(orgA1);
+        secondChild.setProductionLot(lotA1);
+        secondChild.setParentShipment(parent);
+        secondChild.setName("Lô con 60 tem");
+        secondChild.setTotalQuantity(60);
+        secondChild.setStatus(ShipmentStatus.CODE_PRINTED);
+        shipmentRepository.save(secondChild);
+        entityManager.flush();
+
+        LocalDateTime from = LocalDateTime.now().minusDays(1);
+        LocalDateTime to = LocalDateTime.now().plusDays(1);
+        assertThat(shipmentRepository.getTotalQuantity(List.of(orgA1.getOrganizationId()), from, to))
+                .isEqualTo(200D);
+        assertThat(shipmentRepository.countShipments(List.of(orgA1.getOrganizationId()), from, to))
+                .isEqualTo(3L);
+        assertThat(shipmentRepository.getProductBreakdown(List.of(orgA1.getOrganizationId()), from, to))
+                .singleElement()
+                .satisfies(item -> assertThat(item.getTotalQuantity()).isEqualTo(200L));
     }
 
     // ==================== TC-02 (release blocker) ====================

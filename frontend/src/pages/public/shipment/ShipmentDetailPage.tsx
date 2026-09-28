@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,13 @@ import {
   BadgeCheck,
   Ban,
   ChevronDown,
+  FileSignature,
   FileText,
   History,
   LoaderCircle,
   MoreVertical,
   Package,
+  PackagePlus,
   QrCode,
   ScrollText,
   Trash2,
@@ -27,9 +29,8 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getShipmentById } from "@/api/shipmentApi";
-import { getLocalDateString } from "@/utils/dateTime";
 import { getShipmentTimeline } from "@/api/chainEventApi";
-import { checkDossierEligibility, exportDossier } from "@/api/dossierApi";
+import { checkDossierEligibility } from "@/api/dossierApi";
 import { useDeleteDraftShipment } from "@/hooks/useDeleteDraftShipment";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
@@ -39,10 +40,14 @@ import type { ChainEventResponse } from "@/types/packaging";
 import { maskId } from "@/lib/utils";
 import { QrCodeGrid } from "@/components/shipment/QrCodeGrid";
 import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
+import { CreateHandoverDialog } from "@/components/shipment/CreateHandoverDialog";
+import { HandoverPendingBadge } from "@/components/shipment/HandoverPendingBadge";
+import { getReceivedHandovers, hasPendingHandover } from "@/api/handoverApi";
 import { ShipmentTimelineItem } from "@/components/shipment/ShipmentTimelineItem";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
+import { ExportDossierDialog } from "@/components/export/ExportDossierDialog";
 import { ShipmentStatusBadge } from "@/components/shipment/ShipmentStatusBadge";
 import { HelpButton } from "@/components/help/HelpButton";
 import { ROLE_ACCESS } from "@/config/roleAccess";
@@ -59,17 +64,74 @@ const formatDateTime = (value: string) => {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const ShipmentDetailPage = () => {
-  const { lotId, shipmentId } = useParams<{
-    lotId: string;
-    shipmentId: string;
+  const { lotId, shipmentId, id } = useParams<{
+    lotId?: string;
+    shipmentId?: string;
+    id?: string;
   }>();
+  const effectiveShipmentId = shipmentId || id;
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
+
+  // ── Handover context (NCL-05-CN-008/009 & VT-04 breadcrumb) ────────────────
+  const stateHandoverId = (location.state as { handoverId?: string } | undefined)?.handoverId;
+  const queryHandoverId = searchParams.get("handoverId");
+  const initialHandoverId = stateHandoverId || queryHandoverId || null;
+
+  const [handoverContext, setHandoverContext] = useState<{
+    handoverId: string | null;
+    handoverRoute: string | null;
+    handoverListHref: string;
+    handoverListLabel: string;
+  }>(() => ({
+    handoverId: initialHandoverId,
+    handoverRoute:
+      (location.state as { handoverRoute?: string } | undefined)?.handoverRoute ||
+      (initialHandoverId ? `/shipment-handovers/${initialHandoverId}` : null),
+    handoverListHref:
+      (location.state as { handoverListHref?: string } | undefined)?.handoverListHref ||
+      (user?.roleCode === "VT-04" ? "/handover" : "/shipment-handovers/received"),
+    handoverListLabel:
+      (location.state as { handoverListLabel?: string } | undefined)?.handoverListLabel ||
+      "Phiếu bàn giao nhận",
+  }));
+
+  useEffect(() => {
+    if (handoverContext.handoverId || user?.roleCode !== "VT-04" || !effectiveShipmentId) {
+      return;
+    }
+    let isCancelled = false;
+    getReceivedHandovers()
+      .then((handovers) => {
+        if (isCancelled) return;
+        const matched = handovers.find(
+          (h) => h.shipmentId === effectiveShipmentId,
+        );
+        if (matched) {
+          setHandoverContext({
+            handoverId: matched.id,
+            handoverRoute: `/shipment-handovers/${matched.id}`,
+            handoverListHref: "/handover",
+            handoverListLabel: "Phiếu bàn giao nhận",
+          });
+        }
+      })
+      .catch(() => {
+        // Bỏ qua nếu không tải được danh sách phiếu bàn giao
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [handoverContext.handoverId, user?.roleCode, effectiveShipmentId]);
 
   // ── Shipment data ──────────────────────────────────────────────────────────
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loadingShipment, setLoadingShipment] = useState(true);
   const [shipmentError, setShipmentError] = useState<string | null>(null);
+  // NCL-05-CN-008: nhãn "Đang bàn giao" khi có phiếu chờ xác nhận
+  const [pendingHandover, setPendingHandover] = useState(false);
 
   // ── Timeline data ──────────────────────────────────────────────────────────
   const [timeline, setTimeline] = useState<ChainEventResponse[]>([]);
@@ -85,6 +147,8 @@ export const ShipmentDetailPage = () => {
     open: boolean;
     missingDocs: string[];
   }>({ open: false, missingDocs: [] });
+  // NCL-07-CN-007: Hộp thoại xuất hồ sơ chọn mẫu
+  const [showExportDossierDialog, setShowExportDossierDialog] = useState(false);
 
   const { recallingShipmentId, recallShipment } = useRecallShipment(() => {
     // Reload shipment after recall
@@ -96,16 +160,26 @@ export const ShipmentDetailPage = () => {
   const canRecall = user?.roleCode === "VT-02";
   // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
   const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
+  // NCL-04-CN-008: Xem và tra cứu trạng thái từng mã tem trong lô hàng
+  const canViewTraceCodes = usePermission(ROLE_ACCESS.traceCodeView);
+  // NCL-05-CN-008-009: Tạo phiếu bàn giao (chỉ VT-02 chủ lô)
+  const canCreateHandover = usePermission(ROLE_ACCESS.handoverCreate);
 
   // ── Loaders ────────────────────────────────────────────────────────────────
 
   async function loadShipment() {
-    if (!shipmentId) return;
+    if (!effectiveShipmentId) return;
     setLoadingShipment(true);
     setShipmentError(null);
     try {
-      const data = await getShipmentById(shipmentId);
+      const data = await getShipmentById(effectiveShipmentId);
       setShipment(data);
+      // Nhãn "Đang bàn giao": best-effort, backend cũ chưa có endpoint thì ẩn nhãn
+      try {
+        setPendingHandover(await hasPendingHandover(effectiveShipmentId));
+      } catch {
+        setPendingHandover(false);
+      }
     } catch (err: any) {
       setShipmentError(
         err.response?.data?.message ??
@@ -117,11 +191,11 @@ export const ShipmentDetailPage = () => {
   };
 
   const loadTimeline = async () => {
-    if (!shipmentId || timelineLoaded) return;
+    if (!effectiveShipmentId || timelineLoaded) return;
     setLoadingTimeline(true);
     setTimelineError(null);
     try {
-      const data = await getShipmentTimeline(shipmentId);
+      const data = await getShipmentTimeline(effectiveShipmentId);
       setTimeline(data);
       setTimelineLoaded(true);
     } catch (err: any) {
@@ -136,7 +210,7 @@ export const ShipmentDetailPage = () => {
   useEffect(() => {
     void loadShipment();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shipmentId]);
+  }, [effectiveShipmentId]);
 
   // ── Action handlers ────────────────────────────────────────────────────────
 
@@ -166,22 +240,10 @@ export const ShipmentDetailPage = () => {
         return;
       }
 
-      toast.loading("Đang tạo hồ sơ...");
-      const blob = await exportDossier(shipment.id);
-      toast.dismiss();
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `Ho_so_truy_xuat_${shipment.name}_${getLocalDateString()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success("Tải hồ sơ thành công");
+      // Đủ điều kiện → Mở hộp thoại xuất hồ sơ chọn mẫu (NCL-07-CN-007)
+      setShowExportDossierDialog(true);
     } catch (err: any) {
-      toast.dismiss();
-      toast.error(err.message || err.response?.data?.message || "Có lỗi xảy ra khi xuất hồ sơ.");
+      toast.error(err.message || err.response?.data?.message || "Có lỗi xảy ra khi kiểm tra hồ sơ.");
     }
   };
 
@@ -192,33 +254,67 @@ export const ShipmentDetailPage = () => {
 
   // NCL-04-CN-005: Dialog xuất tem QR
   const [showLabelsDialog, setShowLabelsDialog] = useState(false);
+  // NCL-05-CN-008-009: Dialog tạo phiếu bàn giao
+  const [showCreateHandoverDialog, setShowCreateHandoverDialog] = useState(false);
 
   // ── Derived flags ──────────────────────────────────────────────────────────
   const canActivateThis =
     canActivate && shipment?.status === "CODE_PRINTED";
   const canRecallThis =
-    canRecall && shipment?.status !== "RECALLED";
+    canRecall && shipment?.status !== "RECALLED" && shipment?.status !== "SPLIT";
   const canDeleteDraft =
-    shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED";
+    !shipment?.parentShipmentId &&
+    (shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED");
   const canCancelLabels =
-    user?.roleCode === "VT-02" && shipment?.status !== "RECALLED";
+    user?.roleCode === "VT-02" &&
+    shipment?.status !== "RECALLED" &&
+    shipment?.status !== "SPLIT";
+  const canSplitShipment =
+    usePermission(ROLE_ACCESS.shipmentSplit) &&
+    shipment?.status === "CODE_PRINTED" &&
+    !shipment.parentShipmentId &&
+    (shipment.traceCodes?.length ?? 0) >= 2 &&
+    shipment.traceCodes?.length === shipment.totalQuantity &&
+    (shipment.traceCodes ?? []).every((code) => code.status === "INACTIVE");
 
   // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
+  const isFromHandover =
+    Boolean(handoverContext.handoverId) ||
+    Boolean((location.state as { fromHandover?: boolean } | undefined)?.fromHandover) ||
+    user?.roleCode === "VT-04";
+
   useSetBreadcrumb(
     shipment
-      ? [
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Lô sản xuất", href: "/production-lots" },
-          ...(lotId
-            ? [
-                {
-                  label: shipment.productionLotName || "Chi tiết lô",
-                  href: `/production-lots/${lotId}`,
-                },
-              ]
-            : []),
-          { label: shipment.name || "Chi tiết lô hàng" },
-        ]
+      ? isFromHandover
+        ? [
+            { label: "Tổng quan", href: "/dashboard" },
+            {
+              label: handoverContext.handoverListLabel,
+              href: handoverContext.handoverListHref,
+            },
+            {
+              label: "Chi tiết phiếu bàn giao",
+              href:
+                handoverContext.handoverRoute ||
+                (handoverContext.handoverId
+                  ? `/shipment-handovers/${handoverContext.handoverId}`
+                  : undefined),
+            },
+            { label: shipment.name || "Chi tiết lô hàng" },
+          ]
+        : [
+            { label: "Tổng quan", href: "/dashboard" },
+            { label: "Lô sản xuất", href: "/production-lots" },
+            ...(lotId
+              ? [
+                  {
+                    label: shipment.productionLotName || "Chi tiết lô",
+                    href: `/production-lots/${lotId}`,
+                  },
+                ]
+              : []),
+            { label: shipment.name || "Chi tiết lô hàng" },
+          ]
       : null,
   );
 
@@ -256,14 +352,15 @@ export const ShipmentDetailPage = () => {
       {/* ── Header card ── */}
       <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
         <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             {/* Title + meta */}
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                   {shipment.name}
                 </h1>
                 <ShipmentStatusBadge status={shipment.status} />
+                {pendingHandover && <HandoverPendingBadge />}
               </div>
               <p className="font-mono text-xs text-muted-foreground">
                 {maskId(shipment.id)}
@@ -273,6 +370,22 @@ export const ShipmentDetailPage = () => {
             {/* Action buttons */}
             <div className="flex flex-wrap items-center gap-2">
               <HelpButton screenKey="shipment-detail" />
+              {canViewTraceCodes && (
+                <Button
+                  variant="outline"
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  onClick={() =>
+                    navigate(
+                      lotId
+                        ? `/production-lots/${lotId}/shipments/${shipment.id}/trace-codes`
+                        : `/shipments/${shipment.id}/trace-codes`,
+                    )
+                  }
+                >
+                  <QrCode className="mr-1.5 h-4 w-4" />
+                  Xem mã tem
+                </Button>
+              )}
               {canActivateThis && (
                 <Button
                   variant="create"
@@ -280,6 +393,18 @@ export const ShipmentDetailPage = () => {
                 >
                   <BadgeCheck className="mr-1 h-4 w-4" />
                   Kích hoạt
+                </Button>
+              )}
+
+              {/* NCL-05-CN-008-009: Tạo phiếu bàn giao */}
+              {canCreateHandover && shipment.status === "ACTIVATED" && (
+                <Button
+                  variant="outline"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  onClick={() => setShowCreateHandoverDialog(true)}
+                >
+                  <FileSignature className="mr-1.5 h-4 w-4" />
+                  Tạo phiếu bàn giao
                 </Button>
               )}
 
@@ -291,6 +416,30 @@ export const ShipmentDetailPage = () => {
                   <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
+                  {canViewTraceCodes && (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        navigate(
+                          lotId
+                            ? `/production-lots/${lotId}/shipments/${shipment.id}/trace-codes`
+                            : `/shipments/${shipment.id}/trace-codes`,
+                        )
+                      }
+                      className="cursor-pointer"
+                    >
+                      <QrCode className="mr-2 h-4 w-4 text-emerald-600" />
+                      Trạng thái mã tem
+                    </DropdownMenuItem>
+                  )}
+                  {canSplitShipment && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/shipments/${shipment.id}/split`)}
+                    >
+                      <PackagePlus className="mr-2 h-4 w-4 text-emerald-600" />
+                      Tách lô hàng
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={handleExportDossier} className="cursor-pointer">
                     <FileText className="mr-2 h-4 w-4 text-slate-600" />
                     Xuất hồ sơ
@@ -619,6 +768,28 @@ export const ShipmentDetailPage = () => {
         shipment={shipment}
         onClose={() => setShowLabelsDialog(false)}
       />
+
+      {/* NCL-05-CN-008-009: Dialog tạo phiếu bàn giao */}
+      <CreateHandoverDialog
+        open={showCreateHandoverDialog}
+        shipment={shipment}
+        onClose={() => setShowCreateHandoverDialog(false)}
+        onSuccess={() => {
+          setShowCreateHandoverDialog(false);
+          void loadShipment();
+        }}
+      />
+
+      {/* NCL-07-CN-007: Dialog xuất hồ sơ chọn mẫu */}
+      {shipment && (
+        <ExportDossierDialog
+          open={showExportDossierDialog}
+          onOpenChange={setShowExportDossierDialog}
+          shipmentId={shipment.id}
+          shipmentName={shipment.name}
+          shipmentCode={shipment.id}
+        />
+      )}
     </div>
   );
 };

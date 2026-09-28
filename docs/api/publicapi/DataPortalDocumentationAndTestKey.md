@@ -1,0 +1,816 @@
+# Tài liệu Cổng dữ liệu đối tác và Khóa thử nghiệm (Data Portal Documentation & Test Key)
+
+> **User Story ID:** NCL-12-CN-004  
+> **Epic:** NCL-12 — Cổng dữ liệu và hồ sơ theo lược đồ chuẩn  
+> **Áp dụng quy tắc nghiệp vụ:** QTN-20 (Kiểm soát truy cập bên thứ ba & Rate Limiting), QTN-12 (Truy cập công khai chỉ đọc)  
+> **Trạng thái hợp đồng:** Nguồn sự thật hợp đồng API (Single Source of Truth) cho NCL-12-CN-004  
+
+---
+
+## Mục lục tài liệu
+
+- [1. Tổng quan Cổng dữ liệu đối tác (Data Portal Overview)](#1-tổng-quan-cổng-dữ-liệu-đối-tác-data-portal-overview)
+- [2. Danh sách Endpoints cổng dữ liệu đối tác (Partner Data Endpoints)](#2-danh-sách-endpoints-cổng-dữ-liệu-đối-tác-partner-data-endpoints)
+- [3. Cấp và quản lý Khóa thử nghiệm (Test Key Management)](#3-cấp-và-quản-lý-khóa-thử-nghiệm-test-key-management)
+- [4. Hành vi Chế độ Thử nghiệm (Sandbox Mode Behavior)](#4-hành-vi-chế-độ-thử-nghiệm-sandbox-mode-behavior)
+- [5. Ví dụ gọi thử nghiệm bằng cURL (Sandbox cURL Examples)](#5-ví-dụ-gọi-thử-nghiệm-bằng-curl-sandbox-curl-examples)
+- [6. Bảng mã lỗi tổng hợp (Error Codes Summary)](#6-bảng-mã-lỗi-tổng-hợp-error-codes-summary)
+- [7. Danh sách khóa thử nghiệm Sandbox & Hướng dẫn kiểm thử mã lỗi (Testing & Verification Guide)](#7-danh-sách-khóa-thử-nghiệm-sandbox--hướng-dẫn-kiểm-thử-mã-lỗi-testing--verification-guide)
+  - [7.1. Danh mục các khóa API đã tạo sẵn trong CSDL](#71-danh-mục-các-khóa-api-đã-tạo-sẵn-trong-csdl)
+  - [7.2. Lệnh cURL mẫu kiểm thử chi tiết từng mã lỗi](#72-lệnh-curl-mẫu-kiểm-thử-chi-tiết-từng-mã-lỗi)
+  - [7.3. Kết quả kiểm thử tự động (Automated Test Suite Results)](#73-kết-quả-kiểm-thử-tự-động-automated-test-suite-results)
+
+---
+
+## 1. Tổng quan Cổng dữ liệu đối tác (Data Portal Overview)
+
+### 1.1. Mục đích và đối tượng sử dụng
+Cổng dữ liệu đối tác (**Partner Data Portal**) của hệ thống Nguồn Gốc Số cung cấp giao diện lập trình ứng dụng (RESTful API) mở nhưng có kiểm soát, cho phép các bên thứ ba — đặc biệt là **Doanh nghiệp thu mua**, hệ thống siêu thị, đối tác logistics và sàn thương mại điện tử — kết nối tự động, tích hợp dữ liệu truy xuất nguồn gốc nông sản và hồ sơ lô hàng vào hệ thống quản lý nội bộ (ERP, WMS, SCM) mà không cần thao tác thủ công.
+
+### 1.2. Base URL
+- **Môi trường Production (Chính thức):** `https://agri-trace.online`
+- **Môi trường Staging (Kiểm thử):** `https://staging.agri-trace.online`
+- **Môi trường phát triển / thử nghiệm (Local / Dev):** `http://localhost` (hoặc `http://localhost:8080` khi gọi trực tiếp backend)
+
+
+### 1.3. Cơ chế xác thực (Authentication Mechanism)
+- Các endpoint cổng dữ liệu đối tác (`/api/v1/partner/**`) sử dụng cơ chế xác thực qua **Header `X-API-KEY`**.
+- Đối tác không cần đăng nhập hay gửi kèm mã phiên/JWT Bearer Token, chỉ cần gửi khóa bí mật trong tiêu đề HTTP:
+  ```http
+  X-API-KEY: nks_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  ```
+- Đối với khóa thử nghiệm (Sandbox/Test Key), định dạng khóa luôn có tiền tố `nks_test_`:
+  ```http
+  X-API-KEY: nks_test_yyyyyyyyyyyyyyyyyyyyyyyyyyyy
+  ```
+- Nếu thiếu hoặc truyền sai API Key, hệ thống phản hồi mã lỗi `401 Unauthorized` kèm mô tả chi tiết bằng tiếng Việt.
+
+### 1.4. Kiểm soát hạn mức gọi (Rate Limiting — QTN-20)
+- Nhằm đảm bảo an toàn tài nguyên và tính sẵn sàng của hệ thống, mỗi khóa truy cập được cấu hình hạn mức số lượt gọi tối đa trong 1 giờ (`rate_limit_per_hour`).
+- **Khóa thật (Live Key):** Hạn mức do Quản lý Hợp tác xã thiết lập khi cấp (ví dụ: 500 - 5.000 lượt/giờ tùy thỏa thuận hợp tác).
+- **Khóa thử nghiệm (Test Key):** Luôn áp dụng **hạn mức thấp** (mặc định 30 lượt/giờ, tối đa không quá 50 lượt/giờ) và **thời hạn ngắn** (mặc định 7 hoặc 14 ngày, tối đa không quá 15 ngày).
+- Khi vượt quá hạn mức cho phép, hệ thống từ chối xử lý và phản hồi ngay lập tức mã lỗi `429 Too Many Requests` (QTN-20).
+- Hệ thống gửi kèm các HTTP response headers để đối tác theo dõi hạn mức:
+  - `X-RateLimit-Limit`: Hạn mức tối đa được phép gọi trong 1 giờ.
+  - `X-RateLimit-Remaining`: Số lượt gọi còn lại trong khung giờ hiện tại.
+  - `X-RateLimit-Reset`: Thời gian còn lại (tính bằng giây) trước khi bộ đếm hạn mức được đặt lại.
+
+### 1.5. Quy tắc tiền tố khóa và phạm vi truy cập Sandbox (Key Prefix & Scope Rules)
+Hệ thống Nguồn Gốc Số phân định môi trường và dữ liệu thông qua tiền tố khóa API:
+- **Tiền tố `nks_test_` (Khóa thử nghiệm / Sandbox Key):**
+  - Dành cho môi trường tích hợp và thử nghiệm kỹ thuật ban đầu.
+  - **Phạm vi dữ liệu giới hạn nghiêm ngặt:** Khóa thử nghiệm chỉ được phép truy vấn dữ liệu mẫu của hệ thống:
+    + Hồ sơ Lô sản xuất: Chỉ truy cập mã lô `sample-lot-001` (hoặc UUID mẫu tương ứng).
+    + Hồ sơ Lô hàng thương mại / Chuẩn GS1: Chỉ truy cập mã lô hàng `sample-shipment-001` (hoặc `sample-lot-001`).
+    + Tra cứu hành trình tem: Chỉ tra cứu mã mẫu `TEST-TRACE-001`.
+  - Nếu đối tác sử dụng khóa `nks_test_` để gọi các mã lô/lô hàng thực tế khác, hệ thống sẽ từ chối với lỗi `403 Forbidden`.
+  - Mọi phản hồi thành công từ khóa thử nghiệm luôn chứa hai trường chuẩn: `"is_test": true` và `"test_notice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"`.
+- **Tiền tố `nks_live_` (Khóa thật / Live Production Key):**
+  - Dành cho môi trường sản xuất thực tế.
+  - Cho phép truy xuất toàn bộ dữ liệu hồ sơ lô và lô hàng thực tế thuộc thẩm quyền quản lý của Hợp tác xã cấp khóa.
+  - Phản hồi từ khóa thật chứa `"is_test": false` và không có thông báo thử nghiệm.
+
+### 1.6. Bảng ánh xạ trường theo lược đồ mô phỏng GS1 (GS1 Simulated Schema Mapping)
+Hệ thống Nguồn Gốc Số hỗ trợ xuất dữ liệu truy xuất và dòng sự kiện chuỗi cung ứng theo lược đồ mô phỏng hướng chuẩn GS1 (EPCIS / GS1 XML/JSON) nhằm hỗ trợ đối tác chuẩn hóa dữ liệu.
+
+> **Ghi chú quan trọng:** Đây là lược đồ mô phỏng (Simulated Schema) phục vụ mục đích tích hợp kỹ thuật và chuẩn hóa dữ liệu giáo dục/thực nghiệm, không thay thế cho chứng nhận tuân thủ chính thức của tổ chức GS1 toàn cầu.
+
+| Trường hệ thống Nguồn Gốc Số | Trường lược đồ GS1 mô phỏng | Kiểu dữ liệu | Ý nghĩa trong chuỗi cung ứng |
+|:---|:---|:---|:---|
+| `ChainEvent.id` | `eventIdentifier` | String (UUID) | Định danh duy nhất của sự kiện |
+| `ChainEvent.eventType` | `eventTypeCode` | String | Mã loại sự kiện: `PLANTING`, `FERTILIZING`, `PESTICIDE`, `HARVESTING`, `PACKAGING`, `PROCUREMENT`, `TRANSPORT` |
+| `ChainEvent.recordedAt` | `eventDateTime` | String (ISO-8601) | Thời điểm ghi nhận sự kiện (when) |
+| `ChainEvent.recordedBy.fullName` | `actorName` | String | Người chịu trách nhiệm ghi nhận (who) |
+| `ChainEvent.location.latitude` | `eventLocation.latitude` | Double | Tọa độ vĩ độ diễn ra sự kiện (where) |
+| `ChainEvent.location.longitude` | `eventLocation.longitude` | Double | Tọa độ kinh độ diễn ra sự kiện (where) |
+| `ChainEvent.eventData` | `details` | Object / Key-Value | Chi tiết kỹ thuật của sự kiện (why/what) |
+| `Shipment.name` | `shipmentName` | String | Tên lô hàng thương mại |
+| `Shipment.totalQuantity` | `declaredQuantity` | Long | Sản lượng / số lượng công bố |
+| `Shipment.status` | `shipmentStatus` | String | Trạng thái lô hàng (`DRAFT`, `ACTIVATED`, `RECALLED`) |
+| `ProductionLot.name` | `productionLotName` | String | Tên lô sản xuất tại nông trại |
+| `InspectionRequest.inspectionUnit` | `inspections[].inspectionUnit` | String | Đơn vị thực hiện kiểm nghiệm chất lượng |
+| `InspectionCriterion.criterionName` | `inspections[].criteria[].criterionName` | String | Tên chỉ tiêu kiểm nghiệm an toàn thực phẩm |
+| `InspectionCriterionResult.passed` | `inspections[].criteria[].passed` | Boolean | Kết quả kiểm nghiệm đạt (`true`) hay không đạt (`false`) |
+
+---
+
+## 2. Danh sách Endpoints cổng dữ liệu đối tác (Partner Data Endpoints)
+
+Cổng dữ liệu đối tác hiện bao gồm 3 điểm truy xuất chính dành cho bên thứ ba tích hợp:
+
+```text
+1. GET /api/v1/partner/production-lots/{lotId}/dossier  — Lấy hồ sơ truy xuất đầy đủ của Lô sản xuất
+2. GET /api/v1/partner/trace/{codeValue}                — Tra cứu hành trình theo Mã tem truy xuất
+3. GET /api/v1/partner/shipments/{shipmentId}/dossier/gs1 — Xuất hồ sơ theo lược đồ mô phỏng chuẩn GS1
+```
+
+---
+
+### Endpoint 1: Lấy hồ sơ truy xuất Lô sản xuất
+
+- **Method:** `GET`
+- **Path:** `/api/v1/partner/production-lots/{lotId}/dossier`
+- **Mô tả:** Trả về toàn bộ hồ sơ truy xuất nguồn gốc của một Lô sản xuất bao gồm thông tin chi tiết lô, hợp tác xã sở hữu, thông tin vùng trồng, chứng nhận chất lượng và tóm tắt lịch sử nhật ký canh tác.
+- **Xác thực:** Bắt buộc Header `X-API-KEY`.
+- **Phân quyền & Cách ly dữ liệu (Tenant Isolation):**
+  - Khóa thật (Live Key): Chỉ truy xuất được các lô sản xuất thuộc sở hữu của Hợp tác xã đã cấp khóa đó. Truy xuất lô ngoài phạm vi sẽ bị từ chối `400 Bad Request`.
+  - Khóa thử nghiệm (Test Key / Sandbox - tiền tố `nks_test_`): **Chỉ cho phép truy cập với mã lô `sample-lot-001`** (cổng `/api/publicapi/v1/lots/sample-lot-001`). Nếu gọi với bất kỳ mã lô nào khác, hệ thống sẽ trả về lỗi `403 Forbidden` kèm thông điệp: `"Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật."`. Khi gọi đúng `sample-lot-001`, hệ thống trả về bộ dữ liệu mẫu Sandbox với cờ `is_test: true`.
+
+#### Tham số (Parameters)
+| Tên tham số | Vị trí | Kiểu | Bắt buộc | Mô tả |
+|:---|:---|:---|:---:|:---|
+| `X-API-KEY` | Header | String | Có | Khóa truy cập đối tác (Live hoặc Test) |
+| `lotId` | Path | UUID | Có | Định danh UUID của Lô sản xuất cần truy xuất |
+
+#### Phản hồi thành công (HTTP 200 OK — Khóa thật)
+```json
+{
+  "success": true,
+  "status": 200,
+  "data": {
+    "lotInfo": {
+      "lotId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "lotName": "Lô Xoài Cát Hòa Lộc Vụ Thu Đông 2026",
+      "productCategoryName": "Xoài Cát Hòa Lộc",
+      "expectedQuantity": 15000.0,
+      "actualQuantity": 14200.0,
+      "quantityUnit": "KG",
+      "plantingDate": "2026-03-15",
+      "harvestDate": "2026-08-20",
+      "status": "HARVESTED"
+    },
+    "organizationInfo": {
+      "organizationId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "organizationName": "Hợp Tác Xã Nông Nghiệp Xanh Tiền Giang",
+      "organizationCode": "HTX-TG-01",
+      "address": "Xã Hòa Hưng, Huyện Cái Bè, Tiền Giang",
+      "phone": "02733888999",
+      "email": "contact@htxxanhtiengiang.vn"
+    },
+    "farmAreaInfo": {
+      "farmAreaId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "farmAreaName": "Khu Vực Trồng Xoài Thửa 05",
+      "area": 3.5,
+      "areaUnit": "HECTARE"
+    },
+    "certifications": [
+      {
+        "certificationName": "Chứng nhận VietGAP Trồng Trọt",
+        "standardName": "VietGAP",
+        "certificateCode": "VG-2026-TG-089",
+        "issueDate": "2026-01-10",
+        "expiryDate": "2027-01-10",
+        "issuedBy": "Trung tâm Giám định và Chứng nhận Nông nghiệp"
+      }
+    ],
+    "farmLogSummary": {
+      "totalLogsRecorded": 42,
+      "lastActivityAt": "2026-08-20T16:30:00"
+    },
+    "is_test": false
+  },
+  "timestamp": "2026-09-14T10:00:00.000Z"
+}
+```
+
+#### Phản hồi thành công trên Chế độ Thử nghiệm (HTTP 200 OK — Khóa thử nghiệm)
+```json
+{
+  "success": true,
+  "status": 200,
+  "data": {
+    "lotInfo": {
+      "lotId": "00000000-0000-0000-0000-000000000001",
+      "lotName": "[DỮ LIỆU MẪU] Lô Xoài Cát Chu Thử Nghiệm",
+      "productCategoryName": "Xoài Cát Chu",
+      "expectedQuantity": 10000.0,
+      "actualQuantity": 9800.0,
+      "quantityUnit": "KG",
+      "plantingDate": "2026-02-01",
+      "harvestDate": "2026-07-15",
+      "status": "HARVESTED"
+    },
+    "organizationInfo": {
+      "organizationId": "00000000-0000-0000-0000-000000000002",
+      "organizationName": "[DỮ LIỆU MẪU] Hợp Tác Xã Trái Cây Mẫu Nguồn Gốc Số",
+      "organizationCode": "HTX-TEST-DEMO",
+      "address": "Khu Thực Nghiệm Công Nghệ Nông Nghiệp Số",
+      "phone": "0901234567",
+      "email": "sandbox@nguongocso.vn"
+    },
+    "farmAreaInfo": {
+      "farmAreaId": "00000000-0000-0000-0000-000000000003",
+      "farmAreaName": "[DỮ LIỆU MẪU] Vùng Canh Tác Thực Nghiệm A1",
+      "area": 2.0,
+      "areaUnit": "HECTARE"
+    },
+    "certifications": [
+      {
+        "certificationName": "[DỮ LIỆU MẪU] Chứng nhận VietGAP Mẫu",
+        "standardName": "VietGAP",
+        "certificateCode": "VG-TEST-9999",
+        "issueDate": "2026-01-01",
+        "expiryDate": "2027-01-01",
+        "issuedBy": "Hệ Thống Kiểm Nghiệm Thử Nghiệm"
+      }
+    ],
+    "farmLogSummary": {
+      "totalLogsRecorded": 25,
+      "lastActivityAt": "2026-07-15T10:00:00"
+    },
+    "is_test": true,
+    "test_notice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"
+  },
+  "timestamp": "2026-09-14T10:00:00.000Z"
+}
+```
+
+---
+
+### Endpoint 2: Tra cứu hành trình theo Mã tem truy xuất
+
+- **Method:** `GET`
+- **Path:** `/api/v1/partner/trace/{codeValue}`
+- **Mô tả:** Tra cứu dữ liệu công khai theo mã tem truy xuất in trên bao bì sản phẩm (TraceCode), cung cấp dòng sự kiện chuỗi cung ứng (Chain Events) và kết quả kiểm nghiệm nếu có.
+- **Xác thực:** Bắt buộc Header `X-API-KEY`.
+- **Hành vi Sandbox:** Nếu gọi bằng khóa thử nghiệm, hệ thống luôn trả dữ liệu mẫu của hành trình thử nghiệm kèm cờ `isTest: true`.
+
+#### Tham số (Parameters)
+| Tên tham số | Vị trí | Kiểu | Bắt buộc | Mô tả |
+|:---|:---|:---|:---:|:---|
+| `X-API-KEY` | Header | String | Có | Khóa truy cập đối tác |
+| `codeValue` | Path | String | Có | Mã truy xuất (ví dụ: `HX00000029` hoặc mã mẫu `TEST-TRACE-001`) |
+| `latitude` | Query | Double | Không | Tọa độ vĩ độ của điểm quét |
+| `longitude` | Query | Double | Không | Tọa độ kinh độ của điểm quét |
+
+#### Phản hồi thành công (HTTP 200 OK — Khóa thử nghiệm)
+```json
+{
+  "success": true,
+  "status": 200,
+  "data": {
+    "codeValue": "TEST-TRACE-001",
+    "productName": "[DỮ LIỆU MẪU] Chè Xanh Long Cốc Thử Nghiệm",
+    "shipmentCode": "LH-TEST-2026",
+    "shipmentStatus": "ACTIVATED",
+    "recalled": false,
+    "recallMessage": null,
+    "locked": false,
+    "lockReason": null,
+    "events": [
+      {
+        "eventType": "HARVESTING",
+        "eventData": {
+          "field": "Đồi chè Long Cốc Thử Nghiệm",
+          "technique": "Hái thủ công 1 tôm 2 lá"
+        },
+        "recordedAt": "2026-07-20T08:00:00"
+      },
+      {
+        "eventType": "PACKAGING",
+        "eventData": {
+          "packagingType": "Hút chân không túi thiếc 100g",
+          "facility": "Xưởng chế biến chè thử nghiệm"
+        },
+        "recordedAt": "2026-07-21T14:30:00"
+      },
+      {
+        "eventType": "TRANSPORT",
+        "eventData": {
+          "fromLocation": "Tân Sơn, Phú Thọ",
+          "toLocation": "Kho trung chuyển Hà Nội"
+        },
+        "recordedAt": "2026-07-22T09:00:00"
+      }
+    ],
+    "inspections": [
+      {
+        "criterionName": "Dư lượng thuốc bảo vệ thực vật",
+        "passed": true,
+        "resultDate": "2026-07-19T10:00:00"
+      }
+    ],
+    "is_test": true,
+    "test_notice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"
+  },
+  "timestamp": "2026-09-14T10:00:00.000Z"
+}
+```
+
+---
+
+### Endpoint 3: Xuất hồ sơ theo lược đồ mô phỏng chuẩn GS1
+
+- **Method:** `GET`
+- **Path:** `/api/v1/partner/shipments/{shipmentId}/dossier/gs1`
+- **Mô tả:** Cho phép đối tác bên thứ ba trích xuất hồ sơ truy xuất lô hàng thương mại dưới dạng JSON hoặc XML theo lược đồ mô phỏng hướng chuẩn GS1 EPCIS.
+- **Xác thực:** Bắt buộc Header `X-API-KEY`.
+- **Hành vi Sandbox:** Nếu gọi bằng khóa thử nghiệm (tiền tố `nks_test_`), chỉ cho phép mã lô hàng `sample-shipment-001` (hoặc `sample-lot-001`). Hệ thống trả về hồ sơ GS1 mẫu với `is_test: true` và `test_notice: "..."`. Nếu truyền mã khác, hệ thống sẽ trả về lỗi `403 Forbidden` kèm thông điệp: `"Khóa thử nghiệm chỉ được phép truy cập mã lô hàng \"sample-shipment-001\" hoặc mã lô \"sample-lot-001\"."`.
+
+#### Tham số (Parameters)
+| Tên tham số | Vị trí | Kiểu | Bắt buộc | Mặc định | Mô tả |
+|:---|:---|:---|:---:|:---|:---|
+| `X-API-KEY` | Header | String | Có | - | Khóa truy cập đối tác |
+| `shipmentId` | Path | String | Có | - | Định danh lô hàng cần xuất hồ sơ (Sandbox: `sample-shipment-001`) |
+| `format` | Query | String | Không | `json` | Định dạng xuất: `json` hoặc `xml` |
+| `includeMapping` | Query | Boolean | Không | `true` | Có kèm bảng ánh xạ chi tiết từng trường hay không |
+
+#### Phản hồi thành công (HTTP 200 OK — Khóa thử nghiệm)
+```json
+{
+  "success": true,
+  "status": 200,
+  "data": {
+    "shipment": {
+      "shipmentId": "sample-shipment-001",
+      "shipmentCode": "LH-TEST-GS1",
+      "shipmentName": "[DỮ LIỆU MẪU] Lô Hàng Xoài Cát Xuất Khẩu Thử Nghiệm",
+      "declaredQuantity": 5000,
+      "shipmentStatus": "ACTIVATED",
+      "organization": {
+        "organizationId": "00000000-0000-0000-0000-000000000002",
+        "organizationCode": "HTX-TEST-DEMO",
+        "organizationName": "[DỮ LIỆU MẪU] Hợp Tác Xã Trái Cây Mẫu Nguồn Gốc Số"
+      }
+    },
+    "events": [
+      {
+        "eventIdentifier": "00000000-0000-0000-0000-000000000021",
+        "eventTypeCode": "HARVESTING",
+        "eventDateTime": "2026-07-20T08:00:00",
+        "actorName": "Kỹ thuật viên Thử nghiệm",
+        "eventLocation": {
+          "latitude": 10.352,
+          "longitude": 105.987,
+          "address": null
+        },
+        "details": {
+          "yield": "5000 KG"
+        }
+      }
+    ],
+    "inspections": [
+      {
+        "inspectionUnit": "Trung Tâm Kiểm Nghiệm Thực Nghiệm",
+        "sampleSentDate": "2026-07-18",
+        "status": "PASSED",
+        "criteria": [
+          {
+            "criterionCode": "CT-TEST-01",
+            "criterionName": "Dư lượng kim loại nặng",
+            "passed": true,
+            "resultDate": "2026-07-19",
+            "expiryDate": "2027-07-19"
+          }
+        ]
+      }
+    ],
+    "schemaMapping": {
+      "standard": "GS1_SIMULATED_V1",
+      "complianceNote": "Mô phỏng lược đồ GS1, không phải chứng nhận tuân thủ chính thức GS1"
+    },
+    "warnings": [],
+    "is_test": true,
+    "test_notice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"
+  },
+  "timestamp": "2026-09-14T10:00:00.000Z"
+}
+```
+
+---
+
+## 3. Cấp và quản lý Khóa thử nghiệm (Test Key Management)
+
+Chức năng cấp khóa thử nghiệm được tích hợp trong phân hệ quản lý Hợp tác xã, đảm bảo quản lý chặt chẽ theo các quy tắc nghiệp vụ.
+
+### 3.1. Endpoint cấp khóa thử nghiệm
+
+- **Method:** `POST`
+- **Path:** `/api/v1/organization/api-keys/test`
+- **Quyền hạn (Authorization):**
+  - Chỉ cho phép vai trò **Quản lý Hợp tác xã (`VT-02`)** hoặc **Quản trị viên nền tảng (`VT-01`)**.
+  - **Từ chối tuyệt đối** với vai trò **Người ghi sự kiện (`VT-03`)**, Người tiêu dùng (`VT-06`) hoặc Doanh nghiệp thu mua (`VT-04`) mà không có quyền quản lý (`403 Forbidden` — NCL-12-CN-004-TC-04).
+- **Yêu cầu bảo mật:** Người thực hiện phải đăng nhập và gửi kèm Header `Authorization: Bearer <ACCESS_TOKEN>`.
+
+#### Request Body
+```json
+{
+  "partnerName": "Công ty Cổ phần Nông sản Thực phẩm An Toàn",
+  "rateLimitPerHour": 30,
+  "expiresAt": "2026-09-28T23:59:59"
+}
+```
+
+| Trường | Kiểu dữ liệu | Bắt buộc | Ràng buộc nghiệp vụ |
+|:---|:---|:---:|:---|
+| `partnerName` | String | Có | Không để trống, độ dài tối đa 255 ký tự. |
+| `rateLimitPerHour` | Integer | Có | Tối thiểu 1, **tối đa không quá 50 lượt/giờ** (hạn mức thấp để tránh lạm dụng). Mặc định gợi ý: 30. |
+| `expiresAt` | String (ISO-8601) | Có | Phải ở thời điểm tương lai và **không quá 15 ngày** kể từ ngày tạo (thời hạn ngắn). |
+
+#### Phản hồi thành công (HTTP 201 Created)
+```json
+{
+  "success": true,
+  "status": 201,
+  "data": {
+    "id": "e8a1b2c3-d4e5-4678-9abc-def012345678",
+    "organizationId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "partnerName": "Công ty Cổ phần Nông sản Thực phẩm An Toàn",
+    "keyPrefix": "nks_test_e8a1b2c3",
+    "rawApiKey": "nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+    "rateLimitPerHour": 30,
+    "expiresAt": "2026-09-28T23:59:59",
+    "status": "ACTIVE",
+    "is_test": true,
+    "totalCalls": 0,
+    "failedCalls": 0,
+    "createdByName": "Nguyễn Văn Quản Lý",
+    "createdAt": "2026-09-14T10:00:00"
+  },
+  "timestamp": "2026-09-14T10:00:00.000Z"
+}
+```
+
+> **Lưu ý bảo mật:** Trường `rawApiKey` chỉ được trả về **DUY NHẤT 1 LẦN** khi tạo mới thành công. Hệ thống chỉ lưu trữ chuỗi băm SHA-256 (`key_hash`) và tiền tố (`key_prefix`). Người quản lý cần sao chép và chuyển giao khóa ngay cho đối tác.
+
+---
+
+## 4. Hành vi Chế độ Thử nghiệm (Sandbox Mode Behavior)
+
+Khi đối tác gửi request có Header `X-API-KEY` chứa khóa thử nghiệm (`is_test = true` hoặc tiền tố `nks_test_`):
+
+1. **Cách ly dữ liệu thật tuyệt đối:** Hệ thống không truy vấn hay trả về dữ liệu nông trại/lô hàng thật của hợp tác xã. Mọi request đều được điều hướng trả về bộ dữ liệu mẫu chuẩn hóa (`SAMPLE_DATASET`).
+2. **Đánh dấu rõ ràng:** Mọi response trả về đều chứa:
+   - Thuộc tính boolean `"is_test": true`.
+   - Thông báo ghi chú `"test_notice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"`.
+3. **Giới hạn phạm vi dữ liệu Sandbox (NCL-12-CN-004-TC-02):** Khóa thử nghiệm chỉ được phép gọi vào các định danh mẫu (`sample-lot-001`, `sample-shipment-001`, `TEST-TRACE-001`). Nếu gọi mã định danh khác ngoài phạm vi dữ liệu mẫu, hệ thống sẽ từ chối với lỗi `HTTP 403 Forbidden`.
+4. **Hết hạn khóa thử nghiệm (NCL-12-CN-004-TC-03):** Khi thời điểm gọi vượt quá `expiresAt`, hệ thống từ chối ngay tại tầng filter với mã lỗi `HTTP 401 Unauthorized` và thông báo lỗi rõ ràng:
+   ```json
+   {
+     "success": false,
+     "status": 401,
+     "message": "Khóa thử nghiệm đã hết hạn"
+   }
+   ```
+5. **Khóa thử nghiệm không hợp lệ hoặc chưa được cấp:** Khi đối tác gửi Header `X-API-KEY` chứa khóa thử nghiệm không tồn tại hoặc không đúng, hệ thống từ chối truy cập với mã lỗi `HTTP 401 Unauthorized` kèm hướng dẫn:
+   ```json
+   {
+     "success": false,
+     "status": 401,
+     "message": "Khóa thử nghiệm không đúng. Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa."
+   }
+   ```
+
+---
+
+## 5. Ví dụ gọi thử nghiệm bằng cURL (Sandbox cURL Examples)
+
+Dưới đây là các ví dụ cURL hoàn chỉnh. Đối tác thay thế `<YOUR_TEST_API_KEY>` bằng khóa thử nghiệm do Hợp tác xã cấp (tiền tố `nks_test_...`) để chạy thử trực tiếp từ terminal.
+
+> **💡 Mẹo hiển thị dễ nhìn trên terminal:** Thêm cờ `-s` (silent - tắt thanh tiến trình tải) và nối ống dẫn `| jq .` ở cuối lệnh để terminal tự động thụt lề định dạng JSON và tô màu cú pháp trực quan (yêu cầu máy đã cài sẵn `jq`).
+
+### 5.1. Gọi lấy dữ liệu hồ sơ lô mẫu Sandbox (`/api/publicapi/v1/lots/sample-lot-001`)
+
+#### a) Môi trường Production (Chính thức):
+```bash
+curl -s -X GET "https://agri-trace.online/api/publicapi/v1/lots/sample-lot-001" \
+  -H "Accept: application/json" \
+  -H "X-API-KEY: <YOUR_TEST_API_KEY>" | jq .
+```
+
+#### b) Môi trường Staging (Kiểm thử trước phát hành):
+```bash
+curl -s -X GET "https://staging.agri-trace.online/api/publicapi/v1/lots/sample-lot-001" \
+  -H "Accept: application/json" \
+  -H "X-API-KEY: <YOUR_TEST_API_KEY>" | jq .
+```
+
+#### c) Môi trường Localhost (Phát triển cục bộ):
+```bash
+curl -s -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "Accept: application/json" \
+  -H "X-API-KEY: <YOUR_TEST_API_KEY>" | jq .
+```
+*(Nếu gọi qua Nginx reverse proxy của frontend local: dùng `http://localhost:3000`)*.
+*(Nếu gọi trực tiếp tới cổng backend Spring Boot: dùng `http://localhost:8080`)*.
+
+---
+
+### 5.2. Gọi lấy hồ sơ lô đối tác (`/api/v1/partner/production-lots/{lotId}/dossier`)
+```bash
+curl -s -X GET "https://agri-trace.online/api/v1/partner/production-lots/00000000-0000-0000-0000-000000000001/dossier" \
+  -H "Accept: application/json" \
+  -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1" | jq .
+```
+
+### 5.3. Gọi tra cứu hành trình mã tem thử nghiệm (`/api/v1/partner/trace/{codeValue}`)
+```bash
+curl -s -X GET "https://agri-trace.online/api/v1/partner/trace/TEST-TRACE-001" \
+  -H "Accept: application/json" \
+  -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1" | jq .
+```
+
+### 5.4. Gọi xuất hồ sơ GS1 mô phỏng (JSON & XML)
+```bash
+# Định dạng JSON
+curl -s -X GET "https://agri-trace.online/api/v1/partner/shipments/00000000-0000-0000-0000-000000000010/dossier/gs1?format=json" \
+  -H "Accept: application/json" \
+  -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1" | jq .
+
+# Định dạng XML
+curl -s -X GET "https://agri-trace.online/api/v1/partner/shipments/00000000-0000-0000-0000-000000000010/dossier/gs1?format=xml" \
+  -H "Accept: application/xml" \
+  -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+
+---
+
+## 6. Bảng mã lỗi tổng hợp (Error Codes Summary)
+
+Hệ thống tuân thủ cấu trúc phản hồi lỗi chuẩn của Nguồn Gốc Số với thông điệp tiếng Việt tường minh:
+
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Thông điệp lỗi chi tiết",
+  "path": "/api/publicapi/v1/...",
+  "timestamp": "2026-09-23T10:00:00.000Z"
+}
+```
+
+| Mã HTTP | Tên lỗi | Nguyên nhân | Thông điệp phản hồi gợi ý | Giải pháp xử lý |
+|:---:|:---|:---|:---|:---|
+| **400** | Bad Request | Thiếu tham số hoặc định dạng dữ liệu không hợp lệ. | `"Tham số không hợp lệ"` | Kiểm tra lại định dạng tham số (ví dụ UUID của `lotId`, kiểu số của tọa độ). |
+| **401** | Unauthorized | Khóa thử nghiệm đã hết hạn hiệu lực (sau tối đa 15 ngày). | `"Khóa thử nghiệm đã hết hạn"` | Yêu cầu Quản lý HTX cấp lại khóa thử nghiệm mới. |
+| **401** | Unauthorized | Khóa truy cập chính thức (Live Key) đã hết thời gian hiệu lực. | `"Khóa truy cập đã hết thời gian hiệu lực"` | Liên hệ Quản lý HTX để gia hạn hoặc cấp lại khóa mới. |
+| **401** | Unauthorized | Khóa API không tồn tại trong hệ thống hoặc không đúng. | `"Khóa truy cập không hợp lệ"` / `"Khóa thử nghiệm không đúng. Vui lòng liên hệ..."` | Kiểm tra lại chuỗi API key được gửi trong tiêu đề `X-API-KEY`. |
+| **401** | Unauthorized | Khóa API đã bị Quản lý Hợp tác xã thu hồi hiệu lực. | `"Khóa truy cập đã bị thu hồi và không còn hiệu lực"` | Liên hệ Quản lý HTX để làm rõ lý do thu hồi và cấp lại khóa mới. |
+| **401** | Unauthorized | Request không gửi kèm tiêu đề HTTP xác thực bắt buộc. | `"Thiếu Header X-API-KEY"` | Bổ sung tiêu đề `X-API-KEY: <API_KEY>` vào request HTTP. |
+| **403** | Forbidden | Khóa thử nghiệm cố truy cập mã lô hoặc ID ngoài phạm vi dữ liệu mẫu Sandbox. | `"Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ..."` | Sử dụng đúng mã lô mẫu `sample-lot-001` khi dùng khóa thử nghiệm. |
+| **403** | Forbidden | Tài khoản không có quyền hạn Quản lý HTX khi gọi API cấp khóa. | `"Bạn không có quyền thực hiện chức năng này"` | Đăng nhập với tài khoản có vai trò Quản lý HTX (`VT-02`) hoặc Quản trị viên (`VT-01`). |
+| **404** | Not Found | Không tìm thấy lô sản xuất với mã đã chỉ định. | `"Không tìm thấy lô sản xuất yêu cầu"` | Kiểm tra lại tính chính xác của `lotId` lô hàng cần truy vấn. |
+| **429** | Too Many Requests | Vượt quá hạn mức số lượt gọi trong 1 giờ (mặc định 30 lượt/giờ đối với khóa thử nghiệm - QTN-20). | `"Khóa truy cập đã vượt quá hạn mức {limit} lượt gọi/giờ"` | Chờ sang khung giờ tiếp theo hoặc liên hệ HTX để nâng hạn mức. |
+| **500** | Internal Server Error | Lỗi hệ thống máy chủ nội bộ. | `"Lỗi máy chủ nội bộ. Vui lòng liên hệ quản trị."` | Liên hệ đội ngũ quản trị kỹ thuật Nguồn Gốc Số. |
+
+---
+
+## 7. Danh sách khóa thử nghiệm Sandbox & Hướng dẫn kiểm thử mã lỗi (Testing & Verification Guide)
+
+Để phục vụ lập trình viên và kiểm thử viên kiểm thử cơ chế bắt lỗi HTTP, hệ thống đã nạp sẵn dữ liệu seed các khóa API thử nghiệm và chính thức (Flyway migration `V20260923160000__seed_test_api_keys_for_error_scenarios.sql`).
+
+### 7.1. Danh mục các khóa API đã tạo sẵn trong CSDL
+
+| STT | Loại Khóa | Trạng Thái / Cấu Hình | Raw API Key (truyền vào Header `X-API-KEY`) | Key Prefix | Mục Đích Kiểm Thử |
+|:---:|:---|:---|:---|:---|:---|
+| **1** | **Khóa Thử Nghiệm** | `ACTIVE`<br>Hạn mức: `50`/h<br>Thời hạn: `+15 ngày`<br>`is_test = true` | `nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1` | `nks_test_e8a1b2c3` | - Gọi `sample-lot-001` -> **200 OK**<br>- Gọi lô thật / ngoài Sandbox -> **403 Forbidden** |
+| **2** | **Khóa Thử Nghiệm** | `EXPIRED`<br>Thời hạn: `-2 ngày` (quá hạn)<br>`is_test = true` | `nks_test_expired1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1` | `nks_test_expired1` | Kiểm thử **401 Unauthorized**: `"Khóa thử nghiệm đã hết hạn"` |
+| **3** | **Khóa Chính Thức (Live)** | `EXPIRED`<br>Thời hạn: `-2 ngày` (quá hạn)<br>`is_test = false` | `nks_live_expired1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1` | `nks_live_expired1` | Kiểm thử **401 Unauthorized**: `"Khóa truy cập đã hết thời gian hiệu lực"` |
+| **4** | **Khóa Thử Nghiệm** | `REVOKED`<br>Đã bị Quản lý HTX thu hồi<br>`is_test = true` | `nks_test_revoked1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1` | `nks_test_revoked1` | Kiểm thử **401 Unauthorized**: `"Khóa truy cập đã bị thu hồi và không còn hiệu lực"` |
+| **5** | **Khóa Thử Nghiệm** | `ACTIVE`<br>Hạn mức: `1` lượt/giờ<br>`is_test = true` | `nks_test_ratelimitd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0` | `nks_test_ratelimi` | Kiểm thử **429 Too Many Requests**: `"Khóa truy cập đã vượt quá hạn mức 1 lượt gọi/giờ"` |
+| **6** | **Khóa Chính Thức (Live)** | `ACTIVE`<br>Hạn mức: `1000`/h<br>`is_test = false` | `nks_live_active1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1` | `nks_live_active1` | - Gọi lô thật -> **200 OK**<br>- Gọi lô không tồn tại -> **404 Not Found**<br>- Gọi sai UUID -> **400 Bad Request** |
+| **7** | **Khóa Chính Thức (Live)** | `REVOKED`<br>Đã bị thu hồi<br>`is_test = false` | `nks_live_revoked1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1` | `nks_live_revoked1` | Kiểm thử **401 Unauthorized**: `"Khóa truy cập đã bị thu hồi và không còn hiệu lực"` |
+
+---
+
+### 7.2. Lệnh cURL mẫu kiểm thử chi tiết từng mã lỗi
+
+> [!NOTE]
+> Mặc định các lệnh mẫu sử dụng `http://localhost:8080` khi gọi trực tiếp backend. Bạn có thể thay bằng `http://localhost` (hoặc `http://localhost:3000` / domain môi trường bạn đang chạy).
+
+#### 1. HTTP 400 Bad Request — Tham số không hợp lệ
+- **Nguyên nhân:** Thiếu tham số hoặc định dạng dữ liệu không hợp lệ (ví dụ: mã lô không đúng định dạng UUID).
+- **Thông điệp mong đợi:** `"Tham số không hợp lệ"`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/ma-lo-khong-dung-dinh-dang-uuid" \
+  -H "X-API-KEY: nks_live_active1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 400,
+  "message": "Tham số không hợp lệ: mã lô 'ma-lo-khong-dung-dinh-dang-uuid' không đúng định dạng UUID"
+}
+```
+
+---
+
+#### 2. HTTP 401 Unauthorized — Khóa thử nghiệm đã hết hạn
+- **Nguyên nhân:** Khóa thử nghiệm đã hết hạn hiệu lực (sau tối đa 15 ngày).
+- **Thông điệp mong đợi:** `"Khóa thử nghiệm đã hết hạn"`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_test_expired1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Khóa thử nghiệm đã hết hạn"
+}
+```
+
+---
+
+#### 3. HTTP 401 Unauthorized — Khóa truy cập chính thức đã hết thời gian hiệu lực
+- **Nguyên nhân:** Khóa truy cập chính thức (Live Key) đã hết thời gian hiệu lực.
+- **Thông điệp mong đợi:** `"Khóa truy cập đã hết thời gian hiệu lực"`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_live_expired1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Khóa truy cập đã hết thời gian hiệu lực"
+}
+```
+
+---
+
+#### 4. HTTP 401 Unauthorized — Khóa API không tồn tại trong hệ thống hoặc không đúng
+- **Nguyên nhân:** Khóa API không tồn tại trong hệ thống hoặc không đúng.
+- **Thông điệp mong đợi:** `"Khóa truy cập không hợp lệ"` hoặc `"Khóa thử nghiệm không đúng. Vui lòng liên hệ..."`
+
+- **Trường hợp 1: Gửi khóa thử nghiệm không tồn tại (tiền tố `test`):**
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_test_sai_khoa_1234567890abcdef"
+```
+*Kết quả:*
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Khóa thử nghiệm không đúng. Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa."
+}
+```
+
+- **Trường hợp 2: Gửi khóa chính thức không tồn tại (tiền tố `live`):**
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_live_sai_khoa_1234567890abcdef"
+```
+*Kết quả:*
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Khóa truy cập không hợp lệ"
+}
+```
+
+---
+
+#### 5. HTTP 401 Unauthorized — Khóa API đã bị Quản lý HTX thu hồi
+- **Nguyên nhân:** Khóa API đã bị Quản lý Hợp tác xã thu hồi hiệu lực.
+- **Thông điệp mong đợi:** `"Khóa truy cập đã bị thu hồi và không còn hiệu lực"`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_test_revoked1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Khóa truy cập đã bị thu hồi và không còn hiệu lực"
+}
+```
+
+---
+
+#### 6. HTTP 401 Unauthorized — Request không gửi kèm tiêu đề HTTP xác thực bắt buộc
+- **Nguyên nhân:** Request không gửi kèm tiêu đề HTTP xác thực bắt buộc.
+- **Thông điệp mong đợi:** `"Thiếu Header X-API-KEY"`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 401,
+  "message": "Thiếu Header X-API-KEY"
+}
+```
+
+---
+
+#### 7. HTTP 403 Forbidden — Khóa thử nghiệm cố truy cập ngoài phạm vi Sandbox
+- **Nguyên nhân:** Khóa thử nghiệm cố truy cập mã lô hoặc ID ngoài phạm vi dữ liệu mẫu Sandbox.
+- **Thông điệp mong đợi:** `"Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ..."`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/00000000-0000-0000-0000-000200000001" \
+  -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 403,
+  "message": "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật."
+}
+```
+
+---
+
+#### 8. HTTP 403 Forbidden — Tài khoản không có quyền khi gọi API cấp khóa
+- **Nguyên nhân:** Tài khoản không có quyền hạn Quản lý HTX khi gọi API cấp khóa.
+- **Thông điệp mong đợi:** `"Bạn không có quyền thực hiện chức năng này"` (hoặc `"Bạn không có quyền thực hiện thao tác này"`)
+
+Đăng nhập tài khoản Người ghi sự kiện (`VT-03` / `eventrecorder` / `admin123`) lấy Token và gọi cấp khóa:
+```bash
+curl -i -X POST "http://localhost:8080/api/v1/organization/api-keys/test" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <TOKEN_CỦA_EVENTRECORDER>" \
+  -d '{"partnerName": "Đối tác Thử Nghiệm", "rateLimitPerHour": 30, "expiresAt": "2026-10-01T00:00:00"}'
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 403,
+  "message": "Bạn không có quyền thực hiện chức năng này",
+  "errors": "ACCESS_DENIED"
+}
+```
+
+---
+
+#### 9. HTTP 404 Not Found — Không tìm thấy lô sản xuất yêu cầu (Live Key)
+- **Nguyên nhân:** Không tìm thấy lô sản xuất với mã đã chỉ định (khi dùng Live Key).
+- **Thông điệp mong đợi:** `"Không tìm thấy lô sản xuất yêu cầu"`
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/99999999-9999-9999-9999-999999999999" \
+  -H "X-API-KEY: nks_live_active1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+```
+**Kết quả phản hồi:**
+```json
+{
+  "success": false,
+  "status": 404,
+  "message": "Không tìm thấy lô sản xuất yêu cầu"
+}
+```
+
+---
+
+#### 10. HTTP 429 Too Many Requests — Vượt quá hạn mức số lượt gọi trong 1 giờ
+- **Nguyên nhân:** Vượt quá hạn mức số lượt gọi trong 1 giờ (QTN-20).
+- **Thông điệp mong đợi:** `"Khóa truy cập đã vượt quá hạn mức {limit} lượt gọi/giờ"`
+
+Sử dụng khóa có hạn mức 1 lượt/giờ (`nks_test_ratelimitd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0`):
+- **Lần gọi 1:** Trả về **200 OK**.
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_test_ratelimitd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0"
+```
+- **Lần gọi 2 (ngay sau đó):** Bị từ chối với mã **429 Too Many Requests**:
+```bash
+curl -i -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
+  -H "X-API-KEY: nks_test_ratelimitd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0"
+```
+**Kết quả phản hồi lần 2:**
+```json
+{
+  "success": false,
+  "status": 429,
+  "message": "Khóa truy cập đã vượt quá hạn mức 1 lượt gọi/giờ"
+}
+```
+
+---
+
+#### 11. HTTP 500 Internal Server Error — Lỗi hệ thống máy chủ nội bộ
+- **Nguyên nhân:** Lỗi máy chủ nội bộ không bắt được.
+- **Thông điệp mong đợi:** `"Lỗi máy chủ nội bộ. Vui lòng liên hệ quản trị."`
+
+Được chuẩn hóa bắt và xử lý tại `GlobalExceptionHandler.java`:
+```json
+{
+  "success": false,
+  "status": 500,
+  "message": "Lỗi máy chủ nội bộ. Vui lòng liên hệ quản trị."
+}
+```
+
+---
+
+### 7.3. Kết quả kiểm thử tự động (Automated Test Suite Results)
+
+Toàn bộ các ca kiểm thử tích hợp (Integration Tests) cho phân hệ Khóa API (Sandbox/Live) và Cổng dữ liệu đối tác đã được thực thi tự động và đạt tỷ lệ thành công 100%:
+
+- **Tập kiểm thử tích hợp chuyên sâu Khóa API (`TestApiKeyIntegrationTest`):**
+  - Đã chạy: 18/18 ca kiểm thử đạt (**BUILD SUCCESS**).
+  - Kiểm thử đầy đủ các luồng: Cấp khóa thử nghiệm (201), chặn tài khoản không có quyền `VT-03` (403), kiểm tra khóa hết hạn (401), khóa thu hồi (401), thiếu Header `X-API-KEY` (401), khóa sai/không tồn tại (401), truy cập ngoài Sandbox (403), vượt rate limit (429), truy cập thành công dữ liệu mẫu (200), truy xuất Live Key (200, 400, 404).
+- **Toàn bộ bộ kiểm thử tích hợp ApiKey và Partner:**
+  - Đã chạy: 97/97 ca kiểm thử đạt (**BUILD SUCCESS**).
+- **Bộ kiểm thử Frontend giao diện tài liệu (`DataPortalDocsPage.test.tsx`):**
+  - Đã chạy: 11/11 ca kiểm thử đạt (**PASS**).
+
+

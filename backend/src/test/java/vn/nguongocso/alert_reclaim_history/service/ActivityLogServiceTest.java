@@ -73,7 +73,7 @@ public class ActivityLogServiceTest {
 
         // Act (Thực hiện hành động test)
         PageResponse<ActivityLogResponse> response = activityLogService.getActivityLogs(
-                page, size, action, null, null, null, mockUser
+                page, size, action, null, null, null, null, mockUser
         );
 
         // Assert (Kiểm chứng kết quả kiểm thử)

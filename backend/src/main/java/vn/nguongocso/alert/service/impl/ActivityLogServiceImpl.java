@@ -32,9 +32,8 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     @Transactional(readOnly = true)
     public PageResponse<ActivityLogResponse> getActivityLogs(
             int page, int size, String action, String actorName,
-            LocalDate startDate, LocalDate endDate, CustomUserDetails currentUser) {
+            LocalDate startDate, LocalDate endDate, String objectType, CustomUserDetails currentUser) {
 
-        // Sắp xếp mặc định theo thời gian giảm dần (mới nhất trước)
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Specification<ActivityLog> spec = ActivityLogSpecification.hasOrganizationId(currentUser.getOrganizationId());
 
@@ -46,6 +45,9 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         }
         if (startDate != null || endDate != null) {
             spec = spec.and(ActivityLogSpecification.createdBetween(startDate, endDate));
+        }
+        if (objectType != null && !objectType.isBlank()) {
+            spec = spec.and(ActivityLogSpecification.hasEntityType(objectType));
         }
 
         Page<ActivityLog> logPage = activityLogRepository.findAll(spec, pageable);
@@ -82,9 +84,9 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 .build();
     }
 
+    /** Ghi một nhật ký hoạt động mới. */
     @Override
     @Transactional
-    /** Ghi một nhật ký hoạt động mới. */
     public void logActivity(ActivityLogRequest request) {
 
         ActivityLog activityLog = ActivityLog.builder()
@@ -92,6 +94,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 .userId(request.getUserId())
                 .username(request.getUsername())
                 .fullName(request.getFullName())
+                .actorRole(request.getActorRole())
                 .action(request.getAction())
                 .description(request.getDescription())
                 .entityType(request.getEntityType())
@@ -99,6 +102,8 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                         request.getEntityId() == null
                                 ? null
                                 : request.getEntityId().toString())
+                .beforeValue(request.getBeforeValue())
+                .afterValue(request.getAfterValue())
                 .ipAddress(request.getIpAddress())
                 .build();
 

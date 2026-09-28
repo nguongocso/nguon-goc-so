@@ -4,12 +4,9 @@ import type {
   CultivationMilestone,
   CultivationMilestoneRequest,
   CultivationMilestoneQueryParams,
+  MilestoneEligibilityResponse,
 } from '@/types/cultivationMilestone';
 
-/**
- * Lấy danh sách mốc canh tác (phân trang, lọc theo keyword/activityType/category/standard)
- * GET /api/v1/cultivation-milestones
- */
 export const getCultivationMilestones = async (
   params?: CultivationMilestoneQueryParams
 ): Promise<PageResponse<CultivationMilestone>> => {
@@ -19,10 +16,6 @@ export const getCultivationMilestones = async (
   return response.data.data;
 };
 
-/**
- * Chi tiết mốc canh tác
- * GET /api/v1/cultivation-milestones/{id}
- */
 export const getCultivationMilestone = async (
   id: number
 ): Promise<CultivationMilestone> => {
@@ -32,10 +25,6 @@ export const getCultivationMilestone = async (
   return response.data.data;
 };
 
-/**
- * Tạo mốc canh tác (chỉ PLATFORM_ADMIN — VT-01)
- * POST /api/v1/cultivation-milestones
- */
 export const createCultivationMilestone = async (
   data: CultivationMilestoneRequest
 ): Promise<CultivationMilestone> => {
@@ -46,10 +35,6 @@ export const createCultivationMilestone = async (
   return response.data.data;
 };
 
-/**
- * Cập nhật mốc canh tác (chỉ PLATFORM_ADMIN — VT-01)
- * PUT /api/v1/cultivation-milestones/{id}
- */
 export const updateCultivationMilestone = async (
   id: number,
   data: CultivationMilestoneRequest
@@ -57,6 +42,16 @@ export const updateCultivationMilestone = async (
   const response = await apiClient.put<{ data: CultivationMilestone }>(
     `/cultivation-milestones/${id}`,
     data
+  );
+  return response.data.data;
+};
+
+export const getPackagingEligibility = async (
+  productionLotId: string
+): Promise<MilestoneEligibilityResponse> => {
+  const response = await apiClient.get<{ data: MilestoneEligibilityResponse }>(
+    '/cultivation-milestones/eligibility',
+    { params: { productionLotId } }
   );
   return response.data.data;
 };

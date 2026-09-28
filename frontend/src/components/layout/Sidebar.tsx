@@ -1,12 +1,14 @@
 import React, { type ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  Activity,
   AlertTriangle,
   Award,
   Bell,
   BookOpen,
   Building2,
   CalendarCheck,
+  FileSignature,
   FileText,
   Hash,
   History,
@@ -19,8 +21,10 @@ import {
   MessageSquare,
   Package,
   PackageCheck,
+  PackageX,
   ScanLine,
   ShieldCheck,
+  ShieldAlert,
   Truck,
   User,
   UserCheck,
@@ -29,7 +33,6 @@ import {
   Warehouse,
   X,
   TrendingUp,
-  Activity,
   GitCompare,
   PieChart,
   Database,
@@ -39,6 +42,7 @@ import {
   Key,
   WifiOff,
   MapPin,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
@@ -70,9 +74,18 @@ import {
 interface MenuItem {
   icon: ReactNode;
   label: string;
-  href: string;
+  /**
+   * Đường dẫn điều hướng của mục lá. Mục cha dạng submenu (có `children`)
+   * chỉ đóng/mở submenu, không điều hướng nên không cần `href`.
+   */
+  href?: string;
   allowedRoles: readonly AuthenticatedRoleCode[];
   activePaths?: string[];
+  /**
+   * Danh sách mục con của submenu cấp 2 (ví dụ "Yêu cầu thu hồi" nằm
+   * trong "Vận hành sản xuất"). Chỉ hỗ trợ một cấp lồng nhau.
+   */
+  children?: MenuItem[];
 }
 
 interface MenuGroup {
@@ -171,6 +184,12 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ROLE_ACCESS.standardManagement,
       },
       {
+        icon: <ShieldCheck className="h-5 w-5" />,
+        label: "Xác thực chứng nhận",
+        href: "/admin/certifications",
+        allowedRoles: ROLE_ACCESS.certificateVerification,
+      },
+      {
         icon: <Award className="h-5 w-5" />,
         label: "Chứng nhận",
         href: "/certifications",
@@ -184,15 +203,25 @@ const MENU_GROUPS: MenuGroup[] = [
       },
       {
         icon: <Hash className="h-5 w-5" />,
-        label: "Quản lý dải mã",
+        label: "Quản lý dải mã truy xuất",
         href: "/admin/code-ranges",
         allowedRoles: ROLE_ACCESS.codeRangeList,
+        activePaths: [
+          "/admin/code-ranges",
+          "/admin/code-range-supplements",
+        ],
       },
       {
         icon: <Lock className="h-5 w-5" />,
         label: "Tem nghi vấn",
         href: "/admin/suspect-trace-codes",
         allowedRoles: ["VT-01"] as const,
+      },
+      {
+        icon: <SlidersHorizontal className="h-5 w-5" />,
+        label: "Ngưỡng quét bất thường",
+        href: "/admin/anomaly-thresholds",
+        allowedRoles: ROLE_ACCESS.anomalyThresholdConfig,
       },
       {
         icon: <MapPin className="h-5 w-5" />,
@@ -220,6 +249,7 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Vùng trồng",
         href: "/farm-areas",
         allowedRoles: ["VT-02"] as const,
+        activePaths: ["/farm-areas", "/chinhsuavungtrong"],
       },
       {
         icon: <Package className="h-5 w-5" />,
@@ -235,6 +265,12 @@ const MENU_GROUPS: MenuGroup[] = [
         ],
       },
       {
+        icon: <Activity className="h-5 w-5" />,
+        label: "Bảng tiến độ chuỗi",
+        href: "/chain-progress",
+        allowedRoles: ["VT-01", "VT-02", "VT-03"] as const,
+      },
+      {
         icon: <Truck className="h-5 w-5" />,
         label: "Ghi sự kiện vận chuyển",
         href: "/transport-events/record",
@@ -248,10 +284,17 @@ const MENU_GROUPS: MenuGroup[] = [
       },
       {
         icon: <Thermometer className="h-5 w-5" />,
-        label: "Điều kiện bảo quản",
+        label: "Bảo quản",
         href: "/storage-condition",
         allowedRoles: ROLE_ACCESS.storageCondition,
       },
+      {
+        icon: <ShieldAlert className="h-5 w-5" />,
+        label: "Tổng hợp cảnh báo",
+        href: "/alerts",
+        allowedRoles: ROLE_ACCESS.aggregateAlerts,
+        activePaths: ["/alerts"],
+      }, 
       {
         icon: <AlertTriangle className="h-5 w-5" />,
         label: "Cảnh báo tem bất thường",
@@ -277,12 +320,42 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ROLE_ACCESS.recallRequestCreate,
         activePaths: ["/recall-requests/create"],
       },
+      // NCL-04-CN-007: mục "Yêu cầu bổ sung mã" đã bỏ — chức năng chuyển thành
+      // tùy chọn trong tab "Lô hàng & Mã QR" của chi tiết lô sản xuất.
       {
-        icon: <AlertTriangle className="h-5 w-5" />,
-        label: "Danh sách yêu cầu thu hồi",
-        href: "/recall-requests",
+        icon: <GitCompare className="h-5 w-5" />,
+        label: "Truy vết phạm vi ảnh hưởng",
+        href: "/trace/impact-scope",
+        allowedRoles: ROLE_ACCESS.impactScopeTrace,
+        activePaths: ["/trace/impact-scope"],
+      },
+      {
+        icon: <FileSignature className="h-5 w-5" />,
+        label: "Phiếu bàn giao đã gửi",
+        href: "/handover/sent",
+        allowedRoles: ["VT-02"] as const,
+        activePaths: ["/handover/sent"],
+      },
+      {
+        icon: <PackageX className="h-5 w-5" />,
+        label: "Yêu cầu thu hồi",
         allowedRoles: ROLE_ACCESS.recallRequestManage,
-        activePaths: ["/recall-requests"],
+        children: [
+          {
+            icon: <PackageX className="h-5 w-5" />,
+            label: "Yêu cầu thu hồi từng lô hàng",
+            href: "/recall-requests",
+            allowedRoles: ROLE_ACCESS.recallRequestManage,
+            activePaths: ["/recall-requests"],
+          },
+          {
+            icon: <PackageX className="h-5 w-5" />,
+            label: "Yêu cầu thu hồi lô hàng theo phạm vi",
+            href: "/recall-requests/bulk",
+            allowedRoles: ROLE_ACCESS.recallRequestManage,
+            activePaths: ["/recall-requests/bulk"],
+          },
+        ],
       },
     ],
   },
@@ -318,10 +391,38 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ["VT-05"] as const,
       },
       {
+        icon: <AlertTriangle className="h-5 w-5" />,
+        label: "Theo dõi lô có cảnh báo",
+        href: "/reports/alert-lots",
+        allowedRoles: ROLE_ACCESS.territoryAlertLots,
+        activePaths: ["/reports/alert-lots"],
+      },
+      {
+        icon: <Activity className="h-5 w-5" />,
+        label: "Mức độ sử dụng nền tảng",
+        href: "/reports/organization-usage",
+        allowedRoles: ROLE_ACCESS.organizationUsage,
+        activePaths: ["/reports/organization-usage"],
+      },
+      {
+        icon: <FileText className="h-5 w-5" />,
+        label: "Mẫu hồ sơ truy xuất",
+        href: "/export/profile-templates",
+        allowedRoles: ["VT-02"] as const,
+        activePaths: ["/export/profile-templates", "/export/profile-templates/new"],
+      },
+      {
         icon: <FileText className="h-5 w-5" />,
         label: "Xuất dữ liệu mở",
         href: "/export/open-data",
-        allowedRoles: ["VT-05"] as const,
+        allowedRoles: ROLE_ACCESS.exportOpenData,
+      },
+      {
+        icon: <FileSignature className="h-5 w-5" />,
+        label: "Phiếu bàn giao nhận",
+        href: "/shipment-handovers/received",
+        allowedRoles: ["VT-02"] as const,
+        activePaths: ["/shipment-handovers/received"],
       },
     ],
   },
@@ -332,10 +433,16 @@ const MENU_GROUPS: MenuGroup[] = [
     label: "Thu mua",
     icon: <ShoppingCart className="h-5 w-5" />,
     items: [
-
+      {
+        icon: <FileSignature className="h-5 w-5" />,
+        label: "Phiếu bàn giao nhận",
+        href: "/handover",
+        allowedRoles: ["VT-04"] as const,
+        activePaths: ["/handover"],
+      },
       {
         icon: <Warehouse className="h-5 w-5" />,
-        label: "Nhập kho & đối chiếu",
+        label: "Nhập kho",
         href: "/warehouse-receipt",
         allowedRoles: ROLE_ACCESS.warehouseReceipt,
       },
@@ -403,7 +510,48 @@ const MENU_GROUPS: MenuGroup[] = [
 // ─── Helpers ─────────────────────────────────────────────
 
 function filterVisibleItems(items: MenuItem[], userRole?: string): MenuItem[] {
-  return items.filter((item) => hasAnyRole(userRole, item.allowedRoles));
+  const result: MenuItem[] = [];
+  for (const item of items) {
+    if (!hasAnyRole(userRole, item.allowedRoles)) {
+      continue;
+    }
+    if (item.children && item.children.length > 0) {
+      const visibleChildren = item.children.filter((child) =>
+        hasAnyRole(userRole, child.allowedRoles),
+      );
+      if (visibleChildren.length === 0) {
+        continue;
+      }
+      result.push({ ...item, children: visibleChildren });
+    } else {
+      result.push(item);
+    }
+  }
+  return result;
+}
+
+/**
+ * Thu thập toàn bộ mục lá (có `href`) kể cả mục nằm trong submenu cấp 2,
+ * dùng cho việc xác định route active và render khi sidebar thu gọn.
+ */
+function collectLeafItems(items: MenuItem[]): MenuItem[] {
+  const result: MenuItem[] = [];
+  for (const item of items) {
+    if (item.children && item.children.length > 0) {
+      result.push(...collectLeafItems(item.children));
+    } else if (item.href) {
+      result.push(item);
+    }
+  }
+  return result;
+}
+
+/** Danh sách path dùng để xác định active của một mục lá. */
+function getItemPaths(item: MenuItem): string[] {
+  if (!item.href) {
+    return item.activePaths ?? [];
+  }
+  return item.activePaths ? [item.href, ...item.activePaths] : [item.href];
 }
 
 function filterVisibleGroups(
@@ -434,7 +582,7 @@ function MenuLink({
   onNavigate?: () => void;
   showWarningDot?: boolean;
 }) {
-  const linkContent = (
+  const linkContent = item.href ? (
     <Link
       to={item.href}
       onClick={onNavigate}
@@ -442,7 +590,7 @@ function MenuLink({
         "flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
         collapsed ? "justify-center px-0 py-3" : "px-3 py-2.5",
         isActive
-          ? "bg-emerald-600 text-white shadow-sm shadow-emerald-200"
+          ? "bg-emerald-700 text-white shadow-sm shadow-emerald-200"
           : "text-muted-foreground hover:bg-emerald-50 hover:text-emerald-700",
       )}
       aria-label={collapsed ? item.label : undefined}
@@ -457,7 +605,7 @@ function MenuLink({
         {collapsed && showWarningDot && (
           <span
             className="absolute -top-1 -right-1 size-2 rounded-full bg-red-500 ring-2 ring-white"
-            title="Chưa cập nhật email"
+            title={item.href === "/organizations/profile" ? "Chưa thiết lập địa bàn hành chính" : "Chưa cập nhật email"}
           />
         )}
       </span>
@@ -467,24 +615,111 @@ function MenuLink({
           {showWarningDot && (
             <span
               className="size-2 rounded-full bg-red-500 ring-2 ring-white"
-              title="Chưa cập nhật email"
+              title={item.href === "/organizations/profile" ? "Chưa thiết lập địa bàn hành chính" : "Chưa cập nhật email"}
             />
           )}
         </span>
       )}
     </Link>
-  );
+  ) : null;
+
+  if (!linkContent) {
+    return null;
+  }
+
+  const itemKey = item.href ?? item.label;
 
   if (collapsed) {
     return (
-      <Tooltip key={item.href} side="right">
+      <Tooltip key={itemKey} side="right">
         <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
         <TooltipContent>{item.label}</TooltipContent>
       </Tooltip>
     );
   }
 
-  return <span key={item.href}>{linkContent}</span>;
+  return <span key={itemKey}>{linkContent}</span>;
+}
+
+/**
+ * Submenu cấp 2 nằm bên trong một nhóm accordion (ví dụ "Yêu cầu thu hồi"
+ * nằm trong "Vận hành sản xuất"). Menu cha chỉ đóng/mở submenu, mục con
+ * điều hướng tới route của từng chức năng.
+ */
+function SubMenu({
+  item,
+  isActive,
+  onNavigate,
+  defaultExpanded = false,
+}: {
+  item: MenuItem;
+  isActive: (child: MenuItem) => boolean;
+  onNavigate?: () => void;
+  defaultExpanded?: boolean;
+}) {
+  const [expanded, setExpanded] = React.useState(defaultExpanded);
+
+  const subActive = (item.children ?? []).some((child) => isActive(child));
+
+  // Tự động mở submenu khi một mục con trở thành active (kể cả F5 trực tiếp URL).
+  React.useEffect(() => {
+    if (subActive) {
+      setExpanded(true);
+    }
+  }, [subActive]);
+
+  if (!item.children || item.children.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded((prev) => !prev)}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+          subActive
+            ? "bg-emerald-50 text-emerald-700"
+            : "text-muted-foreground hover:bg-emerald-50 hover:text-emerald-700",
+        )}
+        aria-expanded={expanded}
+        aria-label={item.label}
+        title={item.label}
+      >
+        <span className="flex-shrink-0 text-emerald-500">{item.icon}</span>
+        <span className="flex-1 text-left">{item.label}</span>
+        <span
+          className="flex-shrink-0 text-emerald-400 transition-transform duration-200"
+          style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
+        >
+          <ChevronDown className="h-4 w-4" />
+        </span>
+      </button>
+      <div
+        className={cn(
+          "grid transition-all duration-300 ease-in-out",
+          expanded
+            ? "grid-rows-[1fr] opacity-100"
+            : "grid-rows-[0fr] opacity-0",
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="space-y-0.5 py-1 pl-4 pr-1">
+            {item.children.map((child) => (
+              <MenuLink
+                key={child.href ?? child.label}
+                item={child}
+                collapsed={false}
+                isActive={isActive(child)}
+                onNavigate={onNavigate}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── Accordion Group Component ───────────────────────────
@@ -496,6 +731,7 @@ function AccordionGroup({
   onNavigate,
   defaultExpanded = false,
   isMissingEmail = false,
+  isMissingTerritory = false,
 }: {
   group: MenuGroup;
   isActive: (item: MenuItem) => boolean;
@@ -503,10 +739,14 @@ function AccordionGroup({
   onNavigate?: () => void;
   defaultExpanded?: boolean;
   isMissingEmail?: boolean;
+  isMissingTerritory?: boolean;
 }) {
   const [expanded, setExpanded] = React.useState(defaultExpanded);
   const hasMissingEmailChild =
     isMissingEmail && group.items.some((it) => it.href === "/profile");
+  const hasMissingTerritoryChild =
+    isMissingTerritory && group.items.some((it) => it.href === "/organizations/profile");
+  const hasWarningChild = hasMissingEmailChild || hasMissingTerritoryChild;
 
   // Auto-expand when a child becomes active
   React.useEffect(() => {
@@ -531,10 +771,10 @@ function AccordionGroup({
       >
         <span className="flex-shrink-0 text-emerald-500">{group.icon}</span>
         <span className="flex-1 text-left">{group.label}</span>
-        {!expanded && hasMissingEmailChild && (
+        {!expanded && hasWarningChild && (
           <span
             className="size-2 rounded-full bg-red-500 ring-2 ring-white"
-            title="Chưa cập nhật email"
+            title={hasMissingTerritoryChild ? "Chưa thiết lập địa bàn hành chính" : "Chưa cập nhật email"}
           />
         )}
         <span
@@ -556,16 +796,31 @@ function AccordionGroup({
       >
         <div className="overflow-hidden">
           <div className="space-y-0.5 py-1 pl-4 pr-1">
-            {group.items.map((item) => (
-              <MenuLink
-                key={item.href}
-                item={item}
-                collapsed={false}
-                isActive={isActive(item)}
-                onNavigate={onNavigate}
-                showWarningDot={item.href === "/profile" && isMissingEmail}
-              />
-            ))}
+            {group.items.map((item) =>
+              item.children && item.children.length > 0 ? (
+                <SubMenu
+                  key={item.label}
+                  item={item}
+                  isActive={isActive}
+                  onNavigate={onNavigate}
+                  defaultExpanded={item.children.some((child) =>
+                    isActive(child),
+                  )}
+                />
+              ) : (
+                <MenuLink
+                  key={item.href ?? item.label}
+                  item={item}
+                  collapsed={false}
+                  isActive={isActive(item)}
+                  onNavigate={onNavigate}
+                  showWarningDot={
+                    (item.href === "/profile" && isMissingEmail) ||
+                    (item.href === "/organizations/profile" && isMissingTerritory)
+                  }
+                />
+              ),
+            )}
           </div>
         </div>
       </div>
@@ -598,35 +853,102 @@ export function Sidebar({
     (!user.email || user.email.trim() === "")
   );
 
+  const isMissingTerritory = Boolean(
+    user &&
+    user.roleCode === "VT-02" &&
+    (!user.organizationProvinceId || !user.organizationCommuneId)
+  );
+
   const visibleGroups = filterVisibleGroups(MENU_GROUPS, user?.roleCode);
   const dashboardVisible = hasAnyRole(
     user?.roleCode,
     DASHBOARD_ITEM.allowedRoles,
   );
 
-  // Flatten all visible items for active-route detection
+  // Flatten all visible leaf items (kể cả mục trong submenu cấp 2) for active-route detection
   const allVisibleItems: MenuItem[] = [
     ...(dashboardVisible ? [DASHBOARD_ITEM] : []),
-    ...visibleGroups.flatMap((g) => g.items),
+    ...visibleGroups.flatMap((g) => collectLeafItems(g.items)),
   ];
 
-  const isActive = (item: MenuItem) => {
+  const isActiveLeaf = (item: MenuItem) => {
+    // Phiếu bàn giao đã gửi (VT-02): giữ active khi ở /handover/sent hoặc xem chi tiết phiếu gửi
+    if (item.href === "/handover/sent") {
+      if (
+        location.pathname === "/handover/sent" ||
+        (location.pathname.startsWith("/handover/") && user?.roleCode === "VT-02") ||
+        (location.pathname.startsWith("/shipment-handovers/") &&
+          !location.pathname.startsWith("/shipment-handovers/received") &&
+          user?.roleCode === "VT-02")
+      ) {
+        return true;
+      }
+    }
+
+    // Phiếu bàn giao nhận (VT-04): giữ active khi ở /handover hoặc xem chi tiết phiếu / lô hàng bàn giao
+    if (item.href === "/handover") {
+      if (
+        location.pathname === "/handover" ||
+        (location.pathname.startsWith("/handover/") &&
+          !location.pathname.startsWith("/handover/sent") &&
+          user?.roleCode === "VT-04") ||
+        (location.pathname.startsWith("/shipment-handovers/") &&
+          !location.pathname.startsWith("/shipment-handovers/sent") &&
+          user?.roleCode === "VT-04") ||
+        ((location.pathname.startsWith("/shipments/") ||
+          location.pathname.includes("/shipments/")) &&
+          user?.roleCode === "VT-04")
+      ) {
+        return true;
+      }
+    }
+
+    // Phiếu bàn giao nhận (VT-02): giữ active khi xem chi tiết phiếu bàn giao
+    if (item.href === "/shipment-handovers/received") {
+      if (
+        location.pathname === "/shipment-handovers/received" ||
+        (location.pathname.startsWith("/shipment-handovers/") &&
+          !location.pathname.startsWith("/shipment-handovers/sent") &&
+          user?.roleCode !== "VT-04" &&
+          user?.roleCode !== "VT-02")
+      ) {
+        return true;
+      }
+    }
+
+    // Phiếu bàn giao đã gửi (VT-02 cũ nếu truy cập URL cũ): giữ active khi ở /shipment-handovers/sent
+    if (item.href === "/shipment-handovers/sent") {
+      if (location.pathname === "/shipment-handovers/sent") {
+        return true;
+      }
+    }
+
     const matchedItems = allVisibleItems.filter((menuItem) => {
-      const paths = menuItem.activePaths
-        ? [menuItem.href, ...menuItem.activePaths]
-        : [menuItem.href];
-      return paths.some((path) => location.pathname.startsWith(path));
+      const paths = getItemPaths(menuItem);
+      return paths.some(
+        (path) => path && location.pathname.startsWith(path),
+      );
     });
     if (matchedItems.length === 0) return false;
     const longestMatch = matchedItems.reduce((a, b) =>
-      a.href.length > b.href.length ? a : b,
+      (a.href?.length ?? 0) > (b.href?.length ?? 0) ? a : b,
     );
     return longestMatch.href === item.href;
   };
 
+  const isActive = (item: MenuItem) => {
+    if (item.children && item.children.length > 0) {
+      return item.children.some((child) => isActiveLeaf(child));
+    }
+    if (!item.href) {
+      return false;
+    }
+    return isActiveLeaf(item);
+  };
+
   /** Check if any item in a group is active (to auto-expand accordion). */
   const isGroupActive = (group: MenuGroup) =>
-    group.items.some((item) => isActive(item));
+    collectLeafItems(group.items).some((item) => isActiveLeaf(item));
 
   const sidebarWidth = collapsed ? "w-[4.5rem]" : "w-[17rem]";
 
@@ -714,21 +1036,31 @@ export function Sidebar({
           const groupActive = isGroupActive(group);
 
           if (collapsed) {
-            // Collapsed: show items individually with tooltips
+            // Collapsed: show leaf items individually with tooltips.
+            // Mục cha dạng submenu (có `children`) được trải phẳng thành
+            // các mục lá để không mất icon/active/tooltip khi thu gọn.
+            const collapsedItems = group.items.flatMap((item) =>
+              item.children && item.children.length > 0
+                ? item.children
+                : [item],
+            );
             return (
               <div key={group.id} className="mb-1 space-y-1">
                 {/* Small separator dot to hint at group boundaries */}
                 <div className="flex justify-center py-1">
                   <div className="h-1 w-5 rounded-full bg-emerald-100" />
                 </div>
-                {group.items.map((item) => (
+                {collapsedItems.map((item) => (
                   <MenuLink
-                    key={item.href}
+                    key={item.href ?? item.label}
                     item={item}
                     collapsed={collapsed}
                     isActive={isActive(item)}
                     onNavigate={onNavigate}
-                    showWarningDot={item.href === "/profile" && isMissingEmail}
+                    showWarningDot={
+                      (item.href === "/profile" && isMissingEmail) ||
+                      (item.href === "/organizations/profile" && isMissingTerritory)
+                    }
                   />
                 ))}
               </div>
@@ -745,6 +1077,7 @@ export function Sidebar({
                 onNavigate={onNavigate}
                 defaultExpanded={groupActive}
                 isMissingEmail={isMissingEmail}
+                isMissingTerritory={isMissingTerritory}
               />
             </div>
           );

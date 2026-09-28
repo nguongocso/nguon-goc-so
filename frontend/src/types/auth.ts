@@ -62,6 +62,7 @@ export interface AuthUserInfo {
 
   phone?: string | null;
   email?: string | null;
+  avatarUrl?: string | null;
 
   roleCode: string;
   roleName: string;
@@ -70,8 +71,13 @@ export interface AuthUserInfo {
   organizationCode: string;
   organizationName: string;
   organizationType: OrganizationType;
+  organizationProvinceId?: string | null;
+  organizationCommuneId?: string | null;
 
   permissions?: string[];
+
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type OrganizationType =

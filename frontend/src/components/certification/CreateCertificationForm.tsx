@@ -45,6 +45,7 @@ export const CreateCertificationForm: React.FC = () => {
       issuedBy: '',
       issueDate: '',
       expiryDate: '',
+      document: undefined,
     },
   });
 
@@ -65,13 +66,16 @@ export const CreateCertificationForm: React.FC = () => {
   const onSubmit = async (data: CreateCertificationFormValues) => {
     setSubmitting(true);
     try {
-      await createCertification({
-        standardId: data.standardId,
-        code: data.code,
-        issuedBy: data.issuedBy || undefined,
-        issueDate: data.issueDate,
-        expiryDate: data.expiryDate,
-      });
+      await createCertification(
+        {
+          standardId: data.standardId,
+          code: data.code,
+          issuedBy: data.issuedBy,
+          issueDate: data.issueDate,
+          expiryDate: data.expiryDate,
+        },
+        data.document,
+      );
       toast.success('Tạo chứng nhận thành công!');
       reset();
       navigate('/certifications');
@@ -161,7 +165,7 @@ export const CreateCertificationForm: React.FC = () => {
 
           {/* Cơ quan cấp */}
           <div className="space-y-2">
-            <Label htmlFor="issuedBy">Cơ quan cấp</Label>
+            <Label htmlFor="issuedBy">Cơ quan cấp *</Label>
             <Controller
               name="issuedBy"
               control={control}
@@ -176,6 +180,29 @@ export const CreateCertificationForm: React.FC = () => {
             />
             {errors.issuedBy && (
               <p className="text-sm text-red-500">{errors.issuedBy.message}</p>
+            )}
+          </div>
+
+          {/* Tài liệu chứng nhận */}
+          <div className="space-y-2">
+            <Label htmlFor="document">Tệp chứng nhận *</Label>
+            <Controller
+              name="document"
+              control={control}
+              render={({ field: { onChange, ref } }) => (
+                <Input
+                  id="document"
+                  ref={ref}
+                  type="file"
+                  accept="application/pdf,image/jpeg,image/png"
+                  disabled={submitting}
+                  onChange={(event) => onChange(event.target.files?.[0])}
+                />
+              )}
+            />
+            <p className="text-xs text-muted-foreground">PDF, JPEG hoặc PNG; tối đa 5 MiB.</p>
+            {errors.document && (
+              <p className="text-sm text-red-500">{errors.document.message}</p>
             )}
           </div>
 

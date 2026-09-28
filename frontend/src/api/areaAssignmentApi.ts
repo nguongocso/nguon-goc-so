@@ -16,14 +16,7 @@ export interface GetAssignableUsersParams {
   size?: number;
 }
 
-/**
- * GET /admin/users?role=&keyword=&page=&size= — contract NCL-742 §2.
- *
- * Mapping PageResponse → UI: backend trả `ApiResult<PageResponse<UserOption>>`
- * với PageResponse `{ items, page, size, totalElements, totalPages, first, last }`
- * (khớp `src/types/common.ts`). Chữ ký hàm cũ trả thẳng `UserOption[]` nên ở đây
- * chỉ lấy `items`; tổng số bản ghi nằm ở `totalElements` nếu cần phân trang sau này.
- */
+/** Lấy danh sách người dùng có thể gán địa bàn. */
 export async function getAssignableUsers(
   params: GetAssignableUsersParams = {},
 ): Promise<UserOption[]> {
@@ -45,7 +38,7 @@ export async function getAssignableUsers(
   }
 }
 
-/** GET /admin/users/{userId}/areas — contract NCL-742 §3. */
+/** Lấy danh sách địa bàn được gán cho người dùng. */
 export async function getUserAreas(userId: string): Promise<AssignedArea[]> {
   try {
     const response = await apiClient.get<ApiResult<AssignedArea[]>>(
@@ -57,7 +50,7 @@ export async function getUserAreas(userId: string): Promise<AssignedArea[]> {
   }
 }
 
-/** POST /admin/users/{userId}/areas (batch all-or-nothing) — contract NCL-742 §4. */
+/** Gán danh sách địa bàn cho người dùng. */
 export async function assignAreas(
   userId: string,
   request: AssignAreasRequest,
@@ -73,7 +66,7 @@ export async function assignAreas(
   }
 }
 
-/** DELETE /admin/users/{userId}/areas/{unitId} — contract NCL-742 §5. */
+/** Gỡ gán địa bàn của người dùng. */
 export async function unassignArea(
   userId: string,
   unitId: string,
@@ -88,7 +81,7 @@ export async function unassignArea(
   }
 }
 
-/** GET /me/areas — cán bộ VT-05 tự xem địa bàn của mình — contract NCL-742 §6. */
+/** Cán bộ tự xem danh sách địa bàn của mình. */
 export async function getMyAreas(): Promise<AssignedArea[]> {
   try {
     const response = await apiClient.get<ApiResult<AssignedArea[]>>('/me/areas');

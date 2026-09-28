@@ -16,6 +16,8 @@ public class StandardResponse {
 
     private String name;
 
+    private String nameEn;
+
     private String description;
 
     private String issuingBody;

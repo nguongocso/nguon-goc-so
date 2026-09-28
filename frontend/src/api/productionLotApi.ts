@@ -1,16 +1,46 @@
 import apiClient from './axiosConfig';
 
+// =========================================================
+// NCL-11-CN-005: Xử lý lô không đạt kiểm nghiệm
+// =========================================================
+
 import type {
     ApproveProductionLotRequest,
     ApproveProductionLotResult,
+    CancelProductionLotRequest,
+    CloneProductionLotPreview,
+    CloneProductionLotRequest,
+    CloneProductionLotResponse,
     CreateProductionLotRequest,
     CreateProductionLotResponse,
+    DisposeProductionLotRequest,
+    DisposeProductionLotResponse,
     FarmAreaOption,
     ProductCategoryOption,
     ProductionLot,
     UpdateProductionLotRequest,
     UpdateProductionLotResponse,
+    ChainProgressBoardData,
 } from '@/types/productionLot';
+
+/**
+ * Loại bỏ lô sản xuất không đạt kiểm nghiệm.
+ *
+ * POST /api/v1/production-lots/{id}/dispose
+ *
+ * Chỉ VT-02 được loại bỏ. Lý do và biện pháp xử lý là bắt buộc (TC-03).
+ * Lô chuyển sang trạng thái cuối DISPOSED; không tạo lô hàng và không tính vào sản lượng dự kiến.
+ */
+export const disposeProductionLot = async (
+    id: string,
+    payload: DisposeProductionLotRequest,
+): Promise<DisposeProductionLotResponse> => {
+    const response = await apiClient.post<
+        ApiDataResponse<DisposeProductionLotResponse>
+    >(`/production-lots/${id}/dispose`, payload);
+
+    return response.data.data;
+};
 
 import type {
     ProductionLotImportResultResponse,
@@ -146,6 +176,63 @@ export const approveProductionLot = async (
     const response = await apiClient.post<
         ApiDataResponse<ApproveProductionLotResult>
     >(`/production-lots/${id}/approve`, payload);
+
+    return response.data.data;
+};
+
+// =========================================================
+// CANCEL PRODUCTION LOT (NCL-02-CN-006)
+// =========================================================
+
+export const cancelProductionLot = async (
+    id: string,
+    payload: CancelProductionLotRequest,
+): Promise<ProductionLot> => {
+    const response = await apiClient.post<ApiDataResponse<ProductionLot>>(
+        `/production-lots/${id}/cancel`,
+        payload,
+    );
+
+    return response.data.data;
+};
+
+// =========================================================
+// CLONE PRODUCTION LOT FROM PREVIOUS SEASON (NCL-02-CN-007)
+// =========================================================
+
+/**
+ * Lấy dữ liệu xem trước khi tạo lô sản xuất mới từ mẫu vụ trước.
+ *
+ * GET /api/v1/production-lots/{sourceLotId}/clone-preview
+ *
+ * Chỉ VT-02. Response chỉ chứa dữ liệu nền cần cho form, không expose
+ * lịch sử vận hành của lô mẫu.
+ */
+export const getCloneProductionLotPreview = async (
+    sourceLotId: string,
+): Promise<CloneProductionLotPreview> => {
+    const response = await apiClient.get<
+        ApiDataResponse<CloneProductionLotPreview>
+    >(`/production-lots/${sourceLotId}/clone-preview`);
+
+    return response.data.data;
+};
+
+/**
+ * Tạo lô sản xuất mới từ mẫu vụ trước.
+ *
+ * POST /api/v1/production-lots/{sourceLotId}/clone
+ *
+ * Chỉ VT-02. Lô mới luôn ở trạng thái DRAFT, kế thừa vùng trồng / loại
+ * nông sản / chứng nhận còn hiệu lực của lô mẫu.
+ */
+export const cloneProductionLot = async (
+    sourceLotId: string,
+    payload: CloneProductionLotRequest,
+): Promise<CloneProductionLotResponse> => {
+    const response = await apiClient.post<
+        ApiDataResponse<CloneProductionLotResponse>
+    >(`/production-lots/${sourceLotId}/clone`, payload);
 
     return response.data.data;
 };
@@ -299,3 +386,25 @@ export const downloadImportTemplate = async (
 
     window.URL.revokeObjectURL(url);
 };
+
+// =========================================================
+// CHAIN PROGRESS BOARD (NCL-10-CN-013)
+// =========================================================
+
+/**
+ * Lấy bảng theo dõi tiến độ chuỗi của từng lô (NCL-10-CN-013).
+ *
+ * GET /api/v1/production-lots/chain-progress
+ */
+export const getChainProgressBoard = async (params?: {
+    organizationId?: string;
+    stagnantThresholdDays?: number;
+    search?: string;
+}): Promise<ChainProgressBoardData> => {
+    const response = await apiClient.get<ApiDataResponse<ChainProgressBoardData>>(
+        '/production-lots/chain-progress',
+        { params },
+    );
+
+    return response.data.data;
+};

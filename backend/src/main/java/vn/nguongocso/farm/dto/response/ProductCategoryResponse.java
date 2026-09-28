@@ -1,6 +1,7 @@
 package vn.nguongocso.farm.dto.response;
 
 import java.util.UUID;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -8,31 +9,33 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * DTO phản hồi thông tin loại nông sản.
- */
+ * Thông tin loại nông sản.
+*/
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductCategoryResponse {
-	private UUID id;
+    private UUID id;
 
-	private String name;
+    private String name;
 
-	private String group;
+    private String nameEn;
 
-	private String description;
+    private String group;
 
-	private Boolean isActive;
+    private String description;
 
-	private Double tempMin;
+    private Boolean isActive;
 
-	private Double tempMax;
+    private Double tempMin;
 
-	private Double humidityMin;
+    private Double tempMax;
 
-	private Double humidityMax;
+    private Double humidityMin;
 
-	private Boolean requiresInspection;
+    private Double humidityMax;
+
+    private Boolean requiresInspection;
 }

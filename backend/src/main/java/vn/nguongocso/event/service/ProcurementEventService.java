@@ -6,7 +6,6 @@ import vn.nguongocso.event.dto.response.ChainEventResponse;
 
 /** Ghi nhận sự kiện thu mua. */
 public interface ProcurementEventService {
-
     /** Tạo sự kiện thu mua mới. */
     ChainEventResponse recordProcurementEvent(RecordProcurementEventRequest request, CustomUserDetails currentUser);
 }

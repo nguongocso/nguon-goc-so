@@ -18,7 +18,7 @@
 
 ### Mô tả
 
-Cho phép VT-02 / VT-04 xuất hồ sơ truy xuất của một `Shipment` theo lược đồ dữ liệu mô phỏng hướng chuẩn GS1. Hồ sơ bao gồm: thông tin Shipment, danh sách `ChainEvent` (sorted `recordedAt ASC`), bảng ánh xạ schema (`includeMapping`), cảnh báo dữ liệu thiếu, và thông tin `exportedAt` / `exportedBy`.
+Cho phép VT-02 / VT-04 xuất hồ sơ truy xuất của một `Shipment` theo lược đồ dữ liệu mô phỏng hướng chuẩn GS1. Hồ sơ bao gồm: thông tin Shipment, danh sách `ChainEvent` (sorted `recordedAt ASC`), lịch sử kiểm nghiệm của Lô sản xuất tương ứng (`InspectionRequest` → `InspectionCriterion` → `InspectionCriterionResult`, nạp best-effort từ module certification), bảng ánh xạ schema (`includeMapping`), cảnh báo dữ liệu thiếu, và thông tin `exportedAt` / `exportedBy`.
 
 > **Lưu ý:** Đây là **schema mô phỏng phục vụ học tập/demo**, không phải GS1 Digital Link, EPCIS hoặc chứng nhận GS1 compliance.
 
@@ -109,6 +109,14 @@ why/what ← ChainEvent.eventType + ChainEvent.eventData (details)
 | `Shipment.totalQuantity`         | `declaredQuantity`         | Số lượng (long) |
 | `Shipment.status`                | `shipmentStatus`           | Trạng thái Shipment |
 | `TraceCode.codeValue` (list)     | `codeValues`               | Mã truy xuất (best effort) |
+| `InspectionRequest.inspectionUnit` | `inspections[].inspectionUnit` | Tên đơn vị kiểm nghiệm |
+| `InspectionRequest.sampleSentDate` | `inspections[].sampleSentDate` | Ngày gửi mẫu đi kiểm |
+| `InspectionRequest.status`       | `inspections[].status`     | `PENDING_RESULT` / `PASSED` / `FAILED` / `CANCELLED` |
+| `InspectionCriterion.criterionCode` | `inspections[].criteria[].criterionCode` | Mã chỉ tiêu kiểm nghiệm |
+| `InspectionCriterion.criterionName` | `inspections[].criteria[].criterionName` | Tên chỉ tiêu kiểm nghiệm |
+| `InspectionCriterionResult.passed` | `inspections[].criteria[].passed` | `true` = đạt, `false` = không đạt, `null` = chưa có kết quả |
+| `InspectionCriterionResult.resultDate` | `inspections[].criteria[].resultDate` | Ngày cấp kết quả kiểm nghiệm |
+| `InspectionCriterionResult.expiryDate` | `inspections[].criteria[].expiryDate` | Hạn hiệu lực kết quả kiểm nghiệm |
 
 > Mapping mô phỏng, không phải mapping chính thức tới GS1 EPCIS / GS1 Digital Link.
 
@@ -117,6 +125,26 @@ why/what ← ChainEvent.eventType + ChainEvent.eventData (details)
 - Không có `address` → `address = null`, thêm warning.
 - Không có location → `location = null`, thêm warning.
 - Không tự geocode tên địa điểm thành toạ độ.
+
+### Lịch sử kiểm nghiệm (inspections)
+
+Từ bản cập nhật v1.1, hồ sơ kèm lịch sử kiểm nghiệm của Lô sản xuất tương ứng
+(mà lô hàng tham chiếu qua `shipment.productionLot`):
+
+```text
+Shipment → ProductionLot
+    → InspectionRequest (inspectionUnit, sampleSentDate, status)
+        → InspectionCriterion (criterionCode, criterionName, standard)
+            → InspectionCriterionResult (passed, resultDate, expiryDate)
+```
+
+Quy tắc:
+- Nạp **best-effort**: lô hàng chưa gắn Lô sản xuất, chưa có yêu cầu kiểm nghiệm
+  hoặc lỗi truy vấn → `inspections = []`, không làm gián đoạn luồng xuất hồ sơ.
+- `passed = null` biểu thị chỉ tiêu chưa được ghi kết quả (yêu cầu ở trạng thái
+  `PENDING_RESULT`).
+- Dữ liệu chỉ đọc, không thay đổi bất kỳ dữ liệu nghiệp vụ nào; cùng dữ liệu
+  này cũng được đưa vào **Phần IV của hồ sơ PDF** (`/dossier/export`).
 
 ---
 
@@ -153,6 +181,24 @@ Content-Type: application/json
         "details": { "productionLotId": "...", "productionLotName": "Lô chè Tân Cương T8/2026", "quantity": 500.0, "harvestDate": "2026-08-11" }
       }
     ],
+    "inspections": [
+      {
+        "requestId": "e5f6a7b8-5555-4a2a-9f3d-1a2b3c4d5e6f",
+        "inspectionUnit": "Trung tâm Kiểm nghiệm TH3",
+        "sampleSentDate": "2026-07-01",
+        "status": "PASSED",
+        "criteria": [
+          {
+            "criterionCode": "PESTICIDE_RESIDUE",
+            "criterionName": "Dư lượng thuốc BVTV",
+            "standardName": "QCVN 8-2:2011/BYT",
+            "passed": true,
+            "resultDate": "2026-07-10",
+            "expiryDate": "2027-01-10"
+          }
+        ]
+      }
+    ],
     "mapping": {
       "ChainEvent.id": "eventIdentifier",
       "ChainEvent.eventType": "eventTypeCode",
@@ -165,7 +211,15 @@ Content-Type: application/json
       "Shipment.name": "shipmentName",
       "Shipment.totalQuantity": "declaredQuantity",
       "Shipment.status": "shipmentStatus",
-      "TraceCode.codeValue": "codeValues"
+      "TraceCode.codeValue": "codeValues",
+      "InspectionRequest.inspectionUnit": "inspections[].inspectionUnit",
+      "InspectionRequest.sampleSentDate": "inspections[].sampleSentDate",
+      "InspectionRequest.status": "inspections[].status",
+      "InspectionCriterion.criterionCode": "inspections[].criteria[].criterionCode",
+      "InspectionCriterion.criterionName": "inspections[].criteria[].criterionName",
+      "InspectionCriterionResult.passed": "inspections[].criteria[].passed",
+      "InspectionCriterionResult.resultDate": "inspections[].criteria[].resultDate",
+      "InspectionCriterionResult.expiryDate": "inspections[].criteria[].expiryDate"
     },
     "warnings": [
       { "eventId": "c3d4e5f6-3333-4a2a-9f3d-1a2b3c4d5e6f", "field": "location", "message": "Sự kiện thiếu thông tin vị trí" }
@@ -208,6 +262,24 @@ Khi `format=xml`, response là root `<gs1Dossier>` (không bọc `ApiResult`) ma
       <location><latitude>21.0285</latitude><longitude>105.8542</longitude><address/></location>
     </event>
   </events>
+  <inspections>
+    <inspection>
+      <requestId>e5f6a7b8-5555-4a2a-9f3d-1a2b3c4d5e6f</requestId>
+      <inspectionUnit>Trung tâm Kiểm nghiệm TH3</inspectionUnit>
+      <sampleSentDate>2026-07-01</sampleSentDate>
+      <status>PASSED</status>
+      <criteria>
+        <criterion>
+          <criterionCode>PESTICIDE_RESIDUE</criterionCode>
+          <criterionName>Dư lượng thuốc BVTV</criterionName>
+          <standardName>QCVN 8-2:2011/BYT</standardName>
+          <passed>true</passed>
+          <resultDate>2026-07-10</resultDate>
+          <expiryDate>2027-01-10</expiryDate>
+        </criterion>
+      </criteria>
+    </inspection>
+  </inspections>
   <mapping>...</mapping>
   <warnings>
     <warning><eventId>c3d4e5f6-...</eventId><field>location</field><message>Sự kiện thiếu thông tin vị trí</message></warning>
@@ -380,6 +452,8 @@ report/dto/response/Gs1Event.java
 report/dto/response/Gs1EventLocation.java
 report/dto/response/Gs1ShipmentInfo.java
 report/dto/response/Gs1Warning.java
+report/dto/response/Gs1Inspection.java
+report/dto/response/Gs1InspectionCriterion.java
 ```
 
 ### Backend — mở rộng
@@ -431,6 +505,9 @@ KHÔNG CẦN
 | TC-16 | Không có location/address | Export thành công + warning |
 | TC-17 | Procurement event | Export đúng ChainEvent hiện có |
 | TC-18 | Transport event | Export đúng ChainEvent, không tự tạo coordinates |
+| TC-19 | Lô có yêu cầu kiểm nghiệm + kết quả đạt | 200, `inspections[]` chứa chỉ tiêu với `passed=true`, `resultDate`, `expiryDate` |
+| TC-20 | Lô không có yêu cầu kiểm nghiệm / lỗi truy vấn | 200, `inspections = []` (best-effort, không fail) |
+| TC-21 | Chỉ tiêu chưa được ghi kết quả | `passed = null` (chưa có kết quả) |
 
 ---
 
@@ -466,6 +543,7 @@ KHÔNG CẦN
 - [ ] JSON export hoạt động; XML export hoạt động.
 - [ ] `includeMapping=true` / `false` hoạt động.
 - [ ] ActivityLog được ghi sau export thành công.
+- [ ] Lịch sử kiểm nghiệm của Lô sản xuất được đưa vào `inspections[]` (đồng thời là Phần IV của hồ sơ PDF), best-effort, không thay đổi dữ liệu nghiệp vụ.
 - [ ] Không có database migration.
 - [ ] Không thay đổi Shipment/ChainEvent business behavior.
 - [ ] API `exportGs1Dossier` trong `dossierApi.ts`.

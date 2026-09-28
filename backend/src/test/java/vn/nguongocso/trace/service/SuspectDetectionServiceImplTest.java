@@ -3,8 +3,11 @@ package vn.nguongocso.trace.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -17,20 +20,31 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.context.ApplicationEventPublisher;
+import vn.nguongocso.alert.dto.response.AnomalyThresholdResponse;
+import vn.nguongocso.alert.service.AnomalyThresholdService;
+import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
+import vn.nguongocso.farm.entity.ProductCategory;
+import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.report.entity.TraceCodeScanLog;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
+import vn.nguongocso.trace.dto.request.UnlockTraceCodeRequest;
 import vn.nguongocso.trace.dto.response.SuspectTraceCodeDetailResponse;
+import vn.nguongocso.trace.dto.response.UnlockTraceCodeResponse;
+import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.impl.SuspectDetectionServiceImpl;
+import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 
 /**
  * Kiểm thử chấm điểm nghi vấn NCL-08-CN-007.
@@ -48,6 +62,9 @@ class SuspectDetectionServiceImplTest {
     private TraceCodeRepository traceCodeRepository;
 
     @Mock
+    private ProductFeedbackRepository productFeedbackRepository;
+
+    @Mock
     private TraceCodeScanLogRepository scanLogRepository;
 
     @Mock
@@ -55,6 +72,12 @@ class SuspectDetectionServiceImplTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private AnomalyThresholdService anomalyThresholdService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private SuspectDetectionServiceImpl service;
 
@@ -64,7 +87,8 @@ class SuspectDetectionServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new SuspectDetectionServiceImpl(
-                traceCodeRepository, scanLogRepository, userRepository, notificationService);
+                traceCodeRepository, productFeedbackRepository, scanLogRepository,
+                userRepository, notificationService, eventPublisher, anomalyThresholdService);
 
         traceCodeId = UUID.randomUUID();
 
@@ -72,8 +96,9 @@ class SuspectDetectionServiceImplTest {
         traceCode.setId(traceCodeId);
         traceCode.setCodeValue("NCL0001");
         traceCode.setStatus(TraceCodeStatus.ACTIVE);
+        traceCode.setActivatedAt(LocalDateTime.now().minusDays(400));
 
-        when(traceCodeRepository.findById(traceCodeId)).thenReturn(Optional.of(traceCode));
+        lenient().when(traceCodeRepository.findById(traceCodeId)).thenReturn(Optional.of(traceCode));
     }
 
     private TraceCodeScanLog scan(long minutesAgo, double lat, double lon) {
@@ -93,7 +118,7 @@ class SuspectDetectionServiceImplTest {
 
     @Test
     void shouldApplyImpossibleTravelScore_whenTwoScansFarApartWithinShortTime() {
-        // Scan 1: Hà Nội, scan 2: Đà Nẵng ~2 phút sau -> +40 (không đạt SUSPECT).
+        // Scan 1: Hà Nội, scan 2: Đà Nẵng ~2 phút sau -> +45 (không đạt SUSPECT >= 50).
         List<TraceCodeScanLog> scans = new ArrayList<>();
         scans.add(scan(10, 21.0285, 105.8542)); // Hà Nội
         scans.add(scan(8, 16.0544, 108.2022)); // Đà Nẵng
@@ -101,7 +126,7 @@ class SuspectDetectionServiceImplTest {
 
         service.evaluateSuspicion(traceCodeId);
 
-        assertEquals(40, traceCode.getSuspicionScore());
+        assertEquals(45, traceCode.getSuspicionScore());
         assertEquals(TraceCodeStatus.ACTIVE, traceCode.getStatus());
         verify(notificationService, never()).sendSuspectTraceCodeNotification(any(TraceCode.class));
         verify(traceCodeRepository).save(traceCode);
@@ -109,7 +134,7 @@ class SuspectDetectionServiceImplTest {
 
     @Test
     void shouldTransitionToSuspect_whenScoreReachesOrExceedsThreshold() {
-        // 10 lượt quét +30; đi xa +40; >= 5 địa điểm +15 => tổng 85 (SUSPECT).
+        // 10 lượt quét +35; đi xa +45; >= 5 địa điểm +20 => tổng 100 (SUSPECT).
         List<TraceCodeScanLog> scans = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
 
@@ -140,7 +165,7 @@ class SuspectDetectionServiceImplTest {
 
         service.evaluateSuspicion(traceCodeId);
 
-        assertEquals(85, traceCode.getSuspicionScore());
+        assertEquals(100, traceCode.getSuspicionScore());
         assertEquals(TraceCodeStatus.SUSPECT, traceCode.getStatus());
         // Không tự động khóa.
         assertNotEquals(TraceCodeStatus.LOCKED, traceCode.getStatus());
@@ -188,12 +213,12 @@ class SuspectDetectionServiceImplTest {
 
         service.evaluateSuspicion(traceCodeId);
 
-        assertEquals(40, traceCode.getSuspicionScore(),
-                "impossible travel category phải bị giới hạn ở +40 dù có 2 cặp hợp lệ");
+        assertEquals(45, traceCode.getSuspicionScore(),
+                "impossible travel category phải bị giới hạn ở +45 dù có 2 cặp hợp lệ");
 
-        // Bảng phân tích (getSuspectDetail) phải khớp: impossibleTravel = 40, tổng = 40.
+        // Bảng phân tích (getSuspectDetail) phải khớp: impossibleTravel = 45, tổng = 45.
         SuspectTraceCodeDetailResponse detail = service.getSuspectDetail(traceCodeId);
-        assertEquals(40, detail.getAnomalyDetails().getScoreBreakdown().getImpossibleTravel());
+        assertEquals(45, detail.getAnomalyDetails().getScoreBreakdown().getImpossibleTravel());
         assertEquals(traceCode.getSuspicionScore(), sumBreakdown(detail),
                 "Bảng phân tích phải khớp với điểm đã lưu");
     }
@@ -212,7 +237,7 @@ class SuspectDetectionServiceImplTest {
 
     @Test
     void shouldProduceConsistentBreakdown_betweenEvaluateAndDetail() {
-        // 2 lượt quét bất hợp lý về khoảng cách -> impossibleTravel = +40.
+        // 2 lượt quét bất hợp lý về khoảng cách -> impossibleTravel = +45.
         List<TraceCodeScanLog> scans = new ArrayList<>();
         scans.add(scan(10, 21.0285, 105.8542));
         scans.add(scan(8, 16.0544, 108.2022));
@@ -228,11 +253,245 @@ class SuspectDetectionServiceImplTest {
         Integer breakdownTotal = sumBreakdown(detail);
         assertEquals(traceCode.getSuspicionScore(), breakdownTotal,
                 "Bảng phân tích phải khớp với điểm đã lưu");
-        assertEquals(40, detail.getAnomalyDetails().getScoreBreakdown().getImpossibleTravel());
+        assertEquals(45, detail.getAnomalyDetails().getScoreBreakdown().getImpossibleTravel());
     }
 
     private Integer sumBreakdown(SuspectTraceCodeDetailResponse detail) {
         var b = detail.getAnomalyDetails().getScoreBreakdown();
         return b.getHighFrequency() + b.getImpossibleTravel() + b.getMultipleLocations();
+    }
+
+    @Test
+    void shouldUseCategoryThreshold_whenEvaluatingTraceCodeWithCategoryOverride() {
+        UUID categoryId = UUID.randomUUID();
+        ProductCategory category = ProductCategory.builder().id(categoryId).name("Sầu riêng").build();
+        ProductionLot lot = ProductionLot.builder().id(UUID.randomUUID()).productCategory(category).build();
+        Shipment shipment = new Shipment();
+        shipment.setProductionLot(lot);
+        traceCode.setShipment(shipment);
+
+        AnomalyThresholdResponse categoryThreshold = AnomalyThresholdResponse.builder()
+                .maxScansPerHour(2)
+                .maxScansPerDay(4)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(30.0))
+                .minTimeBetweenScansMinutes(20)
+                .activationAgeDays(180)
+                .build();
+
+        when(anomalyThresholdService.getEffectiveThreshold(categoryId)).thenReturn(categoryThreshold);
+
+        // 4 lượt quét trong 24h kích hoạt maxScansPerDay (4) -> +35 điểm
+        List<TraceCodeScanLog> scans = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            scans.add(scan(100 + i * 10, 21.0285, 105.8542));
+        }
+        stubRecentScans(scans);
+
+        service.evaluateSuspicion(traceCodeId);
+
+        assertEquals(35, traceCode.getSuspicionScore(),
+                "Ngưỡng ghi đè theo danh mục (maxScansPerDay = 4) phải được áp dụng");
+    }
+
+    @Test
+    @DisplayName("P1.2: Bảo toàn bảng phân tích điểm từ Snapshot khi các lượt quét trong 24h đã hết hạn")
+    void shouldPreserveHistoricalSnapshotBreakdown_whenRecentScansExpire() {
+        // Giả lập tình huống trong screenshot: Mã tem đã được đánh giá trong quá khứ
+        // suspicionScore = 80 (highFrequency = 35, impossibleTravel = 45, multipleLocations = 0)
+        // Hiện tại cửa sổ 24h đã trôi qua, recentScans = 0 lượt quét
+        traceCode.setSuspicionScore(80);
+        traceCode.setHighFrequencyScore(35);
+        traceCode.setImpossibleTravelScore(45);
+        traceCode.setMultipleLocationsScore(0);
+        traceCode.setEvaluatedAt(LocalDateTime.now().minusDays(2));
+        traceCode.setSuspicionReason("Số lượt quét cao; Khoảng cách di chuyển không hợp lý");
+        traceCode.setStatus(TraceCodeStatus.SUSPECT);
+
+        // 0 lượt quét trong 24h gần nhất
+        stubRecentScans(new ArrayList<>());
+
+        SuspectTraceCodeDetailResponse detail = service.getSuspectDetail(traceCodeId);
+
+        // Bảng phân tích chi tiết PHẢI đọc từ snapshot (35, 45, 0), KHÔNG được trả về 0 do thiếu scan logs
+        assertNotNull(detail.getAnomalyDetails());
+        assertEquals(80, detail.getSuspicionScore());
+        assertEquals(35, detail.getAnomalyDetails().getScoreBreakdown().getHighFrequency());
+        assertEquals(45, detail.getAnomalyDetails().getScoreBreakdown().getImpossibleTravel());
+        assertEquals(0, detail.getAnomalyDetails().getScoreBreakdown().getMultipleLocations());
+        assertEquals(80, sumBreakdown(detail));
+        assertEquals(0, detail.getScanCount()); // scanCount trong 24h là 0
+    }
+
+    @Test
+    @DisplayName("Thời gian ân hạn (grace period) - mã tem trong ân hạn không bị gắn cờ, sau ân hạn bị gắn cờ SUSPECT")
+    void shouldSkipEvaluation_whenWithinGracePeriod_andFlagSuspect_whenGracePeriodElapsed() {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Cấu hình ngưỡng có grace period (activationAgeDays) = 7 ngày
+        AnomalyThresholdResponse threshold = AnomalyThresholdResponse.builder()
+                .maxScansPerHour(5)
+                .maxScansPerDay(10)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
+                .minTimeBetweenScansMinutes(30)
+                .activationAgeDays(7)
+                .build();
+        when(anomalyThresholdService.getEffectiveThreshold(any())).thenReturn(threshold);
+
+        // Chuẩn bị hành vi quét bất thường rõ rệt: 12 lượt quét trong 30 phút + di chuyển bất hợp lý HN -> ĐN (vượt cả maxPerHour, maxPerDay lẫn travel)
+        List<TraceCodeScanLog> anomalousScans = new ArrayList<>();
+        anomalousScans.add(scan(30, 21.0285, 105.8542)); // Hà Nội
+        anomalousScans.add(scan(28, 16.0544, 108.2022)); // Đà Nẵng (di chuyển phi lý)
+        for (int i = 2; i < 12; i++) {
+            anomalousScans.add(scan(28 - i * 2, 16.0544, 108.2022));
+        }
+        stubRecentScans(anomalousScans);
+
+        // KỊCH BẢN 1: Mã tem mới kích hoạt được 2 ngày (< 7 ngày ân hạn)
+        traceCode.setActivatedAt(now.minusDays(2));
+        traceCode.setStatus(TraceCodeStatus.ACTIVE);
+        traceCode.setSuspicionScore(null);
+
+        service.evaluateSuspicion(traceCodeId);
+
+        // Xác nhận: Không bị đánh giá, không bị gắn cờ, trạng thái giữ nguyên ACTIVE
+        assertEquals(TraceCodeStatus.ACTIVE, traceCode.getStatus());
+        assertNull(traceCode.getSuspicionScore());
+        verify(notificationService, never()).sendSuspectTraceCodeNotification(any());
+
+        // KỊCH BẢN 2: Cùng hành vi quét bất thường đó, nhưng mã tem đã kích hoạt 10 ngày (>= 7 ngày ân hạn)
+        traceCode.setActivatedAt(now.minusDays(10));
+
+        service.evaluateSuspicion(traceCodeId);
+
+        // Xác nhận: Đã hết thời gian ân hạn -> được đánh giá và bị chuyển thành SUSPECT
+        assertEquals(TraceCodeStatus.SUSPECT, traceCode.getStatus());
+        assertNotNull(traceCode.getSuspicionScore());
+        assertTrue(traceCode.getSuspicionScore() >= 30);
+        verify(notificationService).sendSuspectTraceCodeNotification(traceCode);
+    }
+
+    @Test
+    void pastAnomaliesAreNotRecalculated_whenThresholdChanges() {
+        // Trace code đã có điểm nghi vấn từ quá khứ
+        traceCode.setSuspicionScore(40);
+        traceCode.setStatus(TraceCodeStatus.ACTIVE);
+
+        // Cập nhật threshold mới không tự động gọi evaluate trên các mã tem cũ
+        // Điểm cũ và trạng thái cũ của traceCode phải được giữ nguyên
+        assertEquals(40, traceCode.getSuspicionScore());
+        assertEquals(TraceCodeStatus.ACTIVE, traceCode.getStatus());
+    }
+
+    @Test
+    void unlockTraceCodeWithVerification_happyPath_shouldUnlockSuccessfully() {
+        // Arrange
+        UUID adminId = UUID.randomUUID();
+        User admin = User.builder().userId(adminId).userName("admin01").build();
+        when(userRepository.findById(adminId)).thenReturn(Optional.of(admin));
+
+        UUID lockerId = UUID.randomUUID();
+        User locker = User.builder().userId(lockerId).userName("locker01").build();
+
+        traceCode.setStatus(TraceCodeStatus.LOCKED);
+        traceCode.setLockedBy(locker);
+        traceCode.setLockedAt(LocalDateTime.now().minusDays(1));
+        traceCode.setLockReason("Quét bất thường nhiều nơi");
+
+        UnlockTraceCodeRequest request = new UnlockTraceCodeRequest();
+        request.setConclusion("Đã xác minh vận đơn và đối soát thực tế, không có dấu hiệu giả mạo.");
+        request.setEvidence("Biên bản đối soát số 123");
+
+        // Act
+        var response = service.unlockTraceCodeWithVerification(traceCodeId.toString(), request, adminId, "Admin User");
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(TraceCodeStatus.ACTIVE.name(), response.getStatus());
+        assertEquals("NCL0001", response.getCodeValue());
+        assertEquals(adminId, response.getUnlockedBy());
+        assertEquals("Admin User", response.getUnlockedByName());
+        assertEquals(request.getConclusion(), response.getUnlockConclusion());
+        assertEquals(request.getEvidence(), response.getUnlockEvidence());
+        assertEquals(request.getConclusion(), response.getVerificationNote());
+        assertEquals(TraceCodeStatus.ACTIVE, traceCode.getStatus());
+        assertNotNull(traceCode.getUnlockedAt());
+
+        verify(traceCodeRepository).save(traceCode);
+        verify(notificationService).sendTraceCodeUnlockedNotification(traceCode);
+        verify(eventPublisher).publishEvent(any(vn.nguongocso.alert.event.ActivityLogEvent.class));
+    }
+
+    @Test
+    void unlockTraceCodeWithVerification_whenNotLocked_shouldThrowConflict() {
+        // Arrange
+        traceCode.setStatus(TraceCodeStatus.ACTIVE);
+        UUID adminId = UUID.randomUUID();
+        UnlockTraceCodeRequest request = new UnlockTraceCodeRequest();
+        request.setConclusion("Đã xác minh đầy đủ thông tin hợp lệ.");
+
+        // Act & Assert
+        vn.nguongocso.exception.BusinessException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                vn.nguongocso.exception.BusinessException.class,
+                () -> service.unlockTraceCodeWithVerification(traceCodeId.toString(), request, adminId, "Admin User"));
+
+        assertEquals("Mã tem không ở trạng thái bị khóa.", ex.getMessage());
+    }
+
+    @Test
+    void unlockTraceCodeWithVerification_whenBlankConclusion_shouldThrowException() {
+        // Arrange
+        traceCode.setStatus(TraceCodeStatus.LOCKED);
+        UUID adminId = UUID.randomUUID();
+        UnlockTraceCodeRequest request = new UnlockTraceCodeRequest();
+        request.setConclusion("   ");
+
+        // Act & Assert
+        vn.nguongocso.exception.BusinessException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                vn.nguongocso.exception.BusinessException.class,
+                () -> service.unlockTraceCodeWithVerification(traceCodeId.toString(), request, adminId, "Admin User"));
+
+        assertEquals("Kết luận xác minh không được để trống.", ex.getMessage());
+    }
+
+    @Test
+    void unlockTraceCodeWithVerification_sameAdminLocked_shortConclusion_shouldThrowException() {
+        // Arrange
+        UUID adminId = UUID.randomUUID();
+        User admin = User.builder().userId(adminId).userName("admin01").build();
+
+        traceCode.setStatus(TraceCodeStatus.LOCKED);
+        traceCode.setLockedBy(admin); // Same admin locked it
+
+        UnlockTraceCodeRequest request = new UnlockTraceCodeRequest();
+        request.setConclusion("Xác minh xong"); // < 20 chars
+
+        // Act & Assert
+        vn.nguongocso.exception.BusinessException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                vn.nguongocso.exception.BusinessException.class,
+                () -> service.unlockTraceCodeWithVerification(traceCodeId.toString(), request, adminId, "Admin User"));
+
+        assertEquals("Quản trị viên đã khóa mã tem cần nhập kết luận xác minh chi tiết hơn (tối thiểu 20 ký tự).", ex.getMessage());
+    }
+
+    @Test
+    void unlockTraceCodeWithVerification_sameAdminLocked_detailedConclusion_shouldSucceed() {
+        // Arrange
+        UUID adminId = UUID.randomUUID();
+        User admin = User.builder().userId(adminId).userName("admin01").build();
+        when(userRepository.findById(adminId)).thenReturn(Optional.of(admin));
+
+        traceCode.setStatus(TraceCodeStatus.LOCKED);
+        traceCode.setLockedBy(admin); // Same admin locked it
+
+        UnlockTraceCodeRequest request = new UnlockTraceCodeRequest();
+        request.setConclusion("Đã kiểm tra lại toàn bộ nhật ký quét và hóa đơn phân phối hợp lệ."); // >= 20 chars
+
+        // Act
+        var response = service.unlockTraceCodeWithVerification(traceCodeId.toString(), request, adminId, "Admin User");
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(TraceCodeStatus.ACTIVE.name(), response.getStatus());
+        verify(traceCodeRepository).save(traceCode);
     }
 }

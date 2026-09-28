@@ -18,7 +18,6 @@ import java.util.List;
 @RequiredArgsConstructor
 /** Đồng bộ các sự kiện ngoại tuyến. */
 public class OfflineSyncServiceImpl implements OfflineSyncService {
-
     private final OfflineSyncEventProcessor eventProcessor;
 
     /** Đồng bộ danh sách sự kiện ngoại tuyến. */

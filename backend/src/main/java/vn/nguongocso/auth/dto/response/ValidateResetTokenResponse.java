@@ -15,7 +15,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class ValidateResetTokenResponse {
-
     private boolean valid;
+
     private String message;
 }

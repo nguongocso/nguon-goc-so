@@ -81,7 +81,7 @@ export function ResolveScanAnomalyAlertDialog({
               </p>
               <p className="mt-1">
                 <span className="text-muted-foreground">Dữ liệu:</span>{' '}
-                {alert.details.scanCount} lượt quét tại {alert.details.locations.length} vị trí
+                {alert.details?.scanCount ?? 1} lượt quét{alert.details?.locations?.length ? ` tại ${alert.details.locations.length} vị trí` : ''}
               </p>
             </div>
 

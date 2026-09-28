@@ -3,6 +3,7 @@ import { Search, Loader2, Check, Plus, ShieldAlert, ChevronDown, X } from 'lucid
 import { getInputMaterials } from '@/api/inputMaterialApi';
 import { MaterialGroup, MATERIAL_GROUP_LABELS } from '@/enums/materialGroup';
 import type { InputMaterial } from '@/types/inputMaterial';
+import type { VatTuCache } from '@/lib/offline/farmLogDb';
 import { cn } from '@/lib/utils';
 
 export interface InputMaterialSelectProps {
@@ -14,7 +15,32 @@ export interface InputMaterialSelectProps {
   className?: string;
   id?: string;
   activityType?: string;
+  /**
+   * `false` khi thiết bị đang ngoại tuyến: chỉ tìm trong danh mục vật tư đã tải sẵn
+   * trên thiết bị thay vì gọi API (NCL-10-CN-012).
+   */
+  isOnline?: boolean;
+  /** Danh mục vật tư tải sẵn trong IndexedDB, dùng khi ngoại tuyến. */
+  danhSachVatTuNgoaiTuyen?: VatTuCache[];
 }
+
+/**
+ * Chuyển một bản ghi danh mục tải sẵn thành dạng hiển thị của `InputMaterial`
+ * để dùng chung phần render danh sách lựa chọn.
+ */
+const tuVatTuCache = (vatTu: VatTuCache): InputMaterial => ({
+  id: vatTu.id,
+  name: vatTu.ten,
+  materialGroup: vatTu.nhomVatTu as MaterialGroup,
+  materialGroupDisplayName: '',
+  activeIngredient: null,
+  unit: vatTu.donVi,
+  quarantineDays: vatTu.soNgayCachLy,
+  applyToAllCrops: true,
+  applicableCropTypes: [],
+  referenceSource: null,
+  isActive: true,
+});
 
 const GROUP_BADGE_STYLES: Record<string, string> = {
   [MaterialGroup.PESTICIDE]: 'bg-rose-50 text-rose-700 border-rose-200',
@@ -27,11 +53,13 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
   value,
   onValueChange,
   onSelectMaterial,
-  placeholder = 'T�m ki?m v?t tu, ph�n b�n, thu?c BVTV...',
+  placeholder = 'Tìm kiếm vật tư, phân bón, thuốc BVTV...',
   disabled = false,
   className,
   id,
   activityType,
+  isOnline = true,
+  danhSachVatTuNgoaiTuyen,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState(value || '');
@@ -43,8 +71,26 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
     setQuery(value || '');
   }, [value]);
 
+  const locVatTuNgoaiTuyen = useCallback(
+    (searchTerm: string): InputMaterial[] => {
+      const tuKhoa = searchTerm.trim().toLowerCase();
+      const danhSach = danhSachVatTuNgoaiTuyen ?? [];
+      const daLoc = tuKhoa
+        ? danhSach.filter((v) => v.ten.toLowerCase().includes(tuKhoa))
+        : danhSach;
+      return daLoc.slice(0, 20).map(tuVatTuCache);
+    },
+    [danhSachVatTuNgoaiTuyen],
+  );
+
   const fetchMaterials = useCallback(async (searchTerm: string) => {
     setLoading(true);
+    // Ngoại tuyến: chỉ dùng danh mục vật tư đã tải sẵn trên thiết bị.
+    if (!isOnline) {
+      setOptions(locVatTuNgoaiTuyen(searchTerm));
+      setLoading(false);
+      return;
+    }
     try {
       const response = await getInputMaterials({
         keyword: searchTerm.trim() || undefined,
@@ -54,11 +100,12 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
       });
       setOptions(response.content || []);
     } catch {
-      setOptions([]);
+      // Lỗi mạng dù đang báo online: vẫn cho chọn từ danh mục tải sẵn.
+      setOptions(locVatTuNgoaiTuyen(searchTerm));
     } finally {
       setLoading(false);
     }
-  }, [activityType]);
+  }, [activityType, isOnline, locVatTuNgoaiTuyen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -146,7 +193,7 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
           {loading ? (
             <div className="flex items-center justify-center py-6 text-sm text-slate-500 gap-2">
               <Loader2 className="size-4 animate-spin text-emerald-600" />
-              <span>�ang t�m ki?m...</span>
+              <span>Đang tìm kiếm...</span>
             </div>
           ) : (
             <div className="space-y-1">
@@ -177,14 +224,14 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
 
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
                         {item.activeIngredient && <span>Hoạt chất: <strong className="text-slate-700">{item.activeIngredient}</strong></span>}
-                        <span>�Đơn vị: <strong className="text-slate-700">{item.unit}</strong></span>
+                        <span>Đơn vị: <strong className="text-slate-700">{item.unit}</strong></span>
                         {item.quarantineDays > 0 ? (
                           <span className="inline-flex items-center gap-1 font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                             <ShieldAlert className="size-3 text-amber-600" />
-                            C�ch ly {item.quarantineDays} ng�y
+                            Cách ly {item.quarantineDays} ngày
                           </span>
                         ) : (
-                          <span className="text-slate-400">Kh�ng y�u c?u c�ch ly</span>
+                          <span className="text-slate-400">Không yêu cầu cách ly</span>
                         )}
                       </div>
                     </div>
@@ -192,7 +239,7 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
                 })
               ) : (
                 <div className="px-3 py-3 text-center text-sm text-slate-500">
-                  Kh�ng t�m th?y v?t tu trong danh m?c.
+                  Không tìm thấy vật tư trong danh mục.
                 </div>
               )}
 
@@ -203,7 +250,7 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
                 >
                   <Plus className="size-4 text-emerald-600 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <span>S? d?ng v?t tu ngo�i danh m?c: </span>
+                    <span>Sử dụng vật tư ngoài danh mục: </span>
                     <strong className="font-bold text-emerald-900">"{query.trim()}"</strong>
                   </div>
                 </div>

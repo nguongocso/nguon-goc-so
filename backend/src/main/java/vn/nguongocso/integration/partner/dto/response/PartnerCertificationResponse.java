@@ -8,6 +8,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * DTO thông tin chứng nhận trong hồ sơ truy xuất của đối tác.
+*/
 @Getter
 @Setter
 @Builder
@@ -15,9 +18,14 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PartnerCertificationResponse {
     private String certificationName;
+
     private String standardName;
+
     private String certificateCode;
+
     private LocalDate issueDate;
+
     private LocalDate expiryDate;
+
     private String issuedBy;
 }

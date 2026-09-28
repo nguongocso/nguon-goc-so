@@ -6,9 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * DTO phản hồi chứa số lượng thông báo chưa đọc.
- */
+/** DTO phản hồi chứa số lượng thông báo chưa đọc. */
 @Builder
 @Getter
 @Setter

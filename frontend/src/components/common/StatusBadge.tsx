@@ -35,20 +35,23 @@ interface StatusBadgeProps {
   tone: StatusTone;
   /** Icon tùy chọn hiển thị cạnh label. */
   icon?: LucideIcon;
+  /** Lớp tùy chỉnh khi màn hình cần tăng độ tương phản hoặc điều chỉnh bố cục. */
+  className?: string;
 }
 
 /**
  * Badge trạng thái dùng chung toàn dự án (mẫu `ApiKeyStatusBadge` của bảng API key).
  * Màu theo tone, hỗ trợ dark mode bằng token.
  */
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ label, tone, icon: Icon }) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ label, tone, icon: Icon, className }) => {
   const toneClass = TONE_CLASSES[tone];
   return (
     <Badge
       variant="outline"
       className={cn(
         'flex items-center gap-1 w-fit',
-        toneClass.badge
+        toneClass.badge,
+        className,
       )}
     >
       {Icon && <Icon className={cn('w-3 h-3', toneClass.icon)} />}

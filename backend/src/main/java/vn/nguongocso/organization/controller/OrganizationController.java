@@ -1,12 +1,22 @@
 package vn.nguongocso.organization.controller;
 
+import java.util.List;
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import vn.nguongocso.auth.dto.request.AddMemberRequest;
 import vn.nguongocso.auth.dto.request.AssignRoleRequest;
 import vn.nguongocso.auth.dto.response.OrganizationUserResponse;
@@ -21,27 +31,16 @@ import vn.nguongocso.organization.dto.response.OrganizationProfileResponse;
 import vn.nguongocso.organization.dto.response.OrganizationResponse;
 import vn.nguongocso.organization.service.OrganizationService;
 
-import java.util.List;
-import java.util.UUID;
-
-/**
- * REST Controller cung cấp các API quản lý tổ chức.
- */
+/** REST Controller cung cấp các API quản lý tổ chức cho quản trị viên. */
 @RestController
 @RequestMapping("/api/v1/admin/organizations")
+@RequiredArgsConstructor
 public class OrganizationController {
     private static final Logger log = LoggerFactory.getLogger(OrganizationController.class);
 
     private final OrganizationService organizationService;
 
-    public OrganizationController(OrganizationService organizationService) {
-        this.organizationService = organizationService;
-    }
-
-    /**
-     * Lấy toàn bộ danh sách tổ chức.
-     * Chỉ tài khoản VT-01 được phép truy cập.
-     */
+    /** Lấy toàn bộ danh sách tổ chức. */
     @GetMapping
     @PreAuthorize("hasAnyRole('VT-01')")
     public ResponseEntity<ApiResult<List<OrganizationResponse>>> getAllOrganizations() {
@@ -51,9 +50,7 @@ public class OrganizationController {
         return ResponseEntity.ok(ApiResult.success(organizations));
     }
 
-    /**
-     * Tạo mới một tổ chức cùng tài khoản quản lý mặc định.
-     */
+    /** Tạo mới một tổ chức cùng tài khoản quản lý mặc định. */
     @PostMapping
     @PreAuthorize("hasAnyRole('VT-01')")
     public ResponseEntity<ApiResult<OrganizationResponse>> create(
@@ -64,9 +61,7 @@ public class OrganizationController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * Admin cập nhật hồ sơ một tổ chức theo ID.
-     */
+    /** Admin cập nhật hồ sơ một tổ chức theo ID. */
     @PutMapping("/profile/{id}")
     @PreAuthorize("hasAnyRole('VT-01')")
     public ResponseEntity<ApiResult<OrganizationProfileResponse>> updateProfileByAdmin(
@@ -77,9 +72,7 @@ public class OrganizationController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * Lấy chi tiết tổ chức (kèm danh sách thành viên).
-     */
+    /** Lấy chi tiết tổ chức kèm danh sách thành viên. */
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<OrganizationDetailResponse>> getOrganizationDetail(
@@ -87,9 +80,7 @@ public class OrganizationController {
         return ResponseEntity.ok(ApiResult.success(organizationService.getOrganizationDetail(id)));
     }
 
-    /**
-     * Thêm tài khoản mới vào tổ chức (tạo user mới).
-     */
+    /** Thêm tài khoản mới vào tổ chức. */
     @PostMapping("/{id}/members")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<CreateOrganizationMemberResponse>> addMember(
@@ -101,10 +92,7 @@ public class OrganizationController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * Lấy danh sách user có sẵn để thêm vào tổ chức (cùng loại, chưa có trong tổ
-     * chức).
-     */
+    /** Lấy danh sách người dùng có sẵn để thêm vào tổ chức. */
     @GetMapping("/{organizationId}/available-users")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<List<AvailableUserResponse>>> getAvailableUsers(
@@ -114,10 +102,7 @@ public class OrganizationController {
         return ResponseEntity.ok(ApiResult.success(users));
     }
 
-    /**
-     * Thêm user đã tồn tại vào tổ chức (giữ nguyên vai trò hiện tại hoặc chọn role
-     * mới).
-     */
+    /** Thêm người dùng đã tồn tại vào tổ chức. */
     @PostMapping("/{organizationId}/add-existing-user")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<OrganizationUserResponse>> addExistingUser(
@@ -129,11 +114,7 @@ public class OrganizationController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * Gán vai trò cho thành viên trong tổ chức (dùng cho tổ chức hiện tại từ
-     * context).
-     * Nếu cần gán cho tổ chức khác, có thể mở rộng thêm.
-     */
+    /** Gán vai trò cho thành viên trong tổ chức. */
     @PutMapping("/current/members/role")
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<OrganizationUserResponse>> assignRole(

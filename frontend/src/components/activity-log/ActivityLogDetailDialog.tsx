@@ -25,6 +25,7 @@ import {
 import type { ActivityLog } from '@/types/activityLog';
 import {
   formatActionType,
+  formatActivityLogDescription,
   formatTargetType,
   getActionColor,
 } from '@/utils/activityLogFormatter';
@@ -174,7 +175,7 @@ export function ActivityLogDetailDialog({ log, onClose }: Props) {
             icon={<FileText className="h-4 w-4 text-emerald-600" />}
           >
             <p className="text-sm leading-relaxed">
-              {log.description || 'Không có mô tả chi tiết'}
+              {formatActivityLogDescription(log.description, getActionValue(log))}
             </p>
           </DetailSection>
 

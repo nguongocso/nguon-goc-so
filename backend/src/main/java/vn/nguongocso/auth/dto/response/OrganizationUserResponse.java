@@ -36,16 +36,6 @@ public class OrganizationUserResponse {
 
     private UserStatus status;
 
-    /**
-     * Trạng thái membership trong tổ chức hiện tại
-     * ({@code organization_users.status}: ACTIVE/INACTIVE).
-     *
-     * <p>
-     * Khác với {@code status} (trạng thái toàn cục của tài khoản
-     * {@code users.status}) — một tài khoản có thể INACTIVE membership ở
-     * tổ chức này nhưng vẫn ACTIVE ở tổ chức khác.
-     * </p>
-     */
     private OrganizationUserStatus membershipStatus;
 
     private LocalDateTime joinedAt;

@@ -1,13 +1,10 @@
 package vn.nguongocso.certification.controller;
 
-import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -24,12 +21,6 @@ import vn.nguongocso.common.PageResponse;
 
 /**
  * Controller quản lý danh mục tiêu chuẩn chất lượng.
- *
- * Lưu ý (hợp nhất domain kiểm nghiệm - NCL-09-CN-009):
- * Các API quản lý chỉ tiêu kiểm nghiệm theo tiêu chuẩn cũ
- * ({@code /api/v1/standards/{standardId}/criteria}) đã được loại bỏ.
- * Quản lý chỉ tiêu kiểm nghiệm dùng chung chuyển về
- * InspectionCriterionCatalogController và ProductCategoryCriterionController.
  */
 @RestController
 @RequestMapping("/api/v1/standards")

@@ -1,19 +1,30 @@
 package vn.nguongocso.report.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-import vn.nguongocso.auth.entity.User;
-import vn.nguongocso.organization.entity.Organization;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.organization.entity.Organization;
+
 /**
- * Entity ghi log truy cập báo cáo.
- *
- * @author Triệu Văn Đại
+ * Lịch sử truy cập báo cáo.
  */
 @Table(name = "report_access_log")
 @Entity

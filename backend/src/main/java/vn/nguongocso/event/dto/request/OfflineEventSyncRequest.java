@@ -9,9 +9,7 @@ import lombok.Setter;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO cho yêu cầu đồng bộ các sự kiện ngoại tuyến.
- */
+/** DTO cho yêu cầu đồng bộ các sự kiện ngoại tuyến. */
 @Getter
 @Setter
 public class OfflineEventSyncRequest {

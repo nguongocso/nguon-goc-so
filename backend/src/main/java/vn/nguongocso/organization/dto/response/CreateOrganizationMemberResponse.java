@@ -10,9 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.auth.enums.UserStatus;
 
-/**
- * Phản hồi khi tạo thành viên tổ chức.
- */
+/** Phản hồi khi tạo thành viên tổ chức. */
 @Getter
 @Setter
 @Builder

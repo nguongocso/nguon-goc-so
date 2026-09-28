@@ -4,11 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-import org.locationtech.jts.geom.Point;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -20,12 +15,24 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
+
 import vn.nguongocso.farm.enums.AreaUnit;
 import vn.nguongocso.organization.entity.Organization;
 
 /**
  * Entity đại diện cho vùng trồng thuộc một tổ chức.
- */
+*/
 @Entity
 @Table(name = "farm_areas")
 @Getter
@@ -34,58 +41,67 @@ import vn.nguongocso.organization.entity.Organization;
 @AllArgsConstructor
 @Builder
 public class FarmArea {
-	@Id
-	@Column(name = "id", nullable = false, updatable = false)
-	@JdbcTypeCode(SqlTypes.CHAR)
-	private UUID id;
+    @Id
+    @Column(name = "id", nullable = false, updatable = false)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID id;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "organization_id", nullable = false)
-	private Organization organization;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
 
-	@Column(name = "name", nullable = false)
-	private String name;
+    @Column(name = "name", nullable = false)
+    private String name;
 
-	@Column(name = "location", columnDefinition = "POINT")
-	private Point location;
+    @Column(name = "location", columnDefinition = "POINT")
+    private Point location;
 
-	@Column(name = "area", nullable = false)
-	private BigDecimal area;
+    @Column(name = "boundary", columnDefinition = "POLYGON")
+    private Polygon boundary;
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "area_unit", nullable = false)
-	private AreaUnit areaUnit;
+    @Column(name = "area", nullable = false)
+    private BigDecimal area;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "crop_type", nullable = false)
-	private ProductCategory cropType;
+    @Column(name = "calculated_area", precision = 10, scale = 4)
+    private BigDecimal calculatedArea;
 
-	@Builder.Default
-	@Column(name = "is_active", nullable = false)
-	private Boolean isActive = true;
+    @Column(name = "boundary_updated_at")
+    private LocalDateTime boundaryUpdatedAt;
 
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private LocalDateTime createdAt;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "area_unit", nullable = false)
+    private AreaUnit areaUnit;
 
-	@Column(name = "updated_at", nullable = false)
-	private LocalDateTime updatedAt;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "crop_type", nullable = false)
+    private ProductCategory cropType;
 
-	@PrePersist
-	protected void prePersist() {
-		if (id == null) {
-			id = UUID.randomUUID();
-		}
-		if (isActive == null) {
-			isActive = true;
-		}
+    @Builder.Default
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
 
-		LocalDateTime now = LocalDateTime.now();
-		createdAt = now;
-		updatedAt = now;
-	}
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	@PreUpdate
-	protected void preUpdate() {
-		updatedAt = LocalDateTime.now();
-	}
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void prePersist() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+        if (isActive == null) {
+            isActive = true;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    protected void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

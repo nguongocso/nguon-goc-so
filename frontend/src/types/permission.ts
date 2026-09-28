@@ -1,22 +1,22 @@
 export interface PermissionItem {
   permissionId: number;
-  action: string;           // CREATE, READ, UPDATE, DELETE, ...
+  action: string;
   description?: string;
-  isEnabled: boolean;       // Trạng thái hiện tại (sau khi áp dụng)
-  isDefault: boolean;       // true = đang dùng mặc định hệ thống
+  isEnabled: boolean;
+  isDefault: boolean;
 }
 
 export interface PermissionGroup {
-  resource: string;         // 'production_lot', 'chain_event', ...
-  resourceLabel: string;    // 'Lô sản xuất', 'Sự kiện chuỗi', ...
+  resource: string;
+  resourceLabel: string;
   permissions: PermissionItem[];
 }
 
 export interface RolePermissionResponse {
   organizationId: string;
   roleId: number;
-  roleCode: string;         // 'VT-03'
-  roleName: string;         // 'Người ghi sự kiện'
+  roleCode: string;
+  roleName: string;
   groups: PermissionGroup[];
 }
 
@@ -35,15 +35,13 @@ export interface RoleInfo {
   roleName: string;
 }
 
-/**
- * Các mã quyền chuẩn cho nhóm ghi nhận sự kiện chuỗi cung ứng.
- */
+/** Mã quyền chuẩn cho các sự kiện chuỗi cung ứng. */
 export const EVENT_PERMISSIONS = {
-  EVENT_FARM_LOG: 'EVENT_FARM_LOG',           // Ghi nhật ký canh tác
-  EVENT_HARVEST: 'EVENT_HARVEST',             // Ghi sự kiện thu hoạch
-  EVENT_PREPROCESSING: 'EVENT_PREPROCESSING', // Ghi sự kiện sơ chế & phân loại
-  EVENT_PACKAGING: 'EVENT_PACKAGING',         // Ghi sự kiện đóng gói
-  EVENT_TRANSPORT: 'EVENT_TRANSPORT',         // Ghi sự kiện vận chuyển
+  EVENT_FARM_LOG: 'EVENT_FARM_LOG',
+  EVENT_HARVEST: 'EVENT_HARVEST',
+  EVENT_PREPROCESSING: 'EVENT_PREPROCESSING',
+  EVENT_PACKAGING: 'EVENT_PACKAGING',
+  EVENT_TRANSPORT: 'EVENT_TRANSPORT',
 } as const;
 
 export type EventPermissionCode = keyof typeof EVENT_PERMISSIONS;

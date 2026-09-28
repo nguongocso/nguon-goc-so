@@ -10,9 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.alert.enums.NotificationType;
 
-/**
- * DTO phản hồi chi tiết một thông báo.
- */
+/** DTO phản hồi chi tiết một thông báo. */
 @Builder
 @Getter
 @Setter
@@ -26,6 +24,9 @@ public class NotificationResponse {
     private String title;
 
     private String content;
+
+    /** ID thực thể nghiệp vụ liên kết. */
+    private UUID entityId;
 
     private Boolean isRead;
 

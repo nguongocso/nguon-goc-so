@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/*
+ * Response thông tin quốc gia từ IP
+ */
 @Getter
 @Setter
 @NoArgsConstructor

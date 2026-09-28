@@ -5,13 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import lombok.RequiredArgsConstructor;
+import vn.nguongocso.alert.dto.response.AnomalyThresholdResponse;
 import vn.nguongocso.alert.entity.Alert;
 import vn.nguongocso.alert.entity.AlertDetails;
 import vn.nguongocso.alert.entity.ScanPoint;
@@ -19,7 +20,9 @@ import vn.nguongocso.alert.enums.AlertSeverity;
 import vn.nguongocso.alert.enums.AlertStatus;
 import vn.nguongocso.alert.enums.AlertType;
 import vn.nguongocso.alert.repository.AlertRepository;
+import vn.nguongocso.alert.service.AnomalyThresholdService;
 import vn.nguongocso.alert.service.ScanAnomalyDetectionService;
+import vn.nguongocso.alert.util.ScanAnomalyUtils;
 import vn.nguongocso.common.util.GeoDistanceUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.notification.service.NotificationService;
@@ -31,36 +34,76 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 
 /**
  * Triển khai phát hiện quét bất thường (NCL-08-CN-001).
- *
- * <p>
- * Service này chỉ chịu trách nhiệm phát hiện quét bất thường, đánh dấu các lượt
- * quét bất thường (QTN-10), tạo cảnh báo {@code SCAN_ANOMALY}, tính mức độ (severity)
- * và gửi thông báo. Nó KHÔNG chấm điểm nghi vấn và KHÔNG phụ thuộc vào
- * {@code SuspectDetectionService} (NCL-08-CN-007).
- * </p>
  */
 @Service
-@RequiredArgsConstructor
-public class ScanAnomalyDetectionServiceImpl
-        implements ScanAnomalyDetectionService {
-    private static final int DETECTION_WINDOW_MINUTES = 10; // Khoảng thời gian xét các lượt quét (phút)
-    private static final double SAME_LOCATION_THRESHOLD_KM = 5.0; // Ngưỡng coi là cùng một vị trí (km)
-    private static final int MIN_SCAN_COUNT = 3; // Số lượt quét tối thiểu để đánh giá
-    private static final int MIN_DISTINCT_LOCATIONS = 2; // Số vị trí khác nhau tối thiểu để xác định bất thường
-    private static final int HIGH_SEVERITY_DISTINCT_LOCATIONS = 3; // Ngưỡng vị trí để xếp mức HIGH
+public class ScanAnomalyDetectionServiceImpl implements ScanAnomalyDetectionService {
+    private static final int DETECTION_WINDOW_MINUTES = 10;
+    private static final double SAME_LOCATION_THRESHOLD_KM = 5.0;
+    private static final int MIN_SCAN_COUNT = 3;
+    private static final int MIN_DISTINCT_LOCATIONS = 2;
+    private static final int HIGH_SEVERITY_DISTINCT_LOCATIONS = 3;
 
     private final TraceCodeScanLogRepository traceCodeScanLogRepository;
     private final NotificationService notificationService;
     private final AlertRepository alertRepository;
     private final ObjectMapper objectMapper;
     private final TraceCodeRepository traceCodeRepository;
+    private final AnomalyThresholdService anomalyThresholdService;
 
-    /** Kiểm tra và xử lý khi phát sinh lượt quét mới. */
+    /** Khởi tạo ScanAnomalyDetectionServiceImpl với các dependency cơ bản. */
+    public ScanAnomalyDetectionServiceImpl(
+            TraceCodeScanLogRepository traceCodeScanLogRepository,
+            NotificationService notificationService,
+            AlertRepository alertRepository,
+            ObjectMapper objectMapper,
+            TraceCodeRepository traceCodeRepository) {
+        this(traceCodeScanLogRepository, notificationService, alertRepository, objectMapper, traceCodeRepository, null);
+    }
+
+    /** Khởi tạo ScanAnomalyDetectionServiceImpl đầy đủ với AnomalyThresholdService. */
+    @Autowired
+    public ScanAnomalyDetectionServiceImpl(
+            TraceCodeScanLogRepository traceCodeScanLogRepository,
+            NotificationService notificationService,
+            AlertRepository alertRepository,
+            ObjectMapper objectMapper,
+            TraceCodeRepository traceCodeRepository,
+            @Autowired(required = false) AnomalyThresholdService anomalyThresholdService) {
+        this.traceCodeScanLogRepository = traceCodeScanLogRepository;
+        this.notificationService = notificationService;
+        this.alertRepository = alertRepository;
+        this.objectMapper = objectMapper;
+        this.traceCodeRepository = traceCodeRepository;
+        this.anomalyThresholdService = anomalyThresholdService;
+    }
+
+    /** Kiểm tra và xử lý khi phát sinh lượt quét mới đối với mã truy xuất. */
     @Override
     @Transactional
     public void onScanRecorded(UUID traceCodeId) {
+        TraceCode traceCode = traceCodeRepository.findById(traceCodeId).orElse(null);
+        if (traceCode == null) {
+            return;
+        }
 
-        List<TraceCodeScanLog> scanLogs = getRecentScanLogs(traceCodeId);
+        AnomalyThresholdResponse threshold = getEffectiveThreshold(traceCode);
+
+        // Gate: Grace period check (P1.1 / P1.4)
+        if (traceCode.getActivatedAt() != null) {
+            int gracePeriodDays = (threshold != null && threshold.getActivationAgeDays() != null)
+                    ? threshold.getActivationAgeDays()
+                    : AnomalyThresholdServiceImpl.DEFAULT_ACTIVATION_AGE_DAYS;
+            if (ScanAnomalyUtils.isWithinGracePeriod(traceCode.getActivatedAt(), LocalDateTime.now(),
+                    gracePeriodDays)) {
+                return;
+            }
+        }
+
+        int windowMinutes = (threshold != null && threshold.getMinTimeBetweenScansMinutes() != null)
+                ? threshold.getMinTimeBetweenScansMinutes()
+                : DETECTION_WINDOW_MINUTES;
+
+        List<TraceCodeScanLog> scanLogs = getRecentScanLogs(traceCodeId, windowMinutes);
 
         boolean anomaly = isAnomaly(scanLogs);
 
@@ -69,7 +112,7 @@ public class ScanAnomalyDetectionServiceImpl
         }
 
         // QTN-10: đánh dấu các lượt quét bất thường để báo cáo thống kê đọc được.
-        markScanLogsAbnormal(scanLogs);
+        markScanLogsAbnormal(scanLogs, windowMinutes);
 
         boolean existed = alertRepository
                 .existsByRelatedEntityIdAndTypeAndStatus(
@@ -81,7 +124,7 @@ public class ScanAnomalyDetectionServiceImpl
             return;
         }
 
-        Organization organization = getOrganizationFromTraceCode(traceCodeId);
+        Organization organization = getOrganizationFromTraceCode(traceCode);
 
         Alert alert = createAlert(
                 traceCodeId,
@@ -91,11 +134,22 @@ public class ScanAnomalyDetectionServiceImpl
         sendNotification(alert);
     }
 
-    /** Lấy các lượt quét gần nhất. */
-    private List<TraceCodeScanLog> getRecentScanLogs(UUID traceCodeId) {
+    /** Lấy cấu hình ngưỡng quét bất thường có hiệu lực áp dụng cho mã truy xuất. */
+    private AnomalyThresholdResponse getEffectiveThreshold(TraceCode traceCode) {
+        if (anomalyThresholdService == null || traceCode == null) {
+            return null;
+        }
+        UUID categoryId = null;
+        if (traceCode.getShipment() != null && traceCode.getShipment().getProductionLot() != null
+                && traceCode.getShipment().getProductionLot().getProductCategory() != null) {
+            categoryId = traceCode.getShipment().getProductionLot().getProductCategory().getId();
+        }
+        return anomalyThresholdService.getEffectiveThreshold(categoryId);
+    }
 
-        LocalDateTime fromTime = LocalDateTime.now()
-                .minusMinutes(DETECTION_WINDOW_MINUTES);
+    /** Lấy danh sách các lượt quét gần nhất trong cửa sổ thời gian xác định. */
+    private List<TraceCodeScanLog> getRecentScanLogs(UUID traceCodeId, int windowMinutes) {
+        LocalDateTime fromTime = LocalDateTime.now().minusMinutes(windowMinutes);
 
         return traceCodeScanLogRepository
                 .findByTraceCodeIdAndScannedAtGreaterThanEqualOrderByScannedAtDesc(
@@ -103,15 +157,8 @@ public class ScanAnomalyDetectionServiceImpl
                         fromTime);
     }
 
-    /**
-     * Đánh dấu các lượt quét trong cửa sổ phát hiện là bất thường (QTN-10).
-     *
-     * <p>
-     * Ghi {@code isAbnormal = true} và lý do bất thường vào các bản ghi hiện có,
-     * không tạo cột/bảng mới.
-     * </p>
-     */
-    private void markScanLogsAbnormal(List<TraceCodeScanLog> scanLogs) {
+    /** Đánh dấu các lượt quét trong cửa sổ phát hiện là bất thường và lưu lý do (QTN-10). */
+    private void markScanLogsAbnormal(List<TraceCodeScanLog> scanLogs, int windowMinutes) {
         int distinctLocations = countDistinctLocations(scanLogs);
 
         for (TraceCodeScanLog scanLog : scanLogs) {
@@ -119,13 +166,13 @@ public class ScanAnomalyDetectionServiceImpl
             scanLog.setAbnormalReason("Phát hiện quét bất thường: "
                     + scanLogs.size() + " lượt quét tại "
                     + distinctLocations + " vị trí khác nhau trong "
-                    + DETECTION_WINDOW_MINUTES + " phút.");
+                    + windowMinutes + " phút.");
         }
 
         traceCodeScanLogRepository.saveAll(scanLogs);
     }
 
-    /** Kiểm tra hai vị trí có giống nhau. */
+    /** Kiểm tra xem hai lượt quét có thuộc cùng một vị trí địa lý hay không. */
     private boolean isSameLocation(
             TraceCodeScanLog first,
             TraceCodeScanLog second) {
@@ -146,6 +193,7 @@ public class ScanAnomalyDetectionServiceImpl
         return distance <= SAME_LOCATION_THRESHOLD_KM;
     }
 
+    /** Đếm số lượng vị trí địa lý khác nhau từ danh sách các lượt quét. */
     private int countDistinctLocations(List<TraceCodeScanLog> scanLogs) {
 
         List<TraceCodeScanLog> distinctLocations = new ArrayList<>();
@@ -176,7 +224,7 @@ public class ScanAnomalyDetectionServiceImpl
         return distinctLocations.size();
     }
 
-    /** Kiểm tra quét bất thường. */
+    /** Đánh giá xem các lượt quét có thỏa mãn điều kiện bất thường hay không. */
     private boolean isAnomaly(List<TraceCodeScanLog> scanLogs) {
 
         if (scanLogs.size() < MIN_SCAN_COUNT) {
@@ -188,7 +236,7 @@ public class ScanAnomalyDetectionServiceImpl
         return distinctLocations >= MIN_DISTINCT_LOCATIONS;
     }
 
-    /** Tạo chi tiết cảnh báo. */
+    /** Tạo đối tượng chi tiết cảnh báo chứa danh sách điểm quét và số lần quét. */
     private AlertDetails buildAlertDetails(
             List<TraceCodeScanLog> scanLogs) {
 
@@ -205,7 +253,7 @@ public class ScanAnomalyDetectionServiceImpl
         return details;
     }
 
-    /** Tạo điểm quét. */
+    /** Chuyển đổi lượt quét sang đối tượng điểm quét ScanPoint. */
     private ScanPoint buildScanPoint(TraceCodeScanLog scanLog) {
 
         ScanPoint scanPoint = new ScanPoint();
@@ -223,7 +271,7 @@ public class ScanAnomalyDetectionServiceImpl
         return scanPoint;
     }
 
-    /** Xác định mức độ cảnh báo. */
+    /** Xác định mức độ nghiêm trọng của cảnh báo dựa trên số vị trí quét khác nhau. */
     private AlertSeverity calculateSeverity(
             List<TraceCodeScanLog> scanLogs) {
 
@@ -236,14 +284,15 @@ public class ScanAnomalyDetectionServiceImpl
         return AlertSeverity.MEDIUM;
     }
 
-    /** Lấy tổ chức từ trace code. */
-    private Organization getOrganizationFromTraceCode(UUID traceCodeId) {
-        TraceCode traceCode = traceCodeRepository.findById(traceCodeId)
-                .orElseThrow(() -> new BusinessException("Không tìm thấy mã truy xuất."));
-        return traceCode.getShipment().getOrganization();
+    /** Lấy thông tin tổ chức sở hữu từ mã truy xuất. */
+    private Organization getOrganizationFromTraceCode(TraceCode traceCode) {
+        if (traceCode != null && traceCode.getShipment() != null) {
+            return traceCode.getShipment().getOrganization();
+        }
+        return null;
     }
 
-    /** Tạo cảnh báo. */
+    /** Tạo mới và lưu bản ghi cảnh báo quét bất thường vào cơ sở dữ liệu. */
     private Alert createAlert(
             UUID traceCodeId,
             List<TraceCodeScanLog> scanLogs,
@@ -278,7 +327,7 @@ public class ScanAnomalyDetectionServiceImpl
         return alertRepository.save(alert);
     }
 
-    /** Gửi thông báo. */
+    /** Gửi thông báo cảnh báo quét bất thường đến người dùng liên quan. */
     private void sendNotification(Alert alert) {
         notificationService.sendScanAnomalyNotification(alert);
     }

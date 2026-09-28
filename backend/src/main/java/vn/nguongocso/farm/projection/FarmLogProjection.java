@@ -7,29 +7,28 @@ import java.util.UUID;
 import vn.nguongocso.farm.enums.FarmActivityType;
 
 /**
- * Projection interface for FarmLog entity.
- * This interface defines the structure of the data that will be retrieved from the database for farm logs.
- */
+ * Hình chiếu dữ liệu nhật ký canh tác.
+*/
 public interface FarmLogProjection {
-	UUID getId();
+    UUID getId();
 
-	UUID getProductionLotId();
+    UUID getProductionLotId();
 
-	String getProductionLotName();
+    String getProductionLotName();
 
-	FarmActivityType getActivityType();
+    FarmActivityType getActivityType();
 
-	String getMaterial();
+    String getMaterial();
 
-	Double getQuantity();
+    Double getQuantity();
 
-	String getUnit();
+    String getUnit();
 
-	LocalDate getExecutedDate();
+    LocalDate getExecutedDate();
 
-	String getNotes();
+    String getNotes();
 
-	String getCreatedByName();
+    String getCreatedByName();
 
-	LocalDateTime getCreatedAt();
+    LocalDateTime getCreatedAt();
 }

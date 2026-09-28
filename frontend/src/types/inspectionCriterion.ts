@@ -7,6 +7,7 @@ export type InspectionCriterionStatus = 'ACTIVE' | 'INACTIVE';
 export interface InspectionCriterion {
   id: number;
   name: string;
+  nameEn?: string | null;
   unit: string;
   maxThreshold: number;
   referenceStandard: string | null;
@@ -23,6 +24,7 @@ export interface InspectionCriterion {
 /** Payload tạo/cập nhật chỉ tiêu kiểm nghiệm. */
 export interface InspectionCriterionRequest {
   name: string;
+  nameEn?: string;
   unit: string;
   maxThreshold: number;
   referenceStandard?: string;
@@ -34,3 +36,16 @@ export interface InspectionCriterionQueryParams {
   page?: number;
   size?: number;
 }
+
+/** Phản hồi cấu hình ngưỡng cảnh báo kiểm nghiệm sắp hết hạn */
+export interface InspectionExpiryThresholdResponse {
+  warningThresholdDays: number;
+  updatedAt?: string | null;
+  updatedByName?: string | null;
+}
+
+/** Payload cập nhật cấu hình ngưỡng cảnh báo kiểm nghiệm sắp hết hạn */
+export interface UpdateInspectionExpiryThresholdRequest {
+  warningThresholdDays: number;
+}
+

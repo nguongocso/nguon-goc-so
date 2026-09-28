@@ -16,40 +16,34 @@ import vn.nguongocso.auth.enums.AnomalyStatus;
  */
 @Repository
 public interface LoginAnomalyRepository extends JpaRepository<LoginAnomaly, UUID> {
-    
     /**
      * Lấy danh sách bất thường của một tổ chức, sắp xếp theo thời gian phát hiện mới nhất trước.
      */
     Page<LoginAnomaly> findByOrganization_OrganizationIdOrderByDetectedAtDesc(
-        UUID organizationId,
-        Pageable pageable
-    );
-    
+            UUID organizationId,
+            Pageable pageable);
+
     /**
      * Lấy danh sách tất cả bất thường (toàn nền tảng), sắp xếp mới nhất trước.
      */
     Page<LoginAnomaly> findAllByOrderByDetectedAtDesc(
-        Pageable pageable
-    );
-    
+            Pageable pageable);
+
     /**
      * Lấy danh sách bất thường của một người dùng cụ thể.
      */
     Page<LoginAnomaly> findByUser_UserIdOrderByDetectedAtDesc(
-        UUID userId,
-        Pageable pageable
-    );
+            UUID userId,
+            Pageable pageable);
 
     List<LoginAnomaly> findByUser_UserIdAndDetectedAtAfterOrderByDetectedAtDesc(
-        UUID userId,
-        java.time.OffsetDateTime detectedAtAfter
-    );
-    
+            UUID userId,
+            java.time.OffsetDateTime detectedAtAfter);
+
     /**
      * Đếm số lượng bất thường chưa giải quyết (status = OPEN) của một tổ chức.
      */
     long countByOrganization_OrganizationIdAndStatus(
-        UUID organizationId,
-        AnomalyStatus status
-    );
+            UUID organizationId,
+            AnomalyStatus status);
 }

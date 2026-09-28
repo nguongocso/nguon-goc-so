@@ -1,16 +1,18 @@
 package vn.nguongocso.report.dto.response;
 
-import lombok.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO chứa lược đồ thông tin dữ liệu mở cho Cán bộ quản lý ngành.
- */
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/** DTO dữ liệu mở cho Cán bộ quản lý ngành. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -43,15 +45,14 @@ public class OpenDataExportDto {
 
     private List<ShipmentDto> shipments;
 
-    /**
-     * Thông tin tổ chức.
-     */
+    /** Thông tin tổ chức. */
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class OrganizationDto {
+
         private UUID organizationId;
 
         private String organizationName;
@@ -59,15 +60,14 @@ public class OpenDataExportDto {
         private String organizationAddress;
     }
 
-    /**
-     * Thông tin khu vực nông trại.
-     */
+    /** Thông tin khu vực nông trại. */
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class FarmAreaDto {
+
         private UUID farmAreaId;
 
         private String farmAreaName;
@@ -77,29 +77,27 @@ public class OpenDataExportDto {
         private LocationDto farmAreaLocation;
     }
 
-    /**
-     * Thông tin vị trí địa lý.
-     */
+    /** Thông tin vị trí địa lý. */
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class LocationDto {
+
         private Double latitude;
 
         private Double longitude;
     }
 
-    /**
-     * Thông tin nhật ký nông trại.
-     */
+    /** Thông tin nhật ký nông trại. */
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class FarmLogDto {
+
         private UUID logId;
 
         private String activityType;
@@ -117,15 +115,14 @@ public class OpenDataExportDto {
         private List<String> attachments;
     }
 
-    /**
-     * Thông tin lô hàng.
-     */
+    /** Thông tin lô hàng. */
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class ShipmentDto {
+
         private UUID shipmentId;
 
         private String shipmentName;
@@ -137,15 +134,14 @@ public class OpenDataExportDto {
         private List<JourneyEventDto> journeyEvents;
     }
 
-    /**
-     * Thông tin sự kiện hành trình.
-     */
+    /** Thông tin sự kiện hành trình. */
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class JourneyEventDto {
+
         private UUID eventId;
 
         private String eventType;

@@ -1,12 +1,21 @@
 package vn.nguongocso.event.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +37,7 @@ import vn.nguongocso.event.repository.OfflineSyncLogRepository;
 import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.EventValidationService;
 import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.farm.service.FarmLogService;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.enums.ShipmentStatus;
@@ -51,7 +61,24 @@ class OfflineSyncEventProcessorTest {
     @Mock
     private EventValidationService eventValidationService;
 
-    @InjectMocks
+    @Mock
+    private FarmLogService farmLogService;
+
+    @Mock
+    private vn.nguongocso.farm.repository.ProductionLotRepository productionLotRepository;
+
+    @Mock
+    private vn.nguongocso.trace.repository.TraceCodeRepository traceCodeRepository;
+
+    @Mock
+    private vn.nguongocso.permission.service.PermissionChecker permissionChecker;
+
+    @org.mockito.Spy
+    private vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper offlineFarmLogPayloadMapper =
+            new vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper();
+
+    private vn.nguongocso.event.service.processor.OfflineFarmLogSyncHandler offlineFarmLogSyncHandler;
+    private vn.nguongocso.event.service.resolver.OfflineSyncTargetResolver offlineSyncTargetResolver;
     private OfflineSyncEventProcessor eventProcessor;
 
     private CustomUserDetails currentUser;
@@ -61,6 +88,14 @@ class OfflineSyncEventProcessorTest {
 
     @BeforeEach
     void setUp() {
+        offlineFarmLogSyncHandler = new vn.nguongocso.event.service.processor.OfflineFarmLogSyncHandler(
+                permissionChecker, offlineFarmLogPayloadMapper, farmLogService);
+        offlineSyncTargetResolver = new vn.nguongocso.event.service.resolver.OfflineSyncTargetResolver(
+                productionLotRepository, shipmentRepository, traceCodeRepository);
+        eventProcessor = new OfflineSyncEventProcessor(
+                offlineSyncLogRepository, userRepository, chainEventService, eventValidationService,
+                offlineFarmLogSyncHandler, offlineSyncTargetResolver);
+
         syncId = UUID.randomUUID();
         currentUser = mock(CustomUserDetails.class);
         when(currentUser.getUserId()).thenReturn(UUID.randomUUID());

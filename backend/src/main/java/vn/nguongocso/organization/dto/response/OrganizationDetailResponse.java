@@ -1,4 +1,5 @@
 package vn.nguongocso.organization.dto.response;
+
 import java.util.List;
 
 import lombok.AllArgsConstructor;
@@ -8,9 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.auth.dto.response.OrganizationUserResponse;
 
-/**
- * Phản hồi khi truy vấn chi tiết thông tin tổ chức.
- */
+/** Phản hồi khi truy vấn chi tiết thông tin tổ chức. */
 @Getter
 @Setter
 @Builder

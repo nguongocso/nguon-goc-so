@@ -1,0 +1,198 @@
+import { describe, expect, it } from 'vitest';
+import {
+  formatActionType,
+  formatActivityLogDescription,
+  formatTargetType,
+  getActionColor,
+} from '@/utils/activityLogFormatter';
+
+/**
+ * Activity History (Lịch sử hoạt động — VT02) dùng chung `formatActionType`
+ * cho cả bảng danh sách (ActivityLogTable) và màn hình chi tiết
+ * (ActivityLogDetailDialog). Do đó chỉ cần một mapping tại đây là đủ cho
+ * cả hai vị trí.
+ */
+describe('utils/activityLogFormatter — formatActionType', () => {
+  describe('DISPOSE → Loại bỏ (Lịch sử hoạt động VT02)', () => {
+    it('bảng Lịch sử hoạt động: hiển thị "Loại bỏ" thay vì raw DISPOSE', () => {
+      // Column "Hành động" của ActivityLogTable gọi formatActionType(actionVal)
+      expect(formatActionType('DISPOSE')).toBe('Loại bỏ');
+    });
+
+    it('màn hình Chi tiết hoạt động: dùng cùng mapping → "Loại bỏ"', () => {
+      // Trường "Hành động" của ActivityLogDetailDialog gọi formatActionType(getActionValue(log))
+      expect(formatActionType('dispose')).toBe('Loại bỏ');
+    });
+
+    it('không bao giờ trả về raw enum DISPOSE cho người dùng cuống', () => {
+      expect(formatActionType('DISPOSE')).not.toBe('DISPOSE');
+    });
+  });
+
+  describe('Regression — các action khác không bị ảnh hưởng', () => {
+    it('CREATE → Tạo mới', () => {
+      expect(formatActionType('CREATE')).toBe('Tạo mới');
+    });
+
+    it('UPDATE → Cập nhật', () => {
+      expect(formatActionType('UPDATE')).toBe('Cập nhật');
+    });
+
+    it('DELETE → Xóa', () => {
+      expect(formatActionType('DELETE')).toBe('Xóa');
+    });
+
+    it('RECALL → Thu hồi lô', () => {
+      expect(formatActionType('RECALL')).toBe('Thu hồi lô');
+    });
+
+    it('LOGIN → Đăng nhập hệ thống', () => {
+      expect(formatActionType('LOGIN')).toBe('Đăng nhập hệ thống');
+    });
+
+    it('REVOKE_API_KEY → Thu hồi API key', () => {
+      expect(formatActionType('REVOKE_API_KEY')).toBe('Thu hồi API key');
+    });
+  });
+
+  describe('formatActionType — hành vi mặc định', () => {
+    it('chuỗi rỗng trả về "—"', () => {
+      expect(formatActionType('')).toBe('—');
+    });
+
+    it('action chưa map trả về nguyên chuỗi gốc', () => {
+      expect(formatActionType('UNKNOWN_ACTION')).toBe('UNKNOWN_ACTION');
+    });
+  });
+});
+
+describe('utils/activityLogFormatter — getActionColor', () => {
+  it('DISPOSE được gán màu rose (hành động loại bỏ/nguy hiểm)', () => {
+    expect(getActionColor('DISPOSE')).toContain('rose');
+  });
+});
+
+describe('utils/activityLogFormatter — xuất nhật ký hoạt động', () => {
+  it('Việt hóa mã hành động và loại đối tượng', () => {
+    expect(formatActionType('EXPORT_ACTIVITY_LOG')).toBe('Xuất nhật ký hoạt động');
+    expect(formatTargetType('ACTIVITY_LOG_EXPORT')).toBe('Yêu cầu xuất nhật ký hoạt động');
+  });
+
+  it('Việt hóa mô tả kỹ thuật của cả bản ghi cũ', () => {
+    const description = 'Xuất nhật ký hoạt động: startDate=null, endDate=2026-09-14, '
+      + 'action=UPDATE_PRODUCTION_LOT, actorName=null, objectType=PRODUCTION_LOT, '
+      + 'recordCount=236, status=SUCCESS, exportJobId=null';
+
+    expect(formatActivityLogDescription(description, 'EXPORT_ACTIVITY_LOG')).toBe(
+      'Xuất nhật ký hoạt động: từ ngày: toàn bộ, đến ngày: 2026-09-14, '
+      + 'hành động: Cập nhật lô sản xuất, người thực hiện: tất cả, '
+      + 'loại đối tượng: Lô sản xuất, số bản ghi: 236, trạng thái: thành công, '
+      + 'mã yêu cầu: không có',
+    );
+  });
+
+  it('Không thay đổi mô tả của hành động khác', () => {
+    expect(formatActivityLogDescription('Cập nhật lô sản xuất', 'UPDATE')).toBe(
+      'Cập nhật lô sản xuất',
+    );
+  });
+});
+
+describe('utils/activityLogFormatter — xác thực chứng nhận NCL-696', () => {
+  it.each([
+    ['CREATE_CERTIFICATION', 'Tạo chứng nhận'],
+    ['VERIFY_CERTIFICATION', 'Xác thực chứng nhận'],
+    ['REJECT_CERTIFICATION', 'Từ chối chứng nhận'],
+  ])('hiển thị %s bằng nhãn tiếng Việt "%s"', (action, expected) => {
+    expect(formatActionType(action)).toBe(expected);
+    expect(formatActionType(action)).not.toBe(action);
+  });
+
+  it('hỗ trợ mã hành động viết thường từ dữ liệu lịch sử cũ', () => {
+    expect(formatActionType('verify_certification')).toBe('Xác thực chứng nhận');
+    expect(formatActionType('reject_certification')).toBe('Từ chối chứng nhận');
+  });
+
+  it('dùng màu xanh cho xác thực và màu đỏ cho từ chối', () => {
+    expect(getActionColor('VERIFY_CERTIFICATION')).toContain('blue');
+    expect(getActionColor('REJECT_CERTIFICATION')).toContain('rose');
+  });
+});
+
+/**
+ * Việt hóa giá trị hiển thị của thu hồi hàng loạt (NCL-08-CN-011).
+ * Backend vẫn lưu/trả về raw code — mapping chỉ diễn ra ở presentation layer.
+ */
+describe('utils/activityLogFormatter — Thu hồi hàng loạt (NCL-08-CN-011)', () => {
+  it.each([
+    ['CREATE_BULK_RECALL_REQUEST', 'Tạo yêu cầu thu hồi hàng loạt'],
+    ['APPROVE_BULK_RECALL_REQUEST', 'Phê duyệt yêu cầu thu hồi hàng loạt'],
+    ['REJECT_BULK_RECALL_REQUEST', 'Từ chối yêu cầu thu hồi hàng loạt'],
+  ])('TC-01/02/03: %s → "%s" thay vì raw code', (action, expected) => {
+    expect(formatActionType(action)).toBe(expected);
+    // Nguyên tắc UI language: không bao giờ hiển thị technical code cho người dùng cuối
+    expect(formatActionType(action)).not.toBe(action);
+  });
+
+  it('TC-04: objectType "bulk_recall_request" → "Yêu cầu thu hồi hàng loạt"', () => {
+    // Giá trị DB lưu in thường, hàm chuẩn hóa toUpperCase() trước khi so khớp
+    expect(formatTargetType('bulk_recall_request')).toBe(
+      'Yêu cầu thu hồi hàng loạt'
+    );
+  });
+
+  it('TC-05: dữ liệu lịch sử DB chứa raw code vẫn dịch được (backward compatibility)', () => {
+    // Action bị normalize qua toUpperCase() nên chữ thường/vẫn trong trường hợp bất kỳ cũng map được
+    expect(formatActionType('create_bulk_recall_request')).toBe(
+      'Tạo yêu cầu thu hồi hàng loạt'
+    );
+    expect(formatTargetType('BULK_RECALL_REQUEST')).toBe(
+      'Yêu cầu thu hồi hàng loạt'
+    );
+  });
+
+  it('TC-06: regression — các action/objectType cũ không bị ảnh hưởng', () => {
+    // Recall thường (không phải bulk) giữ nguyên wording cũ
+    expect(formatActionType('CREATE_RECALL_REQUEST')).toBe(
+      'Tạo yêu cầu thu hồi'
+    );
+    expect(formatTargetType('RECALL_REQUEST')).toBe('Yêu cầu thu hồi');
+    // Các action/objectType hiện có khác
+    expect(formatActionType('CREATE')).toBe('Tạo mới');
+    expect(formatActionType('RECALL')).toBe('Thu hồi lô');
+    expect(formatTargetType('PRODUCTION_LOT')).toBe('Lô sản xuất');
+    expect(formatTargetType('SHIPMENT')).toBe('Lô hàng');
+  });
+
+  it('TC-07: cả 3 action bulk recall không bao giờ trả về raw technical value', () => {
+    const bulkActions = [
+      'CREATE_BULK_RECALL_REQUEST',
+      'APPROVE_BULK_RECALL_REQUEST',
+      'REJECT_BULK_RECALL_REQUEST',
+    ];
+    for (const action of bulkActions) {
+      const label = formatActionType(action);
+      expect(label).not.toBe(action);
+      expect(label).not.toMatch(/BULK_RECALL_REQUEST/);
+    }
+    expect(formatTargetType('bulk_recall_request')).not.toMatch(/bulk_recall/i);
+  });
+
+  it('Màu badge tự theo tiền tố: CREATE/APPROVE → xanh, REJECT → đỏ', () => {
+    expect(getActionColor('CREATE_BULK_RECALL_REQUEST')).toContain('emerald');
+    expect(getActionColor('APPROVE_BULK_RECALL_REQUEST')).toContain('emerald');
+    expect(getActionColor('REJECT_BULK_RECALL_REQUEST')).toContain('rose');
+  });
+
+  describe('HANDOVER → Bàn giao', () => {
+    it('hiển thị Bàn giao thay vì raw HANDOVER', () => {
+      expect(formatActionType('HANDOVER')).toBe('Bàn giao');
+      expect(formatActionType('RECORD_HANDOVER_EVENT')).toBe('Ghi sự kiện bàn giao');
+      expect(formatActionType('CREATE_HANDOVER')).toBe('Tạo phiếu bàn giao');
+      expect(formatActionType('ACCEPT_HANDOVER')).toBe('Xác nhận bàn giao');
+      expect(formatActionType('REJECT_HANDOVER')).toBe('Từ chối bàn giao');
+      expect(formatTargetType('SHIPMENT_HANDOVER')).toBe('Phiếu bàn giao');
+      expect(formatTargetType('HANDOVER')).toBe('Phiếu bàn giao');
+    });
+  });
+});

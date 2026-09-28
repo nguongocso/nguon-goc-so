@@ -9,8 +9,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
-import type { ProductionLot } from "@/types/productionLot";
+import type {
+  CancelProductionLotRequest,
+  ProductionLot,
+} from "@/types/productionLot";
 import {
+  Ban,
   ClipboardCheck,
   FileUp,
   LoaderCircle,
@@ -21,8 +25,8 @@ import {
   ShoppingCart,
   Sprout,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { DataTableShell } from "@/components/common/DataTableShell";
 import { FilterSelect } from "@/components/common/FilterSelect";
 import { ListCard } from "@/components/common/ListCard";
@@ -31,8 +35,16 @@ import { Pagination } from "@/components/common/Pagination";
 import { RefreshButton } from "@/components/common/RefreshButton";
 import { SearchInput } from "@/components/common/SearchInput";
 import { StatusBadge, type StatusTone } from "@/components/common/StatusBadge";
+import {
+  PRODUCTION_LOT_STATUS_LABELS,
+  InspectionValidityBadge,
+} from "./ProductionLotStatusBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { ApproveProductionLotDialog } from "./Approveproductionlotdialog";
+import {
+  CANCELLABLE_PRODUCTION_LOT_STATUSES,
+  CancelProductionLotDialog,
+} from "./CancelProductionLotDialog";
 
 interface ProductionLotListProps {
   lots: ProductionLot[];
@@ -42,6 +54,8 @@ interface ProductionLotListProps {
   canSubmitForApproval: boolean;
   canApprove: boolean;
   canRecordFarmLog: boolean;
+  /** NCL-02-CN-006: cho phép hủy lô (VT-02). */
+  canCancel: boolean;
   onCreate: () => void;
   onEdit: (id: string) => void;
   onSubmitForApproval: (id: string) => Promise<void>;
@@ -51,6 +65,8 @@ interface ProductionLotListProps {
     reason?: string,
   ) => Promise<void>;
   onRecordFarmLog: (id: string) => void;
+  /** NCL-02-CN-006: gọi API hủy lô kèm lý do + diễn giải. */
+  onCancel: (id: string, payload: CancelProductionLotRequest) => Promise<void>;
   onRecordProcurement?: (lotId: string) => void;
   /** Ẩn khối tiêu đề trong card (dùng khi trang đã có ListPageHeader riêng). */
   hideCardHeader?: boolean;
@@ -62,18 +78,6 @@ interface ProductionLotListProps {
 
 const PAGE_SIZE = 10;
 
-const STATUS_LABELS: Record<ProductionLot["status"], string> = {
-  DRAFT: "Bản nháp",
-  PENDING: "Chờ duyệt",
-  APPROVED: "Đã duyệt",
-  REJECTED: "Bị từ chối",
-  HARVESTED: "Đã thu hoạch",
-  PREPROCESSED: "Đã sơ chế",
-  PACKAGED: "Đã đóng gói",
-  CLOSED: "Đã kết thúc",
-  RECALLED: "Đã thu hồi",
-};
-
 const STATUS_TONES: Record<ProductionLot["status"], StatusTone> = {
   DRAFT: "neutral",
   PENDING: "warning",
@@ -84,14 +88,29 @@ const STATUS_TONES: Record<ProductionLot["status"], StatusTone> = {
   PACKAGED: "info",
   CLOSED: "neutral",
   RECALLED: "danger",
+  CANCELLED: "danger",
+  DISPOSED: "danger",
 };
 
+// NCL-02-CN-006: mặc định "Đang canh tác" = mọi trạng thái trừ "Đã hủy",
+// để lô đã hủy không nằm mãi trong danh sách đang canh tác.
 const STATUS_FILTER_OPTIONS = [
+  { value: "ACTIVE", label: "Đang canh tác" },
   { value: "ALL", label: "Tất cả trạng thái" },
-  ...Object.entries(STATUS_LABELS).map(([value, label]) => ({
+  ...Object.entries(PRODUCTION_LOT_STATUS_LABELS).map(([value, label]) => ({
     value,
     label,
   })),
+];
+
+// NCL-11-CN-004: bộ lọc hiệu lực kiểm nghiệm
+const INSPECTION_VALIDITY_FILTER_OPTIONS = [
+  { value: "ALL", label: "Tất cả" },
+  { value: "VALID", label: "Còn hiệu lực" },
+  { value: "EXPIRING", label: "Sắp hết hiệu lực" },
+  { value: "EXPIRED", label: "Hết hiệu lực" },
+  { value: "NO_VALID_RESULT", label: "Chưa có kết quả hợp lệ" },
+  { value: "NOT_REQUIRED", label: "Không yêu cầu kiểm nghiệm" },
 ];
 
 export const ProductionLotList = ({
@@ -102,11 +121,13 @@ export const ProductionLotList = ({
   canSubmitForApproval,
   canApprove,
   canRecordFarmLog,
+  canCancel,
   onCreate,
   onEdit,
   onSubmitForApproval,
   onDecideApproval,
   onRecordFarmLog,
+  onCancel,
   onRecordProcurement,
   hideCardHeader = false,
   onRefresh,
@@ -115,13 +136,22 @@ export const ProductionLotList = ({
   const navigate = useNavigate();
   const { user } = useAuth();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  // NCL-02-CN-006: mặc định chỉ hiển thị các lô đang canh tác (ẩn lô đã hủy)
+  const [statusFilter, setStatusFilter] = useState("ACTIVE");
+  // NCL-11-CN-004: bộ lọc hiệu lực kiểm nghiệm
+  const [inspectionValidityFilter, setInspectionValidityFilter] = useState("ALL");
   const [page, setPage] = useState(0);
   const [confirmingLot, setConfirmingLot] =
     useState<ProductionLot | null>(null);
   const [approvingLot, setApprovingLot] =
     useState<ProductionLot | null>(null);
+  const [cancellingLot, setCancellingLot] =
+    useState<ProductionLot | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("highlightId") || searchParams.get("lotId");
+  const [highlightedRowId, setHighlightedRowId] = useState<string | null>(highlightId);
 
   const canImport = user?.roleCode === "VT-02"; // quyền nhập lô hàng loạt
 
@@ -146,11 +176,40 @@ export const ProductionLotList = ({
           lot.farmAreaName ?? "",
           lot.productCategoryName ?? "",
         ].some((value) => value.toLowerCase().includes(keyword));
+      // NCL-02-CN-006: "Đang canh tác" loại bỏ các lô đã hủy.
       const matchesStatus =
-        statusFilter === "ALL" || lot.status === statusFilter;
-      return matchesSearch && matchesStatus;
+        statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE"
+          ? lot.status !== "CANCELLED"
+          : lot.status === statusFilter);
+      // NCL-11-CN-004: lọc theo trạng thái hiệu lực kiểm nghiệm
+      const isExcludedFromExpiry =
+        lot.status === "RECALLED" ||
+        lot.status === "CANCELLED" ||
+        lot.status === "DISPOSED";
+      const matchesInspectionValidity =
+        inspectionValidityFilter === "ALL" ||
+        (!isExcludedFromExpiry &&
+          lot.inspectionValidity?.status === inspectionValidityFilter);
+      return matchesSearch && matchesStatus && matchesInspectionValidity;
     });
-  }, [lots, search, statusFilter]);
+  }, [lots, search, statusFilter, inspectionValidityFilter]);
+
+  // Tự động chuyển trang đến lô được chọn và kích hoạt hiệu ứng chớp sáng
+  useEffect(() => {
+    if (!highlightId || filteredLots.length === 0) return;
+    const index = filteredLots.findIndex((l) => l.id === highlightId);
+    if (index !== -1) {
+      const targetPage = Math.floor(index / PAGE_SIZE);
+      setPage(targetPage);
+      setHighlightedRowId(highlightId);
+
+      const timer = setTimeout(() => {
+        setHighlightedRowId(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightId, filteredLots]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLots.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
@@ -159,14 +218,36 @@ export const ProductionLotList = ({
     safePage * PAGE_SIZE + PAGE_SIZE,
   );
 
-  const hasActiveFilter = search.trim() !== "" || statusFilter !== "ALL";
+  const hasActiveFilter =
+    search.trim() !== "" ||
+    (statusFilter !== "ALL" && statusFilter !== "ACTIVE") ||
+    inspectionValidityFilter !== "ALL";
 
   const renderStatus = (status: ProductionLot["status"]) => {
-    const label = STATUS_LABELS[status];
+    const label = PRODUCTION_LOT_STATUS_LABELS[status];
     if (!label) {
       return <StatusBadge label={status || "Không xác định"} tone="neutral" />;
     }
     return <StatusBadge label={label} tone={STATUS_TONES[status]} />;
+  };
+
+  // NCL-11-CN-004: hiển thị trạng thái hiệu lực kết quả kiểm nghiệm
+  const renderInspectionValidity = (lot: ProductionLot) => {
+    // Quy tắc 5 & 6: Nếu lô đang thu hồi, đã thu hồi, đã hủy hoặc đã loại bỏ,
+    // ưu tiên nghiệp vụ đó, tuyệt đối không hiển thị cảnh báo hiệu lực kiểm nghiệm.
+    if (
+      lot.status === "RECALLED" ||
+      lot.status === "CANCELLED" ||
+      lot.status === "DISPOSED"
+    ) {
+      return <span className="text-xs text-muted-foreground">—</span>;
+    }
+
+    const validity = lot.inspectionValidity;
+    if (!validity) {
+      return <span className="text-xs text-muted-foreground">—</span>;
+    }
+    return <InspectionValidityBadge status={validity.status} />;
   };
 
   return (
@@ -225,10 +306,18 @@ export const ProductionLotList = ({
               <FilterSelect
                 value={statusFilter}
                 onValueChange={(value) => {
-                  setStatusFilter(value ?? "ALL");
+                  setStatusFilter(value ?? "ACTIVE");
                   setPage(0);
                 }}
                 options={STATUS_FILTER_OPTIONS}
+              />
+              <FilterSelect
+                value={inspectionValidityFilter}
+                onValueChange={(value) => {
+                  setInspectionValidityFilter(value ?? "ALL");
+                  setPage(0);
+                }}
+                options={INSPECTION_VALIDITY_FILTER_OPTIONS}
               />
             </>
           }
@@ -248,6 +337,7 @@ export const ProductionLotList = ({
               <TableHead>Vùng trồng</TableHead>
               <TableHead>Nông sản</TableHead>
               <TableHead>Trạng thái</TableHead>
+              <TableHead>Hiệu lực kiểm nghiệm</TableHead>
               <TableHead className="text-center">Thao tác</TableHead>
               <TableHead className="text-center">Chi tiết</TableHead>
             </>
@@ -261,17 +351,31 @@ export const ProductionLotList = ({
               (lot.status === "APPROVED" || lot.status === "HARVESTED");
             const showRecordProcurement =
               !!onRecordProcurement && lot.status === "PACKAGED";
+            const showCancel =
+              canCancel &&
+              CANCELLABLE_PRODUCTION_LOT_STATUSES.includes(lot.status);
             const hasAction =
               showEdit ||
               showSubmit ||
               showApprove ||
               showRecordFarmLog ||
-              showRecordProcurement;
+              showRecordProcurement ||
+              showCancel;
+
+            const isHighlighted = lot.id === highlightedRowId;
 
             return (
               <TableRow
                 key={lot.id}
-                className="hover:bg-muted/40 transition-colors"
+                ref={(el) => {
+                  if (isHighlighted && el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
+                }}
+                className={`transition-all duration-500 ${isHighlighted
+                  ? "bg-amber-100/90 dark:bg-amber-950/60 ring-2 ring-amber-500 font-semibold animate-pulse"
+                  : "hover:bg-muted/40"
+                  }`}
               >
                 <TableCell className="text-center font-medium text-muted-foreground">
                   {safePage * PAGE_SIZE + index + 1}
@@ -295,6 +399,9 @@ export const ProductionLotList = ({
                   {lot.productCategoryName ?? "—"}
                 </TableCell>
                 <TableCell>{renderStatus(lot.status)}</TableCell>
+                <TableCell>
+                  {renderInspectionValidity(lot)}
+                </TableCell>
                 <TableCell className="text-center">
                   <div className="flex justify-center gap-1">
                     {showEdit && (
@@ -347,6 +454,16 @@ export const ProductionLotList = ({
                         <ShoppingCart className="size-4 text-blue-600" />
                       </Button>
                     )}
+                    {showCancel && (
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        title="Hủy lô"
+                        onClick={() => setCancellingLot(lot)}
+                      >
+                        <Ban className="size-4 text-red-600" />
+                      </Button>
+                    )}
                     {!hasAction && (
                       <span className="text-xs text-muted-foreground">—</span>
                     )}
@@ -367,7 +484,7 @@ export const ProductionLotList = ({
           })}
           loading={isLoading}
           empty={!isLoading && filteredLots.length === 0}
-          colSpan={7}
+          colSpan={8}
           loadingMessage="Đang tải danh sách lô sản xuất..."
           emptyMessage={
             hasActiveFilter
@@ -425,6 +542,13 @@ export const ProductionLotList = ({
         lot={approvingLot}
         onClose={() => setApprovingLot(null)}
         onDecide={onDecideApproval}
+      />
+
+      <CancelProductionLotDialog
+        open={cancellingLot !== null}
+        lot={cancellingLot}
+        onClose={() => setCancellingLot(null)}
+        onCancel={onCancel}
       />
     </>
   );

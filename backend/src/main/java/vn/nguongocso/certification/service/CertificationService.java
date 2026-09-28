@@ -1,20 +1,31 @@
 package vn.nguongocso.certification.service;
 
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.AttachCertificationRequest;
 import vn.nguongocso.certification.dto.request.CreateCertificationRequest;
+import vn.nguongocso.certification.dto.request.RejectCertificateRequest;
+import vn.nguongocso.certification.dto.request.VerifyCertificateRequest;
 import vn.nguongocso.certification.dto.response.CertificationResponse;
+import vn.nguongocso.certification.dto.response.CertificationVerificationResponse;
 import vn.nguongocso.certification.dto.response.ProductionLotCertificationResponse;
+import vn.nguongocso.certification.enums.CertificationVerificationStatus;
 import vn.nguongocso.common.PageResponse;
 
 import java.util.List;
 import java.util.UUID;
 
 /**
- * Giao diện CertificationService định nghĩa các phương thức liên quan đến quản
- * lý chứng nhận.
+ * Service quản lý và xác thực chứng nhận chất lượng.
  */
 public interface CertificationService {
+        /**
+         * Record chứa tài liệu chứng nhận phục vụ xem trực tiếp hoặc tải về an toàn.
+         */
+        record DocumentResource(Resource resource, MediaType contentType, String fileName) {}
+
         /**
          * Lấy danh sách chứng nhận của một lô sản xuất.
          */
@@ -39,7 +50,7 @@ public interface CertificationService {
                         CustomUserDetails currentUser);
 
         /**
-         * Lấy danh sách chứng nhận hợp lệ của tổ chức hiện tại.
+         * Lấy danh sách chứng nhận hợp lệ của tổ chức hiện tại để gắn cho lô (loại bỏ EXPIRED và REJECTED).
          */
         List<CertificationResponse> getValidCertifications(
                         CustomUserDetails currentUser);
@@ -49,26 +60,11 @@ public interface CertificationService {
          */
         CertificationResponse createCertification(
                         CreateCertificationRequest request,
+                        MultipartFile file,
                         CustomUserDetails currentUser);
 
         /**
-         * Tìm kiếm chứng nhận của tổ chức hiện tại theo từ khoá và trạng thái
-         * hiệu lực, có phân trang và sắp xếp.
-         *
-         * <p>Ba trạng thái rời rạc (không giao nhau):
-         * {@code valid} = hết hạn sau hơn 30 ngày,
-         * {@code expiring} = còn hiệu lực trong vòng 30 ngày,
-         * {@code expired} = đã quá hạn.</p>
-         *
-         * @param keyword      từ khoá tìm theo tên / số hiệu / cơ quan cấp
-         *                     (null hoặc rỗng để bỏ qua).
-         * @param status       valid | expiring | expired (null để lấy tất cả).
-         * @param sortBy       trường sắp xếp (name | issueDate | expiryDate).
-         * @param sortDir      asc | desc (mặc định desc).
-         * @param page         chỉ số trang (bắt đầu từ 0).
-         * @param size         số bản ghi mỗi trang (tối đa 100).
-         * @param currentUser  người dùng hiện tại (scope theo tổ chức).
-         * @return trang dữ liệu chứng nhận kèm tổng số bản ghi.
+         * Tìm kiếm chứng nhận của tổ chức hiện tại theo từ khoá và trạng thái hiệu lực, có phân trang và sắp xếp.
          */
         PageResponse<CertificationResponse> searchCertifications(
                         String keyword,
@@ -80,8 +76,50 @@ public interface CertificationService {
                         CustomUserDetails currentUser);
 
         /**
-         * Kiểm tra và tạo cảnh báo cho các chứng nhận
-         * đã hết hạn hoặc sắp hết hạn.
+         * Kiểm tra và tạo cảnh báo cho các chứng nhận đã hết hạn hoặc sắp hết hạn.
          */
         void checkCertificationExpiry();
+
+        /**
+         * Lấy danh sách chứng nhận trên toàn nền tảng để Quản trị viên (VT-01) kiểm tra, đối chiếu.
+         */
+        PageResponse<CertificationVerificationResponse> getAdminCertifications(
+                        CertificationVerificationStatus status,
+                        String keyword,
+                        UUID organizationId,
+                        String sortBy,
+                        String sortDir,
+                        int page,
+                        int size,
+                        CustomUserDetails currentUser);
+
+        /**
+         * Lấy thông tin chi tiết đầy đủ dữ liệu cần đối chiếu của một chứng nhận (VT-01).
+         */
+        CertificationVerificationResponse getAdminCertificationDetail(
+                        UUID certificationId,
+                        CustomUserDetails currentUser);
+
+        /**
+         * Lấy tệp tài liệu chứng nhận an toàn (VT-01).
+         */
+        DocumentResource getCertificateDocumentResource(
+                        UUID certificationId,
+                        CustomUserDetails currentUser);
+
+        /**
+         * Xác thực chứng nhận của tổ chức (VT-01).
+         */
+        CertificationVerificationResponse verifyCertificate(
+                        UUID certificationId,
+                        VerifyCertificateRequest request,
+                        CustomUserDetails currentUser);
+
+        /**
+         * Từ chối xác thực chứng nhận của tổ chức kèm lý do (VT-01).
+         */
+        CertificationVerificationResponse rejectCertificate(
+                        UUID certificationId,
+                        RejectCertificateRequest request,
+                        CustomUserDetails currentUser);
 }

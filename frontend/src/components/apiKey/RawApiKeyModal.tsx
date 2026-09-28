@@ -92,7 +92,7 @@ export const RawApiKeyModal: React.FC<RawApiKeyModalProps> = ({
           </div>
 
           {/* Chi tiết hạn mức & thời hạn */}
-          <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-muted/40 text-xs">
+          <div className="grid grid-cols-1 gap-2 rounded-lg bg-muted/40 p-3 text-xs sm:grid-cols-2">
             <div>
               <span className="text-muted-foreground block">Hạn mức gọi:</span>
               <span className="font-semibold text-foreground">{apiKeyData.rateLimitPerHour} lượt / giờ</span>
@@ -107,7 +107,12 @@ export const RawApiKeyModal: React.FC<RawApiKeyModalProps> = ({
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="default" className="w-full sm:w-auto" onClick={onClose}>
+          <Button
+            type="button"
+            variant="default"
+            className="w-full sm:w-auto"
+            onClick={onClose}
+          >
             Tôi đã lưu khóa, Đóng cửa sổ
           </Button>
         </DialogFooter>

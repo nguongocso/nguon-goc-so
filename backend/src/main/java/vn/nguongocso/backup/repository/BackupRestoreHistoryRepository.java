@@ -24,8 +24,7 @@ public interface BackupRestoreHistoryRepository extends JpaRepository<BackupRest
                         "WHERE (:operationType IS NULL OR h.operationType = :operationType) " +
                         "AND (:status IS NULL OR h.status = :status)")
 
-        // Sử dụng LEFT JOIN FETCH để tránh vấn đề N+1 khi truy xuất thông tin người tạo
-        // và bản tham chiếu
+        // Sử dụng LEFT JOIN FETCH để tránh vấn đề N+1 khi truy xuất thông tin người tạo và bản tham chiếu
         Page<BackupRestoreHistory> findHistoryWithFilters(
                         @Param("operationType") BackupOperationType operationType,
                         @Param("status") BackupStatus status,
@@ -34,8 +33,7 @@ public interface BackupRestoreHistoryRepository extends JpaRepository<BackupRest
         // Kiểm tra xem có tiến trình nào đang chạy ngầm hay không (để lock tài nguyên)
         boolean existsByStatus(BackupStatus status);
 
-        // Lấy các bản sao lưu thành công để phục vụ dọn dẹp các bản sao lưu cũ vượt quá
-        // giới hạn
+        // Lấy các bản sao lưu thành công để phục vụ dọn dẹp các bản sao lưu cũ vượt quá giới hạn
         List<BackupRestoreHistory> findByOperationTypeAndStatusOrderByCreatedAtDesc(
                         BackupOperationType operationType,
                         BackupStatus status);

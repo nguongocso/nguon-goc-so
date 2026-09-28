@@ -9,6 +9,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/** DTO response khóa mã truy xuất. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,11 +17,18 @@ import java.util.UUID;
 @Builder
 public class LockTraceCodeResponse {
     private UUID id;
+
     private String codeValue;
+
     private String status;
+
     private LocalDateTime lockedAt;
+
     private UUID lockedBy;
+
     private String lockedByName;
+
     private String lockReason;
+
     private Boolean notificationSent;
 }

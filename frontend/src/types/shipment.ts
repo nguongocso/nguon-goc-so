@@ -45,16 +45,24 @@ export interface Shipment {
   name: string;
   totalQuantity: number;
   packagingInfo?: string;
-  status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLED';
+  status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLING' | 'RECALLED' | 'SPLIT';
   traceCodes: TraceCode[];
   createdByName: string;
   createdAt: string;
+  parentShipmentId: string | null;
+  recipientOrganization: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
+  childCount: number;
+  splitAt: string | null;
 }
 
 export interface ShipmentSummary {
   id: string;
   name: string;
-  status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLED';
+  status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLING' | 'RECALLED' | 'SPLIT';
   productionLotName: string | null;
   totalQuantity: number | null;
 }
@@ -62,17 +70,13 @@ export interface ShipmentSummary {
 export interface ProcurementShipment {
   id: string;
   name: string;
-  status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLED';
+  status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLING' | 'RECALLED' | 'SPLIT';
   productionLotName: string | null;
   productCategoryName: string | null;
+  organizationName?: string | null;
+  /** UUID của tổ chức HTX sở hữu lô hàng — dùng để lấy mẫu hồ sơ khi VT-04 xuất */
+  cooperativeOrganizationId?: string | null;
   totalQuantity: number | null;
-}
-
-export interface CreateShipmentPayload {
-  productionLotId: string;
-  name: string;
-  totalQuantity: number;
-  packagingInfo?: string;
 }
 
 export interface ShipmentResponse {
@@ -91,3 +95,10 @@ export interface PageResponse<T> {
   first: boolean;
   last: boolean;
 }
+export interface CreateShipmentPayload {
+  productionLotId: string;
+  name: string;
+  totalQuantity: number;
+  packagingInfo?: string;
+}
+

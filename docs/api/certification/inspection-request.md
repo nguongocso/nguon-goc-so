@@ -1,6 +1,6 @@
 # API Docs - Tao yeu cau kiem nghiem cho lo
 
-Cap nhat theo code hien tai: 2026-08-26
+Cap nhat theo code hien tai: 2026-08-26 (bo sung 2026-09-03: chan lo da huy CANCELLED theo NCL-02-CN-006)
 Nguon doi chieu: DOCX `NCL-11-CN-002-Tao yeu cau kiem nghiem cho lo.docx` va module `backend/certification`.
 
 Tai lieu nay phan biet ro yeu cau cua DOCX voi hanh vi da duoc implement. Ten lop trong DOCX (`QualityTestRequest`, `TestCriteria`) khong phai ten dang dung trong project hien tai.
@@ -8,12 +8,13 @@ Tai lieu nay phan biet ro yeu cau cua DOCX voi hanh vi da duoc implement. Ten lo
 ## 1. Luong nghiep vu hien tai
 
 1. VT-02 lay danh sach tieu chi ap dung cho lo qua `GET /api/v1/production-lots/{lotId}/test-criteria`.
-2. Backend chi cho phep tao yeu cau neu lo thuoc organization cua nguoi dung, co trang thai tu `APPROVED` tro len, khong bi `REJECTED`, va da co su kien `HARVEST`.
+2. Backend chi cho phep tao yeu cau neu lo thuoc organization cua nguoi dung, co trang thai tu `APPROVED` tro len, khong bi `REJECTED`, khong o trang thai `CANCELLED` (NCL-02-CN-006: lo da huy), va da co su kien `HARVEST`.
 3. Client gui don vi kiem nghiem, ngay gui mau va danh sach ID chi tieu (tu danh muc dung chung) qua `POST /api/v1/production-lots/{lotId}/test-requests`.
 4. Moi chi tieu phai ton tai trong danh muc dung chung `inspection_criterion_catalog`, dang `ACTIVE` va duoc gan cho loai nong san cua lo qua bang `category_criteria` (NCL-09-CN-009). Backend tao snapshot `InspectionCriterion`, luu code/name va tham chieu `criterion_id` tai thoi diem tao (khong gan Standard).
 5. Yeu cau moi duoc tao voi trang thai domain `PENDING_RESULT`; response API tra ve chuoi `PENDING`.
-6. Neu da co yeu cau `PENDING_RESULT` cung bo tieu chi cho lo, backend tra `409 CONFLICT`, tru khi client gui `confirmDuplicate = true`.
+6. Neu da co yeu cau `PENDING_RESULT` cung bo tieu chi cho lo, backend tra `409 CONFLICT`, tru khi client gui `confirmDuplicate = true`. Identity cua tieu chi duoc xac dinh boi `criterionId` (khong phai name). Hai tieu chi khac ID nhung cung ten KHONG bi coi la trung lap.
 7. Sau khi tao yeu cau, ket qua co the duoc ghi tung tieu chi bang `POST`, hoac ghi toan bo bang `PUT` tai cap request. Chi tiet luong nay nam trong [inspection-result.md](inspection-result.md).
+8. Doi voi lo co ket qua kiem nghiem da het hieu luc (`status = EXPIRED` theo NCL-11-CN-004), VT-02 su dung loi tat de tao yeu cau kiem nghiem moi qua `POST /api/v1/production-lots/{lotId}/test-requests`. Yeu cau moi duoc tao hoan toan doc lap, khong ghi de hay xoa ket qua cu; toan bo lich su kiem nghiem van duoc bao luu day du.
 
 ## 2. API lay tieu chi cua lo
 
@@ -36,7 +37,8 @@ Response data thuc te:
     {
       "criteriaId": 101,
       "code": "RESIDUE_PESTICIDE",
-      "name": "Du luong thuoc tru sau"
+      "name": "Du luong thuoc tru sau",
+      "referenceStandard": "TCVN 5142:2008"
     }
   ]
 }
@@ -101,8 +103,9 @@ Response data thuc te:
 | HTTP | Dieu kien / thong diep thuc te |
 |---:|---|
 | `400` | Request rong; thieu `testingUnit`, `sampleSentDate` hoac `criteriaIds`; ngay gui mau o tuong lai; ID tieu chi null/trung; tieu chi khong ton tai; tieu chi da ngung su dung; tieu chi khong duoc gan cho loai nong san cua lo |
+| `400` | Lo da bi huy (`CANCELLED`): "Lo san xuat da bi huy, khong the tao yeu cau kiem nghiem." (NCL-02-CN-006) |
 | `404` | Lo khong ton tai trong organization hien tai |
-| `409` | Da co request `PENDING_RESULT` cung bo khoa `scope:criterionCode` (legacy `<standardId>:<code>`, moi `CAT:<criterionId>:<code>`) va `confirmDuplicate` khong phai `true` |
+| `409` | Da co request `PENDING_RESULT` cung bo khoa criterion (legacy `<standardId>:<criterionCode>` khi criterion_id null, moi `CAT:<criterionId>` — identity dua tren criterionId, khong phai name) va `confirmDuplicate` khong phai `true` |
 | `403` | Nguoi dung khong co role `VT-02` |
 
 Kiem tra trung lap khong phu thuoc thu tu danh sach. Vi du `[A, B]` va `[B, A]` la cung mot bo tieu chi. Chi request dang `PENDING_RESULT` moi duoc dung de phat hien trung lap.
@@ -156,3 +159,10 @@ Tao request va ghi/cap nhat/xoa ket qua deu phat hanh activity log voi actor, or
 - `backend/src/main/java/vn/nguongocso/certification/dto/request/CreateInspectionRequest.java`
 - `backend/src/main/java/vn/nguongocso/certification/dto/response/ProductionLotTestCriteriaResponse.java`
 - `backend/src/test/java/vn/nguongocso/certification/service/InspectionRequestServiceImplTest.java`
+
+## 7. Cổng nhập kết quả của đơn vị kiểm nghiệm (NCL-11-CN-007)
+
+- Chỉ `VT-02` được cấp/cấp lại link cho request thuộc organization hiện tại.
+- Request phải ở `PENDING_RESULT` và có `testingUnitId`; request legacy chỉ có tên đơn vị tự do không được cấp link.
+- Link mới thu hồi link `ACTIVE` cũ nhưng không bổ sung trạng thái mới vào `InspectionRequestStatus`.
+- Contract chi tiết: [inspection-result-entry-portal.md](inspection-result-entry-portal.md).

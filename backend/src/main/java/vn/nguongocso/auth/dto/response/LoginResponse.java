@@ -9,7 +9,6 @@ import lombok.Data;
 @Data
 @Builder
 public class LoginResponse {
-
     private String selectionToken;
 
     private String tokenType;
@@ -18,6 +17,9 @@ public class LoginResponse {
 
     private UserInfo user;
 
+    /**
+     * Thông tin người dùng
+     */
     @Data
     @Builder
     public static class UserInfo {

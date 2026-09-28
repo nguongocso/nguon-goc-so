@@ -1,7 +1,6 @@
 import axios from 'axios';
 import {
   AlertTriangle,
-  ArrowLeft,
   CheckCircle2,
   LoaderCircle,
   PencilLine,
@@ -12,6 +11,7 @@ import { toast } from 'sonner';
 
 import { correctFarmLog, getFarmLogById } from '@/api/farmLogApi';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
+import { HOAT_DONG_CANH_TAC_OPTIONS } from '@/utils/farmLogActivity';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -44,15 +44,8 @@ interface ApiErrorResponse {
   message?: string;
 }
 
-const ACTIVITY_OPTIONS: Array<{ value: FarmActivityType; label: string }> = [
-  { value: 'PLANTING', label: 'Gieo trồng' },
-  { value: 'WATERING', label: 'Tưới nước' },
-  { value: 'FERTILIZING', label: 'Bón phân' },
-  { value: 'PESTICIDE', label: 'Phun thuốc' },
-  { value: 'WEEDING', label: 'Làm cỏ' },
-  { value: 'HARVESTING', label: 'Thu hoạch' },
-  { value: 'OTHER', label: 'Khác' },
-];
+/** Dùng chung nhãn loại hoạt động với form ghi và hàng chờ ngoại tuyến. */
+const ACTIVITY_OPTIONS = HOAT_DONG_CANH_TAC_OPTIONS;
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (axios.isAxiosError(error)) {
@@ -140,7 +133,7 @@ export default function CorrectFarmLogPage() {
 
   const breadcrumbItems = useMemo(() => {
     return [
-      { label: 'Dashboard', href: '/dashboard' },
+      { label: 'Tổng quan', href: '/dashboard' },
       { label: 'Lô sản xuất', href: '/production-lots' },
       ...(log?.productionLotId
         ? [
@@ -288,9 +281,6 @@ export default function CorrectFarmLogPage() {
             <p className="mt-2 text-sm leading-6 text-red-700">
               {loadError || 'Không tìm thấy nhật ký canh tác.'}
             </p>
-            <Button variant="outline" className="mt-4" onClick={goBack}>
-              <ArrowLeft className="mr-2 size-4" /> Quay lại
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -311,9 +301,6 @@ export default function CorrectFarmLogPage() {
               Bản ghi này đã bị thay thế hiệu lực bởi một bản đính chính khác.
               Vui lòng xem bản ghi đính chính mới nhất trong lịch sử nhật ký.
             </p>
-            <Button variant="outline" className="mt-4" onClick={goBack}>
-              <ArrowLeft className="mr-2 size-4" /> Quay lại
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -323,13 +310,6 @@ export default function CorrectFarmLogPage() {
   return (
     <div className="space-y-6">
       <header>
-        <button
-          type="button"
-          onClick={goBack}
-          className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:underline"
-        >
-          <ArrowLeft className="size-4" /> Quay lại lịch sử nhật ký
-        </button>
         <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
           <PencilLine className="size-6 text-amber-600" />
           Đính chính nhật ký canh tác

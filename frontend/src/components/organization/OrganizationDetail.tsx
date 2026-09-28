@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -8,63 +8,59 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import {
   getOrganizationDetail,
   createOrganizationMember,
-} from "@/api/organizationApi";
-import type { OrganizationDetailResponse } from "@/types/organization";
-import { Plus } from "lucide-react";
-import type { AddMemberRequest } from "@/types/organization";
+} from '@/api/organizationApi';
+import type { OrganizationDetailResponse } from '@/types/organization';
+import { Plus } from 'lucide-react';
+import type { AddMemberRequest } from '@/types/organization';
 import {
   CreateOrganizationMemberForm,
   type CreateOrganizationMemberFormData,
-} from "./CreateOrganizationMemberFrom";
-import { toast } from "sonner";
-import { getRoleLabel } from "@/config/roleAccess";
-import { AddExistingUserDialog } from "./AddExistingUserDialog";
-
+} from './CreateOrganizationMemberFrom';
+import { toast } from 'sonner';
+import { getRoleLabel } from '@/config/roleAccess';
+import { AddExistingUserDialog } from './AddExistingUserDialog';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 
-// Hàm lấy danh sách role theo loại tổ chức
 const getAvailableRolesForType = (type: string) => {
-  if (type === "COOPERATIVE") {
+  if (type === 'COOPERATIVE') {
     return [
-      { id: 2, code: "VT-02", name: "Quản lý hợp tác xã" },
-      { id: 3, code: "VT-03", name: "Người ghi sự kiện" },
+      { id: 2, code: 'VT-02', name: 'Quản lý hợp tác xã' },
+      { id: 3, code: 'VT-03', name: 'Người ghi sự kiện' },
     ];
-  } else if (type === "ENTERPRISE") {
-    return [{ id: 4, code: "VT-04", name: "Doanh nghiệp thu mua" }];
-  } else if (type === "GOVERNMENT") {
-    return [{ id: 5, code: "VT-05", name: "Cán bộ ngành" }];
-  } else if (type === "SYSTEM") {
-    return [{ id: 6, code: "VT-06", name: "Người dùng hệ thống" }];
+  } else if (type === 'ENTERPRISE') {
+    return [{ id: 4, code: 'VT-04', name: 'Doanh nghiệp thu mua' }];
+  } else if (type === 'GOVERNMENT') {
+    return [{ id: 5, code: 'VT-05', name: 'Cán bộ ngành' }];
+  } else if (type === 'SYSTEM') {
+    return [{ id: 6, code: 'VT-06', name: 'Người dùng hệ thống' }];
   }
   return [];
 };
 
-// Helper để render badge trạng thái với màu sắc và nhãn tiếng Việt
 const StatusBadge = ({ status }: { status: string }) => {
   const normalized = status.toUpperCase();
-  const isActive = normalized === "ACTIVE";
+  const isActive = normalized === 'ACTIVE';
 
-  const label = isActive ? "Đang hoạt động" : "Không hoạt động";
+  const label = isActive ? 'Đang hoạt động' : 'Không hoạt động';
   const colorClasses = isActive
-    ? "bg-green-500 hover:bg-green-600 text-white"
-    : "bg-gray-300 hover:bg-gray-400 text-gray-700";
+    ? 'bg-green-500 hover:bg-green-600 text-white'
+    : 'bg-gray-300 hover:bg-gray-400 text-gray-700';
 
   return <Badge className={`${colorClasses} ml-2`}>{label}</Badge>;
 };
@@ -78,7 +74,6 @@ export function OrganizationDetail() {
   const [openCreate, setOpenCreate] = useState(false);
   const [openAddExisting, setOpenAddExisting] = useState(false);
 
-  // Hàm fetch dữ liệu
   const fetchOrganizationDetail = async () => {
     if (!id) return;
     try {
@@ -86,7 +81,7 @@ export function OrganizationDetail() {
       const detail = await getOrganizationDetail(id);
       setData(detail);
     } catch (error) {
-      toast.error("Không thể tải thông tin tổ chức");
+      toast.error('Không thể tải thông tin tổ chức');
     } finally {
       setLoading(false);
     }
@@ -115,10 +110,10 @@ export function OrganizationDetail() {
       await createOrganizationMember(id, payload);
       await fetchOrganizationDetail();
       setOpenCreate(false);
-      toast.success("Thêm tài khoản thành công");
+      toast.success('Thêm tài khoản thành công');
     } catch (error: any) {
       const message =
-        error?.response?.data?.message || "Không thể thêm tài khoản";
+        error?.response?.data?.message || 'Không thể thêm tài khoản';
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -126,16 +121,16 @@ export function OrganizationDetail() {
   };
 
   const ORGANIZATION_TYPE_LABELS: Record<string, string> = {
-    COOPERATIVE: "Hợp tác xã",
-    ENTERPRISE: "Doanh nghiệp",
-    GOVERNMENT: "Cán bộ ngành",
-    SYSTEM: "Tổ chức hệ thống",
+    COOPERATIVE: 'Hợp tác xã',
+    ENTERPRISE: 'Doanh nghiệp',
+    GOVERNMENT: 'Cán bộ ngành',
+    SYSTEM: 'Tổ chức hệ thống',
   };
 
   if (loading) return <div>Đang tải...</div>;
   if (!data) return <div>Không tìm thấy tổ chức</div>;
 
-  const isSystem = data.profile.type === "SYSTEM";
+  const isSystem = data.profile.type === 'SYSTEM';
   const availableRoles = getAvailableRolesForType(data.profile.type);
 
   return (
@@ -152,7 +147,7 @@ export function OrganizationDetail() {
             <b>Tên:</b> {data.profile.name}
           </div>
           <div>
-            <b>Loại:</b>{" "}
+            <b>Loại:</b>{' '}
             {ORGANIZATION_TYPE_LABELS[data.profile.type] ?? data.profile.type}
           </div>
           <div>
@@ -236,7 +231,6 @@ export function OrganizationDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog thêm tài khoản đã có (chỉ hiển thị với non-SYSTEM) */}
       {!isSystem && (
         <AddExistingUserDialog
           open={openAddExisting}

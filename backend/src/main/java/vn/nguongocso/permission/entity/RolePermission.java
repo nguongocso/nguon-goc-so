@@ -3,18 +3,25 @@ package vn.nguongocso.permission.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import jakarta.persistence.*;
-import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import vn.nguongocso.auth.entity.Role;
 
-/**
- * Thực thể RolePermission đại diện cho mối quan hệ giữa vai trò (Role) và quyền
- * (Permission).
- * Nó xác định quyền hạn mà một vai trò cụ thể có trong hệ thống.
- */
+/** Thực thể phân quyền mặc định cho vai trò hệ thống. */
 @Entity
 @Table(name = "role_permissions")
 @Getter

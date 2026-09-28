@@ -49,7 +49,7 @@ export const InputMaterialDetailPage = () => {
   useSetBreadcrumb(
     material
       ? [
-          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Tổng quan', href: '/dashboard' },
           { label: 'Danh mục vật tư', href: '/admin/input-materials' },
           { label: material.name },
         ]

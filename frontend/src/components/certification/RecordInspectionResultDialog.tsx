@@ -106,8 +106,13 @@ export function RecordInspectionResultDialog({
   const dateErrorByCriterion = useMemo(() => {
     const errors: Record<string, string> = {};
     for (const input of criteriaInputs) {
-      // Chỉ tiêu Không đạt không có hiệu lực thời gian nên không bắt buộc ngày.
-      if (input.passed === false) continue;
+      // Chỉ tiêu Không đạt: vẫn bắt buộc ngày cấp, nhưng không bắt buộc ngày hết hiệu lực.
+      if (input.passed === false) {
+        if (input.resultDate === "") {
+          errors[input.criterionId] = "Vui lòng nhập ngày cấp.";
+        }
+        continue;
+      }
       if (input.resultDate === "" || input.expiryDate === "") {
         errors[input.criterionId] = "Vui lòng nhập ngày cấp và ngày hết hiệu lực.";
         continue;
@@ -140,7 +145,12 @@ export function RecordInspectionResultDialog({
     setTouched(true);
     setCriteriaInputs((prev) =>
       prev.map((input) =>
-        input.criterionId === criterionId ? { ...input, passed } : input
+        input.criterionId === criterionId
+          ? passed === false
+            ? // Chỉ tiêu Không đạt: giữ ngày cấp, xóa ngày hết hiệu lực và phiếu.
+              { ...input, passed, expiryDate: "", filePath: "", selectedFileName: "" }
+            : { ...input, passed }
+          : input
       )
     );
   };
@@ -394,6 +404,7 @@ export function RecordInspectionResultDialog({
                           className="h-9 text-sm"
                           value={input?.expiryDate ?? ""}
                           min={input?.resultDate || undefined}
+                          disabled={input?.passed === false}
                           onChange={(event) =>
                             setCriterionField(
                               criterion.criterionId,

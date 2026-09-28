@@ -31,74 +31,54 @@ import vn.nguongocso.organization.dto.response.RegulatorUserResponse;
 import vn.nguongocso.organization.dto.response.UnassignAreaResult;
 import vn.nguongocso.organization.service.AreaAssignmentService;
 
-/**
- * API phân công địa bàn quản lý cho cán bộ quản lý ngành (NCL-743).
- *
- * <p>
- * Toàn bộ endpoint admin chỉ dành cho VT-01: chặn bằng {@code @PreAuthorize}
- * và kiểm tra lại trong service (belt-and-suspenders).
- * </p>
- */
+/** API phân công địa bàn quản lý cho cán bộ quản lý ngành. */
 @RestController
 @RequestMapping("/api/v1/admin/users")
 @RequiredArgsConstructor
 public class AreaAssignmentAdminController {
+    private final AreaAssignmentService areaAssignmentService;
 
-	private final AreaAssignmentService areaAssignmentService;
+    /** Danh sách tài khoản cán bộ quản lý ngành để gán địa bàn. */
+    @GetMapping
+    @PreAuthorize("hasRole('VT-01')")
+    public ResponseEntity<ApiResult<PageResponse<RegulatorUserResponse>>> listRegulators(
+            @RequestParam(defaultValue = "VT-05") String role,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        if (!RoleCode.REGULATOR.equals(role)) {
+            throw new BusinessException("Chỉ hỗ trợ liệt kê tài khoản vai trò Cán bộ quản lý ngành.");
+        }
 
-	/**
-	 * Danh sách tài khoản cán bộ quản lý ngành để gán địa bàn.
-	 */
-	@GetMapping
-	@PreAuthorize("hasRole('VT-01')")
-	public ResponseEntity<ApiResult<PageResponse<RegulatorUserResponse>>> listRegulators(
-			@RequestParam(defaultValue = "VT-05") String role,
-			@RequestParam(required = false) String keyword,
-			@RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100));
+        return ResponseEntity.ok(ApiResult.success(areaAssignmentService.listRegulators(keyword, pageable)));
+    }
 
-		if (!RoleCode.REGULATOR.equals(role)) {
-			throw new BusinessException("Chỉ hỗ trợ liệt kê tài khoản vai trò Cán bộ quản lý ngành.");
-		}
+    /** Xem địa bàn đã gán của một tài khoản. */
+    @GetMapping("/{userId}/areas")
+    @PreAuthorize("hasRole('VT-01')")
+    public ResponseEntity<ApiResult<List<AssignedAreaResponse>>> getAssignedAreas(
+            @PathVariable UUID userId) {
+        return ResponseEntity.ok(ApiResult.success(areaAssignmentService.getAssignedAreas(userId)));
+    }
 
-		Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100));
-		return ResponseEntity.ok(ApiResult.success(areaAssignmentService.listRegulators(keyword, pageable)));
-	}
+    /** Gán hàng loạt địa bàn cho tài khoản. */
+    @PostMapping("/{userId}/areas")
+    @PreAuthorize("hasRole('VT-01')")
+    public ResponseEntity<ApiResult<AssignAreasResult>> assignAreas(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable UUID userId,
+            @Valid @RequestBody AssignAreasRequest request) {
+        return ResponseEntity.ok(ApiResult.success(areaAssignmentService.assignAreas(currentUser, userId, request)));
+    }
 
-	/**
-	 * Xem địa bàn đã gán của một tài khoản.
-	 */
-	@GetMapping("/{userId}/areas")
-	@PreAuthorize("hasRole('VT-01')")
-	public ResponseEntity<ApiResult<List<AssignedAreaResponse>>> getAssignedAreas(
-			@PathVariable UUID userId) {
-
-		return ResponseEntity.ok(ApiResult.success(areaAssignmentService.getAssignedAreas(userId)));
-	}
-
-	/**
-	 * Gán hàng loạt địa bàn (all-or-nothing).
-	 */
-	@PostMapping("/{userId}/areas")
-	@PreAuthorize("hasRole('VT-01')")
-	public ResponseEntity<ApiResult<AssignAreasResult>> assignAreas(
-			@AuthenticationPrincipal CustomUserDetails currentUser,
-			@PathVariable UUID userId,
-			@Valid @RequestBody AssignAreasRequest request) {
-
-		return ResponseEntity.ok(ApiResult.success(areaAssignmentService.assignAreas(currentUser, userId, request)));
-	}
-
-	/**
-	 * Gỡ một địa bàn khỏi tài khoản.
-	 */
-	@DeleteMapping("/{userId}/areas/{unitId}")
-	@PreAuthorize("hasRole('VT-01')")
-	public ResponseEntity<ApiResult<UnassignAreaResult>> unassignArea(
-			@AuthenticationPrincipal CustomUserDetails currentUser,
-			@PathVariable UUID userId,
-			@PathVariable UUID unitId) {
-
-		return ResponseEntity.ok(ApiResult.success(areaAssignmentService.unassignArea(currentUser, userId, unitId)));
-	}
+    /** Gỡ một địa bàn khỏi tài khoản. */
+    @DeleteMapping("/{userId}/areas/{unitId}")
+    @PreAuthorize("hasRole('VT-01')")
+    public ResponseEntity<ApiResult<UnassignAreaResult>> unassignArea(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable UUID userId,
+            @PathVariable UUID unitId) {
+        return ResponseEntity.ok(ApiResult.success(areaAssignmentService.unassignArea(currentUser, userId, unitId)));
+    }
 }

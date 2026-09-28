@@ -1,4 +1,3 @@
-// Mapping action sang tiếng Việt
 export const actionLabels: Record<string, string> = {
   CREATE: 'Tạo / Thêm mới',
   READ: 'Xem danh sách & chi tiết',
@@ -8,8 +7,6 @@ export const actionLabels: Record<string, string> = {
   VERIFY: 'Xác minh',
   EXPORT: 'Xuất dữ liệu / Hồ sơ',
   ACTIVATE: 'Kích hoạt',
-
-  // Quyền sự kiện chuỗi cụ thể
   EVENT_FARM_LOG: 'Ghi nhật ký canh tác',
   EVENT_HARVEST: 'Ghi sự kiện thu hoạch',
   EVENT_PREPROCESSING: 'Ghi sự kiện sơ chế & phân loại',
@@ -17,7 +14,6 @@ export const actionLabels: Record<string, string> = {
   EVENT_TRANSPORT: 'Ghi sự kiện vận chuyển',
 };
 
-// Mapping resource sang tiếng Việt (dùng nếu backend chưa trả về label tiếng Việt)
 export const resourceLabels: Record<string, string> = {
   event_chain: 'Quyền ghi nhận sự kiện chuỗi',
   organization: 'Tổ chức',
@@ -49,16 +45,12 @@ export const resourceLabels: Record<string, string> = {
   area_assignment: 'Phân công địa bàn',
 };
 
-/**
- * Lấy tên hiển thị của resource, fallback về resource nếu không có mapping
- */
+/** Lấy tên hiển thị của tài nguyên. */
 export const getResourceLabel = (resource: string): string => {
   return resourceLabels[resource] || resource;
 };
 
-/**
- * Lấy tên hiển thị của action, fallback về action nếu không có mapping
- */
+/** Lấy tên hiển thị của hành động. */
 export const getActionLabel = (action: string): string => {
   return actionLabels[action] || action;
 };

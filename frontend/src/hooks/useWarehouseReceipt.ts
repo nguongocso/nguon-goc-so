@@ -1,43 +1,47 @@
 import { useState, useCallback } from 'react';
+import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
+
 import { recordWarehouseReceipt, getWarehouseReceipts, getWarehouseReceiptDetail } from '@/api/warehouseReceiptApi';
 import type { WarehouseReceiptRequest, WarehouseReceiptResponse } from '@/types/warehouseReceipt';
 import type { PageResponse } from '@/types/common';
 
+/** Trích xuất thông điệp lỗi an toàn từ phản hồi hoặc nội dung dự phòng. */
+function extractErrorMessage(err: unknown, fallback: string, noServerFallback?: string): string {
+  if (isAxiosError(err)) {
+    const data = err.response?.data as { message?: string } | undefined;
+    if (data?.message) return data.message;
+    if (err.response) return fallback;
+    return noServerFallback ?? fallback;
+  }
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
+/** Kết quả trả về từ hook useWarehouseReceipt. */
 interface UseWarehouseReceiptResult {
-  // List
   list: WarehouseReceiptResponse[];
   pageData: PageResponse<WarehouseReceiptResponse> | null;
   isLoadingList: boolean;
   error: string | null;
-
-  // Create
   createResult: WarehouseReceiptResponse | null;
   isSubmitting: boolean;
-
-  // Detail
   detail: WarehouseReceiptResponse | null;
   isLoadingDetail: boolean;
-
-  // Actions
   fetchList: (page?: number, size?: number) => Promise<void>;
   submitReceipt: (request: WarehouseReceiptRequest) => Promise<boolean>;
   fetchDetail: (eventId: string) => Promise<void>;
   resetCreateResult: () => void;
 }
 
+/** Quản lý nghiệp vụ nhập kho HTX (danh sách, chi tiết, ghi nhận). */
 export const useWarehouseReceipt = (): UseWarehouseReceiptResult => {
-  // List state
   const [list, setList] = useState<WarehouseReceiptResponse[]>([]);
   const [pageData, setPageData] = useState<PageResponse<WarehouseReceiptResponse> | null>(null);
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Create state
   const [createResult, setCreateResult] = useState<WarehouseReceiptResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Detail state
   const [detail, setDetail] = useState<WarehouseReceiptResponse | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
@@ -48,9 +52,8 @@ export const useWarehouseReceipt = (): UseWarehouseReceiptResult => {
       const result = await getWarehouseReceipts(page, size);
       setList(result.items);
       setPageData(result);
-    } catch (err: any) {
-      const message =
-        err.response?.data?.message || 'Không thể tải danh sách nhập kho.';
+    } catch (err: unknown) {
+      const message = extractErrorMessage(err, 'Không thể tải danh sách nhập kho.');
       setError(message);
       toast.error(message);
     } finally {
@@ -66,10 +69,12 @@ export const useWarehouseReceipt = (): UseWarehouseReceiptResult => {
       setCreateResult(result);
       toast.success('Ghi nhận nhập kho thành công.');
       return true;
-    } catch (err: any) {
-      const message =
-        err.response?.data?.message ||
-        (err.response ? 'Không thể ghi nhận nhập kho.' : 'Không thể kết nối đến máy chủ.');
+    } catch (err: unknown) {
+      const message = extractErrorMessage(
+        err,
+        'Không thể ghi nhận nhập kho.',
+        'Không thể kết nối đến máy chủ.',
+      );
       setError(message);
       toast.error(message);
       return false;
@@ -84,9 +89,8 @@ export const useWarehouseReceipt = (): UseWarehouseReceiptResult => {
     try {
       const result = await getWarehouseReceiptDetail(eventId);
       setDetail(result);
-    } catch (err: any) {
-      const message =
-        err.response?.data?.message || 'Không thể tải chi tiết nhập kho.';
+    } catch (err: unknown) {
+      const message = extractErrorMessage(err, 'Không thể tải chi tiết nhập kho.');
       setError(message);
       toast.error(message);
     } finally {

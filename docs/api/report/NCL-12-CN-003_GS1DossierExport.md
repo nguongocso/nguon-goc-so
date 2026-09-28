@@ -1,6 +1,12 @@
 # 📘 API Docs: Xuất hồ sơ theo lược đồ mô phỏng chuẩn GS1
 ## NCL-12-CN-003
 
+> ⚠️ **Tài liệu thiết kế ban đầu (superseded).** Endpoint triển khai thực tế là
+> `GET /api/v1/shipments/{shipmentId}/dossier/gs1` — xem tài liệu hiện hành:
+> `docs/api/report/NCL-12-CN-003_ExportTraceabilityDossierGS1.md`.
+> Từ bản cập nhật v1.1, hồ sơ GS1 và hồ sơ PDF bổ sung thêm phần
+> **lịch sử kiểm nghiệm** của lô sản xuất (`inspections[]` / Phần IV của PDF).
+
 ---
 
 ## 1. Thông tin chung

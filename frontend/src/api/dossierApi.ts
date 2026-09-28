@@ -1,46 +1,97 @@
+import { isAxiosError } from 'axios';
+
 import apiClient from './axiosConfig';
 
+/** Kết quả kiểm tra tính đầy đủ hồ sơ của lô hàng theo quy định QTN-11. */
 export interface DossierCheckResponse {
   shipmentId: string;
   eligible: boolean;
   missingDocuments: string[];
 }
 
-/**
- * Kiểm tra điều kiện xuất hồ sơ
- */
-export const checkDossierEligibility = async (shipmentId: string): Promise<DossierCheckResponse> => {
-  const response = await apiClient.get<{ data: DossierCheckResponse }>(
-    `/shipments/${shipmentId}/dossier/check`
-  );
-  return response.data.data;
+/** Trích xuất thông điệp lỗi dạng văn bản từ phản hồi Blob JSON khi xảy ra lỗi tải tệp. */
+async function extractBlobErrorMessage(
+  error: unknown,
+  fallbackMessage: string,
+): Promise<string | null> {
+  if (
+    !isAxiosError(error) ||
+    !(error.response?.data instanceof Blob) ||
+    !error.response.data.type?.includes('application/json')
+  ) {
+    return null;
+  }
+
+  try {
+    const text = await error.response.data.text();
+    if (!text) return fallbackMessage;
+
+    try {
+      const parsed = JSON.parse(text) as { message?: string };
+      return parsed.message || text;
+    } catch {
+      return text;
+    }
+  } catch {
+    return null;
+  }
+}
+
+/** Kiểm tra điều kiện xuất hồ sơ của một lô hàng theo quy định QTN-11. */
+export const checkDossierEligibility = async (
+  shipmentId: string,
+): Promise<DossierCheckResponse> => {
+  try {
+    const response = await apiClient.get<{ data: DossierCheckResponse }>(
+      `/shipments/${shipmentId}/dossier/check`,
+    );
+    return response.data.data;
+  } catch (error: unknown) {
+    if (isAxiosError(error) && error.response?.status === 400 && error.response.data) {
+      const data = error.response.data as {
+        errors?: string[];
+        data?: { missingDocuments?: string[] };
+        message?: string;
+      };
+      const missingDocs: string[] = Array.isArray(data.errors)
+        ? data.errors
+        : Array.isArray(data.data?.missingDocuments)
+          ? data.data.missingDocuments
+          : [data.message || 'Chưa đủ chứng từ bắt buộc để xuất hồ sơ'];
+
+      return {
+        shipmentId,
+        eligible: false,
+        missingDocuments: missingDocs,
+      };
+    }
+    throw error;
+  }
 };
 
-/**
- * Xuất và tải hồ sơ PDF
- */
-export const exportDossier = async (shipmentId: string): Promise<Blob> => {
+/** Xuất và tải về tệp hồ sơ truy xuất nguồn gốc định dạng PDF. */
+export const exportDossier = async (
+  shipmentId: string,
+  templateId?: string,
+): Promise<Blob> => {
   try {
+    const params: Record<string, string> = {};
+    if (templateId && templateId !== 'default') {
+      params.templateId = templateId;
+    }
     const response = await apiClient.get(`/shipments/${shipmentId}/dossier/export`, {
+      params,
       responseType: 'blob',
       timeout: 30000,
     });
     return response.data;
-  } catch (error: any) {
-    if (error.response?.data instanceof Blob && error.response.data.type?.includes('application/json')) {
-      const text = await error.response.data.text();
-      let message = text || 'Không đủ điều kiện hoặc lỗi khi tạo hồ sơ truy xuất';
-      try {
-        const errJson = JSON.parse(text);
-        if (errJson?.message) {
-          message = errJson.message;
-        }
-      } catch {
-        // Không phải JSON hợp lệ → giữ nguyên text
-      }
-      throw new Error(message);
-    }
-    throw error;
+  } catch (error: unknown) {
+    const message = await extractBlobErrorMessage(
+      error,
+      'Không đủ điều kiện hoặc lỗi khi tạo hồ sơ truy xuất',
+    );
+    if (message === null) throw error;
+    throw new Error(message, { cause: error });
   }
 };
 
@@ -92,14 +143,7 @@ export interface Gs1DossierExportResponse {
   schemaDescription: string;
 }
 
-/**
- * Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng (JSON hoặc XML).
- * Chỉ dành cho VT-02 (Quản lý HTX) và VT-04 (Doanh nghiệp thu mua).
- *
- * @param shipmentId     ID lô hàng
- * @param format         'json' | 'xml' (mặc định json)
- * @param includeMapping có kèm bảng ánh xạ schema hay không (mặc định true)
- */
+/** Xuất hồ sơ GS1 mô phỏng dạng JSON hoặc XML cho vai trò VT-02 và VT-04. */
 export const exportGs1Dossier = async (
   shipmentId: string,
   format: 'json' | 'xml' = 'json',
@@ -125,20 +169,89 @@ export const exportGs1Dossier = async (
     }
 
     return { blob: response.data as Blob, fileName };
-  } catch (error: any) {
-    if (error.response?.data instanceof Blob && error.response.data.type?.includes('application/json')) {
-      const text = await error.response.data.text();
-      let message = text || 'Lỗi khi tạo hồ sơ GS1';
-      try {
-        const errJson = JSON.parse(text);
-        if (errJson?.message) {
-          message = errJson.message;
-        }
-      } catch {
-        // Không phải JSON hợp lệ → giữ nguyên text
-      }
-      throw new Error(message);
-    }
-    throw error;
+  } catch (error: unknown) {
+    const message = await extractBlobErrorMessage(error, 'Lỗi khi tạo hồ sơ GS1');
+    if (message === null) throw error;
+    throw new Error(message, { cause: error });
   }
+};
+
+export interface BatchShipmentEligibilityItem {
+  shipmentId: string;
+  shipmentName: string;
+  eligible: boolean;
+  missingDocuments: string[];
+  organizationId?: string;
+  organizationName?: string;
+}
+
+export interface BatchDossierCheckResponse {
+  totalSelected: number;
+  totalEligible: number;
+  totalIneligible: number;
+  eligibleShipments: BatchShipmentEligibilityItem[];
+  ineligibleShipments: BatchShipmentEligibilityItem[];
+}
+
+export interface BatchDossierExportRequest {
+  shipmentIds: string[];
+  title?: string;
+  note?: string;
+  /** Mẫu hồ sơ áp dụng (NCL-07-CN-007). */
+  templateId?: string;
+}
+
+export interface BatchDossierHistoryDto {
+  id: string;
+  title: string;
+  exportedAt: string;
+  exporterName: string;
+  organizationName: string;
+  totalSelectedLots: number;
+  eligibleLotsCount: number;
+  ineligibleLotsCount: number;
+  fileName: string;
+  fileSize: number;
+  status: string;
+  ipAddress: string;
+  templateId?: string | null;
+}
+
+/** Kiểm tra điều kiện xuất hồ sơ hàng loạt cho danh sách lô theo quy định QTN-11 và QTN-01. */
+export const checkBatchDossierEligibility = async (
+  shipmentIds: string[],
+): Promise<BatchDossierCheckResponse> => {
+  const response = await apiClient.post<{ data: BatchDossierCheckResponse }>(
+    '/shipments/dossiers/batch-check',
+    { shipmentIds },
+  );
+  return response.data.data;
+};
+
+/** Xuất bộ hồ sơ PDF hợp nhất cho các lô đủ điều kiện trong danh sách chọn. */
+export const exportBatchDossier = async (
+  request: BatchDossierExportRequest,
+): Promise<Blob> => {
+  try {
+    const response = await apiClient.post('/shipments/dossiers/batch-export', request, {
+      responseType: 'blob',
+      timeout: 60000,
+    });
+    return response.data;
+  } catch (error: unknown) {
+    const message = await extractBlobErrorMessage(
+      error,
+      'Lỗi khi xuất bộ hồ sơ truy xuất hàng loạt',
+    );
+    if (message === null) throw error;
+    throw new Error(message, { cause: error });
+  }
+};
+
+/** Lấy lịch sử xuất bộ hồ sơ truy xuất hàng loạt của tổ chức. */
+export const getBatchDossierExportHistory = async (): Promise<BatchDossierHistoryDto[]> => {
+  const response = await apiClient.get<{ data: BatchDossierHistoryDto[] }>(
+    '/shipments/dossiers/batch-history',
+  );
+  return response.data.data;
 };

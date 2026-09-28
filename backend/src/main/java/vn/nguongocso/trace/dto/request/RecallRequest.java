@@ -6,9 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * DTO yêu cầu tạo một đợt thu hồi.
- */
+/** Yêu cầu tạo mới một đợt thu hồi lô hàng. */
 @Getter
 @Setter
 @NoArgsConstructor

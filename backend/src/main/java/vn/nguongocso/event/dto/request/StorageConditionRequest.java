@@ -9,13 +9,10 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-/**
- * DTO yêu cầu ghi mốc điều kiện bảo quản khi vận chuyển.
- */
+/** DTO yêu cầu ghi mốc điều kiện bảo quản khi vận chuyển. */
 @Getter
 @Setter
 public class StorageConditionRequest {
-
     @NotBlank(message = "Mã truy xuất không được để trống")
     private String codeValue;
 

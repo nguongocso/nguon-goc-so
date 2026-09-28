@@ -13,7 +13,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CreateTestingUnitRequest {
-
     @NotBlank(message = "Tên đơn vị kiểm nghiệm không được để trống.")
     @Size(max = 255, message = "Tên đơn vị kiểm nghiệm không được vượt quá 255 ký tự.")
     private String name;
@@ -25,13 +24,7 @@ public class CreateTestingUnitRequest {
     @Size(max = 500, message = "Thông tin liên hệ không được vượt quá 500 ký tự.")
     private String contactInfo;
 
-    /**
-     * Ngày hết hạn công nhận (tuỳ chọn, định dạng YYYY-MM-DD).
-     */
     private LocalDate accreditationExpiryDate;
 
-    /**
-     * Trạng thái hiệu lực; mặc định true khi tạo mới nếu không truyền.
-     */
     private Boolean isActive;
 }

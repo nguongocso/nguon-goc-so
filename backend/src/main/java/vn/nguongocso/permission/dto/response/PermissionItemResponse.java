@@ -3,9 +3,7 @@ package vn.nguongocso.permission.dto.response;
 import lombok.Builder;
 import lombok.Getter;
 
-/**
- * Response DTO cho một quyền.
- */
+/** Response DTO cho một quyền. */
 @Getter
 @Builder
 public class PermissionItemResponse {

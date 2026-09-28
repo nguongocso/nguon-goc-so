@@ -295,6 +295,43 @@ Hệ thống hỗ trợ sao lưu/phục hồi **qua API và UI** (chỉ VT-01 qu
 > chặn với 503) cho đến khi hoàn tất (`RestoreService` / `MaintenanceFilter`).
 > Chi tiết: `docs/api/backup/backup-restore-api.md`.
 
+### 7.5 Vận hành tiến trình bàn giao lô hàng & Quét phiếu hết hạn (NCL-05-CN-008/009)
+
+Hệ thống cung cấp cơ chế bàn giao lô hàng hai chiều giữa Hợp tác xã (bên gửi) và Doanh nghiệp thu mua (bên nhận):
+- **Bên gửi (VT-02):** Tạo phiếu bàn giao (`POST /api/v1/shipment-handovers`), theo dõi danh sách phiếu đã gửi (`GET /api/v1/handovers`).
+- **Bên nhận (VT-04):** Xem danh sách phiếu nhận (`GET /api/v1/handovers`), xác nhận nhận hàng (`POST /api/v1/handovers/{id}/accept`) hoặc từ chối kèm lý do (`POST /api/v1/handovers/{id}/reject`).
+- **Chuyển quyền sở hữu (QTN-31):** Khi xác nhận nhận hàng, quyền sở hữu của lô hàng tự động chuyển sang tổ chức thu mua, đồng thời ghi nhận sự kiện chuỗi `HANDOVER` có mã băm liên kết.
+- **Tiến trình tự động (Scheduled Job):** `HandoverExpiryScheduler` chạy định kỳ (`cron = "0 0 * * * ?"`, đầu mỗi giờ) quét các phiếu bàn giao ở trạng thái `PENDING_CONFIRMATION` quá hạn (`expires_at < NOW()`) để tự động chuyển trạng thái `EXPIRED` và ghi log kiểm toán.
+
+### 7.6 Vận hành vụ việc thu hồi & Biện pháp khắc phục phòng ngừa (NCL-08-CN-011/012)
+
+- **Truy vết phạm vi ảnh hưởng (NCL-08-CN-010):** `GET /api/v1/trace/impact-scope?code={code}` cho phép Quản lý HTX truy vết hai chiều (upstream/downstream) các lô hàng và tem liên đới khi phát hiện vi phạm chất lượng.
+- **Yêu cầu thu hồi hàng loạt (NCL-08-CN-011):** Tạo yêu cầu (`POST /api/v1/recall-requests/bulk`) và phê duyệt theo nguyên tắc bốn mắt (`QTN-22`) — người tạo không được tự phê duyệt.
+- **Tự động tạo vụ việc (Lazy Materialization):** Khi có lô hàng chuyển sang `RECALLING`, hệ thống tự động sinh vụ việc thu hồi tương ứng trong bảng `recall_cases` (mã `RC-yyyyMMddHHmmss-XXXX`).
+- **Đóng vụ việc và ghi nhận biện pháp khắc phục (QTN-27, NCL-08-CN-012):** `PUT /api/v1/recall-cases/{id}/close` bắt buộc phải có đầy đủ kết quả xử lý cho từng lô (`DESTROYED`, `RETURNED`, `REPROCESSED`, `UNRECOVERABLE`), số lượng thực thu hồi, và biện pháp khắc phục phòng ngừa (`remediationMeasures`). Sau khi đóng, toàn bộ lô hàng chuyển sang trạng thái `RECALLED` và gửi thông báo tới các đối tác liên quan.
+
+### 7.7 Bảng theo dõi tiến độ chuỗi & Cảnh báo tồn đọng (NCL-10-CN-013)
+
+Endpoint `GET /api/v1/production-lots/chain-progress` cung cấp góc nhìn tổng thể về tiến độ di chuyển của từng lô qua các chặng trong chuỗi cung ứng (Chuẩn bị → Canh tác → Thu hoạch → Sơ chế → Đóng gói → Bàn giao → Xuất khẩu/Tiêu thụ). Hệ thống tự động gắn nhãn cảnh báo tồn đọng (`isStagnant = true`) nếu một lô dừng ở một trạng thái quá số ngày ngưỡng (`stagnantThresholdDays`, mặc định 10 ngày).
+
+### 7.8 Kiểm chứng tính toàn vẹn chuỗi băm sự kiện (QTN-19, TC-02)
+
+Mọi sự kiện trong chuỗi cung ứng (`ChainEvent`, `WarehouseReceipt`, `ProcurementEvent`, `Handover`) đều được băm bằng thuật toán SHA-256 theo chuỗi liên kết:
+$$\text{hash}_n = \text{SHA-256}(\text{eventId}_n + \text{eventType}_n + \text{eventData}_n + \text{recordedAt}_n + \text{hash}_{n-1})$$
+Quản trị viên (VT-01), Doanh nghiệp thu mua (VT-04) và Cán bộ quản lý (VT-05) có thể kiểm chứng tính toàn vẹn thông qua API `GET /api/v1/shipments/{shipmentId}/verify-chain`. Nếu phát hiện bất kỳ sự kiện nào có `previous_hash` không khớp hoặc dữ liệu bị sửa đổi, hệ thống trả về `isIntegrityVerified = false` và đánh dấu vị trí vi phạm.
+
+### 7.9 Ma trận phân quyền & Cách ly dữ liệu đa tổ chức (QTN-01)
+
+| Resource / Endpoint | Quyền hạn theo Role | Quy tắc cách ly tổ chức (Multi-tenant Isolation) |
+|---|---|---|
+| `GET /api/v1/handovers` | VT-02 (bên gửi), VT-04 (bên nhận) | VT-02 chỉ thấy phiếu `from_organization_id = user.orgId`; VT-04 chỉ thấy phiếu `to_organization_id = user.orgId`. |
+| `POST /api/v1/handovers/{id}/accept` | VT-04 (bên nhận) | Chỉ thành viên của tổ chức nhận hàng (`to_organization_id`) mới có quyền xác nhận. Bên gửi hoặc tổ chức khác bị chặn 403 Forbidden. |
+| `POST /api/v1/handovers/{id}/reject` | VT-04 (bên nhận) | Chỉ thành viên của tổ chức nhận hàng mới được phép từ chối kèm lý do. |
+| `GET /api/v1/recall-cases` | VT-02 | Chỉ trả về vụ việc thuộc `organization_id = user.orgId`. VT-04/VT-05/VT-06 bị chặn 403 Forbidden. |
+| `PUT /api/v1/recall-cases/{id}/close` | VT-02 | Chỉ Quản lý HTX của chính tổ chức sở hữu vụ việc mới được đóng. |
+| `GET /api/v1/trace/impact-scope` | VT-01, VT-02, VT-03 | User không phải Admin chỉ được truy vết lô/hàng thuộc tổ chức của mình; truy vết chéo tổ chức trả về lỗi nghiệp vụ. |
+| `GET /api/v1/production-lots/chain-progress` | VT-01, VT-02, VT-03 | Lọc dữ liệu nghiêm ngặt theo `organization_id` của phiên đăng nhập. |
+
 ---
 
 ## 8. Logs
@@ -336,6 +373,9 @@ Các lỗi dưới đây đều có căn cứ từ cấu hình/behaviour thực 
 | Sao lưu thất bại vì thiếu `mysqldump` | Môi trường không có binary MySQL. | Cài mysql-client hoặc cấu hình `MYSQL_DUMP_PATH` / `MYSQL_PATH` (image backend Docker đã cài `mysql-client`). |
 | Thời gian hiển thị lệch giờ | Múi giờ JVM/container mặc định UTC. | Hệ thống đã set `APP_TIMEZONE=Asia/Ho_Chi_Minh` mặc định; nếu bị lệch, kiểm tra biến `APP_TIMEZONE` và `-Duser.timezone`. |
 | `docker compose` báo thiếu biến môi trường | `.env` chưa tồn tại hoặc thiếu biến. | `cp .env.example .env` và điền đủ biến bắt buộc. |
+| Lỗi 400 "Người tạo yêu cầu không được tự phê duyệt yêu cầu của chính mình" khi duyệt thu hồi | Vi phạm nguyên tắc 4 mắt (`QTN-22`). Người tạo yêu cầu và người duyệt phải là 2 tài khoản khác nhau trong cùng tổ chức. | Sử dụng tài khoản Quản lý HTX thứ hai (`orgmanager2`) để thực hiện phê duyệt. |
+| Không đóng được vụ việc thu hồi (400 "Còn N lô chưa có kết quả xử lý") | Yêu cầu đóng vụ việc chưa phủ hết danh sách toàn bộ các lô hàng trong case (`QTN-27`). | Điền kết quả xử lý (`DESTROYED` / `RETURNED` / `REPROCESSED` / `UNRECOVERABLE`) cho 100% các lô thuộc vụ việc. |
+| Lỗi 403 Forbidden khi xác nhận phiếu bàn giao | Tài khoản đăng nhập không thuộc tổ chức bên nhận (`to_organization_id`). | Đăng nhập bằng tài khoản VT-04 của đúng doanh nghiệp thu mua nhận hàng. |
 
 ---
 

@@ -3,7 +3,11 @@ package vn.nguongocso.event.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +33,8 @@ import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.event.service.impl.ChainEventServiceImpl;
+import vn.nguongocso.event.service.impl.EventHashServiceImpl;
+import vn.nguongocso.event.service.verifier.ChainIntegrityVerifier;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
@@ -45,14 +51,15 @@ class ChainVerificationServiceTest {
     @Mock private ProductionLotRepository productionLotRepository;
     @Mock private UserRepository userRepository;
     @Spy private ObjectMapper objectMapper = new ObjectMapper();
-    @Spy private EventHashService eventHashService = new EventHashService(new ObjectMapper());
+    @Spy private EventHashService eventHashService = new EventHashServiceImpl(new ObjectMapper());
     @Mock private TraceCodeRepository traceCodeRepository;
     @Mock private ShipmentRepository shipmentRepository;
     @Mock private EventValidationService eventValidationService;
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private PermissionChecker permissionChecker;
     @Mock private OrganizationUserRepository organizationUserRepository;
-    @InjectMocks private ChainEventServiceImpl chainEventService;
+    private ChainIntegrityVerifier chainIntegrityVerifier;
+    private ChainEventServiceImpl chainEventService;
 
     private Shipment shipment;
     private User actor;
@@ -75,6 +82,14 @@ class ChainVerificationServiceTest {
         lenient().when(adminUser.getUsername()).thenReturn("admin");
         lenient().when(adminUser.getFullName()).thenReturn("Admin");
         lenient().when(adminUser.getOrganizationId()).thenReturn(UUID.randomUUID());
+
+        chainIntegrityVerifier = new ChainIntegrityVerifier(
+                shipmentRepository, chainEventRepository, eventHashService,
+                organizationUserRepository, eventPublisher
+        );
+        chainEventService = new ChainEventServiceImpl(
+                chainEventRepository, null, null, null, null, null, chainIntegrityVerifier
+        );
     }
 
     private ChainEvent buildEvent(ChainEventType type, LocalDateTime recordedAt, LocalDateTime createdAt,
@@ -94,7 +109,7 @@ class ChainVerificationServiceTest {
     }
 
     private String compute(ChainEvent e, String prev) {
-        return new EventHashService(new ObjectMapper()).calculateHash(e, prev);
+        return new EventHashServiceImpl(new ObjectMapper()).calculateHash(e, prev);
     }
 
     /** Builds a correct 3-event linked chain using the real deterministic algorithm.

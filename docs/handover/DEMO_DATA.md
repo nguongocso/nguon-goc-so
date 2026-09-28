@@ -36,16 +36,20 @@ Toàn bộ dữ liệu demo nằm trong các migration Flyway `data/`:
 Mật khẩu mặc định: **`admin123`** (chỉ dùng cho môi trường dev/demo —
 **Yêu cầu đổi khi lên production**).
 
-| Username | Vai trò | Tổ chức | Tên hiển thị (seed) | Migration |
+| Username | Vai trò | Tổ chức | Tên hiển thị (seed) | Migration / Mục đích |
 |---|---|---|---|---|
 | `admin` | **VT-01** — Quản trị viên hệ thống | `SYSTEM` (Hệ thống) | Quản trị viên hệ thống | V17 |
 | `orgmanager` | **VT-02** — Quản lý hợp tác xã | `DEMO_HTX` (HTX Nông Sản Demo) | Quản lý HTX Demo (VT-02) | V57 |
+| `orgmanager2` | **VT-02** — Quản lý HTX thứ 2 | `DEMO_HTX` | Phó Giám Đốc HTX Demo | Tạo qua API (Demo nguyên tắc 4 mắt QTN-22) |
+| `cm_tc` | **VT-02** — Quản lý HTX Tân Cương | `HTX-TC` (Hợp tác xã chè Tân Cương) | Quản lý HTX Tân Cương (VT-02) | Seed / Demo bàn giao & thu hồi |
+| `cm_tc2` | **VT-02** — Quản lý HTX Tân Cương 2 | `HTX-TC` | Phó Chủ Tịch HTX Chè Tân Cương | Tạo qua API (Duyệt thu hồi QTN-22) |
 | `eventrecorder` | **VT-03** — Người ghi sự kiện | `DEMO_HTX` | Người ghi sự kiện Demo (VT-03) | V57 |
-| `procurement` | **VT-04** — Doanh nghiệp thu mua | `DEMO_NSV` (Công ty Nông Sản Việt Demo) | Nhân viên thu mua Demo (VT-04) | V57 |
+| `procurement` | **VT-04** — Doanh nghiệp thu mua | `DEMO_NSV` (Công ty Nông Sản Việt Demo) | Nhân viên thu mua Demo (VT-04) | V57 (Xác nhận/từ chối bàn giao QTN-31) |
 | `regulator` | **VT-05** — Cán bộ quản lý ngành | `DEMO_GOV` (Chi cục Quản lý Chất lượng Nông Sản) | Cán bộ quản lý nhà nước Demo (VT-05) | V57 |
 | `consumer` | **VT-06** — Người tiêu dùng | `SYSTEM` | Người tiêu dùng Demo (VT-06) | V57 |
 
 > `consumer` không có dashboard nội bộ — dùng để trải nghiệm trang tra cứu công khai.
+> `orgmanager2` và `cm_tc2` dùng mật khẩu: **`Password@123`**.
 
 ---
 
@@ -55,6 +59,7 @@ Mật khẩu mặc định: **`admin123`** (chỉ dùng cho môi trường dev/d
 |---|---|---|---|
 | `SYSTEM` | Hệ thống | SYSTEM | ACTIVE |
 | `DEMO_HTX` | HTX Nông Sản Demo | COOPERATIVE | ACTIVE |
+| `HTX-TC` | Hợp tác xã chè Tân Cương | COOPERATIVE | ACTIVE |
 | `DEMO_NSV` | Công ty Nông Sản Việt Demo | ENTERPRISE | ACTIVE |
 | `DEMO_GOV` | Chi cục Quản lý Chất lượng Nông Sản | GOVERNMENT | ACTIVE |
 
@@ -111,6 +116,20 @@ Toàn bộ thuộc tổ chức **`DEMO_HTX`**, người tạo `orgmanager`.
 - Ví dụ khóa raw của partner 1:
   `nks_live_a2b3c4d5a2b3c4d5a2b3c4d5a2b3c4d5a2b3c4d5a2b3c4d5a2b3c4d5a2b3c4d5`
   (xem cuối `V58__seed_demo_data_vt02.sql`).
+
+### 4.9 Phiếu bàn giao lô hàng mẫu (Shipment Handovers)
+
+Phục vụ demo luồng bàn giao hai chiều (`NCL-05-CN-008/009`) giữa `HTX-TC` (Hợp tác xã chè Tân Cương) và `DEMO_NSV` (Công ty Nông Sản Việt Demo):
+- Lô hàng: `Lo hang 1` (ID `347feea9-7825-4f4a-9413-cc9005da9e07`), số lượng 500 kg.
+- Phiếu xác nhận: ID `ef68f799-482b-43b1-bd3f-a55e0ade88e1`, trạng thái `ACCEPTED`, xác nhận chuyển quyền sở hữu lô hàng sang `DEMO_NSV` (QTN-31).
+- Phiếu từ chối: ID `4a5a6f7c-c9c2-4e97-8f0f-79d46043efac`, trạng thái `REJECTED`, lý do: *"Hang bi dap hong trong luc boc do va van chuyen"*.
+- Phiếu chờ xác nhận: ID `2b30d7bf-...`, trạng thái `PENDING_CONFIRMATION` (để ban giám khảo tự bấm nút Xác nhận/Từ chối trên live UI).
+
+### 4.10 Vụ việc thu hồi & Biện pháp khắc phục mẫu (Recall Cases)
+
+Phục vụ demo thu hồi hàng loạt và đóng vụ việc (`NCL-08-CN-011/012`):
+- Vụ việc `RC-20260911211959-1DC1` (Tổ chức `DEMO_HTX`): Lô `Lô Nho 01`, trạng thái `CLOSED`, biện pháp khắc phục: *"Tiêu hủy toàn bộ sản phẩm vi phạm, khử trùng kho và kiểm định lại nguồn nước tưới"*, kết quả lô: `DESTROYED` 3 kg.
+- Vụ việc `RC-20260911212309-CDCA` (Tổ chức `HTX-TC`): Lô `Lo SX1`, trạng thái `CLOSED`, biện pháp khắc phục: *"Triệu hồi toàn bộ 500kg chè, thay thế bao bì mới đạt chuẩn ISO 22000"*, kết quả lô: `RETURNED` 500 kg.
 
 ---
 

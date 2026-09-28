@@ -8,11 +8,12 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+
 import vn.nguongocso.farm.enums.FarmActivityType;
 
 /**
  * Yêu cầu tạo nhật ký canh tác.
- */
+*/
 @Getter
 @Setter
 public class CreateFarmLogRequest {
@@ -36,4 +37,6 @@ public class CreateFarmLogRequest {
 
     @Size(max = 1000, message = "Ghi chú không được vượt quá 1000 ký tự")
     private String notes;
+
+    private Long milestoneId;
 }

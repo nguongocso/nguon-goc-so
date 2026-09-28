@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Package, Truck, Sprout, Clipboard, Pencil, Wheat, AlertTriangle } from 'lucide-react';
+import { Calendar, MapPin, Package, Truck, Sprout, Clipboard, Pencil, Wheat, AlertTriangle, FileSignature, GitFork } from 'lucide-react';
 import type { ChainEventResponse } from '@/types/packaging';
 import type { PreprocessingEventResponse } from '@/types/preprocessing';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import {
   formatEventValue,
   isEventValueEmpty,
   formatDisplayDateTime,
+  getDisplayEventDataEntries,
 } from '@/utils/eventFormatter';
 import type { ComponentType } from 'react';
 import { maskId } from '@/lib/utils';
@@ -22,6 +23,15 @@ const EVENT_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   TRANSPORT: Truck,
   PROCUREMENT: Clipboard,
   CORRECTION: Pencil,
+  SPLIT: GitFork,
+  HANDOVER: FileSignature,
+};
+
+const HANDOVER_ACTION_LABELS: Record<string, string> = {
+  ACCEPTED: 'Đã xác nhận',
+  REJECTED: 'Từ chối',
+  EXPIRED: 'Hết hiệu lực',
+  PENDING: 'Chờ xác nhận',
 };
 
 interface Props {
@@ -53,17 +63,8 @@ export const ShipmentTimelineItem = ({ event, index, total }: Props) => {
     event.eventType === 'HARVEST' &&
     (event.eventData?.['earlyHarvest'] === true || event.eventData?.['earlyHarvest'] === 'true');
 
-  // Extract and sort event data entries; hide internal fields
   const dataEntries = event.eventData
-    ? Object.entries(event.eventData).filter(
-        ([key, value]) =>
-          key !== 'productionLotId' &&
-          key !== 'shipmentId' &&
-          key !== 'deviceSource' &&
-          key !== 'images' &&
-          !(key === 'earlyHarvest' && (value === false || value === 'false')) &&
-          !(key === 'unmatchedMaterials' && Array.isArray(value) && value.length === 0),
-      )
+    ? getDisplayEventDataEntries(event.eventType, event.eventData)
     : [];
 
   const productionLotId = event.eventData?.['productionLotId'] as string | undefined;
@@ -111,13 +112,67 @@ export const ShipmentTimelineItem = ({ event, index, total }: Props) => {
           </div>
         )}
 
+        {event.inherited && (
+          <div className="mt-2 rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-800">
+            {event.lineageLevel === 'PRODUCTION_LOT'
+              ? 'Sự kiện được kế thừa từ lô sản xuất'
+              : 'Sự kiện được kế thừa từ lô cha'}
+            {event.sourceShipmentId && (
+              <span className="ml-1 text-sky-700">({maskId(event.sourceShipmentId)})</span>
+            )}.
+          </div>
+        )}
+
         {/* Divider */}
-        {dataEntries.length > 0 && (
+        {(event.eventType === 'HANDOVER' || dataEntries.length > 0) && (
           <div className="my-3 border-t border-gray-100" />
         )}
 
         {/* Event Details */}
-        {dataEntries.length > 0 && (
+        {event.eventType === 'HANDOVER' ? (
+          <div className="space-y-1.5">
+            {event.eventData?.['action'] && (
+              <div className="flex flex-wrap gap-x-2 text-sm">
+                <span className="font-medium text-gray-500">Hành động:</span>
+                <span className="break-words text-gray-700">
+                  {HANDOVER_ACTION_LABELS[String(event.eventData['action'])] || String(event.eventData['action'])}
+                </span>
+              </div>
+            )}
+            {event.eventData?.['quantity'] != null && (
+              <div className="flex flex-wrap gap-x-2 text-sm">
+                <span className="font-medium text-gray-500">Số lượng nhận:</span>
+                <span className="break-words text-gray-700">
+                  {Number(event.eventData['quantity']).toLocaleString('vi-VN')} kg
+                </span>
+              </div>
+            )}
+            {event.eventData?.['fromOrganizationName'] && (
+              <div className="flex flex-wrap gap-x-2 text-sm">
+                <span className="font-medium text-gray-500">Bên giao:</span>
+                <span className="break-words text-gray-700">
+                  {String(event.eventData['fromOrganizationName'])}
+                </span>
+              </div>
+            )}
+            {event.eventData?.['toOrganizationName'] && (
+              <div className="flex flex-wrap gap-x-2 text-sm">
+                <span className="font-medium text-gray-500">Bên nhận:</span>
+                <span className="break-words text-gray-700">
+                  {String(event.eventData['toOrganizationName'])}
+                </span>
+              </div>
+            )}
+            {event.eventData?.['note'] && (
+              <div className="flex flex-wrap gap-x-2 text-sm">
+                <span className="font-medium text-gray-500">Ghi chú:</span>
+                <span className="break-words text-gray-700">
+                  {String(event.eventData['note'])}
+                </span>
+              </div>
+            )}
+          </div>
+        ) : dataEntries.length > 0 ? (
           <div className="space-y-1.5">
             {dataEntries.map(([key, value]) => {
               const formattedValue = formatEventValue(value);
@@ -135,7 +190,7 @@ export const ShipmentTimelineItem = ({ event, index, total }: Props) => {
               );
             })}
           </div>
-        )}
+        ) : null}
 
         {/* Production Lot ID (secondary metadata, muted) */}
         {productionLotId && (

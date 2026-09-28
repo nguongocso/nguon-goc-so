@@ -1,4 +1,3 @@
-// PublicTraceResponse.java
 package vn.nguongocso.publicapi.dto.response;
 
 import lombok.Builder;
@@ -17,6 +16,8 @@ import java.util.UUID;
 public class PublicTraceResponse {
     private String codeValue;
 
+    private UUID shipmentId;
+
     private UUID productionLotId;
 
     private String lotName;
@@ -24,6 +25,8 @@ public class PublicTraceResponse {
     private String lotCode;
 
     private String productName;
+
+    private String productNameEn;
 
     private String shipmentCode;
 
@@ -33,13 +36,27 @@ public class PublicTraceResponse {
 
     private String recallMessage;
 
+    private String recallMessageEn;
+
     private Boolean locked;
 
     private String lockReason;
 
     private LocalDateTime lockedAt;
 
+    private String verificationNote;
+
+    private LocalDateTime unlockedAt;
+
     private List<PublicChainEventItem> events;
 
     private List<PublicInspectionCriterionResultDto> inspections;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("is_test")
+    private Boolean isTest;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("test_notice")
+    private String testNotice;
+
+    private PublicFarmAreaBoundaryDto farmAreaBoundary;
 }

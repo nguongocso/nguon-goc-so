@@ -13,39 +13,42 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
+import vn.nguongocso.integration.partner.service.PartnerLotAccessService;
+import vn.nguongocso.integration.partner.util.PartnerSampleDataProvider;
 import vn.nguongocso.publicapi.dto.response.PublicTraceResponse;
 import vn.nguongocso.publicapi.service.PublicTraceService;
 
-/**
- * Controller truy xuất nguồn gốc dành cho Đối tác bên thứ ba (NCL-12-CN-001 / QTN-20).
- * <p>
- * Yêu cầu đối tác gửi Header {@code X-API-KEY}. Đã qua xác thực và đếm hạn mức từ {@code ApiKeyAuthenticationFilter}.
- */
+/** Controller truy xuất nguồn gốc dành cho đối tác bên thứ ba. */
 @RestController
 @RequestMapping("/api/v1/partner/trace")
 @RequiredArgsConstructor
 public class PartnerTraceController {
-
     private static final Logger log = LoggerFactory.getLogger(PartnerTraceController.class);
 
     private final PublicTraceService publicTraceService;
 
-    /**
-     * Lấy dữ liệu truy xuất công khai cho bên thứ ba.
-     */
+    private final PartnerLotAccessService partnerLotAccessService;
+
+    /** Lấy dữ liệu truy xuất công khai cho bên thứ ba. */
     @GetMapping("/{codeValue}")
     public ResponseEntity<ApiResult<PublicTraceResponse>> getPartnerTrace(
             @PathVariable String codeValue,
             @RequestParam(required = false) Double latitude,
             @RequestParam(required = false) Double longitude,
             HttpServletRequest request) {
-
         PartnerApiKey partnerApiKey = (PartnerApiKey) request.getAttribute("partnerApiKey");
         if (partnerApiKey != null) {
             log.info("Đối tác '{}' (orgId={}) gọi API truy xuất mã={}",
                     partnerApiKey.getPartnerName(),
-                    partnerApiKey.getOrganization().getOrganizationId(),
+                    partnerApiKey.getOrganization() != null ? partnerApiKey.getOrganization().getOrganizationId() : "N/A",
                     codeValue);
+
+            // Khóa thử nghiệm: trả dữ liệu mẫu Sandbox
+            if (Boolean.TRUE.equals(partnerApiKey.getIsTest())) {
+                log.info("Đối tác '{}' gọi tra cứu bằng khóa thử nghiệm mã={} -> Trả dữ liệu mẫu Sandbox",
+                        partnerApiKey.getPartnerName(), codeValue);
+                return ResponseEntity.ok(ApiResult.success(PartnerSampleDataProvider.getSampleTraceResponse()));
+            }
         }
 
         PublicTraceResponse response = publicTraceService.getPublicTrace(
@@ -54,6 +57,15 @@ public class PartnerTraceController {
                 longitude,
                 getClientIp(request),
                 request.getHeader("User-Agent"));
+        response.setIsTest(false);
+
+        // Ghi nhận nhật ký truy xuất lô của đối tác
+        if (partnerApiKey != null) {
+            partnerLotAccessService.recordLotAccess(
+                    partnerApiKey,
+                    response.getShipmentId(),
+                    response.getProductionLotId());
+        }
 
         return ResponseEntity.ok(ApiResult.success(response));
     }

@@ -25,6 +25,7 @@ import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.partner.controller.PartnerLotController;
 import vn.nguongocso.integration.partner.dto.response.PartnerLotDossierResponse;
 import vn.nguongocso.integration.partner.dto.response.PartnerLotInfoResponse;
+import vn.nguongocso.integration.partner.service.PartnerLotAccessService;
 import vn.nguongocso.integration.partner.service.PartnerLotService;
 import vn.nguongocso.organization.entity.Organization;
 
@@ -35,6 +36,9 @@ class PartnerLotControllerTest {
 
     @Mock
     private PartnerLotService partnerLotService;
+
+    @Mock
+    private PartnerLotAccessService partnerLotAccessService;
 
     @InjectMocks
     private PartnerLotController partnerLotController;

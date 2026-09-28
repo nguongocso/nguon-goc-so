@@ -21,8 +21,8 @@ public interface ActivityLogService {
             String actorName,
             LocalDate startDate,
             LocalDate endDate,
-            CustomUserDetails currentUser
-    );
+            String objectType,
+            CustomUserDetails currentUser);
 
     /**
      * Ghi nhật ký hoạt động.

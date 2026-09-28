@@ -3,16 +3,14 @@ package vn.nguongocso.organization.dto.response;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
-/**
- * Phản hồi khi truy vấn thông tin tổ chức.
- */
+/** Phản hồi khi truy vấn thông tin tổ chức. */
 @Getter
 @Setter
 @NoArgsConstructor

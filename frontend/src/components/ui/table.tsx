@@ -67,8 +67,9 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       data-slot="table-head"
+      // Header gọn, căn giữa dọc để thẳng hàng với nội dung các ô bên dưới.
       className={cn(
-        "h-10 px-4 text-left align-middle font-medium whitespace-nowrap text-label [&:has([role=checkbox])]:pr-0",
+        "h-10 px-4 py-2 text-left align-middle font-medium whitespace-nowrap text-label [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
@@ -80,8 +81,10 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   return (
     <td
       data-slot="table-cell"
+      // Ô bảng gọn: padding dọc 12px + ngang 16px, căn giữa dọc, bỏ chiều cao cố định
+      // để các hàng cao đồng đều theo nội dung (tránh hàng bị đội chiều cao).
       className={cn(
-        "h-14 p-4 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "px-4 py-3 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

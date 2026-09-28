@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Trash2, PowerOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteFarmArea, toggleFarmAreaStatus } from '@/api/farmAreaApi';
+import { toApiError } from '@/api/apiError';
 import type { FarmArea } from '@/types/farmArea';
 
 interface FarmAreaDeleteDialogProps {
@@ -27,41 +28,48 @@ export const FarmAreaDeleteDialog: React.FC<FarmAreaDeleteDialogProps> = ({
   onSuccess,
   farmArea,
 }) => {
+  // State: trạng thái tải
   const [loading, setLoading] = useState(false);
 
-  if (!farmArea) return null;
-
-  const associatedLots = farmArea.associatedLotsCount || 0;
-  const isBlocked = associatedLots > 0;
-
+  // Handlers: xoá và ngừng sử dụng vùng trồng
   const handleDelete = async () => {
-    if (isBlocked) return;
+    if (!farmArea || (farmArea.associatedLotsCount || 0) > 0) return;
     try {
       setLoading(true);
       await deleteFarmArea(farmArea.id);
       toast.success('Đã xóa vùng trồng thành công');
       onSuccess();
       onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể xóa vùng trồng');
+    } catch (error: unknown) {
+      // Chuẩn hoá lỗi API để tránh treo trạng thái tải
+      toast.error(toApiError(error, 'Không thể xóa vùng trồng').message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeactivate = async () => {
+    if (!farmArea) return;
     try {
       setLoading(true);
       await toggleFarmAreaStatus(farmArea.id, false);
       toast.success(`Đã chuyển vùng trồng '${farmArea.name}' sang trạng thái Ngừng sử dụng`);
       onSuccess();
       onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể đổi trạng thái vùng trồng');
+    } catch (error: unknown) {
+      // Chuẩn hoá lỗi API để tránh treo trạng thái tải
+      toast.error(toApiError(error, 'Không thể đổi trạng thái vùng trồng').message);
     } finally {
       setLoading(false);
     }
   };
+
+  // Giá trị dẫn xuất từ vùng trồng hiện tại
+  const associatedLots = farmArea?.associatedLotsCount || 0;
+  const isBlocked = associatedLots > 0;
+
+  // JSX: trả về null khi chưa chọn vùng trồng
+  if (!farmArea) return null;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -93,7 +101,11 @@ export const FarmAreaDeleteDialog: React.FC<FarmAreaDeleteDialogProps> = ({
         )}
 
         <DialogFooter className="pt-3 gap-2">
-          <Button variant="outline" onClick={onClose} disabled={loading}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={loading}
+          >
             Hủy
           </Button>
 

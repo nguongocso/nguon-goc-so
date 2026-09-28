@@ -1,28 +1,5 @@
 package vn.nguongocso.farm.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-import vn.nguongocso.alert.event.ActivityLogEvent;
-import vn.nguongocso.auth.entity.User;
-import vn.nguongocso.auth.repository.UserRepository;
-import vn.nguongocso.auth.service.CustomUserDetails;
-import vn.nguongocso.common.util.IpUtils;
-import vn.nguongocso.exception.BusinessException;
-import vn.nguongocso.farm.dto.response.AttachmentResponse;
-import vn.nguongocso.farm.entity.FarmLog;
-import vn.nguongocso.farm.entity.FarmLogAttachment;
-import vn.nguongocso.farm.repository.FarmLogAttachmentRepository;
-import vn.nguongocso.farm.repository.FarmLogRepository;
-
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.MediaType;
-
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -39,23 +16,42 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.InvalidMediaTypeException;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import vn.nguongocso.alert.event.ActivityLogEvent;
+import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.auth.repository.UserRepository;
+import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.common.util.IpUtils;
+import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.farm.dto.response.AttachmentResponse;
+import vn.nguongocso.farm.entity.FarmLog;
+import vn.nguongocso.farm.entity.FarmLogAttachment;
+import vn.nguongocso.farm.repository.FarmLogAttachmentRepository;
+import vn.nguongocso.farm.repository.FarmLogRepository;
+
+/**
+ * Quản lý tệp đính kèm của nhật ký canh tác.
+*/
 @Slf4j
 @Service
 @RequiredArgsConstructor
-/** Quản lý tệp đính kèm của nhật ký canh tác. */
 public class AttachmentService {
-
     private final FarmLogRepository farmLogRepository;
     private final FarmLogAttachmentRepository attachmentRepository;
     private final UserRepository userRepository;
-
     private final ApplicationEventPublisher eventPublisher;
-
-    /**
-     * Clock nghiệp vụ theo múi giờ cấu hình (app.timezone, mặc định
-     * Asia/Ho_Chi_Minh). Dùng để ghi uploadedAt đúng giờ Việt Nam, không phụ
-     * thuộc timezone của JVM/container.
-     */
     private final Clock clock;
 
     @Value("${app.upload.base-dir}")
@@ -80,18 +76,15 @@ public class AttachmentService {
     public AttachmentResponse uploadAttachment(UUID logId, MultipartFile file, String description,
             CustomUserDetails userDetails) {
 
-        // 1. Kiểm tra log tồn tại và quyền sở hữu
         FarmLog farmLog = farmLogRepository.findById(logId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy nhật ký canh tác"));
 
-        // 2. Kiểm tra quyền: user phải thuộc tổ chức sở hữu lô sản xuất
         UUID orgId = userDetails.getOrganizationId();
         UUID lotOrgId = farmLog.getProductionLotId().getOrganization().getOrganizationId();
         if (!lotOrgId.equals(orgId)) {
             throw new BusinessException("Nhật ký không thuộc tổ chức của bạn");
         }
 
-        // 3. Kiểm tra file
         if (file.isEmpty())
             throw new BusinessException("File không được để trống");
         if (file.getSize() > maxFileSize) {
@@ -102,7 +95,6 @@ public class AttachmentService {
             throw new BusinessException("Loại file không hỗ trợ. Chỉ chấp nhận JPG, PNG, PDF");
         }
 
-        // 4. Lưu file vật lý
         String originalFilename = file.getOriginalFilename();
         String extension = "";
         if (originalFilename != null && originalFilename.contains(".")) {
@@ -124,7 +116,6 @@ public class AttachmentService {
             throw new BusinessException("Lỗi hệ thống khi lưu file");
         }
 
-        // 5. Lưu vào DB
         User user = userRepository.findById(userDetails.getUserId())
                 .orElseThrow(() -> new BusinessException("Không tìm thấy người dùng"));
 
@@ -136,8 +127,6 @@ public class AttachmentService {
                 .filePath(filePath)
                 .description(description)
                 .uploadedBy(user)
-                // Ghi thời gian tải lên theo múi giờ nghiệp vụ (Asia/Ho_Chi_Minh),
-                // không dùng LocalDateTime.now() mặc định của JVM.
                 .uploadedAt(LocalDateTime.now(clock))
                 .build();
         attachmentRepository.save(attachment);
@@ -156,7 +145,6 @@ public class AttachmentService {
     @Transactional(readOnly = true)
     public List<AttachmentResponse> getAttachments(UUID logId, CustomUserDetails userDetails) {
 
-        // Kiểm tra quyền: chỉ trả về nếu log thuộc tổ chức user
         FarmLog farmLog = farmLogRepository.findById(logId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy nhật ký canh tác"));
 
@@ -178,14 +166,12 @@ public class AttachmentService {
         FarmLogAttachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy file đính kèm"));
 
-        // Kiểm tra quyền: user phải thuộc tổ chức sở hữu lô sản xuất
         UUID orgId = userDetails.getOrganizationId();
         UUID lotOrgId = attachment.getFarmLog().getProductionLotId().getOrganization().getOrganizationId();
         if (!lotOrgId.equals(orgId)) {
             throw new BusinessException("Bạn không có quyền xóa file này");
         }
 
-        // Xóa file vật lý
         try {
             Path filePath = Paths.get(attachment.getFilePath());
             if (Files.exists(filePath)) {
@@ -232,7 +218,6 @@ public class AttachmentService {
         FarmLogAttachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy file đính kèm"));
 
-        // Kiểm tra quyền: user phải thuộc tổ chức sở hữu lô sản xuất
         UUID orgId = userDetails.getOrganizationId();
         UUID lotOrgId = attachment.getFarmLog().getProductionLotId().getOrganization().getOrganizationId();
         if (!lotOrgId.equals(orgId)) {
@@ -246,7 +231,6 @@ public class AttachmentService {
     private Resource resolveFileResource(FarmLogAttachment attachment) {
         Path filePath = Paths.get(attachment.getFilePath()).toAbsolutePath().normalize();
 
-        // Kiểm tra path traversal: filePath phải nằm trong baseDir
         Path baseDirPath = Paths.get(baseDir).toAbsolutePath().normalize();
         if (!filePath.startsWith(baseDirPath)) {
             log.warn("Path traversal attempt: {}", attachment.getFilePath());
@@ -267,7 +251,7 @@ public class AttachmentService {
         }
         try {
             return MediaType.parseMediaType(fileType);
-        } catch (org.springframework.http.InvalidMediaTypeException e) {
+        } catch (InvalidMediaTypeException e) {
             return MediaType.APPLICATION_OCTET_STREAM;
         }
     }

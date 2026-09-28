@@ -17,10 +17,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class ReactivateMemberRequest {
-
-    /**
-     * Lý do kích hoạt lại (bắt buộc, tối đa 500 ký tự).
-     */
     @NotBlank(message = "Lý do không được để trống")
     @Size(max = 500, message = "Lý do không được vượt quá 500 ký tự")
     private String reason;

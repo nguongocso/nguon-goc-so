@@ -1,5 +1,5 @@
-import { OrganizationDetail } from "@/components/organization/OrganizationDetail";
-import { HelpButton } from "@/components/help/HelpButton";
+import { OrganizationDetail } from '@/components/organization/OrganizationDetail';
+import { HelpButton } from '@/components/help/HelpButton';
 
 const OrganizationDetailPage = () => {
   return (

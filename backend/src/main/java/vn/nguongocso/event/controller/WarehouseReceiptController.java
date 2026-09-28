@@ -25,23 +25,14 @@ import vn.nguongocso.event.dto.request.WarehouseReceiptRequest;
 import vn.nguongocso.event.dto.response.WarehouseReceiptResponse;
 import vn.nguongocso.event.service.WarehouseReceiptService;
 
-/**
- * Controller quản lý nhập kho và đối chiếu số lượng.
- * Chỉ dành cho Doanh nghiệp thu mua (VT-04).
- *
- * @author Team
- */
+/** Controller quản lý nhập kho và đối chiếu số lượng. */
 @RestController
 @RequestMapping("/api/v1/chain-events")
 @RequiredArgsConstructor
 public class WarehouseReceiptController {
-
     private final WarehouseReceiptService warehouseReceiptService;
 
-    /**
-     * API ghi nhận nhập kho và đối chiếu số lượng.
-     * Chỉ dành cho Doanh nghiệp thu mua (VT-04).
-     */
+    /** API ghi nhận nhập kho và đối chiếu số lượng. */
     @PostMapping("/warehouse-receipt")
     @PreAuthorize("hasRole('VT-04')")
     public ResponseEntity<ApiResult<WarehouseReceiptResponse>> recordWarehouseReceipt(
@@ -53,10 +44,7 @@ public class WarehouseReceiptController {
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * API lấy danh sách sự kiện nhập kho của doanh nghiệp thu mua hiện tại.
-     * Chỉ dành cho Doanh nghiệp thu mua (VT-04).
-     */
+    /** API lấy danh sách sự kiện nhập kho của doanh nghiệp thu mua hiện tại. */
     @GetMapping("/warehouse-receipts")
     @PreAuthorize("hasRole('VT-04')")
     public ResponseEntity<ApiResult<PageResponse<WarehouseReceiptResponse>>> getWarehouseReceipts(
@@ -67,10 +55,7 @@ public class WarehouseReceiptController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
-    /**
-     * API lấy chi tiết một sự kiện nhập kho.
-     * Chỉ dành cho Doanh nghiệp thu mua (VT-04).
-     */
+    /** API lấy chi tiết một sự kiện nhập kho. */
     @GetMapping("/warehouse-receipts/{eventId}")
     @PreAuthorize("hasRole('VT-04')")
     public ResponseEntity<ApiResult<WarehouseReceiptResponse>> getWarehouseReceiptDetail(

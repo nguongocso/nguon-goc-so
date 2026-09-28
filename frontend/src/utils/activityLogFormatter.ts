@@ -14,6 +14,9 @@ export const formatActionType = (action: string): string => {
     CREATE: 'Tạo mới',
     UPDATE: 'Cập nhật',
     DELETE: 'Xóa',
+    // Loại bỏ lô sản xuất (VT-02). Backend vẫn lưu/trả về raw enum "DISPOSE";
+    // Việt hóa chỉ ở presentation layer để nhất quán bảng + chi tiết.
+    DISPOSE: 'Loại bỏ',
     READ: 'Xem',
     APPROVE: 'Phê duyệt',
     REJECT: 'Từ chối / Trả lại',
@@ -37,22 +40,37 @@ export const formatActionType = (action: string): string => {
     RECORD_PROCUREMENT_EVENT: 'Ghi sự kiện thu mua',
     RECORD_WAREHOUSE_RECEIPT: 'Ghi nhận nhập kho',
     RECORD_STORAGE_CONDITION: 'Ghi điều kiện bảo quản',
+    RECORD_HANDOVER_EVENT: 'Ghi sự kiện bàn giao',
+    HANDOVER: 'Bàn giao',
+    CREATE_HANDOVER: 'Tạo phiếu bàn giao',
+    ACCEPT_HANDOVER: 'Xác nhận bàn giao',
+    REJECT_HANDOVER: 'Từ chối bàn giao',
+    CANCEL_HANDOVER: 'Hủy phiếu bàn giao',
 
     // Dossier & Export
     EXPORT: 'Xuất hồ sơ nguồn gốc',
     EXPORT_DOSSIER: 'Xuất hồ sơ nguồn gốc',
     GS1_DOSSIER_EXPORT: 'Xuất hồ sơ GS1',
+    EXPORT_ACTIVITY_LOG: 'Xuất nhật ký hoạt động',
 
     // Recall
     CREATE_RECALL_REQUEST: 'Tạo yêu cầu thu hồi',
     APPROVE_RECALL_REQUEST: 'Phê duyệt yêu cầu thu hồi',
     REJECT_RECALL_REQUEST: 'Từ chối yêu cầu thu hồi',
 
+    // Thu hồi hàng loạt (NCL-08-CN-011) — backend vẫn lưu/trả về raw code,
+    // Việt hóa chỉ ở presentation layer để giữ nguyên dữ liệu audit trong DB.
+    CREATE_BULK_RECALL_REQUEST: 'Tạo yêu cầu thu hồi hàng loạt',
+    APPROVE_BULK_RECALL_REQUEST: 'Phê duyệt yêu cầu thu hồi hàng loạt',
+    REJECT_BULK_RECALL_REQUEST: 'Từ chối yêu cầu thu hồi hàng loạt',
+
     // Certification
     CREATE_CERTIFICATION: 'Tạo chứng nhận',
     UPDATE_CERTIFICATION: 'Cập nhật chứng nhận',
     DELETE_CERTIFICATION: 'Xóa chứng nhận',
     ATTACH_CERTIFICATION: 'Gắn chứng nhận',
+    VERIFY_CERTIFICATION: 'Xác thực chứng nhận',
+    REJECT_CERTIFICATION: 'Từ chối chứng nhận',
 
     // Production Lot
     CREATE_PRODUCTION_LOT: 'Tạo lô sản xuất',
@@ -69,6 +87,7 @@ export const formatActionType = (action: string): string => {
     // Farm Area
     CREATE_FARM_AREA: 'Tạo vùng trồng',
     UPDATE_FARM_AREA: 'Cập nhật vùng trồng',
+    UPDATE_FARM_AREA_BOUNDARY: 'Cập nhật ranh giới vùng trồng',
     DELETE_FARM_AREA: 'Xóa vùng trồng',
 
     // Input Material
@@ -95,6 +114,7 @@ export const formatActionType = (action: string): string => {
     CREATE_MEMBER: 'Thêm thành viên',
     UPDATE_ROLE_PERMISSIONS: 'Cấu hình quyền vai trò',
     ACCESS_DENIED: 'Truy cập trái phép bị chặn',
+    UPDATE_PROFILE: 'Cập nhật hồ sơ người dùng',
 
     // API Key
     CREATE_API_KEY: 'Cấp API key đối tác',
@@ -145,6 +165,9 @@ export const formatTargetType = (target: string): string => {
     FARM_AREA: 'Vùng trồng',
     FARMAREA: 'Vùng trồng',
     SHIPMENT: 'Lô hàng',
+    SHIPMENT_HANDOVER: 'Phiếu bàn giao',
+    SHIPMENTHANDOVER: 'Phiếu bàn giao',
+    HANDOVER: 'Phiếu bàn giao',
     CHAIN_EVENT: 'Sự kiện chuỗi',
     CHAINEVENT: 'Sự kiện chuỗi',
     PRODUCT_CATEGORY: 'Loại nông sản',
@@ -171,6 +194,11 @@ export const formatTargetType = (target: string): string => {
     RECALL_REQUEST: 'Yêu cầu thu hồi',
     RECALLREQUEST: 'Yêu cầu thu hồi',
     RECALL: 'Yêu cầu thu hồi',
+
+    // Thu hồi hàng loạt (NCL-08-CN-011) — DB lưu "bulk_recall_request" (in thường),
+    // hàm đã chuẩn hóa toUpperCase() trước khi so khớp.
+    BULK_RECALL_REQUEST: 'Yêu cầu thu hồi hàng loạt',
+    BULKRECALLREQUEST: 'Yêu cầu thu hồi hàng loạt',
     WAREHOUSE_RECEIPT: 'Phiếu nhập kho',
     WAREHOUSERECEIPT: 'Phiếu nhập kho',
     INPUT_MATERIAL: 'Vật tư nông nghiệp',
@@ -203,6 +231,7 @@ export const formatTargetType = (target: string): string => {
     SYSTEMMONITORING: 'Giám sát hệ thống',
     ATTACHMENT: 'Chứng từ đính kèm',
     INVITATION: 'Thư mời thành viên',
+    ACTIVITY_LOG_EXPORT: 'Yêu cầu xuất nhật ký hoạt động',
   };
 
   const upper = target.toUpperCase();
@@ -214,6 +243,41 @@ export const formatTargetType = (target: string): string => {
   }
 
   return target;
+};
+
+/** Việt hóa mô tả kỹ thuật của thao tác xuất, bao gồm cả các bản ghi đã lưu trước đây. */
+export const formatActivityLogDescription = (
+  description: string | null | undefined,
+  action?: string,
+): string => {
+  if (!description) return '—';
+
+  const isExportActivityLog = normalizeKey(action || '') === 'EXPORTACTIVITYLOG'
+    || description.startsWith('Xuất nhật ký hoạt động:');
+  if (!isExportActivityLog) return description;
+
+  const displayValue = (value: string, emptyLabel: string) => {
+    const normalized = value.trim();
+    return normalized === 'null' ? emptyLabel : normalized;
+  };
+
+  return description
+    .replace(/startDate=([^,]+)/, (_, value: string) => `từ ngày: ${displayValue(value, 'toàn bộ')}`)
+    .replace(/endDate=([^,]+)/, (_, value: string) => `đến ngày: ${displayValue(value, 'toàn bộ')}`)
+    .replace(/action=([^,]+)/, (_, value: string) => {
+      const normalized = value.trim();
+      return `hành động: ${normalized === 'null' ? 'tất cả' : formatActionType(normalized)}`;
+    })
+    .replace(/actorName=([^,]+)/, (_, value: string) => `người thực hiện: ${displayValue(value, 'tất cả')}`)
+    .replace(/objectType=([^,]+)/, (_, value: string) => {
+      const normalized = value.trim();
+      return `loại đối tượng: ${normalized === 'null' ? 'tất cả' : formatTargetType(normalized)}`;
+    })
+    .replace(/recordCount=([^,]+)/, 'số bản ghi: $1')
+    .replace(/status=SUCCESS\b/, 'trạng thái: thành công')
+    .replace(/status=IN_PROGRESS\b/, 'trạng thái: đang xử lý')
+    .replace(/status=FAILED\b/, 'trạng thái: thất bại')
+    .replace(/exportJobId=([^,]+)/, (_, value: string) => `mã yêu cầu: ${displayValue(value, 'không có')}`);
 };
 
 export const getActionColor = (action: string): string => {
@@ -234,6 +298,7 @@ export const getActionColor = (action: string): string => {
     act.includes('RECORD') ||
     act.includes('ATTACH') ||
     act.includes('ACTIVATE') ||
+    act.includes('VERIFY') ||
     act.includes('RESOLVE')
   ) {
     return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -242,11 +307,12 @@ export const getActionColor = (action: string): string => {
     act.includes('DELETE') ||
     act.includes('REJECT') ||
     act.includes('DENIED') ||
-    act.includes('REVOKE')
+    act.includes('REVOKE') ||
+    act.includes('DISPOSE')
   ) {
     return 'bg-rose-100 text-rose-800 border-rose-200';
   }
-    if (
+  if (
     act.includes('RECALL') ||
     act.includes('LOCK') ||
     act.includes('SUBMIT') ||

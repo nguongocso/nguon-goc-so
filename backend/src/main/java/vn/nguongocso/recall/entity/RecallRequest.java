@@ -24,29 +24,17 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.farm.entity.ProductFeedback;
 import vn.nguongocso.recall.enums.RecallRequestStatus;
+import vn.nguongocso.trace.entity.Shipment;
 
-/**
- * Thực thể đại diện cho một yêu cầu thu hồi lô sản xuất (NCL-08-CN-008).
- *
- * <p>
- * Quy trình 2 bước:
- * <ol>
- *   <li>Người ghi sự kiện (VT-03) tạo yêu cầu (trạng thái {@code PENDING}).</li>
- *   <li>Quản lý hợp tác xã (VT-02) duyệt ({@code APPROVED}) hoặc từ chối
- *       ({@code REJECTED}).</li>
- * </ol>
- *
- * <p>
- * Quy tắc QTN-22: người tạo yêu cầu không được tự duyệt yêu cầu của chính mình.
- */
+/** Yêu cầu thu hồi lô sản xuất. */
 @Entity
 @Table(name = "recall_requests")
 @Getter
 @Setter
 @NoArgsConstructor
 public class RecallRequest {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -56,6 +44,14 @@ public class RecallRequest {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "production_lot_id", nullable = false)
     private ProductionLot productionLot;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shipment_id")
+    private Shipment shipment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_feedback_id")
+    private ProductFeedback sourceFeedback;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "requested_by", nullable = false)

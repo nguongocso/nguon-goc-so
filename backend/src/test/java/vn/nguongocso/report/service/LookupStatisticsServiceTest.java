@@ -68,7 +68,8 @@ public class LookupStatisticsServiceTest {
         when(traceCodeScanLogRepository.countAbnormalScans(any(), any(), any(), any(), any())).thenReturn(5L);
         when(traceCodeScanLogRepository.getStatsByLocation(any(), any(), any(), any(), any())).thenReturn(Collections.emptyList());
         when(traceCodeScanLogRepository.getStatsByProductionLot(any(), any(), any(), any(), any())).thenReturn(Collections.emptyList());
-        when(traceCodeScanLogRepository.getScannedAtList(any(), any(), any(), any(), any())).thenReturn(Collections.emptyList());
+        when(traceCodeScanLogRepository.getScannedAtList(any(), any(), any(), any(), any()))
+                .thenReturn(List.of(LocalDateTime.of(2026, 9, 15, 10, 0)));
 
         // When
         LookupStatisticsResponse response = lookupStatisticsService.getStatistics(
@@ -79,6 +80,9 @@ public class LookupStatisticsServiceTest {
         assertThat(response.getSummary().getTotalScans()).isEqualTo(100L);
         assertThat(response.getSummary().getTotalUniqueCodes()).isEqualTo(40L);
         assertThat(response.getSummary().getAbnormalScansCount()).isEqualTo(5L);
+        assertThat(response.getTimeSeries()).hasSize(1);
+        assertThat(response.getTimeSeries().getFirst().getPeriod()).isEqualTo("2026-09");
+        assertThat(response.getTimeSeries().getFirst().getScanCount()).isEqualTo(1L);
     }
 
     @Test

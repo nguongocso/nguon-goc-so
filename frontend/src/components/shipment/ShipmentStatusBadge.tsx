@@ -9,8 +9,15 @@ export const SHIPMENT_STATUS_LABELS: Record<ShipmentStatus, string> = {
   DRAFT: "Nháp",
   CODE_PRINTED: "Đã in mã",
   ACTIVATED: "Đã kích hoạt",
+  RECALLING: "Đang thu hồi",
   RECALLED: "Đã thu hồi",
+  SPLIT: "Đã tách",
 };
+
+/** Nhãn tiếng Việt cho mã trạng thái lô; giữ mã gốc nếu gặp giá trị lạ. */
+export function getShipmentStatusLabel(status: string): string {
+  return SHIPMENT_STATUS_LABELS[status as ShipmentStatus] ?? status;
+}
 
 /**
  * Presentation-only mapping using the project's --status-* design tokens.
@@ -23,8 +30,12 @@ const SHIPMENT_STATUS_CLASSES: Record<ShipmentStatus, string> = {
     "bg-status-packaged/10 text-status-packaged border-status-packaged/20",
   ACTIVATED:
     "bg-status-approved/10 text-status-approved border-status-approved/20",
+  RECALLING:
+    "bg-amber-500/10 text-amber-600 border-amber-500/20",
   RECALLED:
     "bg-status-rejected/10 text-status-rejected border-status-rejected/20",
+  SPLIT:
+    "bg-status-packaged/10 text-status-packaged border-status-packaged/20",
 };
 
 interface ShipmentStatusBadgeProps {

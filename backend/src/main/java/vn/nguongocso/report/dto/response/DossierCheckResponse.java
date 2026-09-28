@@ -1,26 +1,24 @@
 package vn.nguongocso.report.dto.response;
 
-import lombok.*;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * DTO phản hồi kiểm tra hồ sơ.
- *
- * @author Triệu Văn Đại
- */
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/** DTO phản hồi kiểm tra tính đầy đủ hồ sơ. */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class DossierCheckResponse {
-    // ID lô hàng
     private UUID shipmentId;
 
-    // Có đủ điều kiện xuất hồ sơ không
     private boolean eligible;
 
-    // Danh sách chứng từ còn thiếu
     private List<String> missingDocuments;
 }

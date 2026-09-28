@@ -4,7 +4,9 @@ import java.io.UnsupportedEncodingException;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -15,33 +17,31 @@ import org.springframework.stereotype.Service;
 import vn.nguongocso.mail.service.EmailService;
 
 /**
- * Triển khai dịch vụ gửi email thông báo và xác thực qua Gmail SMTP bất đồng bộ.
- */
+ * Triển khai dịch vụ gửi email thông báo và xác thực trong hệ thống.
+*/
 @Slf4j
 @Service
 public class EmailServiceImpl implements EmailService {
-
     private static final String DEFAULT_CHARSET = "UTF-8";
     private static final String SYSTEM_SENDER_NAME = "Nguồn Gốc Số - Hệ Thống Truy Xuất Nguồn Gốc";
     private static final String RESET_PASSWORD_SUBJECT = "Yêu cầu đặt lại mật khẩu - Nguồn Gốc Số";
-
+    private static final String INVITATION_SUBJECT_TEMPLATE = "Lời mời tham gia tổ chức %s - Nguồn Gốc Số";
     private final JavaMailSender mailSender;
+    private static final String INSPECTION_SUBJECT_TEMPLATE =
+        "Liên kết nhập kết quả kiểm nghiệm lô %s - Nguồn Gốc Số";
 
     @Value("${spring.mail.username:}")
     private String fromEmail;
 
+    /**
+     * Khởi tạo dịch vụ gửi email.
+     */
     public EmailServiceImpl(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
     /**
-     * Gửi thư mời tham gia tổ chức bất đồng bộ qua Gmail HTML.
-     *
-     * @param toEmail          địa chỉ email người nhận
-     * @param organizationName tên tổ chức/HTX mời
-     * @param roleName         tên vai trò được phân công
-     * @param joinUrl          đường dẫn xác nhận tham gia chứa token
-     * @param expiryDays       thời hạn hiệu lực (ngày)
+     * Gửi thư mời tham gia tổ chức bất đồng bộ.
      */
     @Async
     @Override
@@ -64,7 +64,7 @@ public class EmailServiceImpl implements EmailService {
 
             helper.setFrom(fromEmail, SYSTEM_SENDER_NAME);
             helper.setTo(toEmail);
-            helper.setSubject("Lời mời tham gia tổ chức " + organizationName + " - Nguồn Gốc Số");
+            helper.setSubject(INVITATION_SUBJECT_TEMPLATE.formatted(organizationName));
 
             String htmlContent = buildInvitationHtmlTemplate(organizationName, roleName, joinUrl, expiryDays);
             helper.setText(htmlContent, true);
@@ -72,17 +72,12 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("Đã gửi email thư mời thành công tới {}", toEmail);
         } catch (MessagingException | UnsupportedEncodingException | MailException e) {
-            log.error("Gửi email thư mời tới {} thất bại: {}. Link thay thế: {}", toEmail, e.getMessage(), joinUrl);
+            log.error("Gửi email thư mời tới {} thất bại", toEmail, e);
         }
     }
 
     /**
-     * Gửi email hướng dẫn đặt lại mật khẩu bất đồng bộ (NCL-01-CN-008).
-     *
-     * @param toEmail       địa chỉ email người nhận
-     * @param fullName      họ và tên người nhận
-     * @param resetUrl      đường dẫn đặt lại mật khẩu chứa token
-     * @param expiryMinutes thời hạn hiệu lực (phút)
+     * Gửi email hướng dẫn đặt lại mật khẩu bất đồng bộ.
      */
     @Async
     @Override
@@ -107,18 +102,36 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("Đã gửi email đặt lại mật khẩu thành công tới {}", toEmail);
         } catch (MessagingException | UnsupportedEncodingException | MailException e) {
-            log.error("Gửi email đặt lại mật khẩu tới {} thất bại: {}. Link: {}", toEmail, e.getMessage(), resetUrl);
+            log.error("Gửi email đặt lại mật khẩu tới {} thất bại", toEmail, e);
         }
     }
 
+    /**
+     * Kiểm tra cấu hình email gửi có đầy đủ hay không.
+     */
     private boolean isEmailConfigMissing(String fallbackUrl) {
         if (fromEmail == null || fromEmail.isBlank()) {
-            log.warn("[MAIL FALLBACK] Chưa cấu hình spring.mail.username. Giả lập qua log. Link: {}", fallbackUrl);
+            log.warn("[MAIL FALLBACK] Chưa cấu hình spring.mail.username. Giả lập qua log. Link: {}",
+                    maskUrl(fallbackUrl));
             return true;
         }
         return false;
     }
 
+    /**
+     * Che phần tham số truy vấn của đường dẫn để không ghi token vào log.
+     */
+    private static String maskUrl(String url) {
+        if (url == null) {
+            return null;
+        }
+        int queryIndex = url.indexOf('?');
+        return queryIndex >= 0 ? url.substring(0, queryIndex) : url;
+    }
+
+    /**
+     * Dựng nội dung HTML cho email thư mời tham gia tổ chức.
+     */
     private String buildInvitationHtmlTemplate(
             String organizationName,
             String roleName,
@@ -152,7 +165,7 @@ public class EmailServiceImpl implements EmailService {
                             <h2>Lời mời tham gia tổ chức</h2>
                             <p>Xin chào,</p>
                             <p>Bạn đã nhận được lời mời tham gia vào tổ chức trên Hệ thống Truy xuất Nguồn Gốc Số Quốc gia.</p>
-                            
+
                             <div class="info-box">
                                 <div class="info-item">🏛️ <strong>Tổ chức mời:</strong> {{organizationName}}</div>
                                 <div class="info-item">👤 <strong>Vai trò được gán:</strong> {{roleName}}</div>
@@ -160,7 +173,7 @@ public class EmailServiceImpl implements EmailService {
                             </div>
 
                             <p>Vui lòng bấm vào nút bên dưới để hoàn tất xác nhận và thiết lập tài khoản của bạn:</p>
-                            
+
                             <div class="btn-container">
                                 <a href="{{joinUrl}}" target="_blank" class="btn">Xác nhận & Tham gia tổ chức</a>
                             </div>
@@ -181,6 +194,9 @@ public class EmailServiceImpl implements EmailService {
                 .replace("{{joinUrl}}", joinUrl);
     }
 
+    /**
+     * Dựng nội dung HTML cho email đặt lại mật khẩu.
+     */
     private String buildPasswordResetHtmlTemplate(String fullName, String resetUrl, int expiryMinutes) {
         String greetingName = (fullName != null && !fullName.isBlank()) ? fullName : "Quý khách";
         return """
@@ -206,13 +222,13 @@ public class EmailServiceImpl implements EmailService {
                             <h2>Yêu cầu đặt lại mật khẩu</h2>
                             <p>Xin chào <strong>{{fullName}}</strong>,</p>
                             <p>Hệ thống Nguồn Gốc Số vừa nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
-                            
+
                             <div class="info-box">
                                 <div class="info-item">⏳ <strong>Thời hạn liên kết:</strong> {{expiryMinutes}} phút (dùng một lần)</div>
                             </div>
 
                             <p>Vui lòng bấm vào nút bên dưới để tiến hành tạo mật khẩu mới:</p>
-                            
+
                             <div class="btn-container">
                                 <a href="{{resetUrl}}" target="_blank" class="btn">Đặt lại mật khẩu ngay</a>
                             </div>
@@ -234,5 +250,115 @@ public class EmailServiceImpl implements EmailService {
                 .replace("{{fullName}}", greetingName)
                 .replace("{{expiryMinutes}}", String.valueOf(expiryMinutes))
                 .replace("{{resetUrl}}", resetUrl);
+    }
+
+    /**
+     * Gửi email liên kết cổng nhập kết quả cho đơn vị kiểm nghiệm bất đồng bộ.
+     */
+    @Async
+    @Override
+    public void sendInspectionResultEntryEmail(
+            String toEmail,
+            String organizationName,
+            String testingUnitName,
+            String lotCode,
+            String entryUrl,
+            int expiryDays
+    ) {
+        log.info("Đang xử lý gửi email liên kết cổng kiểm nghiệm bất đồng bộ tới: {}", toEmail);
+
+        if (isEmailConfigMissing(entryUrl)) {
+            return;
+        }
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, DEFAULT_CHARSET);
+
+            helper.setFrom(fromEmail, SYSTEM_SENDER_NAME);
+            helper.setTo(toEmail);
+            helper.setSubject(INSPECTION_SUBJECT_TEMPLATE.formatted(lotCode));
+
+            String htmlContent = buildInspectionResultEntryHtmlTemplate(
+                    organizationName, testingUnitName, lotCode, entryUrl, expiryDays);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            log.info("Đã gửi email liên kết cổng kiểm nghiệm thành công tới {}", toEmail);
+        } catch (MessagingException | UnsupportedEncodingException | MailException e) {
+            log.error("Gửi email liên kết cổng kiểm nghiệm lô {} tới {} thất bại", lotCode, toEmail, e);
+        }
+    }
+
+    /**
+     * Dựng nội dung HTML cho email liên kết cổng nhập kết quả kiểm nghiệm.
+     */
+    private String buildInspectionResultEntryHtmlTemplate(
+            String organizationName,
+            String testingUnitName,
+            String lotCode,
+            String entryUrl,
+            int expiryDays
+    ) {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f7f6; }
+                        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+                        .header { background: #059669; color: #ffffff; padding: 24px; text-align: center; }
+                        .header h1 { margin: 0; font-size: 24px; }
+                        .content { padding: 32px 24px; }
+                        .info-box { background: #f0fdf4; border-left: 4px solid #059669; padding: 16px; margin: 20px 0; border-radius: 4px; }
+                        .info-item { margin-bottom: 8px; }
+                        .btn-container { text-align: center; margin: 32px 0; }
+                        .btn { background: #059669; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: bold; display: inline-block; }
+                        .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 20px 0; border-radius: 4px; font-size: 13px; color: #92400e; }
+                        .footer { background: #f9fafb; padding: 16px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>🌱 Nguồn Gốc Số</h1>
+                        </div>
+                        <div class="content">
+                            <h2>Cổng nhập kết quả kiểm nghiệm</h2>
+                            <p>Kính gửi <strong>{{testingUnitName}}</strong>,</p>
+                            <p>Hợp tác xã <strong>{{organizationName}}</strong> đã gửi mẫu và yêu cầu đơn vị của bạn thực hiện kiểm nghiệm chất lượng cho lô sản phẩm <strong>{{lotCode}}</strong> trên Hệ thống Truy xuất Nguồn Gốc Số.</p>
+
+                            <div class="info-box">
+                                <div class="info-item">🏛️ <strong>Đơn vị yêu cầu:</strong> {{organizationName}}</div>
+                                <div class="info-item">📦 <strong>Mã lô sản phẩm:</strong> {{lotCode}}</div>
+                                <div class="info-item">⏳ <strong>Thời hạn liên kết:</strong> {{expiryDays}} ngày (liên kết dùng một lần)</div>
+                            </div>
+
+                            <p>Vui lòng bấm vào nút bên dưới để mở cổng nhập kết quả, đính kèm phiếu kiểm nghiệm và gửi xác nhận trực tiếp vào hệ thống mà không cần đăng nhập tài khoản:</p>
+
+                            <div class="btn-container">
+                                <a href="{{entryUrl}}" target="_blank" class="btn">Nhập kết quả kiểm nghiệm</a>
+                            </div>
+
+                            <div class="warning-box">
+                                ⚠️ <strong>Lưu ý quan trọng:</strong> Đường dẫn này chỉ có hiệu lực một lần duy nhất. Sau khi gửi kết quả thành công hoặc khi hết hạn, liên kết sẽ tự động bị vô hiệu hóa.
+                            </div>
+
+                            <p style="font-size: 13px; color: #6b7280;">Nếu nút bấm không hoạt động, bạn có thể sao chép liên kết này vào trình duyệt:<br>
+                            <a href="{{entryUrl}}" style="color: #059669; word-break: break-all;">{{entryUrl}}</a></p>
+                        </div>
+                        <div class="footer">
+                            <p>© 2026 Nguồn Gốc Số. Mọi quyền được bảo lưu.<br>Email này được gửi tự động, vui lòng không trả lời.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+                .replace("{{organizationName}}", organizationName)
+                .replace("{{testingUnitName}}", testingUnitName != null ? testingUnitName : "Đơn vị kiểm nghiệm")
+                .replace("{{lotCode}}", lotCode)
+                .replace("{{expiryDays}}", String.valueOf(expiryDays))
+                .replace("{{entryUrl}}", entryUrl);
     }
 }

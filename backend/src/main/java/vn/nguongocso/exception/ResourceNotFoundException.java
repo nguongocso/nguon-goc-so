@@ -1,12 +1,10 @@
 package vn.nguongocso.exception;
 
-/**
- * Lớp ngoại lệ dùng để biểu thị lỗi khi không tìm thấy tài nguyên trong ứng
- * dụng.
- */
-public class ResourceNotFoundException extends RuntimeException {
-    /** Tạo một ngoại lệ mới với thông báo lỗi. */
+import org.springframework.http.HttpStatus;
+
+/** Ngoại lệ dùng khi không tìm thấy tài nguyên yêu cầu trong hệ thống. */
+public class ResourceNotFoundException extends BusinessException {
     public ResourceNotFoundException(String message) {
-        super(message);
+        super(HttpStatus.NOT_FOUND, message);
     }
 }

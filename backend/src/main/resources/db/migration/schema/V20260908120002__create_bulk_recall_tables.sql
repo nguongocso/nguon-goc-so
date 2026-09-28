@@ -1,0 +1,127 @@
+-- ============================================================
+-- V20260908120002: Bulk recall requests (NCL-08-CN-011)
+-- Thu hồi theo phạm vi ảnh hưởng của lô sản xuất
+--
+-- LƯU Ý: version này được đổi từ V20260908120000 sang V20260908120002
+-- vì V20260908120000 bị trùng với test data seed migration. Flyway đã
+-- ghi nhận V20260908120000 là test data seed nên schema này phải dùng
+-- version mới để Flyway nhận diện và áp dụng đúng.
+-- ============================================================
+
+-- Bảng đề nghị thu hồi hàng loạt
+CREATE TABLE IF NOT EXISTS bulk_recall_requests (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    production_lot_id CHAR(36) NOT NULL,
+    reason TEXT NOT NULL,
+    evidence TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    requested_by CHAR(36) NOT NULL,
+    requested_at DATETIME NOT NULL,
+    approved_by CHAR(36),
+    approved_at DATETIME,
+    approval_remarks TEXT,
+    rejected_by CHAR(36),
+    rejected_at DATETIME,
+    rejection_reason TEXT,
+    -- Cột sinh chỉ có giá trị khi status = 'PENDING' (convention giống
+    -- V20260907195000): mỗi lô sản xuất chỉ được có tối đa một đề nghị
+    -- thu hồi đang chờ duyệt. MySQL cho phép nhiều giá trị NULL trong
+    -- unique index nên vẫn giữ được toàn bộ lịch sử các đề nghị đã xử lý.
+    pending_production_lot_id CHAR(36)
+        GENERATED ALWAYS AS (
+            CASE WHEN status = 'PENDING' THEN production_lot_id ELSE NULL END
+        ) STORED,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    CONSTRAINT fk_bulk_recall_production_lot
+        FOREIGN KEY (production_lot_id) REFERENCES production_lot(id),
+    CONSTRAINT fk_bulk_recall_requested_by
+        FOREIGN KEY (requested_by) REFERENCES users(user_id),
+    CONSTRAINT fk_bulk_recall_approved_by
+        FOREIGN KEY (approved_by) REFERENCES users(user_id),
+    CONSTRAINT fk_bulk_recall_rejected_by
+        FOREIGN KEY (rejected_by) REFERENCES users(user_id),
+    CONSTRAINT uk_bulk_recall_pending_lot UNIQUE (pending_production_lot_id)
+) ENGINE=InnoDB;
+
+-- Index cho tìm kiếm theo production lot và status (kiểm tra an toàn tránh trùng lặp)
+SET @idx1 = (
+    SELECT COUNT(*) 
+    FROM information_schema.statistics 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'bulk_recall_requests' 
+      AND index_name = 'idx_bulk_recall_production_lot_status'
+);
+SET @sql1 = IF(@idx1 > 0, 
+    'SELECT 1', 
+    'CREATE INDEX idx_bulk_recall_production_lot_status ON bulk_recall_requests(production_lot_id, status)'
+);
+PREPARE stmt1 FROM @sql1;
+EXECUTE stmt1;
+DEALLOCATE PREPARE stmt1;
+
+-- Index cho tìm kiếm theo người tạo
+SET @idx2 = (
+    SELECT COUNT(*) 
+    FROM information_schema.statistics 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'bulk_recall_requests' 
+      AND index_name = 'idx_bulk_recall_requested_by'
+);
+SET @sql2 = IF(@idx2 > 0, 
+    'SELECT 1', 
+    'CREATE INDEX idx_bulk_recall_requested_by ON bulk_recall_requests(requested_by)'
+);
+PREPARE stmt2 FROM @sql2;
+EXECUTE stmt2;
+DEALLOCATE PREPARE stmt2;
+
+-- Ràng buộc "một đề nghị PENDING cho mỗi lô sản xuất" đã được định nghĩa
+-- bằng generated column uk_bulk_recall_pending_lot ngay trong CREATE TABLE
+-- (MySQL không hỗ trợ partial index có mệnh đề WHERE).
+
+-- Bảng chi tiết lô hàng trong đề nghị thu hồi
+CREATE TABLE IF NOT EXISTS bulk_recall_shipments (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    bulk_recall_request_id CHAR(36) NOT NULL,
+    shipment_id CHAR(36) NOT NULL,
+    included TINYINT(1) NOT NULL DEFAULT 1,
+    exclusion_reason TEXT,
+    created_at DATETIME NOT NULL,
+    CONSTRAINT fk_bulk_recall_shipment_request
+        FOREIGN KEY (bulk_recall_request_id) REFERENCES bulk_recall_requests(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bulk_recall_shipment_shipment
+        FOREIGN KEY (shipment_id) REFERENCES shipments(id)
+) ENGINE=InnoDB;
+
+-- Index cho tìm kiếm theo bulk recall request
+SET @idx3 = (
+    SELECT COUNT(*) 
+    FROM information_schema.statistics 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'bulk_recall_shipments' 
+      AND index_name = 'idx_bulk_recall_shipment_request'
+);
+SET @sql3 = IF(@idx3 > 0, 
+    'SELECT 1', 
+    'CREATE INDEX idx_bulk_recall_shipment_request ON bulk_recall_shipments(bulk_recall_request_id)'
+);
+PREPARE stmt3 FROM @sql3;
+EXECUTE stmt3;
+DEALLOCATE PREPARE stmt3;
+
+-- Index cho tìm kiếm theo shipment
+SET @idx4 = (
+    SELECT COUNT(*) 
+    FROM information_schema.statistics 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'bulk_recall_shipments' 
+      AND index_name = 'idx_bulk_recall_shipment_shipment'
+);
+SET @sql4 = IF(@idx4 > 0, 
+    'SELECT 1', 
+    'CREATE INDEX idx_bulk_recall_shipment_shipment ON bulk_recall_shipments(shipment_id)'
+);
+PREPARE stmt4 FROM @sql4;
+EXECUTE stmt4;
+DEALLOCATE PREPARE stmt4;

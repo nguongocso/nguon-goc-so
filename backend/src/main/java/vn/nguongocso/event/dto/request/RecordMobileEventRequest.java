@@ -11,15 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * DTO ghi nhận sự kiện từ thiết bị di động ngoài đồng.
- *
- * @author Triệu Văn Đại
- */
+/** DTO ghi nhận sự kiện từ thiết bị di động ngoài đồng. */
 @Getter
 @Setter
 public class RecordMobileEventRequest {
-
     @NotNull(message = "Vui lòng chọn lô sản xuất")
     private UUID productionLotId;
 

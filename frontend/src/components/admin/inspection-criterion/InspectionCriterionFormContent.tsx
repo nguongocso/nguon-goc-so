@@ -44,6 +44,10 @@ const formSchema = z.object({
     .string()
     .min(1, "Tên chỉ tiêu không được để trống")
     .max(150, "Tên chỉ tiêu tối đa 150 ký tự"),
+  nameEn: z
+    .string()
+    .max(150, "Tên chỉ tiêu tiếng Anh tối đa 150 ký tự")
+    .optional(),
   unit: z
     .string()
     .min(1, "Đơn vị tính không được để trống")
@@ -99,6 +103,7 @@ export const InspectionCriterionFormContent = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      nameEn: "",
       unit: "",
       maxThreshold: undefined,
       standardId: "",
@@ -160,12 +165,13 @@ export const InspectionCriterionFormContent = ({
     if (criterion) {
       reset({
         name: criterion.name,
+        nameEn: criterion.nameEn || "",
         unit: criterion.unit,
         maxThreshold: criterion.maxThreshold,
         standardId: "",
       });
     } else {
-      reset({ name: "", unit: "", maxThreshold: undefined, standardId: "" });
+      reset({ name: "", nameEn: "", unit: "", maxThreshold: undefined, standardId: "" });
     }
   }, [criterion, open, reset]);
 
@@ -197,6 +203,7 @@ export const InspectionCriterionFormContent = ({
       if (criterion) {
         await updateInspectionCriterion(criterion.id, {
           name: values.name.trim(),
+          nameEn: values.nameEn?.trim() || undefined,
           unit: values.unit.trim(),
           maxThreshold: values.maxThreshold,
           referenceStandard: selectedStandard.name,
@@ -205,6 +212,7 @@ export const InspectionCriterionFormContent = ({
       } else {
         await createInspectionCriterion({
           name: values.name.trim(),
+          nameEn: values.nameEn?.trim() || undefined,
           unit: values.unit.trim(),
           maxThreshold: values.maxThreshold,
           referenceStandard: selectedStandard.name,
@@ -305,6 +313,21 @@ export const InspectionCriterionFormContent = ({
         <p className="text-xs text-muted-foreground">
           Tên chỉ tiêu không được trùng trong cùng một Tiêu chuẩn chất lượng.
         </p>
+      </div>
+
+      {/* Tên chỉ tiêu tiếng Anh */}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="nameEn" className="text-sm font-medium">
+          Tên tiếng Anh (English Name)
+        </Label>
+        <Input
+          id="nameEn"
+          {...register("nameEn")}
+          placeholder="VD: Organophosphorus Pesticide Residue"
+        />
+        {errors.nameEn && (
+          <p className="text-sm text-red-500">{errors.nameEn.message}</p>
+        )}
       </div>
       {/* Đơn vị đo */}
       <div className="flex flex-col gap-1.5">

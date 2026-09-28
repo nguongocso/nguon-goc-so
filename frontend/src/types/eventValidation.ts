@@ -1,3 +1,4 @@
+/** Kết quả kiểm tra tính hợp lệ của lô trước khi ghi nhận sự kiện chuỗi. */
 export interface LotValidationResponse {
   lotId: string;
   eventType: string;
@@ -10,6 +11,7 @@ export interface LotValidationResponse {
   };
 }
 
+/** Bản ghi nhật ký các lần ghi nhận sự kiện không hợp lệ / thất bại. */
 export interface FailedEventLog {
   id: string;
   userId: string;

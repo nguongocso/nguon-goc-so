@@ -5,8 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * DTO dùng để duyệt lô sản xuất.
- */
+ * Yêu cầu duyệt lô sản xuất.
+*/
 @Getter
 @Setter
 public class ApproveProductionLotRequest {

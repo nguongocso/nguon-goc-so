@@ -66,29 +66,16 @@ public class AlertServiceImpl implements AlertService {
                         LocalDate toDate,
                         UUID organizationId,
                         Pageable pageable) {
-
                 User currentUser = getCurrentUser();
-
                 List<OrganizationUser> organizationUsers = getOrganizationUsers(currentUser);
-
                 if (isAdmin(organizationUsers)) {
-
-                        // VT-01 được xem toàn bộ cảnh báo.
                         organizationId = null;
-
                 } else if (isOrganizationManager(organizationUsers)) {
-
-                        // VT-02 chỉ xem cảnh báo của tổ chức hiện tại.
                         OrganizationProfileResponse profile = organizationService.getCurrentOrganizationProfile();
-
                         organizationId = profile.getOrganizationId();
-
                 } else {
-
-                        throw new BusinessException(
-                                        "Bạn không có quyền xem cảnh báo.");
+                        throw new BusinessException("Bạn không có quyền xem cảnh báo.");
                 }
-
                 Page<Alert> alertPage = findAlerts(
                                 type,
                                 status,
@@ -96,20 +83,12 @@ public class AlertServiceImpl implements AlertService {
                                 toDate,
                                 organizationId,
                                 pageable);
-
                 AlertListResponse response = new AlertListResponse();
-
-                response.setContent(
-                                alertPage.getContent()
-                                                .stream()
-                                                .map(this::toAlertResponse)
-                                                .toList());
-
+                response.setContent(alertPage.getContent().stream().map(this::toAlertResponse).toList());
                 response.setTotalElements((int) alertPage.getTotalElements());
                 response.setTotalPages(alertPage.getTotalPages());
                 response.setPage(alertPage.getNumber());
                 response.setSize(alertPage.getSize());
-
                 return response;
         }
 
@@ -119,48 +98,30 @@ public class AlertServiceImpl implements AlertService {
         public ResolveAlertResponse resolveAlert(
                         UUID alertId,
                         ResolveAlertRequest request) {
-
                 Alert alert = alertRepository.findById(alertId)
                                 .orElseThrow(() -> new BusinessException("Cảnh báo không tồn tại."));
-
                 if (alert.getStatus() != AlertStatus.PENDING) {
-                        throw new BusinessException(
-                                        "Cảnh báo không thể xử lý.");
+                        throw new BusinessException("Cảnh báo không thể xử lý.");
                 }
-
                 User currentUser = getCurrentUser();
-
                 List<OrganizationUser> organizationUsers = getOrganizationUsers(currentUser);
-
                 if (!isAdmin(organizationUsers)) {
-
                         if (!isOrganizationManager(organizationUsers)) {
-                                throw new BusinessException(
-                                                "Bạn không có quyền xử lý cảnh báo.");
+                                throw new BusinessException("Bạn không có quyền xử lý cảnh báo.");
                         }
-
-                        // Lấy organization hiện tại của user
                         OrganizationProfileResponse profile = organizationService.getCurrentOrganizationProfile();
-
                         UUID currentOrganizationId = profile.getOrganizationId();
-
-                        // Kiểm tra alert thuộc organization hiện tại
                         if (!isAlertBelongToOrganization(
                                         alert,
                                         currentOrganizationId)) {
-
                                 throw new BusinessException(
                                                 "Bạn không có quyền xử lý cảnh báo này.");
                         }
                 }
-
                 alert.setStatus(AlertStatus.RESOLVED);
                 alert.setResolvedAt(LocalDateTime.now());
                 alert.setResolvedBy(currentUser.getUserId());
-
                 Alert resolvedAlert = alertRepository.save(alert);
-
-                // Ghi nhật ký hoạt động (TASK-27): xử lý cảnh báo
                 publishActivityLog(
                                 getCurrentUserDetails(),
                                 "RESOLVE_ALERT",
@@ -174,16 +135,12 @@ public class AlertServiceImpl implements AlertService {
 
         /** Lấy người dùng đang đăng nhập. */
         private User getCurrentUser() {
-
                 Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
                 if (authentication == null
                                 || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
-
                         throw new BusinessException(
                                         "Người dùng chưa đăng nhập.");
                 }
-
                 return userRepository.findById(
                                 userDetails.getUser().getUserId())
                                 .orElseThrow(() -> new BusinessException(
@@ -194,24 +151,20 @@ public class AlertServiceImpl implements AlertService {
          * Lấy thông tin người dùng đã xác thực từ security context (TASK-27).
          */
         private CustomUserDetails getCurrentUserDetails() {
-
                 Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
                 if (authentication == null
                                 || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
-
                         throw new BusinessException(
                                         "Người dùng chưa đăng nhập.");
                 }
-
                 return userDetails;
         }
 
         /**
          * Ghi nhật ký hoạt động theo convention của hệ thống (TASK-27).
          * <p>
-         * Actor lấy từ người dùng đã xác thực trong security context,
-         * organization lấy từ organization của người thực hiện.
+         * Actor lấy từ người dùng đã xác thực trong security context, organization lấy từ organization của người thực
+         * hiện.
          */
         private void publishActivityLog(CustomUserDetails currentUser, String action, String description,
                         String entityType, String entityId) {
@@ -232,7 +185,6 @@ public class AlertServiceImpl implements AlertService {
         /** Lấy tất cả vai trò của người dùng trong các tổ chức. */
         private List<OrganizationUser> getOrganizationUsers(
                         User user) {
-
                 return organizationUserRepository.findAllByUser_UserId(
                                 user.getUserId());
         }
@@ -249,7 +201,6 @@ public class AlertServiceImpl implements AlertService {
         /** Kiểm tra người dùng có vai trò quản lý tổ chức. */
         private boolean isOrganizationManager(
                         List<OrganizationUser> organizationUsers) {
-
                 return organizationUsers.stream()
                                 .anyMatch(organizationUser -> ORG_MANAGER_ROLE.equals(
                                                 organizationUser.getRole().getCode()));
@@ -259,31 +210,25 @@ public class AlertServiceImpl implements AlertService {
         private boolean isAlertBelongToOrganization(
                         Alert alert,
                         UUID organizationId) {
-
                 if (alert.getRelatedEntityId() == null) {
                         return false;
                 }
-
                 if (alert.getType() == AlertType.SCAN_ANOMALY) {
                         TraceCode traceCode = traceCodeRepository
                                         .findById(alert.getRelatedEntityId())
                                         .orElseThrow(() -> new BusinessException(
                                                         "Mã truy xuất không tồn tại."));
-
                         UUID alertOrganizationId = traceCode.getShipment()
                                         .getOrganization()
                                         .getOrganizationId();
-
                         return alertOrganizationId.equals(organizationId);
                 } else {
                         Certification cert = certificationRepository
                                         .findById(alert.getRelatedEntityId())
                                         .orElseThrow(() -> new BusinessException(
                                                         "Chứng nhận không tồn tại."));
-
                         UUID alertOrganizationId = cert.getOrganization()
                                         .getOrganizationId();
-
                         return alertOrganizationId.equals(organizationId);
                 }
         }
@@ -296,15 +241,12 @@ public class AlertServiceImpl implements AlertService {
                         LocalDate toDate,
                         UUID organizationId,
                         Pageable pageable) {
-
                 LocalDateTime from = fromDate != null
                                 ? fromDate.atStartOfDay()
                                 : null;
-
                 LocalDateTime to = toDate != null
                                 ? toDate.atTime(23, 59, 59)
                                 : null;
-
                 return alertRepository.searchAlerts(
                                 type,
                                 status,
@@ -316,48 +258,31 @@ public class AlertServiceImpl implements AlertService {
 
         /** Chuyển Alert sang dữ liệu phản hồi. */
         private AlertResponse toAlertResponse(Alert alert) {
-
                 AlertResponse response = new AlertResponse();
-
                 response.setId(alert.getId());
-
                 response.setType(alert.getType());
-
                 response.setRelatedEntityType(alert.getRelatedEntityType());
                 response.setRelatedEntityId(alert.getRelatedEntityId());
-
                 response.setSeverity(alert.getSeverity());
                 try {
-                        response.setDetails(
-                                        objectMapper.readValue(
-                                                        alert.getDetails(),
-                                                        Object.class));
+                        response.setDetails(objectMapper.readValue(alert.getDetails(), Object.class));
                 } catch (JsonProcessingException e) {
-                        throw new BusinessException(
-                                        "Không thể đọc dữ liệu cảnh báo.");
+                        throw new BusinessException("Không thể đọc dữ liệu cảnh báo.");
                 }
-
                 response.setStatus(alert.getStatus());
-
                 response.setCreatedAt(alert.getCreatedAt());
                 response.setResolvedAt(alert.getResolvedAt());
                 response.setResolvedBy(alert.getResolvedBy());
-
                 return response;
         }
 
         /** Chuyển Alert sang dữ liệu phản hồi xử lý. */
         private ResolveAlertResponse toResolveAlertResponse(Alert alert) {
-
                 ResolveAlertResponse response = new ResolveAlertResponse();
-
                 response.setId(alert.getId());
-
                 response.setStatus(alert.getStatus());
-
                 response.setResolvedAt(alert.getResolvedAt());
                 response.setResolvedBy(alert.getResolvedBy());
-
                 return response;
         }
 }

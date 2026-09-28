@@ -31,6 +31,7 @@ import { useAutoGeolocation } from "@/hooks/useAutoGeolocation";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { addOfflineEvent } from "@/services/offlineQueue";
 import type { ProductionLot } from "@/types/productionLot";
+import { PRODUCTION_LOT_STATUS_LABELS } from "@/components/production-lot/ProductionLotStatusBadge";
 import {
   getLocalDateString,
   getLocalDateTimeString,
@@ -371,7 +372,7 @@ export const RecordMobileEventForm: React.FC<Props> = ({
                         key={lot.id}
                         value={lot.id}
                       >
-                        {lot.name} ({lot.status})
+                        {lot.name} ({PRODUCTION_LOT_STATUS_LABELS[lot.status] || lot.status})
                       </SelectItem>
                     ))}
                   </SelectContent>

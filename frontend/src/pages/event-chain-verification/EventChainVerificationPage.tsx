@@ -1,15 +1,19 @@
 import { useState } from 'react';
+import { isAxiosError } from 'axios';
 import { LoaderCircle, ShieldCheck, ShieldAlert, CheckCircle2, XCircle, Eye } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { verifyChainIntegrity } from '@/api/eventChainVerificationApi';
 import { HelpButton } from '@/components/help/HelpButton';
+
+import { verifyChainIntegrity } from '@/api/eventChainVerificationApi';
 import type { ChainVerificationResponse } from '@/types/eventChainVerification';
 
+/** Trang kiểm chứng tính toàn vẹn chuỗi băm các sự kiện của lô hàng. */
 export default function EventChainVerificationPage() {
   const [shipmentId, setShipmentId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,8 +31,11 @@ export default function EventChainVerificationPage() {
     try {
       const res = await verifyChainIntegrity(shipmentId.trim());
       setResult(res);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Không thể kiểm chứng dòng sự kiện.');
+    } catch (err: unknown) {
+      const message = isAxiosError(err)
+        ? (err.response?.data as { message?: string } | undefined)?.message
+        : undefined;
+      setError(message || 'Không thể kiểm chứng dòng sự kiện.');
     } finally {
       setLoading(false);
     }
@@ -67,7 +74,11 @@ export default function EventChainVerificationPage() {
                 placeholder="9c8b7a6f-2222-4a2a-9f3d-1a2b3c4d5e6f"
               />
             </div>
-            <Button variant="view" onClick={handleVerify} disabled={loading}>
+            <Button
+              variant="view"
+              onClick={handleVerify}
+              disabled={loading}
+            >
               {loading ? <LoaderCircle className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
               {loading ? 'Đang kiểm chứng...' : 'Kiểm chứng'}
             </Button>
@@ -82,7 +93,11 @@ export default function EventChainVerificationPage() {
       </Card>
 
       {result && (
-        <Card className={`rounded-xl shadow-sm bg-white ${result.isIntegrityVerified ? 'border-emerald-200' : 'border-red-200'}`}>
+        <Card
+          className={`rounded-xl bg-white shadow-sm ${
+            result.isIntegrityVerified ? 'border-emerald-200' : 'border-red-200'
+          }`}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               {result.isIntegrityVerified ? (

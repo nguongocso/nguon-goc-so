@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getSuspectDetail } from '@/api/suspectTraceCodeApi';
+import { getSuspectDetail, lockTraceCode, unlockTraceCode } from '@/api/suspectTraceCodeApi';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -13,20 +15,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { SuspectTraceCodeDetailResponse } from '@/types/suspectTraceCode';
-import {
-  AlertTriangle,
-  Clock,
-  Lock,
-  MapPin,
-  RefreshCw,
-  ScanLine,
-  ShieldAlert,
-} from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, Lock, MapPin, RefreshCw, ScanLine, ShieldAlert, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
 import { HelpButton } from '@/components/help/HelpButton';
-import { LockTraceCodeDialog } from './components/LockTraceCodeDialog';
+import { useAuth } from '@/hooks/useAuth';
 
-const formatDateTime = (value: string | null) => {
+const formatDateTime = (value?: string | null) => {
   if (!value) return '—';
   return new Date(value).toLocaleString('vi-VN', {
     day: '2-digit',
@@ -41,9 +35,20 @@ const formatDateTime = (value: string | null) => {
 export default function SuspectTraceCodeDetailPage() {
   const { traceCodeId } = useParams<{ traceCodeId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [detail, setDetail] = useState<SuspectTraceCodeDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showLockDialog, setShowLockDialog] = useState(false);
+
+  // Trạng thái form khóa nội tuyến
+  const [showLockForm, setShowLockForm] = useState(false);
+  const [lockReason, setLockReason] = useState('');
+  const [lockSubmitting, setLockSubmitting] = useState(false);
+
+  // Trạng thái form mở khóa nội tuyến
+  const [showUnlockForm, setShowUnlockForm] = useState(false);
+  const [unlockConclusion, setUnlockConclusion] = useState('');
+  const [unlockEvidence, setUnlockEvidence] = useState('');
+  const [unlockSubmitting, setUnlockSubmitting] = useState(false);
 
   const fetchDetail = async () => {
     if (!traceCodeId) return;
@@ -64,6 +69,36 @@ export default function SuspectTraceCodeDetailPage() {
   useEffect(() => {
     fetchDetail();
   }, [traceCodeId]);
+
+  const suspectHelpContent = useMemo(() => {
+    if (detail?.status === 'LOCKED') {
+      return {
+        title: 'Hướng dẫn mở khóa mã tem (Trạng thái Đã khóa)',
+        steps: [
+          'Kiểm tra Lịch sử khóa: Xem kỹ Thời điểm khóa, Người thực hiện khóa và Lý do khóa tem ở phần "Thông tin nghi vấn".',
+          'Thu thập & Xác minh thực tế: Thu thập biên bản giải trình, hóa đơn chứng từ, lịch trình xe vận chuyển hoặc ảnh chụp thực tế từ chủ cơ sở / hợp tác xã.',
+          'Mở biểu mẫu mở khóa: Nhấn nút màu xanh lá "Mở khóa mã tem" ở góc trên bên phải màn hình.',
+          'Nhập kết luận xác minh: Điền nội dung kết luận xử lý vào ô "Kết luận xác minh" (tối thiểu 10 ký tự, nêu rõ kết quả kiểm tra thực địa).',
+          'Cung cấp bằng chứng: Điền thông tin vào ô "Bằng chứng xác minh" (ví dụ: số vận đơn giao nhận, số biên bản làm việc, hình ảnh tem chính hãng).',
+          'Xác nhận mở khóa: Nhấn nút "Xác nhận mở khóa" để đưa tem về trạng thái HOẠT ĐỘNG (ACTIVE), gỡ bỏ cảnh báo khóa trên cổng thông tin công khai.',
+        ],
+      };
+    }
+    if (detail?.status === 'SUSPECT') {
+      return {
+        title: 'Hướng dẫn khóa mã tem nghi vấn (Trạng thái Nghi vấn)',
+        steps: [
+          'Kiểm tra Thông tin nghi vấn: Đối chiếu thông tin Lô hàng, Mã tem, Loại nông sản và Nguồn cấu hình ngưỡng áp dụng.',
+          'Phân tích Chi tiết điểm nghi vấn: Kiểm tra Snapshot bằng chứng vi phạm cố định (+35 Tần suất cao, +45 Di chuyển phi lý, +20 Nhiều địa điểm).',
+          'Đối soát Lịch sử quét 24h: Xem lại bảng lịch sử quét gồm thời gian, vị trí, tọa độ GPS và thiết bị để xác định bất thường phân phối.',
+          'Mở biểu mẫu khóa: Nhấn nút màu đỏ "Khóa mã tem" ở góc trên bên phải màn hình.',
+          'Nhập lý do khóa: Điền cụ thể lý do khóa (ví dụ: phát hiện quét tem đồng thời ở 2 tỉnh cách nhau > 500km, quét lặp bất thường từ thiết bị lạ).',
+          'Xác nhận khóa: Nhấn "Xác nhận khóa" để đưa tem về trạng thái ĐÃ KHÓA (LOCKED), lập tức hiển thị cảnh báo đỏ trên trang quét công khai của người tiêu dùng.',
+        ],
+      };
+    }
+    return undefined;
+  }, [detail?.status]);
 
   if (loading) {
     return (
@@ -87,6 +122,61 @@ export default function SuspectTraceCodeDetailPage() {
     return 'text-muted-foreground';
   };
 
+  // Kiểm tra xem người dùng hiện tại có phải là người đã khóa mã tem không
+  const isSameAdmin = Boolean(
+    user?.userId && detail.lockedBy && user.userId === detail.lockedBy
+  );
+  const minUnlockChars = isSameAdmin ? 20 : 10;
+  const trimmedUnlockConclusion = unlockConclusion.trim();
+  const isUnlockEmpty = !trimmedUnlockConclusion;
+  const isUnlockTooShort = trimmedUnlockConclusion.length > 0 && trimmedUnlockConclusion.length < minUnlockChars;
+  const isUnlockTooLong = trimmedUnlockConclusion.length > 500;
+  const isEvidenceTooLong = unlockEvidence.trim().length > 500;
+  const isUnlockValid = !isUnlockEmpty && !isUnlockTooShort && !isUnlockTooLong && !isEvidenceTooLong;
+
+  // Xác thực form khóa mã tem
+  const trimmedLockReason = lockReason.trim();
+  const isLockEmpty = !trimmedLockReason;
+  const isLockTooShort = trimmedLockReason.length > 0 && trimmedLockReason.length < 10;
+  const isLockTooLong = trimmedLockReason.length > 500;
+  const isLockValid = !isLockEmpty && !isLockTooShort && !isLockTooLong;
+
+  const handleLockSubmit = async () => {
+    if (!detail || !isLockValid) return;
+    try {
+      setLockSubmitting(true);
+      await lockTraceCode(detail.id, { reason: trimmedLockReason });
+      toast.success(`Đã khóa mã tem ${detail.codeValue}`);
+      setLockReason('');
+      setShowLockForm(false);
+      fetchDetail();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Không thể khóa mã tem');
+    } finally {
+      setLockSubmitting(false);
+    }
+  };
+
+  const handleUnlockSubmit = async () => {
+    if (!detail || !isUnlockValid) return;
+    try {
+      setUnlockSubmitting(true);
+      await unlockTraceCode(detail.id, {
+        conclusion: trimmedUnlockConclusion,
+        evidence: unlockEvidence.trim() ? unlockEvidence.trim() : undefined,
+      });
+      toast.success(`Đã mở khóa mã tem ${detail.codeValue}`);
+      setUnlockConclusion('');
+      setUnlockEvidence('');
+      setShowUnlockForm(false);
+      fetchDetail();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Không thể mở khóa mã tem');
+    } finally {
+      setUnlockSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -102,11 +192,29 @@ export default function SuspectTraceCodeDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <HelpButton screenKey="admin-suspect-trace-codes" />
+          <HelpButton
+            screenKey={
+              detail.status === 'LOCKED'
+                ? 'admin-suspect-trace-code-locked'
+                : detail.status === 'SUSPECT'
+                ? 'admin-suspect-trace-code-suspect'
+                : 'admin-suspect-trace-codes'
+            }
+            customContent={suspectHelpContent}
+          />
           {detail.status === 'SUSPECT' && (
-            <Button variant="destructive" onClick={() => setShowLockDialog(true)}>
+            <Button variant="destructive" onClick={() => setShowLockForm((prev) => !prev)}>
               <Lock className="mr-2 h-4 w-4" />
-              Khóa mã tem
+              {showLockForm ? 'Đóng biểu mẫu khóa' : 'Khóa mã tem'}
+            </Button>
+          )}
+          {detail.status === 'LOCKED' && (
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => setShowUnlockForm((prev) => !prev)}
+            >
+              <Unlock className="mr-2 h-4 w-4" />
+              {showUnlockForm ? 'Đóng biểu mẫu mở khóa' : 'Mở khóa mã tem'}
             </Button>
           )}
         </div>
@@ -129,18 +237,31 @@ export default function SuspectTraceCodeDetailPage() {
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-sm text-muted-foreground">Trạng thái</p>
-              {detail.status === 'SUSPECT' ? (
+              {detail.status === 'SUSPECT' && (
                 <Badge variant="outline" className="border-amber-300 text-amber-700 text-lg">
                   Nghi vấn
                 </Badge>
-              ) : (
+              )}
+              {detail.status === 'LOCKED' && (
                 <Badge variant="destructive" className="text-lg">
                   <Lock className="mr-1 h-4 w-4" />
                   Đã khóa
                 </Badge>
               )}
+              {detail.status === 'ACTIVE' && (
+                <Badge className="bg-emerald-600 text-white text-lg hover:bg-emerald-700">
+                  <CheckCircle2 className="mr-1 h-4 w-4" />
+                  Đã xác minh
+                </Badge>
+              )}
             </div>
-            <ShieldAlert className="h-8 w-8 text-red-500" />
+            {detail.status === 'ACTIVE' ? (
+              <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+            ) : detail.status === 'LOCKED' ? (
+              <ShieldAlert className="h-8 w-8 text-red-500" />
+            ) : (
+              <ShieldAlert className="h-8 w-8 text-amber-500" />
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -163,6 +284,146 @@ export default function SuspectTraceCodeDetailPage() {
         </Card>
       </div>
 
+      {/* Form khóa nội tuyến */}
+      {showLockForm && detail.status === 'SUSPECT' && (
+        <Card className="border-2 border-red-300 bg-red-50/40 shadow-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive text-lg">
+              <Lock className="h-5 w-5" />
+              Khóa mã tem nghi vấn
+            </CardTitle>
+            <CardDescription>
+              Hành động này sẽ chặn mã tem, người tiêu dùng quét mã sẽ thấy cảnh báo thay vì hành trình bình thường.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="lockReasonInput" className="font-medium text-slate-800">
+                Lý do khóa *
+              </Label>
+              <Textarea
+                id="lockReasonInput"
+                placeholder="Nhập lý do khóa mã tem (tối thiểu 10 ký tự)"
+                value={lockReason}
+                onChange={(e) => setLockReason(e.target.value)}
+                rows={3}
+                maxLength={500}
+              />
+              <div className="flex justify-between text-xs">
+                <span>
+                  {isLockEmpty && <span className="text-destructive">Vui lòng nhập lý do khóa</span>}
+                  {isLockTooShort && (
+                    <span className="text-destructive">
+                      Tối thiểu 10 ký tự (hiện có {trimmedLockReason.length})
+                    </span>
+                  )}
+                  {isLockTooLong && <span className="text-destructive">Tối đa 500 ký tự</span>}
+                  {isLockValid && (
+                    <span className="text-emerald-600 flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Hợp lệ
+                    </span>
+                  )}
+                </span>
+                <span className="text-muted-foreground">{trimmedLockReason.length}/500</span>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowLockForm(false)} disabled={lockSubmitting}>
+                Hủy bỏ
+              </Button>
+              <Button variant="destructive" onClick={handleLockSubmit} disabled={!isLockValid || lockSubmitting}>
+                <Lock className="mr-2 h-4 w-4" />
+                {lockSubmitting ? 'Đang xử lý...' : 'Xác nhận khóa tem'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Form mở khóa nội tuyến */}
+      {showUnlockForm && detail.status === 'LOCKED' && (
+        <Card className="border-2 border-emerald-300 bg-emerald-50/40 shadow-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-emerald-700 text-lg">
+              <Unlock className="h-5 w-5" />
+              Mở khóa mã tem sau khi xác minh
+            </CardTitle>
+            <CardDescription>
+              Khôi phục trạng thái hoạt động của mã tem, gỡ bỏ cảnh báo trên trang tra cứu công khai.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isSameAdmin && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-800">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                <span>
+                  Bạn là người đã khóa mã tem này. Vui lòng nhập kết luận xác minh chi tiết (tối thiểu 20 ký tự).
+                </span>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="unlockConclusionInput" className="font-medium text-slate-800">
+                Kết luận xác minh *
+              </Label>
+              <Textarea
+                id="unlockConclusionInput"
+                placeholder={`Nhập kết luận xác minh (tối thiểu ${minUnlockChars} ký tự)`}
+                value={unlockConclusion}
+                onChange={(e) => setUnlockConclusion(e.target.value)}
+                rows={3}
+                maxLength={500}
+              />
+              <div className="flex justify-between text-xs">
+                <span>
+                  {isUnlockEmpty && <span className="text-destructive">Vui lòng nhập kết luận xác minh</span>}
+                  {isUnlockTooShort && (
+                    <span className="text-destructive">
+                      Tối thiểu {minUnlockChars} ký tự (hiện có {trimmedUnlockConclusion.length})
+                    </span>
+                  )}
+                  {isUnlockTooLong && <span className="text-destructive">Tối đa 500 ký tự</span>}
+                  {isUnlockValid && (
+                    <span className="text-emerald-600 flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Hợp lệ
+                    </span>
+                  )}
+                </span>
+                <span className="text-muted-foreground">{trimmedUnlockConclusion.length}/500</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="unlockEvidenceInput" className="font-medium text-slate-800">
+                Bằng chứng xác minh (tùy chọn)
+              </Label>
+              <Textarea
+                id="unlockEvidenceInput"
+                placeholder="Nhập thông tin chứng từ, biên bản xác minh, ghi chú..."
+                value={unlockEvidence}
+                onChange={(e) => setUnlockEvidence(e.target.value)}
+                rows={2}
+                maxLength={500}
+              />
+              <div className="flex justify-end text-xs text-muted-foreground">
+                {unlockEvidence.trim().length}/500
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowUnlockForm(false)} disabled={unlockSubmitting}>
+                Hủy bỏ
+              </Button>
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={handleUnlockSubmit}
+                disabled={!isUnlockValid || unlockSubmitting}
+              >
+                <Unlock className="mr-2 h-4 w-4" />
+                {unlockSubmitting ? 'Đang xử lý...' : 'Xác nhận mở khóa'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Suspect Info */}
       <Card>
         <CardHeader>
@@ -172,12 +433,34 @@ export default function SuspectTraceCodeDetailPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <p className="text-sm text-muted-foreground">Lô hàng</p>
-              <p className="font-medium">{detail.shipmentName}</p>
+              <p className="font-medium">{detail.shipmentName || '—'}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Mã tem</p>
               <p className="font-mono text-sm">{detail.codeValue}</p>
             </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Loại nông sản</p>
+              <p className="font-medium text-slate-800">{detail.productCategoryName || 'Chưa phân loại'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Nguồn cấu hình ngưỡng</p>
+              {detail.effectiveThreshold?.productCategoryId ? (
+                <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 font-medium">
+                  Ghi đè theo danh mục ({detail.effectiveThreshold.productCategoryName || detail.productCategoryName})
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-slate-300 bg-slate-50 text-slate-700 font-medium">
+                  Ngưỡng toàn cục mặc định
+                </Badge>
+              )}
+            </div>
+            {detail.evaluatedAt && (
+              <div>
+                <p className="text-sm text-muted-foreground">Thời điểm đánh giá nghi vấn</p>
+                <p className="font-medium text-slate-800">{formatDateTime(detail.evaluatedAt)}</p>
+              </div>
+            )}
             {detail.lockedAt && (
               <>
                 <div>
@@ -187,6 +470,18 @@ export default function SuspectTraceCodeDetailPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Người khóa</p>
                   <p className="font-medium">{detail.lockedByName || '—'}</p>
+                </div>
+              </>
+            )}
+            {detail.unlockedAt && (
+              <>
+                <div>
+                  <p className="text-sm text-muted-foreground">Thời điểm mở khóa</p>
+                  <p className="font-medium">{formatDateTime(detail.unlockedAt)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Người mở khóa</p>
+                  <p className="font-medium">{detail.unlockedByName || '—'}</p>
                 </div>
               </>
             )}
@@ -215,20 +510,53 @@ export default function SuspectTraceCodeDetailPage() {
               </div>
             </div>
           )}
+
+          {detail.unlockConclusion && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                <div className="space-y-1">
+                  <p className="font-medium text-emerald-900">Kết luận xác minh mở khóa</p>
+                  <p className="text-sm text-emerald-800">{detail.unlockConclusion}</p>
+                  {detail.unlockEvidence && (
+                    <p className="text-xs text-emerald-700 italic">Bằng chứng: {detail.unlockEvidence}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Score Breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Chi tiết điểm nghi vấn</CardTitle>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Chi tiết điểm nghi vấn (Snapshot bằng chứng)</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Điểm số và phân tích được chụp lại tại thời điểm hệ thống ghi nhận nghi vấn
+              </CardDescription>
+            </div>
+            {detail.evaluatedAt && (
+              <Badge variant="secondary" className="text-xs">
+                Chụp lúc: {formatDateTime(detail.evaluatedAt)}
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="flex items-center gap-2">
                 <ScanLine className="h-4 w-4 text-blue-500" />
-                <span className="text-sm">Tần suất quét cao ({'>'}= 10 lượt/24h)</span>
+                <span className="text-sm">
+                  Tần suất quét cao (
+                  {detail.effectiveThreshold?.maxScansPerDay
+                    ? `≥ ${detail.effectiveThreshold.maxScansPerDay} lượt/24h hoặc ≥ ${detail.effectiveThreshold.maxScansPerHour ?? 5} lượt/giờ`
+                    : '≥ 10 lượt/24h hoặc ≥ 5 lượt/giờ'}
+                  )
+                </span>
               </div>
               <Badge variant={detail.anomalyDetails.scoreBreakdown.highFrequency > 0 ? 'default' : 'secondary'}>
                 +{detail.anomalyDetails.scoreBreakdown.highFrequency}
@@ -238,7 +566,11 @@ export default function SuspectTraceCodeDetailPage() {
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-red-500" />
                 <span className="text-sm">
-                  Khoảng cách không hợp lý ({'>'}50km trong {'<'}30 phút)
+                  Khoảng cách không hợp lý (
+                  {detail.effectiveThreshold?.maxDistanceKmPer30Min
+                    ? `>${detail.effectiveThreshold.maxDistanceKmPer30Min}km trong ≤${detail.effectiveThreshold.minTimeBetweenScansMinutes ?? 30} phút`
+                    : '>50km trong ≤30 phút'}
+                  )
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -253,18 +585,25 @@ export default function SuspectTraceCodeDetailPage() {
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-emerald-500" />
-                <span className="text-sm">Nhiều địa điểm ({'>'}= 5 địa điểm/24h)</span>
+                <span className="text-sm">Nhiều địa điểm khác nhau (≥ 5 địa điểm trong 24h)</span>
               </div>
               <Badge variant={detail.anomalyDetails.scoreBreakdown.multipleLocations > 0 ? 'default' : 'secondary'}>
                 +{detail.anomalyDetails.scoreBreakdown.multipleLocations}
               </Badge>
             </div>
             <div className="flex items-center justify-between rounded-lg border-2 border-primary/20 bg-primary/5 p-3">
-              <span className="font-semibold">Tổng điểm</span>
+              <span className="font-semibold">Tổng điểm nghi vấn</span>
               <span className={`text-lg font-bold ${getScoreColor(detail.suspicionScore)}`}>
                 {detail.suspicionScore}/100
               </span>
             </div>
+          </div>
+
+          <div className="mt-3 flex items-start gap-2 rounded-lg bg-muted/40 p-2.5 text-xs text-muted-foreground">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+            <span>
+              Bằng chứng phân tích điểm nghi vấn được chụp lại cố định tại thời điểm đánh giá ({formatDateTime(detail.evaluatedAt)}), giúp đối soát lịch sử độc lập với cửa sổ trượt 24h của các lượt quét mới phát sinh.
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -272,12 +611,26 @@ export default function SuspectTraceCodeDetailPage() {
       {/* Scan Logs */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Lịch sử quét (24 giờ gần nhất)</CardTitle>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Lịch sử quét (Cửa sổ trượt 24 giờ gần nhất)</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Các lượt quét phát sinh trong vòng 24 giờ qua phục vụ theo dõi thời gian thực
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {detail.scanLogs.length} lượt quét gần nhất
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {detail.scanLogs.length === 0 ? (
-            <div className="flex justify-center py-8 text-sm text-muted-foreground">
-              Không có lượt quét nào
+            <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+              <Clock className="h-8 w-8 text-muted-foreground/50 mb-2" />
+              <p className="text-sm font-medium text-slate-700">Không có lượt quét nào trong 24 giờ gần nhất</p>
+              <p className="text-xs text-muted-foreground max-w-md mt-1">
+                Mã tem không phát sinh lượt quét mới trong 24 giờ qua. Dữ liệu bằng chứng vi phạm lúc phát hiện ({formatDateTime(detail.evaluatedAt)}) vẫn được bảo toàn đầy đủ ở phần Chi tiết điểm nghi vấn phía trên.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -319,31 +672,6 @@ export default function SuspectTraceCodeDetailPage() {
         </CardContent>
       </Card>
 
-      {showLockDialog && detail.status === 'SUSPECT' && (
-        <LockTraceCodeDialog
-          traceCode={{
-          id: detail.id,
-          codeValue: detail.codeValue,
-          shipmentName: detail.shipmentName,
-          status: detail.status,
-          suspicionScore: detail.suspicionScore,
-          suspicionReason: detail.suspicionReason,
-          scanCount: detail.scanCount,
-          uniqueLocations: detail.uniqueLocations,
-          firstScannedAt: detail.firstScannedAt,
-          lastScannedAt: detail.lastScannedAt,
-          lockedAt: detail.lockedAt,
-          lockedBy: detail.lockedBy,
-          lockedByName: detail.lockedByName,
-            lockReason: detail.lockReason,
-          }}
-          onClose={() => setShowLockDialog(false)}
-          onSuccess={() => {
-            setShowLockDialog(false);
-            fetchDetail();
-          }}
-        />
-      )}
     </div>
   );
 }

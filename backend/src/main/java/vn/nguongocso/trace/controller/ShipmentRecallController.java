@@ -5,7 +5,12 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -18,23 +23,16 @@ import vn.nguongocso.trace.dto.response.RecallInfoResponse;
 import vn.nguongocso.trace.dto.response.RecallResponse;
 import vn.nguongocso.trace.service.ShipmentRecallService;
 
-/**
- * Controller quản lý thu hồi lô hàng.
- */
+/** Controller quản lý thu hồi lô hàng. */
 @RestController
 @RequestMapping("/api/v1/shipments")
 @RequiredArgsConstructor
 @Validated
 public class ShipmentRecallController {
-
     private final ShipmentRecallService shipmentRecallService;
     private final PermissionChecker permissionChecker;
 
-    /**
-     * Thu hồi một lô hàng.
-     *
-     * POST /api/v1/shipments/{shipmentId}/recall
-     */
+    /** Thu hồi một lô hàng. */
     @PostMapping("/{shipmentId}/recall")
     public ResponseEntity<ApiResult<RecallResponse>> recallShipment(
             @PathVariable UUID shipmentId,
@@ -60,11 +58,7 @@ public class ShipmentRecallController {
                         response));
     }
 
-    /**
-     * Lấy thông tin thu hồi của lô hàng.
-     *
-     * GET /api/v1/shipments/{shipmentId}/recall
-     */
+    /** Lấy thông tin thu hồi của lô hàng. */
     @GetMapping("/{shipmentId}/recall")
     public ResponseEntity<ApiResult<RecallInfoResponse>> getRecallInfo(
             @PathVariable UUID shipmentId) {
@@ -80,14 +74,7 @@ public class ShipmentRecallController {
                         response));
     }
 
-    /**
-     * Lấy địa chỉ IP thực tế của client.
-     *
-     * Ưu tiên:
-     * 1. X-Forwarded-For
-     * 2. X-Real-IP
-     * 3. request.getRemoteAddr()
-     */
+    /** Lấy địa chỉ IP thực tế của client. Ưu tiên: 1. X-Forwarded-For 2. X-Real-IP 3. request.getRemoteAddr() */
     private String getClientIpAddress(HttpServletRequest request) {
 
         String xForwardedFor =

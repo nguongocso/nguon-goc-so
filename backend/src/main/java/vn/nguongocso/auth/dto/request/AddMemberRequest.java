@@ -7,8 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * Yêu cầu thêm thành viên mới, bao gồm thông tin đăng nhập và thông tin cá
- * nhân.
+ * Yêu cầu thêm thành viên mới, bao gồm thông tin đăng nhập và thông tin cá nhân.
  */
 @Data
 public class AddMemberRequest {

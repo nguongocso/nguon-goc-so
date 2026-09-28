@@ -105,7 +105,6 @@ export function CreateOrganizationForm() {
         </CardHeader>
 
         <CardContent className="space-y-5 pt-6 pb-6 px-5">
-          {/* Thông tin tổ chức */}
           <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
               <Building2 className="h-4 w-4" />
@@ -168,7 +167,6 @@ export function CreateOrganizationForm() {
             </div>
           </div>
 
-          {/* Quản trị viên */}
           <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
               <UserRound className="h-4 w-4" />
@@ -215,7 +213,6 @@ export function CreateOrganizationForm() {
             </div>
           </div>
 
-          {/* Bảo mật */}
           <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
               <ShieldCheck className="h-4 w-4" />
@@ -294,7 +291,6 @@ export function CreateOrganizationForm() {
           </div>
         </CardContent>
 
-        {/* Footer gọn gàng */}
         <div className="border-t px-5 py-4 flex justify-end gap-3">
           <Button
             type="button"

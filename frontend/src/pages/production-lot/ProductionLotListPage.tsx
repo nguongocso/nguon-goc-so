@@ -16,7 +16,7 @@ const ProductionLotListPage = () => {
   const canImport = user?.roleCode === 'VT-02'; // quyền nhập lô hàng loạt
 
   useSetBreadcrumb([
-    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Tổng quan', href: '/dashboard' },
     { label: 'Lô sản xuất' },
   ]);
 

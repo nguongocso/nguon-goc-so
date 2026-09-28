@@ -21,9 +21,7 @@ import lombok.Setter;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 
-/**
- * Thực thể đại diện cho một mã truy xuất.
- */
+/** Thực thể đại diện cho một mã truy xuất. */
 @Getter
 @Setter
 @Entity
@@ -48,6 +46,12 @@ public class TraceCode {
     @Column(nullable = false, length = 20)
     private TraceCodeStatus status;
 
+    @Column(name = "printed_at")
+    private LocalDateTime printedAt;
+
+    @Column(name = "print_batch_id", length = 100)
+    private String printBatchId;
+
     @Column(name = "activated_at")
     private LocalDateTime activatedAt;
 
@@ -60,6 +64,21 @@ public class TraceCode {
 
     @Column(name = "suspicion_score")
     private Integer suspicionScore;
+
+    @Column(name = "high_frequency_score")
+    private Integer highFrequencyScore;
+
+    @Column(name = "impossible_travel_score")
+    private Integer impossibleTravelScore;
+
+    @Column(name = "multiple_locations_score")
+    private Integer multipleLocationsScore;
+
+    @Column(name = "evaluated_at")
+    private LocalDateTime evaluatedAt;
+
+    @Column(name = "violating_scan_log_ids", columnDefinition = "TEXT")
+    private String violatingScanLogIds;
 
     @Column(name = "suspicion_reason", columnDefinition = "TEXT")
     private String suspicionReason;
@@ -86,6 +105,22 @@ public class TraceCode {
 
     @Column(name = "cancel_reason", columnDefinition = "TEXT")
     private String cancelReason;
+
+    @Column(name = "unlocked_at")
+    private LocalDateTime unlockedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "unlocked_by")
+    private User unlockedBy;
+
+    @Column(name = "unlock_conclusion", columnDefinition = "TEXT")
+    private String unlockConclusion;
+
+    @Column(name = "unlock_evidence", columnDefinition = "TEXT")
+    private String unlockEvidence;
+
+    @Column(name = "verification_note", columnDefinition = "TEXT")
+    private String verificationNote;
 
     @PrePersist
     protected void onCreate() {

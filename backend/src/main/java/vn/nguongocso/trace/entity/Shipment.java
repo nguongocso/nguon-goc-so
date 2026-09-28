@@ -24,9 +24,7 @@ import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 
-/**
- * Thực thể đại diện cho một lô hàng.
- */
+/** Thực thể đại diện cho một lô hàng. */
 @Getter
 @Setter
 @Entity
@@ -48,6 +46,21 @@ public class Shipment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "code_range_id")
     private CodeRange codeRange;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_shipment_id")
+    private Shipment parentShipment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recipient_organization_id")
+    private Organization recipientOrganization;
+
+    @Column(name = "split_at")
+    private LocalDateTime splitAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "split_by")
+    private User splitBy;
 
     @Column(nullable = false)
     private String name;

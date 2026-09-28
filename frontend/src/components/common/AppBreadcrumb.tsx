@@ -11,14 +11,22 @@ import {
   Breadcrumb,
   type BreadcrumbItem,
 } from "@/components/ui/Breadcrumb";
+import {
+  AUTHENTICATED_ROLE_CODES,
+  ROLE_ACCESS,
+  hasAnyRole,
+  type AuthenticatedRoleCode,
+} from "@/config/roleAccess";
+import { useAuth } from "@/hooks/useAuth";
 
 // ============================================================
 // Route registry: nhãn tiếng Việt cho từng route template.
 // Template tĩnh đứng trước template có :param ở cùng độ dài.
 // ============================================================
 
-const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
-  // User Profile
+export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
+  // User Profile & Dashboard
+  ["/dashboard", "Tổng quan"],
   ["/profile", "Hồ sơ người dùng"],
 
   // Organizations
@@ -40,6 +48,10 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   // Production lots
   ["/production-lots/create", "Tạo lô sản xuất"],
   ["/production-lots/import", "Nhập lô sản xuất"],
+  [
+    "/production-lots/:lotId/shipments/:shipmentId/trace-codes",
+    "Mã tem truy xuất",
+  ],
   [
     "/production-lots/:lotId/shipments/:shipmentId",
     "Chi tiết lô hàng",
@@ -69,31 +81,48 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/production-lots", "Lô sản xuất"],
 
   // Shipments
+  ["/shipments/:id/split", "Tách lô hàng"],
   [
     "/production-lots/:productionLotId/shipments/create",
     "Tạo lô hàng",
+  ],
+  ["/shipments/:id/cancellation-history", "Lịch sử hủy tem"],
+  [
+    "/production-lots/:lotId/shipments/:id/cancellation-history",
+    "Lịch sử hủy tem",
+  ],
+  ["/shipments/:id/cancel-labels", "Hủy tem"],
+  [
+    "/production-lots/:lotId/shipments/:id/cancel-labels",
+    "Hủy tem",
+  ],
+  [
+    "/shipments/:shipmentId/trace-codes",
+    "Mã tem truy xuất",
+  ],
+  [
+    "/shipments/:id/trace-codes",
+    "Mã tem truy xuất",
   ],
   ["/shipments/:id", "Chi tiết lô hàng"],
 
   // Farm logs
   ["/farm-logs/create", "Ghi nhật ký canh tác"],
-  ["/farm-logs", "Nhật ký canh tác"],
+  ["/farm-logs/:id/correct", "Sửa nhật ký canh tác"],
+  ["/farm-logs/:id", "Chi tiết nhật ký canh tác"],
 
   // Preprocessing / Packaging / Transport events
   ["/preprocessing-events/create", "Ghi sơ chế"],
   ["/preprocessing-events/:id/correct", "Sửa sơ chế"],
-  ["/preprocessing-events", "Sơ chế"],
   ["/packaging-events/create", "Ghi đóng gói"],
   ["/packaging-events/:id/correct", "Sửa đóng gói"],
-  ["/packaging-events", "Đóng gói"],
   ["/transport-events/record", "Ghi vận chuyển"],
-  ["/transport-events", "Vận chuyển"],
   ["/chain-events/scan", "Quét mã sự kiện"],
   ["/offline-events", "Sự kiện ngoại tuyến"],
 
   // Admin
   ["/admin/code-ranges/create", "Cấp dải mã"],
-  ["/admin/code-ranges", "Dải mã truy xuất"],
+  ["/admin/code-ranges", "Quản lý dải mã truy xuất"],
   ["/admin/product-categories/create", "Thêm loại nông sản"],
   ["/admin/product-categories/:id/edit", "Cập nhật loại nông sản"],
   ["/admin/product-categories/:id/criteria", "Gán bộ chỉ tiêu kiểm nghiệm"],
@@ -107,18 +136,29 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/admin/standards/create", "Thêm tiêu chuẩn"],
   ["/admin/standards/:id/edit", "Cập nhật tiêu chuẩn"],
   ["/admin/standards", "Tiêu chuẩn"],
+  ["/admin/certifications/:certificateId", "Chi tiết chứng nhận"],
+  ["/admin/certifications", "Xác thực chứng nhận"],
+  ["/admin/testing-units/create", "Thêm đơn vị kiểm nghiệm"],
+  ["/admin/testing-units/:id/edit", "Chỉnh sửa đơn vị kiểm nghiệm"],
+  ["/admin/testing-units/:id/scopes", "Phạm vi công nhận"],
+  ["/admin/testing-units", "Đơn vị kiểm nghiệm"],
   ["/admin/backup-restore", "Sao lưu & khôi phục"],
   ["/admin/system-monitoring", "Giám sát hệ thống"],
   ["/admin/suspect-trace-codes/:traceCodeId", "Chi tiết mã nghi vấn"],
   ["/admin/suspect-trace-codes", "Mã truy xuất nghi vấn"],
-  ["/integration/api-keys/create", "Cấp khóa API"],
-  ["/integration/api-keys", "Khóa API đối tác"],
+  ["/admin/anomaly-thresholds/categories/create", "Thêm cấu hình theo loại nông sản"],
+  ["/admin/anomaly-thresholds/categories/:id/edit", "Chỉnh sửa cấu hình theo loại nông sản"],
+  ["/admin/anomaly-thresholds", "Cấu hình ngưỡng quét bất thường"],
+  ["/admin/account-areas", "Phân công địa bàn"],
 
   // Reports
+  ["/reports/alert-lots/:lotId", "Chi tiết lô có cảnh báo"],
+  ["/reports/alert-lots", "Theo dõi lô có cảnh báo"],
   ["/reports/lookup-statistics", "Thống kê tra cứu"],
   ["/reports/crop-area-analysis", "Phân tích vùng trồng"],
   ["/reports/season-yield-comparison", "So sánh mùa vụ"],
   ["/reports/industry", "Báo cáo ngành"],
+  ["/reports/organization-usage", "Mức độ sử dụng nền tảng"],
   ["/activity-logs", "Nhật ký hoạt động"],
   ["/login-history", "Lịch sử đăng nhập"],
   ["/login-anomalies", "Bất thường đăng nhập"],
@@ -126,6 +166,7 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
 
   // Notifications / Alerts
   ["/notifications", "Thông báo"],
+  ["/alerts", "Tổng hợp cảnh báo"],
   ["/alerts/scan-anomaly", "Cảnh báo quét nghi vấn"],
 
   // Certifications
@@ -133,15 +174,28 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/certifications", "Kiểm nghiệm & chứng nhận"],
 
   // Integration / Export / Permissions
+  ["/integration/api-keys/create-test", "Cấp khóa thử nghiệm"],
+  ["/integration/api-keys/create", "Cấp khóa API"],
   ["/integration/api-keys", "Khóa API đối tác"],
+  ["/export/profile-templates/new", "Tạo mẫu hồ sơ"],
+  ["/export/profile-templates/:id/edit", "Chỉnh sửa mẫu hồ sơ"],
+  ["/export/profile-templates", "Mẫu hồ sơ truy xuất"],
   ["/export/open-data", "Dữ liệu mở"],
   ["/permissions/config", "Cấu hình quyền"],
 
   // Warehouse / Storage
   ["/warehouse-receipt/:eventId", "Chi tiết phiếu nhập kho"],
   ["/warehouse-receipt", "Phiếu nhập kho"],
-  ["/storage-condition", "Điều kiện bảo quản"],
+  ["/storage-condition", "Bảo quản"],
   ["/event-chain-verification", "Xác minh chuỗi sự kiện"],
+
+  // Shipment handover (NCL-05-CN-008/CN-009)
+  ["/shipment-handovers/received", "Phiếu bàn giao nhận"],
+  ["/shipment-handovers/sent", "Phiếu bàn giao đã gửi"],
+  ["/shipment-handovers/:id", "Chi tiết phiếu bàn giao"],
+  ["/handover/sent", "Phiếu bàn giao đã gửi"],
+  ["/handover/:id", "Chi tiết phiếu bàn giao"],
+  ["/handover", "Phiếu bàn giao nhận"],
 
   // Mobile / Invitations / Recall / Feedback
   ["/mobile/record-event", "Ghi sự kiện di động"],
@@ -149,10 +203,238 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/recall-requests/create", "Tạo yêu cầu thu hồi"],
   ["/recall-requests/:id", "Chi tiết yêu cầu thu hồi"],
   ["/recall-requests", "Yêu cầu thu hồi"],
+  ["/product-feedbacks/:feedbackId", "Chi tiết phản ánh"],
   ["/product-feedbacks", "Phản hồi người dùng"],
   ["/forgot-password", "Quên mật khẩu"],
   ["/reset-password", "Đặt lại mật khẩu"],
 ];
+
+/**
+ * Cấu hình quyền truy cập cho từng route template đích.
+ * Dùng để kiểm tra xem route có tồn tại và người dùng có quyền truy cập hay không.
+ */
+export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
+  readonly [string, readonly AuthenticatedRoleCode[]]
+> = [
+  // User Profile & Dashboard
+  ["/dashboard", AUTHENTICATED_ROLE_CODES],
+  ["/profile", ROLE_ACCESS.userProfile],
+
+  // Organizations
+  ["/organizations/profile", ROLE_ACCESS.organizationProfile],
+  ["/organizations/create", ROLE_ACCESS.organizationCreate],
+  ["/organizations/:id", ROLE_ACCESS.organizationList],
+  ["/organizations", ROLE_ACCESS.organizationList],
+
+  // Members
+  ["/members/create", ROLE_ACCESS.memberManagement],
+  ["/members", ROLE_ACCESS.memberManagement],
+
+  // Farm areas
+  ["/farm-areas/create", ROLE_ACCESS.farmAreaCreate],
+  ["/farm-areas/:id/edit", ROLE_ACCESS.farmAreaCreate],
+  ["/chinhsuavungtrong/:id", ROLE_ACCESS.farmAreaCreate],
+  ["/farm-areas", ["VT-02"]],
+
+  // Production lots
+  ["/production-lots/create", ["VT-02"]],
+  ["/production-lots/import", ["VT-02"]],
+  [
+    "/production-lots/:lotId/shipments/:shipmentId/trace-codes",
+    ROLE_ACCESS.traceCodeView,
+  ],
+  [
+    "/production-lots/:lotId/shipments/:shipmentId",
+    ["VT-01", "VT-02", "VT-03", "VT-04"],
+  ],
+  ["/production-lots/:productionLotId/farm-logs", ["VT-02"]],
+  ["/production-lots/:lotId/inspection-requests/create", ["VT-02"]],
+  ["/production-lots/:id/inspection-requests/create", ["VT-02"]],
+  [
+    "/production-lots/:lotId/inspection-requests/:requestId/results",
+    ["VT-02"],
+  ],
+  ["/inspection-requests/:requestId/results", ["VT-02"]],
+  ["/production-lots/:id/edit", ROLE_ACCESS.productionLotEdit],
+  ["/production-lots/:id", ["VT-01", "VT-02", "VT-03", "VT-05"]],
+  ["/production-lots", ROLE_ACCESS.productionLotList],
+
+  // Shipments
+  ["/shipments/:id/split", ROLE_ACCESS.shipmentSplit],
+  [
+    "/production-lots/:productionLotId/shipments/create",
+    ["VT-01", "VT-02", "VT-03"],
+  ],
+  ["/shipments/:id/cancellation-history", ["VT-02", "VT-03", "VT-04"]],
+  [
+    "/production-lots/:lotId/shipments/:id/cancellation-history",
+    ["VT-02", "VT-03", "VT-04"],
+  ],
+  ["/shipments/:id/cancel-labels", ["VT-02", "VT-03", "VT-04"]],
+  [
+    "/production-lots/:lotId/shipments/:id/cancel-labels",
+    ["VT-02", "VT-03", "VT-04"],
+  ],
+  [
+    "/shipments/:shipmentId/trace-codes",
+    ROLE_ACCESS.traceCodeView,
+  ],
+  [
+    "/shipments/:id/trace-codes",
+    ROLE_ACCESS.traceCodeView,
+  ],
+  ["/shipments/:id", ["VT-02", "VT-03", "VT-04"]],
+
+  // Farm logs
+  ["/farm-logs/create", ROLE_ACCESS.farmLogCreate],
+  ["/farm-logs/:id/correct", ROLE_ACCESS.farmLogCorrect],
+  ["/farm-logs/:id", ROLE_ACCESS.farmLogView],
+
+  // Preprocessing / Packaging / Transport / Chain events
+  ["/preprocessing-events/create", ROLE_ACCESS.preprocessingEventCreate],
+  ["/preprocessing-events/:id/correct", ROLE_ACCESS.preprocessingEventCorrect],
+  ["/packaging-events/create", ROLE_ACCESS.packagingEventCreate],
+  ["/packaging-events/:id/correct", ROLE_ACCESS.packagingEventCorrect],
+  ["/transport-events/record", ROLE_ACCESS.transportEventRecord],
+  ["/chain-events/scan", ROLE_ACCESS.scanQuickEvent],
+  ["/offline-events", ["VT-02", "VT-03"]],
+
+  // Admin
+  ["/admin/code-ranges/create", ROLE_ACCESS.codeRangeList],
+  ["/admin/code-ranges", ROLE_ACCESS.codeRangeList],
+  ["/admin/product-categories/create", ["VT-01"]],
+  ["/admin/product-categories/:id/edit", ["VT-01"]],
+  ["/admin/product-categories/:id/criteria", ["VT-01"]],
+  ["/admin/product-categories", ["VT-01"]],
+  ["/admin/input-materials/create", ["VT-01"]],
+  ["/admin/input-materials/:id/edit", ["VT-01"]],
+  ["/admin/input-materials/:id", ["VT-01", "VT-02", "VT-03", "VT-04"]],
+  ["/admin/input-materials", ["VT-01", "VT-02", "VT-03", "VT-04"]],
+  ["/admin/inspection-criteria/create", ROLE_ACCESS.inspectionCriteriaManagement],
+  ["/admin/inspection-criteria", ROLE_ACCESS.inspectionCriteriaManagement],
+  ["/admin/standards/create", ROLE_ACCESS.standardManagement],
+  ["/admin/standards/:id/edit", ROLE_ACCESS.standardManagement],
+  ["/admin/standards", ROLE_ACCESS.standardManagement],
+  ["/admin/certifications/:certificateId", ROLE_ACCESS.certificateVerification],
+  ["/admin/certifications", ROLE_ACCESS.certificateVerification],
+  ["/admin/testing-units/create", ["VT-01"]],
+  ["/admin/testing-units/:id/edit", ["VT-01"]],
+  ["/admin/testing-units/:id/scopes", ROLE_ACCESS.testingUnitScopeManagement],
+  ["/admin/testing-units", ["VT-01"]],
+  ["/admin/backup-restore", ["VT-01"]],
+  ["/admin/system-monitoring", ["VT-01"]],
+  ["/admin/suspect-trace-codes/:traceCodeId", ["VT-01"]],
+  ["/admin/suspect-trace-codes", ["VT-01"]],
+  ["/admin/account-areas", ROLE_ACCESS.areaAssignment],
+
+  // Reports
+  ["/reports/alert-lots/:lotId", ROLE_ACCESS.territoryAlertLots],
+  ["/reports/alert-lots", ROLE_ACCESS.territoryAlertLots],
+  ["/reports/lookup-statistics", ["VT-01", "VT-02"]],
+  ["/reports/crop-area-analysis", ["VT-02", "VT-03"]],
+  ["/reports/season-yield-comparison", ROLE_ACCESS.seasonYieldComparison],
+  ["/reports/industry", ["VT-05"]],
+  ["/activity-logs", ["VT-02"]],
+  ["/login-history", ["VT-01"]],
+  ["/login-anomalies", ["VT-01"]],
+  ["/failed-event-logs", ["VT-01"]],
+
+  // Notifications / Alerts
+  ["/notifications", ROLE_ACCESS.notificationInbox],
+  ["/alerts", ROLE_ACCESS.aggregateAlerts],
+  ["/alerts/scan-anomaly", ROLE_ACCESS.scanAnomalyAlerts],
+
+  // Certifications
+  ["/certifications/create", ["VT-02"]],
+  ["/certifications", ["VT-02"]],
+
+  // Integration / Export / Permissions
+  ["/integration/api-keys/create-test", ROLE_ACCESS.apiKeyManagement],
+  ["/integration/api-keys/create", ROLE_ACCESS.apiKeyManagement],
+  ["/integration/api-keys", ROLE_ACCESS.apiKeyManagement],
+  ["/export/profile-templates/new", ROLE_ACCESS.profileTemplateManage],
+  ["/export/profile-templates/:id/edit", ROLE_ACCESS.profileTemplateManage],
+  ["/export/profile-templates", ROLE_ACCESS.profileTemplateManage],
+  ["/export/open-data", ROLE_ACCESS.exportOpenData],
+  ["/permissions/config", ROLE_ACCESS.rolePermissionConfig],
+
+  // Warehouse / Storage
+  ["/warehouse-receipt/:eventId", ROLE_ACCESS.warehouseReceipt],
+  ["/warehouse-receipt", ROLE_ACCESS.warehouseReceipt],
+  ["/storage-condition", ROLE_ACCESS.storageCondition],
+  ["/event-chain-verification", ROLE_ACCESS.eventChainVerification],
+
+  // Shipment handover (NCL-05-CN-008/CN-009)
+  ["/shipment-handovers/received", ROLE_ACCESS.handoverReceivedView],
+  ["/shipment-handovers/sent", ROLE_ACCESS.handoverSentView],
+  ["/shipment-handovers/:id", AUTHENTICATED_ROLE_CODES],
+  ["/handover/sent", ROLE_ACCESS.sentHandoverList],
+  ["/handover/:id", AUTHENTICATED_ROLE_CODES],
+  ["/handover", ROLE_ACCESS.handoverReceivedView],
+
+  // Mobile / Invitations / Recall / Feedback
+  ["/mobile/record-event", ["VT-02", "VT-03"]],
+  ["/invitations/create", ["VT-02"]],
+  ["/recall-requests/create", ROLE_ACCESS.recallRequestCreate],
+  ["/recall-requests/:id", ROLE_ACCESS.recallRequestManage],
+  ["/recall-requests", ROLE_ACCESS.recallRequestManage],
+  ["/product-feedbacks/:feedbackId", ROLE_ACCESS.productFeedbackManagement],
+  ["/product-feedbacks", ROLE_ACCESS.productFeedbackManagement],
+  ["/forgot-password", AUTHENTICATED_ROLE_CODES],
+  ["/reset-password", AUTHENTICATED_ROLE_CODES],
+];
+
+/**
+ * Tìm danh sách vai trò được phép truy cập theo tiền tố đường dẫn.
+ */
+export function matchRouteAccess(
+  path: string,
+  routeAccessConfig: ReadonlyArray<
+    readonly [string, readonly AuthenticatedRoleCode[]]
+  > = ROUTE_ACCESS_CONFIG,
+): readonly AuthenticatedRoleCode[] | null {
+  const cleanPath = path.split("?")[0].split("#")[0];
+  const segs = cleanPath.split("/").filter(Boolean);
+
+  let paramFallback: readonly AuthenticatedRoleCode[] | null = null;
+  for (const [template, allowedRoles] of routeAccessConfig) {
+    const tsegs = template.split("/").filter(Boolean);
+    if (tsegs.length !== segs.length) continue;
+
+    let matched = true;
+    let hasParam = false;
+    for (let i = 0; i < tsegs.length; i += 1) {
+      if (tsegs[i].startsWith(":")) {
+        hasParam = true;
+        continue;
+      }
+      if (tsegs[i] !== segs[i]) {
+        matched = false;
+        break;
+      }
+    }
+    if (!matched) continue;
+    if (!hasParam) return allowedRoles;
+    paramFallback = allowedRoles;
+  }
+  return paramFallback;
+}
+
+/**
+ * Kiểm tra xem một đường dẫn (href) có hợp lệ (route tồn tại) và
+ * vai trò người dùng hiện tại có quyền truy cập hay không.
+ */
+export function isRouteAccessible(
+  href: string | undefined,
+  userRole?: string,
+): boolean {
+  if (!href) return false;
+  const allowedRoles = matchRouteAccess(href);
+  if (!allowedRoles) {
+    return false;
+  }
+  return hasAnyRole(userRole, allowedRoles);
+}
 
 /** Tìm nhãn cho một tiền tố đường dẫn khớp với template trong danh sách cho trước. */
 function matchTemplate(
@@ -218,10 +500,14 @@ function capitalizeFirst(text: string): string {
 }
 
 /** Sinh danh sách breadcrumb tự động từ pathname hiện tại. */
-export function buildAutoBreadcrumb(pathname: string): BreadcrumbItem[] {
-  const segments = pathname.split("?")[0].split("/").filter(Boolean);
+export function buildAutoBreadcrumb(
+  pathname: string,
+  userRole?: string,
+): BreadcrumbItem[] {
+  const cleanPath = pathname.split("?")[0].split("#")[0];
+  const segments = cleanPath.split("/").filter(Boolean);
   const items: BreadcrumbItem[] = [
-    { label: "Dashboard", href: "/dashboard" },
+    { label: "Tổng quan", href: "/dashboard" },
   ];
 
   for (let i = 1; i <= segments.length; i += 1) {
@@ -232,23 +518,22 @@ export function buildAutoBreadcrumb(pathname: string): BreadcrumbItem[] {
     );
 
     if (isLast) {
-      // Trang hiện tại: không cần liên kết
+      // Trang hiện tại: luôn hiển thị, không cần liên kết
       const label =
         matchTemplate(prefix, ROUTE_TEMPLATES) ??
         matchTemplate(prefix, GROUP_TEMPLATES) ??
         fallbackLabel;
       items.push({ label });
-    } else if (matchTemplate(prefix, ROUTE_TEMPLATES) !== null) {
-      // Route trung gian tồn tại -> gắn liên kết
-      items.push({
-        label: matchTemplate(prefix, ROUTE_TEMPLATES) as string,
-        href: prefix,
-      });
     } else {
-      // Không phải route thật (vd /permissions, /reports) -> chỉ hiện nhãn
-      items.push({
-        label: matchTemplate(prefix, GROUP_TEMPLATES) ?? fallbackLabel,
-      });
+      // Đoạn đường dẫn trung gian: chỉ thêm nếu là route thật và user có quyền truy cập
+      const label = matchTemplate(prefix, ROUTE_TEMPLATES);
+      if (label && (userRole === undefined || isRouteAccessible(prefix, userRole))) {
+        items.push({
+          label,
+          href: prefix,
+        });
+      }
+      // Các tiền tố nhóm (group templates) hoặc route không có quyền truy cập sẽ bị ẩn hoàn toàn
     }
   }
   return items;
@@ -302,7 +587,7 @@ export function BreadcrumbOverrideProvider({
  *
  * ```tsx
  * useSetBreadcrumb(lot ? [
- *   { label: "Dashboard", href: "/dashboard" },
+ *   { label: "Tổng quan", href: "/dashboard" },
  *   { label: "Lô sản xuất", href: "/production-lots" },
  *   { label: lot.name }, // trang hiện tại
  * ] : null);
@@ -321,11 +606,25 @@ export function useSetBreadcrumb(items: BreadcrumbItem[] | null): void {
 /**
  * Breadcrumb hiển thị trong layout: dùng override của trang nếu có,
  * ngược lại tự sinh từ pathname theo route registry.
+ * Tự động kiểm tra và lọc bỏ hoàn toàn các liên kết không tồn tại hoặc người dùng không có quyền truy cập.
  */
 export function AppBreadcrumb() {
   const location = useLocation();
+  const { user } = useAuth();
   const { override } = useContext(BreadcrumbOverrideContext);
-  const items = override ?? buildAutoBreadcrumb(location.pathname);
+  const rawItems =
+    override ?? buildAutoBreadcrumb(location.pathname, user?.roleCode);
+
+  // Lọc bỏ hoàn toàn các mục không thể truy cập (route không tồn tại hoặc user không có quyền),
+  // luôn giữ lại mục cuối cùng (trang hiện tại).
+  const items = useMemo(() => {
+    return rawItems.filter((item, index) => {
+      const isLast = index === rawItems.length - 1;
+      if (isLast) return true;
+      if (!item.href) return false;
+      return isRouteAccessible(item.href, user?.roleCode);
+    });
+  }, [rawItems, user?.roleCode]);
 
   return <Breadcrumb items={items} />;
 }
