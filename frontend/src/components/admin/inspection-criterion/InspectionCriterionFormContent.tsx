@@ -249,6 +249,8 @@ export const InspectionCriterionFormContent = ({
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue
+                          // Không thêm nội dung con vào SelectValue — shadcn/ui tự hiển thị
+                          // giá trị chọn từ prop `value` của Select. Thêm con gây lỗi hiển thị.
                           placeholder={
                             standardsLoading
                                 ? "Đang tải tiêu chuẩn..."
@@ -258,9 +260,7 @@ export const InspectionCriterionFormContent = ({
                                         ? "Chưa có tiêu chuẩn chất lượng"
                                         : "Chọn tiêu chuẩn chất lượng"
                           }
-                      >
-                        {selectedOption?.name}
-                      </SelectValue>
+                      />
                     </SelectTrigger>
                     <SelectContent className="min-w-[300px] max-h-[200px]">
                       {standardOptions.map((option) => (
