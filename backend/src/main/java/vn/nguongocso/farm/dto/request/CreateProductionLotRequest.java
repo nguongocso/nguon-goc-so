@@ -33,4 +33,6 @@ public class CreateProductionLotRequest {
     private String expectedQuantityUnit;
 
     private LocalDate plantingDate;
+
+    private String imageUrl;
 }

@@ -7,12 +7,15 @@ import { Button } from "@/components/ui/button";
 import {
   AlertTriangle,
   Ban,
+  Camera,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
   CheckCircle2,
   ClipboardList,
+  Image as ImageIcon,
+  Loader2,
   LoaderCircle,
   Maximize2,
   Package,
@@ -22,8 +25,10 @@ import {
   Wheat,
   X,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getAssetUrl } from "@/config/runtimeConfig";
 import { useAuth } from "@/hooks/useAuth";
-import { cancelProductionLot, getProductionLotById } from "@/api/productionLotApi";
+import { cancelProductionLot, getProductionLotById, uploadProductionLotImage } from "@/api/productionLotApi";
 import { ShipmentList } from "@/pages/public/shipment/ShipmentList";
 import { FarmLogList } from "@/components/farm-log/FarmLogList";
 import { usePermission } from "@/hooks/usePermission";
@@ -1260,6 +1265,31 @@ export const ProductionLotDetailPage = () => {
     : inspectionRequests.slice(0, HISTORY_COLLAPSED_COUNT);
   const canToggleHistory = inspectionRequests.length > HISTORY_COLLAPSED_COUNT;
 
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !lot) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ảnh vượt quá dung lượng cho phép (tối đa 5MB)");
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+      const updatedLot = await uploadProductionLotImage(lot.id, file);
+      setLot((prev) => (prev ? { ...prev, imageUrl: updatedLot.imageUrl } : prev));
+      toast.success("Cập nhật ảnh đại diện sản phẩm thành công!");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Không thể tải lên ảnh sản phẩm");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Thông tin chính */}
@@ -1361,71 +1391,122 @@ export const ProductionLotDetailPage = () => {
               </div>
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Ô thông tin */}
-            <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Sản lượng dự kiến
-              </span>
-              <p className="mt-1 text-lg font-semibold text-emerald-800">
-                {lot.expectedQuantity} {lot.expectedQuantityUnit}
-              </p>
-            </div>
-            <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Sản lượng thực tế
-              </span>
-              <p className="mt-1 text-lg font-semibold text-emerald-800">
-                {lot.actualQuantity ? `${lot.actualQuantity} kg` : "—"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Vùng trồng
-              </span>
-              <p className="mt-1 text-lg font-semibold text-emerald-800">
-                {lot.farmAreaName || "—"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Nông sản
-              </span>
-              <p className="mt-1 text-lg font-semibold text-emerald-800">
-                {lot.productCategoryName || "—"}
-              </p>
-            </div>
-          </div>
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            {/* Khối Ảnh đại diện sản phẩm */}
+            <div className="w-full md:w-64 shrink-0">
+              <div className="relative group overflow-hidden rounded-xl border border-slate-200 bg-slate-50 shadow-xs">
+                {lot.imageUrl ? (
+                  <img
+                    src={getAssetUrl(lot.imageUrl)}
+                    alt={lot.name}
+                    className="w-full h-48 md:h-52 object-cover transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                    onClick={() => setPreviewImage(getAssetUrl(lot.imageUrl!) || null)}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-48 md:h-52 text-slate-400 bg-slate-100/70 p-4 text-center">
+                    <ImageIcon className="h-10 w-10 text-slate-300 mb-2" />
+                    <span className="text-xs font-medium text-slate-500">Chưa có ảnh đại diện</span>
+                    <span className="text-[11px] text-slate-400 mt-1">Sẽ dùng ảnh đóng gói khi quét mã</span>
+                  </div>
+                )}
 
-          {/* Ngày quan trọng */}
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="flex items-center gap-3 rounded-lg bg-emerald-50 p-3">
-              <Sprout className="h-5 w-5 text-emerald-600" />
-              <div>
-                <p className="text-xs text-muted-foreground">Ngày trồng</p>
-                <p className="font-medium">
-                  {lot.plantingDate
-                    ? new Date(lot.plantingDate).toLocaleDateString("vi-VN")
-                    : "—"}
-                </p>
+                {/* Nút cập nhật ảnh nhanh */}
+                <div className="p-2 bg-white border-t border-slate-100 flex items-center justify-between">
+                  <label
+                    htmlFor="lot-image-upload"
+                    className={cn(
+                      "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 cursor-pointer transition border border-emerald-200 shadow-2xs",
+                      isUploadingImage && "opacity-60 cursor-not-allowed pointer-events-none"
+                    )}
+                  >
+                    {isUploadingImage ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="h-3.5 w-3.5" />
+                    )}
+                    <span>{lot.imageUrl ? "Đổi ảnh sản phẩm" : "Tải ảnh sản phẩm"}</span>
+                  </label>
+                  <input
+                    id="lot-image-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                    className="hidden"
+                    disabled={isUploadingImage}
+                    onChange={handleImageUpload}
+                  />
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 rounded-lg bg-amber-50 p-3">
-              <Package className="h-5 w-5 text-amber-600" />
-              <div>
-                <p className="text-xs text-muted-foreground">Ngày thu hoạch</p>
-                <p className="font-medium">
-                  {lot.harvestDate
-                    ? new Date(lot.harvestDate).toLocaleDateString("vi-VN")
-                    : "—"}
-                </p>
+
+            {/* Khối Thống kê & Ngày tháng */}
+            <div className="flex-1 w-full space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Ô thông tin */}
+                <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Sản lượng dự kiến
+                  </span>
+                  <p className="mt-1 text-lg font-semibold text-emerald-800">
+                    {lot.expectedQuantity} {lot.expectedQuantityUnit}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Sản lượng thực tế
+                  </span>
+                  <p className="mt-1 text-lg font-semibold text-emerald-800">
+                    {lot.actualQuantity ? `${lot.actualQuantity} kg` : "—"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Vùng trồng
+                  </span>
+                  <p className="mt-1 text-lg font-semibold text-emerald-800">
+                    {lot.farmAreaName || "—"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Nông sản
+                  </span>
+                  <p className="mt-1 text-lg font-semibold text-emerald-800">
+                    {lot.productCategoryName || "—"}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-lg bg-blue-50 p-3">
-              <Package className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-xs text-muted-foreground">Người tạo</p>
-                <p className="font-medium">{lot.createdByName || "—"}</p>
+
+              {/* Ngày quan trọng */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex items-center gap-3 rounded-lg bg-emerald-50 p-3">
+                  <Sprout className="h-5 w-5 text-emerald-600" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Ngày trồng</p>
+                    <p className="font-medium">
+                      {lot.plantingDate
+                        ? new Date(lot.plantingDate).toLocaleDateString("vi-VN")
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg bg-amber-50 p-3">
+                  <Package className="h-5 w-5 text-amber-600" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Ngày thu hoạch</p>
+                    <p className="font-medium">
+                      {lot.harvestDate
+                        ? new Date(lot.harvestDate).toLocaleDateString("vi-VN")
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg bg-blue-50 p-3">
+                  <Package className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Người tạo</p>
+                    <p className="font-medium">{lot.createdByName || "—"}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2698,6 +2779,27 @@ export const ProductionLotDetailPage = () => {
           navigate(`/production-lots/${lotId}/inspection-requests/create`);
         }}
       />
+
+      {/* Lightbox xem phóng to ảnh sản phẩm */}
+      {previewImage && (
+        <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+          <DialogContent className="max-w-3xl p-3 bg-black/95 border-none text-white shadow-2xl">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Ảnh sản phẩm</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center p-1">
+              <img
+                src={previewImage}
+                alt="Ảnh sản phẩm"
+                className="max-h-[80vh] w-auto max-w-full rounded-lg object-contain"
+              />
+              <p className="mt-3 text-center text-sm font-medium text-slate-200">
+                {lot?.name}
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

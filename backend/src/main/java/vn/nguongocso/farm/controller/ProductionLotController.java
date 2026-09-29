@@ -207,6 +207,21 @@ public class ProductionLotController {
     }
 
     /**
+     * API tải lên ảnh đại diện sản phẩm cho lô sản xuất.
+     */
+    @PostMapping("/{id}/image")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
+    public ResponseEntity<ApiResult<CreateProductionLotResponse>> uploadLotImage(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        permissionChecker.check("PRODUCTION_LOT", "UPDATE");
+        CreateProductionLotResponse response = productionLotService.uploadLotImage(id, file, userDetails);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
      * API lấy danh sách lô sản xuất của tổ chức hiện tại.
      */
     @GetMapping

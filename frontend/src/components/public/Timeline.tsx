@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Calendar,
   Package,
@@ -11,6 +11,7 @@ import {
   Warehouse,
   Thermometer,
   GitFork,
+  Image as ImageIcon,
 } from 'lucide-react';
 import type { PublicChainEventItem } from '@/types/publicTrace';
 import {
@@ -20,6 +21,8 @@ import {
 } from '@/utils/eventFormatter';
 import type { ComponentType } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
+import { getAssetUrl } from '@/config/runtimeConfig';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const EVENT_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   HARVEST: Sprout,
@@ -56,6 +59,7 @@ interface TimelineProps {
 export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => {
   const { lang, t } = useLanguage();
   const isEn = lang === 'en';
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   if (!events || events.length === 0) {
     return (
@@ -82,7 +86,15 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
           (event.eventData as Record<string, unknown>) || {},
           lang,
         );
-        const entries = Object.entries(translatedData);
+        const entries = Object.entries(translatedData).filter(
+          ([key]) => key !== 'images' && key !== 'Ảnh đính kèm'
+        );
+
+        // Lấy danh sách ảnh đính kèm (nếu có)
+        const rawImages = event.eventData?.['images'];
+        const eventImages: string[] = Array.isArray(rawImages)
+          ? rawImages.filter((img): img is string => typeof img === 'string' && img.trim().length > 0)
+          : [];
 
         return (
           <div key={index} className="relative pl-6">
@@ -109,8 +121,9 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
                       {formatDisplayDateTime(event.recordedAt, lang)}
                     </span>
                   </div>
+
                   {entries.length > 0 && (
-                    <div className="mt-1 text-sm text-muted-foreground space-y-1">
+                    <div className="mt-2 text-sm text-muted-foreground space-y-1">
                       {entries.map(([fieldLabel, value]) => {
                         const rawKeys = Object.keys(event.eventData || {});
                         const matchingKey = rawKeys.find((k) => USER_TEXT_FIELDS.has(k));
@@ -135,12 +148,55 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
                       })}
                     </div>
                   )}
+
+                  {/* Hiển thị ảnh bằng chứng thực địa cho sự kiện (Thu hoạch, Đóng gói, Vận chuyển...) */}
+                  {eventImages.length > 0 && (
+                    <div className="mt-3 border-t border-border/40 pt-2.5">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-2">
+                        <ImageIcon className="h-3.5 w-3.5 text-emerald-600" />
+                        <span>{isEn ? 'Event photos' : 'Hình ảnh bằng chứng thực địa:'}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {eventImages.map((imgUrl, imgIdx) => {
+                          const assetUrl = getAssetUrl(imgUrl);
+                          return (
+                            <img
+                              key={imgIdx}
+                              src={assetUrl}
+                              alt={`${label} - ảnh ${imgIdx + 1}`}
+                              onClick={() => setSelectedImage(assetUrl || null)}
+                              className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg border border-border object-cover cursor-pointer hover:scale-105 hover:opacity-90 transition-all shadow-2xs"
+                              loading="lazy"
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         );
       })}
+
+      {/* Lightbox xem phóng to ảnh sự kiện */}
+      {selectedImage && (
+        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+          <DialogContent className="max-w-3xl p-3 bg-black/95 border-none text-white shadow-2xl">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Hình ảnh thực địa</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center p-1">
+              <img
+                src={selectedImage}
+                alt="Hình ảnh thực địa"
+                className="max-h-[80vh] w-auto max-w-full rounded-lg object-contain"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

@@ -248,6 +248,7 @@ function TraceLookupContent() {
         <ProductInfo
           productName={data.productName}
           productNameEn={data.productNameEn}
+          productImageUrl={data.productImageUrl}
           lotName={data.lotName}
           lotCode={data.lotCode}
           shipmentCode={data.shipmentCode}

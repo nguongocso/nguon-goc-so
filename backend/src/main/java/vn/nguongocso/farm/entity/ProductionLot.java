@@ -89,6 +89,9 @@ public class ProductionLot {
     @Column(name = "approval_notes")
     private String approvalNotes;
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private User createdBy;

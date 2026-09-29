@@ -249,6 +249,9 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         // Ranh giới vùng trồng công khai
         PublicFarmAreaBoundaryDto farmAreaBoundary = buildFarmAreaBoundaryDto(productionLot);
 
+        // Ảnh đại diện sản phẩm (Ưu tiên: Ảnh Lô -> Ảnh Đóng gói -> Ảnh Thu hoạch)
+        String productImageUrl = resolveProductImageUrl(productionLot, allEvents);
+
         return PublicTraceResponse.builder()
                 .codeValue(traceCode.getCodeValue())
                 .shipmentId(shipment.getId())
@@ -260,6 +263,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .lotCode(lotCode)
                 .productName(productName)
                 .productNameEn(productNameEn)
+                .productImageUrl(productImageUrl)
                 .shipmentCode(shipmentCode)
                 .shipmentStatus(shipment.getStatus() != null ? shipment.getStatus().name() : "UNKNOWN")
                 .recalled(isRecalled)
@@ -461,10 +465,10 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
         switch (eventType) {
             case HARVEST:
-                keepFields(rawData, result, "productionLotName", "quantity", "harvestDate", "earlyHarvest", "eligibleHarvestDate", "unmatchedMaterials");
+                keepFields(rawData, result, "productionLotName", "quantity", "harvestDate", "earlyHarvest", "eligibleHarvestDate", "unmatchedMaterials", "images");
                 break;
             case PACKAGING:
-                keepFields(rawData, result, "productionLotName", "packagingSpecification", "packagingDate");
+                keepFields(rawData, result, "productionLotName", "packagingSpecification", "packagingDate", "images");
                 break;
             case TRANSPORT:
                 keepFields(rawData, result, "fromLocation", "toLocation", "transportDate");
@@ -480,6 +484,51 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         }
 
         return result;
+    }
+
+    /** Xác định ảnh đại diện sản phẩm theo thứ tự ưu tiên: Ảnh Lô -> Ảnh Đóng gói -> Ảnh Thu hoạch. */
+    private String resolveProductImageUrl(ProductionLot productionLot, List<ChainEvent> allEvents) {
+        if (productionLot != null && productionLot.getImageUrl() != null && !productionLot.getImageUrl().isBlank()) {
+            return productionLot.getImageUrl();
+        }
+
+        if (allEvents != null) {
+            // Ưu tiên ảnh từ sự kiện PACKAGING (Đóng gói)
+            for (ChainEvent event : allEvents) {
+                if (event.getEventType() == ChainEventType.PACKAGING) {
+                    String img = extractFirstImage(event.getEventData());
+                    if (img != null) {
+                        return img;
+                    }
+                }
+            }
+
+            // Kế tiếp là ảnh từ sự kiện HARVEST (Thu hoạch)
+            for (ChainEvent event : allEvents) {
+                if (event.getEventType() == ChainEventType.HARVEST) {
+                    String img = extractFirstImage(event.getEventData());
+                    if (img != null) {
+                        return img;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** Trích xuất ảnh đầu tiên từ JSON eventData. */
+    private String extractFirstImage(String eventDataJson) {
+        Map<String, Object> data = parseEventData(eventDataJson);
+        Object imagesObj = data.get("images");
+        if (imagesObj instanceof List<?> list && !list.isEmpty()) {
+            for (Object item : list) {
+                if (item != null && !item.toString().isBlank()) {
+                    return item.toString();
+                }
+            }
+        }
+        return null;
     }
 
     /** Giữ lại một tập trường dữ liệu cụ thể. */

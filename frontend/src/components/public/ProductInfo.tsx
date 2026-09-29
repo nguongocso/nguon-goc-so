@@ -1,10 +1,13 @@
-import React from 'react';
-import { Layers, Package, Sprout, Tag } from 'lucide-react';
+import React, { useState } from 'react';
+import { Layers, Package, Sprout, Tag, ZoomIn } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { getAssetUrl } from '@/config/runtimeConfig';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface ProductInfoProps {
   productName?: string | null;
   productNameEn?: string | null;
+  productImageUrl?: string | null;
   lotName?: string | null;
   lotCode?: string | null;
   shipmentCode?: string | null;
@@ -14,12 +17,15 @@ interface ProductInfoProps {
 export const ProductInfo: React.FC<ProductInfoProps> = ({
   productName,
   productNameEn,
+  productImageUrl,
   lotName,
   shipmentCode,
   status,
 }) => {
   const { lang, t } = useLanguage();
   const isEn = lang === 'en';
+  const [zoomOpen, setZoomOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const displayName = isEn ? (productNameEn || productName || t('not_updated')) : (productName || t('not_updated'));
 
@@ -47,8 +53,33 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
     CODE_PRINTED: 'text-blue-700 bg-blue-50 border-blue-200',
   };
 
+  const rawUrl = productImageUrl && !imageError ? getAssetUrl(productImageUrl) : null;
+
   return (
     <div className="bg-card rounded-xl border border-border shadow-card p-5 space-y-4">
+      {/* Ảnh Hero Banner sản phẩm cao cấp (Hiển thị đẹp cả mobile và desktop) */}
+      {rawUrl && (
+        <div className="relative w-full overflow-hidden rounded-xl bg-slate-100 border border-slate-200/80 group">
+          <img
+            src={rawUrl}
+            alt={displayName}
+            onError={() => setImageError(true)}
+            onClick={() => setZoomOpen(true)}
+            className="w-full aspect-[16/9] sm:h-72 sm:aspect-auto object-cover cursor-pointer transition-transform duration-300 group-hover:scale-[1.02]"
+          />
+          <button
+            type="button"
+            onClick={() => setZoomOpen(true)}
+            aria-label="Phóng to ảnh"
+            className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-xs transition hover:bg-black/80 shadow-xs"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+            <span>Phóng to</span>
+          </button>
+        </div>
+      )}
+
+      {/* Tiêu đề và trạng thái */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
         <div>
           <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground">
@@ -70,6 +101,7 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
         </div>
       </div>
 
+      {/* Lưới thông tin chi tiết */}
       <div
         className={`grid grid-cols-1 ${
           shipmentCode ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
@@ -123,6 +155,27 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
           </div>
         )}
       </div>
+
+      {/* Lightbox xem phóng to toàn màn hình */}
+      {rawUrl && (
+        <Dialog open={zoomOpen} onOpenChange={setZoomOpen}>
+          <DialogContent className="max-w-3xl p-3 bg-black/95 border-none text-white shadow-2xl">
+            <DialogHeader className="sr-only">
+              <DialogTitle>{displayName}</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center p-1">
+              <img
+                src={rawUrl}
+                alt={displayName}
+                className="max-h-[80vh] w-auto max-w-full rounded-lg object-contain"
+              />
+              <p className="mt-3 text-center text-sm font-medium text-slate-200">
+                {displayName}
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

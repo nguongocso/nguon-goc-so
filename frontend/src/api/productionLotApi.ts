@@ -407,4 +407,27 @@ export const getChainProgressBoard = async (params?: {
     );
 
     return response.data.data;
+};
+
+/**
+ * Tải lên ảnh đại diện sản phẩm cho lô sản xuất.
+ *
+ * POST /api/v1/production-lots/{id}/image
+ */
+export const uploadProductionLotImage = async (
+    id: string,
+    file: File,
+): Promise<ProductionLot> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await apiClient.post<ApiDataResponse<ProductionLot>>(
+        `/production-lots/${id}/image`,
+        formData,
+        {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        },
+    );
+
+    return response.data.data;
 };

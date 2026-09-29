@@ -27,6 +27,7 @@ export interface PublicTraceResponse {
   lotCode?: string | null;
   productName: string;
   productNameEn?: string | null;
+  productImageUrl?: string | null;
   shipmentCode: string;
   shipmentStatus: string;
   recalled: boolean;

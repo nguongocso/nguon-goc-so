@@ -16,15 +16,23 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+
 import lombok.RequiredArgsConstructor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
@@ -108,6 +116,15 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     private final AreaScopeService areaScopeService;
     private final ApplicationEventPublisher eventPublisher;
 
+    @Value("${app.upload.base-dir}")
+    private String baseDir;
+
+    @Value("${app.upload.production-lot.relative-path:production-lots}")
+    private String productionLotRelativePath;
+
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
+            "image/jpeg", "image/jpg", "image/pjpeg", "image/png", "image/webp");
+
     /** Tạo lô sản xuất mới. */
     @Override
     @Transactional
@@ -152,6 +169,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .expectedQuantityUnit(request.getExpectedQuantityUnit())
                 .plantingDate(request.getPlantingDate())
                 .status(ProductionLotStatus.DRAFT)
+                .imageUrl(request.getImageUrl())
                 .createdBy(user)
                 .build();
 
@@ -632,6 +650,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .harvestDate(lot.getHarvestDate())
                 .status(lot.getStatus().name())
                 .approvalNotes(lot.getApprovalNotes())
+                .imageUrl(lot.getImageUrl())
                 .createdByName(lot.getCreatedBy() != null ? lot.getCreatedBy().getFullName() : null)
                 .approvedByName(lot.getApprovedBy() != null ? lot.getApprovedBy().getFullName() : null)
                 .cancellationReason(lot.getCancellationReason())
@@ -695,6 +714,9 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         productionLot.setExpectedQuantity(request.getExpectedQuantity());
         productionLot.setExpectedQuantityUnit(request.getExpectedQuantityUnit());
         productionLot.setPlantingDate(request.getPlantingDate());
+        if (request.getImageUrl() != null) {
+            productionLot.setImageUrl(request.getImageUrl());
+        }
 
         ProductionLot savedLot = productionLotRepository.save(productionLot);
         log.info("Cập nhật thành công lô sản xuất id={}", savedLot.getId());
@@ -715,6 +737,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .expectedQuantityUnit(savedLot.getExpectedQuantityUnit())
                 .plantingDate(savedLot.getPlantingDate())
                 .status(savedLot.getStatus().name())
+                .imageUrl(savedLot.getImageUrl())
                 .updatedAt(savedLot.getUpdatedAt())
                 .build();
     }
@@ -1095,5 +1118,64 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .stagnantThresholdDays(threshold)
                 .stages(stageGroups)
                 .build();
+    }
+
+    /** Tải lên ảnh đại diện sản phẩm cho lô sản xuất. */
+    @Override
+    @Transactional
+    public CreateProductionLotResponse uploadLotImage(UUID lotId, MultipartFile file, CustomUserDetails userDetails) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException("Tệp tin tải lên không được để trống");
+        }
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new BusinessException("Dung lượng tệp vượt quá giới hạn cho phép (5MB)");
+        }
+
+        String contentType = file.getContentType();
+        String originalFilename = file.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+        }
+
+        boolean isValidType = (contentType != null && ALLOWED_IMAGE_TYPES.contains(contentType.toLowerCase()))
+                || List.of(".jpg", ".jpeg", ".png", ".webp").contains(extension);
+        if (!isValidType) {
+            throw new BusinessException("Định dạng tệp không hợp lệ. Chỉ chấp nhận các định dạng ảnh JPG, PNG, WEBP");
+        }
+
+        UUID orgId = userDetails.getOrganizationId();
+        ProductionLot lot = productionLotRepository.findById(lotId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lô sản xuất"));
+        if (!lot.getOrganization().getOrganizationId().equals(orgId)) {
+            throw new AccessDeniedException("Lô sản xuất không thuộc tổ chức của bạn");
+        }
+
+        String filename = lotId + "_" + System.currentTimeMillis() + (extension.isEmpty() ? ".jpg" : extension);
+        Path targetDir = Paths.get(baseDir, productionLotRelativePath, lotId.toString());
+
+        try {
+            if (!Files.exists(targetDir)) {
+                Files.createDirectories(targetDir);
+            }
+            Path targetFile = targetDir.resolve(filename);
+            Files.copy(file.getInputStream(), targetFile, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            log.error("Lỗi khi lưu tệp ảnh lô sản xuất: ", e);
+            throw new BusinessException("Không thể lưu tệp ảnh lô sản xuất. Vui lòng thử lại sau.");
+        }
+
+        String imageUrl = "/uploads/" + productionLotRelativePath + "/" + lotId.toString() + "/" + filename;
+        lot.setImageUrl(imageUrl);
+        ProductionLot savedLot = productionLotRepository.save(lot);
+
+        publishActivityLog(
+                userDetails,
+                "UPDATE",
+                "Cập nhật ảnh đại diện cho lô " + savedLot.getName(),
+                "ProductionLot",
+                savedLot.getId().toString());
+
+        return mapToResponse(savedLot);
     }
 }

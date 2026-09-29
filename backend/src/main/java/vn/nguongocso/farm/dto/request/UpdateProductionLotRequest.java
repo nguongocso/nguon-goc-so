@@ -33,4 +33,6 @@ public class UpdateProductionLotRequest {
 
     @NotNull(message = "Ngày xuống giống không được để trống !")
     private LocalDate plantingDate;
+
+    private String imageUrl;
 }

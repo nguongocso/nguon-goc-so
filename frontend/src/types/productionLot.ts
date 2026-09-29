@@ -17,6 +17,7 @@ export interface ProductionLot {
   harvestDate: string;
   status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'HARVESTED' | 'PREPROCESSED' | 'PACKAGED' | 'CLOSED' | 'RECALLED' | 'CANCELLED' | 'DISPOSED';
   approvalNotes: string | null;
+  imageUrl?: string | null;
   createdByName: string | null;
   // FIX: was `approvebyName` (typo, inconsistent casing) — corrected to approvedByName
   approvedByName: string | null;
@@ -51,6 +52,7 @@ export interface UpdateProductionLotRequest {
   expectedQuantity: number;
   expectedQuantityUnit: string;
   plantingDate: string;
+  imageUrl?: string | null;
 }
 
 export interface UpdateProductionLotResponse {
@@ -62,6 +64,7 @@ export interface UpdateProductionLotResponse {
   expectedQuantityUnit: string;
   plantingDate: string;
   status: string;
+  imageUrl?: string | null;
   updatedAt: string;
 }
 
@@ -72,6 +75,7 @@ export interface CreateProductionLotRequest {
   expectedQuantity: number;
   expectedQuantityUnit: string;
   plantingDate: string | null;
+  imageUrl?: string | null;
 }
 
 export interface CreateProductionLotResponse {
@@ -89,6 +93,7 @@ export interface CreateProductionLotResponse {
   harvestDate: string | null;
   status: 'DRAFT';
   approvalNotes: string | null;
+  imageUrl?: string | null;
   createdByName: string;
   approvedByName: string | null;
   createdAt: string;

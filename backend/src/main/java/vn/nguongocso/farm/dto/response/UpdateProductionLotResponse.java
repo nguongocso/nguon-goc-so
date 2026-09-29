@@ -31,5 +31,7 @@ public class UpdateProductionLotResponse {
 
     private String status;
 
+    private String imageUrl;
+
     private LocalDateTime updatedAt;
 }

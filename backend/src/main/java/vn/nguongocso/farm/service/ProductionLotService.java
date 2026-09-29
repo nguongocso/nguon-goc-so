@@ -72,4 +72,10 @@ public interface ProductionLotService {
             Integer stagnantThresholdDays,
             String search,
             CustomUserDetails userDetails);
+
+    /** Tải lên ảnh đại diện sản phẩm cho lô sản xuất. */
+    CreateProductionLotResponse uploadLotImage(
+            UUID lotId,
+            org.springframework.web.multipart.MultipartFile file,
+            CustomUserDetails userDetails);
 }

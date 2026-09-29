@@ -45,6 +45,8 @@ public class CreateProductionLotResponse {
 
         private String approvalNotes;
 
+        private String imageUrl;
+
         private String createdByName;
 
         private String approvedByName;

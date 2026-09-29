@@ -28,6 +28,8 @@ public class PublicTraceResponse {
 
     private String productNameEn;
 
+    private String productImageUrl;
+
     private String shipmentCode;
 
     private String shipmentStatus;
