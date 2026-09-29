@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { LocateFixed, MapPin, MousePointerClick } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { LatLng } from '@/types/farmArea';
+import { MAP_CONFIG } from '@/config/mapConfig';
 
 // Khắc phục icon mặc định của Leaflet
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
@@ -88,8 +89,10 @@ export const BoundaryMapEditor: React.FC<BoundaryMapEditorProps> = ({
 
     const map = L.map(mapContainerRef.current).setView([defaultLat, defaultLng], 14);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    L.tileLayer(MAP_CONFIG.TILE_URL, {
+      attribution: MAP_CONFIG.ATTRIBUTION,
+      subdomains: MAP_CONFIG.SUBDOMAINS,
+      maxZoom: MAP_CONFIG.MAX_ZOOM,
     }).addTo(map);
 
     // Lắng nghe sự kiện click trên bản đồ để thêm đỉnh

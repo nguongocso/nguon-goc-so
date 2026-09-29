@@ -8,6 +8,7 @@ import {
 import L from 'leaflet';
 
 import 'leaflet/dist/leaflet.css';
+import { MAP_CONFIG } from '@/config/mapConfig';
 
 interface LeafletDefaultIconPrototype extends L.Icon.Default {
   _getIconUrl?: () => string;
@@ -145,8 +146,10 @@ export function LocationPicker({
         }}
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url={MAP_CONFIG.TILE_URL}
+          attribution={MAP_CONFIG.ATTRIBUTION}
+          subdomains={MAP_CONFIG.SUBDOMAINS}
+          maxZoom={MAP_CONFIG.MAX_ZOOM}
         />
 
         <LocationMarker

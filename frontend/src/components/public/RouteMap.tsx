@@ -8,6 +8,7 @@ import {
   formatDisplayDateTime,
 } from '@/utils/eventFormatter';
 import { useLanguage } from '@/context/LanguageContext';
+import { MAP_CONFIG } from '@/config/mapConfig';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -84,8 +85,10 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
     if (!leafletMapRef.current) {
       leafletMapRef.current = L.map(mapRef.current).setView(initialCenter, hasBoundary ? 13 : 10);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      L.tileLayer(MAP_CONFIG.TILE_URL, {
+        attribution: MAP_CONFIG.ATTRIBUTION,
+        subdomains: MAP_CONFIG.SUBDOMAINS,
+        maxZoom: MAP_CONFIG.MAX_ZOOM,
       }).addTo(leafletMapRef.current);
     }
 
