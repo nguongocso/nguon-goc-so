@@ -1262,21 +1262,21 @@ export const ProductionLotDetailPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top action row */}
-      <div className="flex items-center justify-end">
-        <HelpButton screenKey="production-lot-detail" />
-      </div>
-
       {/* Thông tin chính */}
       <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
-          <div>
-            <CardTitle className="text-xl font-bold text-slate-900">
-              {lot.name}
-            </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Mã lô: {maskId(lot.id)}
-            </p>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-xl font-bold text-slate-900">
+                {lot.name}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Mã lô: {maskId(lot.id)}
+              </p>
+            </div>
+            <div className="sm:hidden">
+              <HelpButton screenKey="production-lot-detail" />
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {canRecordHarvest &&
@@ -1325,6 +1325,9 @@ export const ProductionLotDetailPage = () => {
                 </Button>
               )}
             {getStatusBadge(lot.status)}
+            <div className="hidden sm:block">
+              <HelpButton screenKey="production-lot-detail" />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -1702,41 +1705,41 @@ export const ProductionLotDetailPage = () => {
 
       {/* Tabs chi tiết */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden">
+        <TabsList className="flex w-full min-w-0 justify-start items-center gap-1.5 overflow-x-auto rounded-xl border border-emerald-100 bg-white/80 p-1.5 backdrop-blur-sm scrollbar-none">
           <TabsTrigger
             value="info"
-            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            className="shrink-0 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-emerald-600 data-active:bg-emerald-600 data-[state=active]:text-white data-active:text-white transition-all cursor-pointer"
           >
             Thông tin chung
           </TabsTrigger>
           <TabsTrigger
             value="farmlogs"
-            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            className="shrink-0 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-emerald-600 data-active:bg-emerald-600 data-[state=active]:text-white data-active:text-white transition-all cursor-pointer"
           >
-            <span className="font-semibold mr-1.5 text-emerald-600 data-[state=active]:!text-emerald-700">1</span>
+            <span className="font-semibold mr-1.5 opacity-80">1</span>
             <span>Nhật ký canh tác</span>
           </TabsTrigger>
           {canInspect && (
             <TabsTrigger
               value="inspection"
-              className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+              className="shrink-0 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-emerald-600 data-active:bg-emerald-600 data-[state=active]:text-white data-active:text-white transition-all cursor-pointer"
             >
-              <span className="font-semibold mr-1.5 text-emerald-600 data-[state=active]:!text-emerald-700">2</span>
+              <span className="font-semibold mr-1.5 opacity-80">2</span>
               <span>Kiểm nghiệm</span>
             </TabsTrigger>
           )}
           <TabsTrigger
             value="certifications"
-            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            className="shrink-0 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-emerald-600 data-active:bg-emerald-600 data-[state=active]:text-white data-active:text-white transition-all cursor-pointer"
           >
-            <span className="font-semibold mr-1.5 text-emerald-600 data-[state=active]:!text-emerald-700">{canInspect ? '3' : '2'}</span>
+            <span className="font-semibold mr-1.5 opacity-80">{canInspect ? '3' : '2'}</span>
             <span>Chứng nhận</span>
           </TabsTrigger>
           <TabsTrigger
             value="shipments"
-            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            className="shrink-0 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-emerald-600 data-active:bg-emerald-600 data-[state=active]:text-white data-active:text-white transition-all cursor-pointer"
           >
-            <span className="font-semibold mr-1.5 text-emerald-600 data-[state=active]:!text-emerald-700">{canInspect ? '4' : '3'}</span>
+            <span className="font-semibold mr-1.5 opacity-80">{canInspect ? '4' : '3'}</span>
             <span>Lô hàng & Mã QR</span>
           </TabsTrigger>
         </TabsList>

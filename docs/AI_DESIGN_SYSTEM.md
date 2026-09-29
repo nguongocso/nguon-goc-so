@@ -156,7 +156,7 @@ The standard card shadow is `0 2px 8px rgba(0, 0, 0, 0.04)`. Avoid nesting multi
 |---|---|
 | Header | 64px, `h-16`, sticky at the top |
 | Desktop sidebar | 272px, `w-[17rem]` |
-| Content maximum width | 1280px, `max-w-7xl` |
+| Internal content width | Fluid trong vùng còn lại sau sidebar, `w-full` |
 | Mobile | Below 768px |
 | Tablet | 768-1279px |
 | Desktop | 1280px and above |
@@ -173,6 +173,13 @@ Internal pages must use `MainLayout`; they must not recreate the header, sidebar
 | 1280px and above | 32px, `xl:p-8` | Fixed at 272px |
 
 `ListPageHeader` and `ListToolbar` stack vertically below 640px and become horizontal from 640px. Forms use one column below 768px and normally two columns from 768px. These content breakpoints are independent from sidebar behavior.
+
+`MainLayout` must expose the full available content width so dashboards, data
+tables, maps, and operational workflows can use wide screens efficiently. A page
+may apply a local maximum width only when its content is intentionally optimized
+for reading or focused data entry, such as legal text, authentication, or a compact
+single-purpose form. Do not apply a global `max-w-7xl` wrapper to authenticated
+application content.
 
 Use `AppBreadcrumb` as the standard navigation mechanism. Do not add a redundant Back button to an internal page that is already covered by the breadcrumb.
 

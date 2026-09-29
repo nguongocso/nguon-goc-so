@@ -3,6 +3,8 @@ import type { ApiResponse } from '@/types/api';
 import type {
   AiChatRequest,
   AiChatResponse,
+  AiFarmLogParseRequest,
+  AiFarmLogParseResponse,
   AiPromptSuggestion,
 } from '@/types/aiChat';
 
@@ -37,9 +39,28 @@ export const getSuggestedPrompts = async (): Promise<AiPromptSuggestion[]> => {
 };
 
 /**
+ * Phân tích giọng nói của nông dân để trích xuất thông tin nhật ký canh tác.
+ * POST /api/v1/ai/parse-farm-log
+ *
+ * @param data Nội dung giọng nói và gợi ý danh sách lô/vật tư
+ * @returns Thông tin nhật ký canh tác trích xuất và câu đọc tóm tắt (TTS)
+ */
+export const parseFarmLogVoice = async (
+  data: AiFarmLogParseRequest,
+): Promise<AiFarmLogParseResponse> => {
+  const response = await apiClient.post<ApiResponse<AiFarmLogParseResponse>>(
+    '/ai/parse-farm-log',
+    data,
+  );
+  return response.data.data;
+};
+
+/**
  * Đối tượng client API cho các chức năng trợ lý AI.
  */
 export const aiChatApi = {
   sendMessage,
   getSuggestedPrompts,
+  parseFarmLogVoice,
 };
+

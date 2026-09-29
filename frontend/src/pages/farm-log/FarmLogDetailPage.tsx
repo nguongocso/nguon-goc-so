@@ -126,7 +126,7 @@ export default function FarmLogDetailPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8 max-w-7xl space-y-4">
+      <div className="w-full space-y-4 py-8">
         <Card className="h-64 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent"></div>
@@ -141,7 +141,7 @@ export default function FarmLogDetailPage() {
 
   if (error || !log) {
     return (
-      <div className="container mx-auto py-8 max-w-7xl space-y-4">
+      <div className="w-full space-y-4 py-8">
         <Card className="border-destructive/30 bg-destructive/5 text-center py-12">
           <CardContent className="space-y-4 pt-6">
             <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
@@ -166,7 +166,7 @@ export default function FarmLogDetailPage() {
     currentGroup && hasCorrections ? currentGroup.corrections[0] : log;
 
   return (
-    <div className="container mx-auto py-6 max-w-7xl space-y-6">
+    <div className="w-full space-y-6 py-6">
       <Card className="shadow-xs">
         <CardHeader className="border-b bg-muted/20 pb-4">
           <div className="flex flex-wrap items-start justify-between gap-4">

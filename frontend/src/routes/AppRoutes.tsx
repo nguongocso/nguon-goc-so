@@ -1266,6 +1266,14 @@ const AppRoutes = () => (
                     </RoleRoute>
                 }
             />
+            <Route
+                path="trace/suspicious-cases"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <SuspectTraceCodeListPage />
+                    </RoleRoute>
+                }
+            />
 
             <Route
                 path="admin/suspect-trace-codes/:traceCodeId"
@@ -1675,6 +1683,14 @@ const AppRoutes = () => (
 
             <Route
                 path="event-chain-verification"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.eventChainVerification}>
+                        <EventChainVerificationPage />
+                    </RoleRoute>
+                }
+            />
+            <Route
+                path="chain-events/verification"
                 element={
                     <RoleRoute allowedRoles={ROLE_ACCESS.eventChainVerification}>
                         <EventChainVerificationPage />

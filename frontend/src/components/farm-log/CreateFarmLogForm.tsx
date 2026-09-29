@@ -31,6 +31,7 @@ import {
   CameraCaptureButton,
   CameraCaptureDialog,
 } from '@/components/common/CameraCaptureDialog';
+import { VoiceFarmLogAssistant } from './VoiceFarmLogAssistant';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -479,10 +480,41 @@ export function CreateFarmLogForm({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-      <div className="lg:col-span-8">
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100 pb-5">
+    <div className="space-y-6">
+      {/* Trợ lý Giọng nói AI 2 chiều (STT & TTS) dành cho Nông dân */}
+      <VoiceFarmLogAssistant
+        productionLots={productionLots}
+        danhSachVatTu={danhSachVatTuNgoaiTuyen}
+        isOnline={isOnline}
+        onApplyParsedData={(parsed) => {
+          if (parsed.productionLotId) {
+            updateField('productionLotId', parsed.productionLotId);
+          }
+          if (parsed.activityType) {
+            updateField('activityType', parsed.activityType);
+          }
+          if (parsed.material) {
+            updateField('material', parsed.material);
+          }
+          if (parsed.quantity) {
+            updateField('quantity', parsed.quantity);
+          }
+          if (parsed.unit) {
+            updateField('unit', parsed.unit);
+          }
+          if (parsed.executedDate) {
+            updateField('executedDate', parsed.executedDate);
+          }
+          if (parsed.notes) {
+            updateField('notes', parsed.notes);
+          }
+        }}
+      />
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="border-b border-slate-100 pb-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                 <ClipboardList className="size-5" />
@@ -898,5 +930,6 @@ export function CreateFarmLogForm({
         onCapture={handleCameraCapture}
       />
     </div>
-  );
+  </div>
+);
 }

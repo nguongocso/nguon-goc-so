@@ -285,10 +285,10 @@ export const ShipmentList = ({
     <>
       <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
         <CardHeader className="border-b border-slate-100 pb-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {/* Nhập kho / Xuất kho HTX (NCL-05-CN-011) */}
               {!isSelectionMode && (
                 <>

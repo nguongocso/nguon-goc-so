@@ -239,17 +239,17 @@ export const AiChatWidget: React.FC = () => {
     <>
       {/* Nút nổi Floating Action Button (FAB) */}
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
           <button
             type="button"
             onClick={() => setIsOpen(true)}
             aria-label="Mở Trợ lý AI"
-            className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-emerald-400/40 cursor-pointer"
+            className="group relative flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-emerald-400/40 cursor-pointer"
           >
-            <Bot className="h-7 w-7 transition-transform group-hover:rotate-6" />
-            <span className="absolute -top-1 -right-1 flex h-4 w-4">
+            <Bot className="h-6 w-6 sm:h-7 sm:w-7 transition-transform group-hover:rotate-6" />
+            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 sm:h-4 sm:w-4">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-400 border-2 border-white"></span>
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 sm:h-4 sm:w-4 bg-emerald-400 border-2 border-white"></span>
             </span>
           </button>
         </div>

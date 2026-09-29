@@ -3,7 +3,9 @@ package vn.nguongocso.ai.service;
 import java.util.List;
 
 import vn.nguongocso.ai.dto.request.AiChatRequest;
+import vn.nguongocso.ai.dto.request.AiFarmLogParseRequest;
 import vn.nguongocso.ai.dto.response.AiChatResponse;
+import vn.nguongocso.ai.dto.response.AiFarmLogParseResponse;
 import vn.nguongocso.ai.dto.response.AiPromptSuggestionResponse;
 import vn.nguongocso.auth.service.CustomUserDetails;
 
@@ -20,5 +22,10 @@ public interface AiChatService {
      * Lấy danh sách các câu hỏi gợi ý phù hợp với vai trò của người dùng hiện tại.
      */
     List<AiPromptSuggestionResponse> getSuggestedPrompts(CustomUserDetails currentUser);
+
+    /**
+     * Phân tích văn bản giọng nói của nông dân để trích xuất thông tin nhật ký canh tác.
+     */
+    AiFarmLogParseResponse parseFarmLogVoice(AiFarmLogParseRequest request, CustomUserDetails currentUser);
 
 }

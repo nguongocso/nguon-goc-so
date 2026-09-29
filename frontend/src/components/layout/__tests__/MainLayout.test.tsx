@@ -59,5 +59,7 @@ describe("MainLayout component", () => {
     // Xác nhận nội dung trang con được hiển thị
     expect(screen.getByTestId("child-page")).toBeInTheDocument();
     expect(screen.getByText("Dashboard Content")).toBeInTheDocument();
+    expect(screen.getByTestId("main-content-shell")).toHaveClass("w-full");
+    expect(screen.getByTestId("main-content-shell")).not.toHaveClass("max-w-7xl");
   });
 });

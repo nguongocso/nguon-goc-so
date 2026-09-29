@@ -148,9 +148,12 @@ export function MainLayout() {
           isMobile={isMobile}
           isTablet={isTablet}
         />
-        <main className="min-w-0 flex-1 p-3 sm:p-4 md:p-5 md:pl-14 lg:p-6 lg:pl-14 xl:p-8">
+        <main className="min-w-0 flex-1 p-3 pb-24 sm:p-4 sm:pb-10 md:p-5 md:pl-14 md:pb-8 lg:p-6 lg:pl-14 xl:p-8">
           <BreadcrumbOverrideProvider>
-            <div className="mx-auto w-full max-w-7xl">
+            <div
+              className="w-full"
+              data-testid="main-content-shell"
+            >
               {/* Breadcrumb điều hướng thống nhất thay cho nút "Quay lại" */}
               {location.pathname !== '/dashboard' && (
                 <div className="mb-4">

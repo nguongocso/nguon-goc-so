@@ -555,17 +555,17 @@ export const ShipmentDetailPage = () => {
 
       {/* ── Tab content ── */}
       <Tabs defaultValue="info" className="w-full">
-        <TabsList className="max-w-full overflow-x-auto overflow-y-hidden rounded-xl border border-emerald-100 bg-white/80 backdrop-blur-sm p-1 gap-1 min-h-11">
+        <TabsList className="flex w-full min-w-0 justify-start items-center gap-1.5 overflow-x-auto rounded-xl border border-emerald-100 bg-white/80 p-1.5 backdrop-blur-sm scrollbar-none">
           <TabsTrigger
             value="info"
-            className="rounded-lg px-4 py-2 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            className="shrink-0 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-emerald-600 data-active:bg-emerald-600 data-[state=active]:text-white data-active:text-white transition-all cursor-pointer"
           >
             <ScrollText className="mr-1.5 h-4 w-4" />
             Thông tin
           </TabsTrigger>
           <TabsTrigger
             value="qr"
-            className="rounded-lg px-4 py-2 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            className="shrink-0 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-emerald-600 data-active:bg-emerald-600 data-[state=active]:text-white data-active:text-white transition-all cursor-pointer"
           >
             <QrCode className="mr-1.5 h-4 w-4" />
             Mã QR
@@ -577,7 +577,7 @@ export const ShipmentDetailPage = () => {
           </TabsTrigger>
           <TabsTrigger
             value="events"
-            className="rounded-lg px-4 py-2 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            className="shrink-0 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-emerald-600 data-active:bg-emerald-600 data-[state=active]:text-white data-active:text-white transition-all cursor-pointer"
             onClick={() => void loadTimeline()}
           >
             <Package className="mr-1.5 h-4 w-4" />
