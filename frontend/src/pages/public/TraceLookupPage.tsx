@@ -219,19 +219,28 @@ function TraceLookupContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-100 bg-white/95 backdrop-blur-sm sticky top-0 z-30 shadow-xs">
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
-          <div className="flex-1" />
-          <div className="flex flex-col items-center justify-center text-center">
-            <Link to="/" aria-label="Về trang chủ" className="inline-block transition-transform hover:scale-105">
-              <Logo height={64} />
-            </Link>
-            <p className="mt-1 text-sm font-medium text-gray-500">
-              {t('header_subtitle')}
-            </p>
-          </div>
-          <div className="flex-1 flex justify-end">
-            <LanguageSwitcher />
+      <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/95 backdrop-blur-md shadow-2xs">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3.5">
+          <div className="flex items-center justify-between gap-3">
+            {/* Logo thương hiệu & Phụ đề trang tra cứu */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 min-w-0">
+              <Link
+                to="/"
+                aria-label="Về trang chủ"
+                className="inline-flex shrink-0 items-center transition-opacity hover:opacity-90"
+              >
+                <Logo height={36} className="max-h-8 sm:max-h-10 w-auto" />
+              </Link>
+              <span className="hidden sm:inline-block h-4 w-px bg-slate-200" aria-hidden="true" />
+              <p className="text-[11px] sm:text-xs font-medium text-slate-400 sm:text-slate-500 truncate mt-0.5 sm:mt-0">
+                {t('header_subtitle')}
+              </p>
+            </div>
+
+            {/* Bộ chuyển đổi ngôn ngữ gọn gàng, hiện đại */}
+            <div className="shrink-0">
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
       </header>

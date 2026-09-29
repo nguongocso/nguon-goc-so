@@ -6,28 +6,29 @@ export const LanguageSwitcher: React.FC = () => {
   const { lang, setLang } = useLanguage();
 
   return (
-    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-medium">
-      <Globe className="h-3.5 w-3.5 text-slate-500 ml-1.5 mr-0.5" />
+    <div className="inline-flex items-center gap-0.5 rounded-full bg-slate-100/90 p-0.5 border border-slate-200 shadow-2xs">
+      <div className="pl-2 pr-0.5 text-slate-400 select-none">
+        <Globe className="size-3.5" />
+      </div>
       <button
         type="button"
         onClick={() => setLang('vi')}
-        className={`px-2 py-1 rounded-md transition-all ${
+        className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-all duration-150 ${
           lang === 'vi'
-            ? 'bg-white text-emerald-700 font-bold shadow-sm'
-            : 'text-slate-600 hover:text-slate-900'
+            ? 'bg-white text-emerald-700 shadow-xs scale-100 ring-1 ring-slate-200/60'
+            : 'text-slate-500 hover:text-slate-800'
         }`}
         title="Tiếng Việt"
       >
         VI
       </button>
-      <span className="text-slate-300">|</span>
       <button
         type="button"
         onClick={() => setLang('en')}
-        className={`px-2 py-1 rounded-md transition-all ${
+        className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-all duration-150 ${
           lang === 'en'
-            ? 'bg-white text-emerald-700 font-bold shadow-sm'
-            : 'text-slate-600 hover:text-slate-900'
+            ? 'bg-white text-emerald-700 shadow-xs scale-100 ring-1 ring-slate-200/60'
+            : 'text-slate-500 hover:text-slate-800'
         }`}
         title="English"
       >
