@@ -84,10 +84,10 @@ export function AdminDashboard({ initialTab }: AdminDashboardProps) {
       </div>
 
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden">
-          <TabsTrigger value="overview" className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Tổng quan sản lượng</TabsTrigger>
-          <TabsTrigger value="organizations" className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Tổ chức</TabsTrigger>
-          <TabsTrigger value="lookup-stats" className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Thống kê tra cứu</TabsTrigger>
+        <TabsList className="flex w-full min-w-0 justify-start items-center gap-1.5 overflow-x-auto rounded-xl border border-emerald-100 bg-white/80 p-1.5 backdrop-blur-sm scrollbar-none">
+          <TabsTrigger value="overview" className="shrink-0 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-emerald-600 data-active:bg-emerald-600 data-[state=active]:text-white data-active:text-white transition-all cursor-pointer">Tổng quan sản lượng</TabsTrigger>
+          <TabsTrigger value="organizations" className="shrink-0 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-emerald-600 data-active:bg-emerald-600 data-[state=active]:text-white data-active:text-white transition-all cursor-pointer">Tổ chức</TabsTrigger>
+          <TabsTrigger value="lookup-stats" className="shrink-0 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-emerald-600 data-active:bg-emerald-600 data-[state=active]:text-white data-active:text-white transition-all cursor-pointer">Thống kê tra cứu</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4">
