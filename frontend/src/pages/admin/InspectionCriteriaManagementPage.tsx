@@ -225,19 +225,8 @@ export default function InspectionCriteriaManagementPage() {
                                 </Button>
                             </>
                         )}
-                        {/* Chỉ tiêu đã được tham chiếu thì không sửa/xóa được.
-                            Thay chữ "Không xóa" hiển thị thẳng trong bảng bằng nút
-                            xóa ở trạng thái disabled kèm tooltip giải thích lý do. */}
-                        {criterion.referenced && (
-                            <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                disabled
-                                title="Chỉ tiêu đã được dùng trong kết quả kiểm nghiệm nên không thể sửa hoặc xóa"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        )}
+                        {/* Chỉ tiêu đã được tham chiếu thì không sửa/xóa được,
+                            ẩn hẳn nút sửa và nút xóa thay vì hiển thị nút disabled. */}
                     </div>
                 </TableCell>
             )}
