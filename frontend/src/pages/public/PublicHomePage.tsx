@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import heroTraceabilityOrchard from '@/assets/hero-traceability-orchard.jpg';
+import { DualMarqueeRibbon } from '@/components/public/DualMarqueeRibbon';
 
 /** Nhận diện mã tra cứu phản ánh (tiền tố PA- hoặc dạng PA+16 ký tự Base32). */
 export function isProductFeedbackLookupCode(rawCode: string): boolean {
@@ -273,8 +274,7 @@ export default function PublicHomePage() {
               onClick={() => navigate('/login')}
             >
               <LogIn className="h-4 w-4" />
-              <span className="hidden sm:inline">Đăng nhập quản trị</span>
-              <span className="sm:hidden">Đăng nhập</span>
+              <span>Đăng nhập</span>
             </Button>
           )}
         </div>
@@ -293,44 +293,44 @@ export default function PublicHomePage() {
             fetchPriority="high"
             className="absolute inset-0 -z-20 h-full w-full object-cover object-[68%_center] lg:object-center"
           />
-          <div className="absolute inset-0 -z-10 bg-emerald-950/62 sm:bg-gradient-to-r sm:from-emerald-950 sm:via-emerald-950/82 sm:to-emerald-950/10" />
-          <div className="absolute inset-x-0 bottom-0 -z-10 h-48 bg-gradient-to-t from-emerald-950/80 to-transparent" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-emerald-950/65 via-emerald-950/25 to-transparent sm:from-emerald-950/65 sm:via-emerald-950/20 sm:to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 -z-10 h-24 bg-gradient-to-t from-emerald-950/30 to-transparent" />
 
           <div className="mx-auto flex min-h-[calc(100svh-4.5rem)] w-full max-w-[1600px] flex-col justify-between px-4 py-8 sm:min-h-[calc(100svh-5rem)] sm:px-6 sm:py-12 lg:px-10 lg:py-16">
             <div className="w-full max-w-3xl">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/12 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-none border border-white/25 bg-emerald-950/35 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
                 <ShieldCheck className="h-4 w-4 text-emerald-300" />
                 Nền tảng truy xuất nguồn gốc nông sản
               </div>
 
-              <h1 className="max-w-2xl text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl xl:text-7xl">
-                Minh bạch nguồn gốc,
-                <span className="block text-emerald-300">vững niềm tin</span>
+              <h1 className="max-w-4xl text-4xl font-bold leading-[1.12] tracking-tight text-white drop-shadow-md sm:text-5xl lg:text-6xl xl:text-7xl">
+                <span className="block whitespace-nowrap">Minh bạch nguồn gốc,</span>
+                <span className="block text-emerald-300 drop-shadow-sm">vững niềm tin</span>
               </h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-white/85 sm:text-lg sm:leading-8">
+              <p className="mt-5 max-w-2xl text-base leading-7 text-white/95 drop-shadow sm:text-lg sm:leading-8">
                 Theo dõi hành trình nông sản từ vùng trồng đến bàn ăn, xác thực
                 thông tin và lựa chọn sản phẩm an toàn chỉ với một mã truy xuất.
               </p>
 
               <div className="mt-8 w-full max-w-2xl">
                 {isScanning ? (
-                  <div className="max-w-md rounded-3xl border border-white/25 bg-white/95 p-4 shadow-2xl backdrop-blur-md sm:p-5">
-                    <div className="group relative overflow-hidden rounded-2xl bg-black">
+                  <div className="max-w-md rounded-none border border-white/25 bg-white/95 p-4 shadow-2xl backdrop-blur-md sm:p-5">
+                    <div className="group relative overflow-hidden rounded-none bg-black">
                       <video
                         ref={videoRef}
                         className="aspect-square w-full object-cover"
                         muted
                         playsInline
                       />
-                      <div className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-emerald-400" />
+                      <div className="pointer-events-none absolute inset-0 border-2 border-emerald-400" />
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                        <div className="h-48 w-48 rounded-lg border-2 border-emerald-300/90" />
+                        <div className="h-48 w-48 border-2 border-emerald-300/90" />
                       </div>
                     </div>
                     <Button
                       variant="outline"
                       onClick={stopScanner}
-                      className="mt-4 w-full"
+                      className="mt-4 w-full rounded-none"
                     >
                       Hủy quét
                     </Button>
@@ -339,7 +339,7 @@ export default function PublicHomePage() {
                   <div className="space-y-3">
                     <form
                       onSubmit={handleSubmit}
-                      className="flex flex-col gap-2 rounded-2xl border border-white/35 bg-white p-2 shadow-2xl sm:flex-row sm:rounded-full"
+                      className="flex flex-col gap-2 rounded-none border border-white/40 bg-white p-2 shadow-2xl sm:flex-row"
                     >
                       <label htmlFor="public-trace-code" className="sr-only">
                         Mã truy xuất hoặc mã phản ánh
@@ -358,12 +358,12 @@ export default function PublicHomePage() {
                               setFeedbackResult(null);
                             }
                           }}
-                          className="h-12 min-w-0 border-0 bg-transparent px-0 text-base shadow-none focus-visible:ring-0"
+                          className="h-12 min-w-0 rounded-none border-0 bg-transparent px-0 text-base shadow-none focus-visible:ring-0"
                         />
                       </div>
                       <Button
                         type="submit"
-                        className="h-12 shrink-0 rounded-xl bg-emerald-700 px-7 text-base font-semibold text-white hover:bg-emerald-800 sm:rounded-full"
+                        className="h-12 shrink-0 rounded-none bg-emerald-700 px-7 text-base font-semibold text-white hover:bg-emerald-800 transition-colors"
                       >
                         Truy xuất
                       </Button>
@@ -373,13 +373,13 @@ export default function PublicHomePage() {
                       type="button"
                       variant="outline"
                       onClick={startScanner}
-                      className="h-11 gap-2 border-white/35 bg-white/12 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
+                      className="h-11 gap-2 rounded-none border border-white/35 bg-white/12 text-white backdrop-blur-sm hover:bg-white/20 hover:text-white transition-colors"
                     >
                       <ScanLine className="h-5 w-5" />
                       Quét mã QR bằng camera
                     </Button>
 
-                    <div className="rounded-2xl bg-white shadow-xl">
+                    <div className="rounded-none bg-white shadow-xl">
                       <ProductFeedbackInlineResult
                         isLoading={isFeedbackLoading}
                         lookupCode={searchedFeedbackCode}
@@ -397,7 +397,7 @@ export default function PublicHomePage() {
             <div className="mt-12 grid max-w-4xl grid-cols-1 gap-3 border-t border-white/20 pt-5 pr-16 sm:grid-cols-3 sm:gap-6 sm:pr-0">
               {features.map(({ icon: Icon, title, desc }) => (
                 <div key={title} className="flex items-start gap-3 text-white">
-                  <div className="rounded-xl border border-white/20 bg-white/12 p-2.5 backdrop-blur-sm">
+                  <div className="rounded-none border border-white/20 bg-white/12 p-2.5 backdrop-blur-sm">
                     <Icon className="h-5 w-5 text-emerald-300" />
                   </div>
                   <div>
@@ -409,9 +409,12 @@ export default function PublicHomePage() {
             </div>
           </div>
         </section>
+
+        {/* Dual Marquee Angled Tech Ribbons at Footer */}
+        <DualMarqueeRibbon />
       </main>
 
-      <footer className="w-full bg-emerald-950 px-4 py-5 text-center text-sm text-white/65">
+      <footer className="w-full bg-emerald-950 px-4 py-5 text-center text-sm text-white/65 border-t border-emerald-900/60">
         © {new Date().getFullYear()} Nguồn Gốc Số – Minh bạch từ nông trại đến bàn ăn
       </footer>
     </div>

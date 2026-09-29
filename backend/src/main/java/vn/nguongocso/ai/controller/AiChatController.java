@@ -14,7 +14,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.ai.dto.request.AiChatRequest;
+import vn.nguongocso.ai.dto.request.AiFarmLogParseRequest;
 import vn.nguongocso.ai.dto.response.AiChatResponse;
+import vn.nguongocso.ai.dto.response.AiFarmLogParseResponse;
 import vn.nguongocso.ai.dto.response.AiPromptSuggestionResponse;
 import vn.nguongocso.ai.service.AiChatService;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -58,4 +60,20 @@ public class AiChatController {
         List<AiPromptSuggestionResponse> suggestions = aiChatService.getSuggestedPrompts(currentUser);
         return ResponseEntity.ok(ApiResult.success(suggestions));
     }
+
+    /**
+     * Phân tích câu nói giọng nói của nông dân để trích xuất cấu trúc nhật ký canh tác tự động.
+     */
+    @PostMapping("/parse-farm-log")
+    public ResponseEntity<ApiResult<AiFarmLogParseResponse>> parseFarmLogVoice(
+            @Valid @RequestBody AiFarmLogParseRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        log.info("Nhận yêu cầu bóc tách nhật ký giọng nói từ người dùng [{}], độ dài: {} ký tự",
+                currentUser != null ? currentUser.getUsername() : "Khách",
+                request.getVoiceText() != null ? request.getVoiceText().length() : 0);
+
+        AiFarmLogParseResponse response = aiChatService.parseFarmLogVoice(request, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
 }
+

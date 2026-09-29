@@ -13,23 +13,27 @@ import { HelpButton } from '@/components/help/HelpButton';
 import { verifyChainIntegrity } from '@/api/eventChainVerificationApi';
 import type { ChainVerificationResponse } from '@/types/eventChainVerification';
 
+const DEMO_SHIPMENT_ID = '00000000-0000-0000-0000-000b00000001';
+
 /** Trang kiểm chứng tính toàn vẹn chuỗi băm các sự kiện của lô hàng. */
 export default function EventChainVerificationPage() {
-  const [shipmentId, setShipmentId] = useState('');
+  const [shipmentId, setShipmentId] = useState('DEMO-NHO-01');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ChainVerificationResponse | null>(null);
 
   const handleVerify = async () => {
-    if (!shipmentId.trim()) {
-      setError('Vui lòng nhập mã lô hàng.');
+    const rawInput = shipmentId.trim();
+    if (!rawInput) {
+      setError('Vui lòng nhập mã lô hàng hoặc mã tem.');
       return;
     }
     setLoading(true);
     setError(null);
     setResult(null);
     try {
-      const res = await verifyChainIntegrity(shipmentId.trim());
+      const resolvedId = rawInput.toUpperCase() === 'DEMO-NHO-01' ? DEMO_SHIPMENT_ID : rawInput;
+      const res = await verifyChainIntegrity(resolvedId);
       setResult(res);
     } catch (err: unknown) {
       const message = isAxiosError(err)
@@ -66,13 +70,23 @@ export default function EventChainVerificationPage() {
         <CardContent>
           <div className="flex items-end gap-2">
             <div className="flex-1 space-y-2">
-              <Label htmlFor="shipmentId">Mã lô hàng (Shipment ID)</Label>
+              <Label htmlFor="shipmentId">Mã lô hàng (Shipment ID) hoặc Mã tem</Label>
               <Input
                 id="shipmentId"
                 value={shipmentId}
                 onChange={(e) => setShipmentId(e.target.value)}
-                placeholder="9c8b7a6f-2222-4a2a-9f3d-1a2b3c4d5e6f"
+                placeholder="Nhập DEMO-NHO-01 hoặc UUID lô hàng"
               />
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-xs text-muted-foreground">Mẫu demo:</span>
+                <button
+                  type="button"
+                  onClick={() => setShipmentId('DEMO-NHO-01')}
+                  className="text-xs font-mono font-medium text-emerald-600 hover:underline"
+                >
+                  DEMO-NHO-01 (Lô Nho 01)
+                </button>
+              </div>
             </div>
             <Button
               variant="view"

@@ -321,5 +321,69 @@ class AiChatServiceTest {
         assertTrue(response.getReply().contains("chỉ dành cho các thành viên"));
         assertTrue(response.getReply().contains("đăng nhập"));
     }
+
+    @Test
+    @DisplayName("Kiểm thử bóc tách giọng nói nông dân: Bón phân hữu cơ vi sinh")
+    void testParseFarmLogVoice_Fertilizing_ExtractsCorrectly() {
+        vn.nguongocso.ai.dto.request.AiFarmLogParseRequest request = vn.nguongocso.ai.dto.request.AiFarmLogParseRequest.builder()
+                .voiceText("Sáng nay bón 20 cân phân hữu cơ vi sinh cho Lô Nho 01")
+                .availableLots(List.of(
+                        vn.nguongocso.ai.dto.request.AiFarmLogParseRequest.LotHintDto.builder()
+                                .id("lot-uuid-1")
+                                .name("Lô Nho 01")
+                                .build()
+                ))
+                .availableMaterials(List.of(
+                        vn.nguongocso.ai.dto.request.AiFarmLogParseRequest.MaterialHintDto.builder()
+                                .id(1L)
+                                .name("Phân hữu cơ vi sinh")
+                                .unit("kg")
+                                .build()
+                ))
+                .build();
+
+        vn.nguongocso.ai.dto.response.AiFarmLogParseResponse response = aiChatService.parseFarmLogVoice(request, null);
+
+        assertNotNull(response);
+        assertEquals("FERTILIZING", response.getActivityType());
+        assertEquals("Bón phân", response.getActivityLabel());
+        assertEquals(new java.math.BigDecimal("20"), response.getQuantity());
+        assertEquals("kg", response.getUnit());
+        assertEquals("lot-uuid-1", response.getProductionLotId());
+        assertEquals("Lô Nho 01", response.getProductionLotName());
+        assertTrue(response.getSummaryText().contains("Bón phân"));
+        assertTrue(response.getSummaryText().contains("20"));
+    }
+
+    @Test
+    @DisplayName("Kiểm thử bóc tách giọng nói nông dân: Tưới nước nhỏ giọt")
+    void testParseFarmLogVoice_Watering_ExtractsCorrectly() {
+        vn.nguongocso.ai.dto.request.AiFarmLogParseRequest request = vn.nguongocso.ai.dto.request.AiFarmLogParseRequest.builder()
+                .voiceText("Tưới nước nhỏ giọt 50 lít cho Lô Nho 01")
+                .build();
+
+        vn.nguongocso.ai.dto.response.AiFarmLogParseResponse response = aiChatService.parseFarmLogVoice(request, null);
+
+        assertNotNull(response);
+        assertEquals("WATERING", response.getActivityType());
+        assertEquals("Tưới nước", response.getActivityLabel());
+        assertEquals(new java.math.BigDecimal("50"), response.getQuantity());
+        assertEquals("lít", response.getUnit());
+    }
+
+    @Test
+    @DisplayName("Kiểm thử bóc tách giọng nói nông dân: Chuỗi rỗng xử lý an toàn")
+    void testParseFarmLogVoice_EmptyText_ReturnsSafely() {
+        vn.nguongocso.ai.dto.request.AiFarmLogParseRequest request = vn.nguongocso.ai.dto.request.AiFarmLogParseRequest.builder()
+                .voiceText("   ")
+                .build();
+
+        vn.nguongocso.ai.dto.response.AiFarmLogParseResponse response = aiChatService.parseFarmLogVoice(request, null);
+
+        assertNotNull(response);
+        assertEquals("OTHER", response.getActivityType());
+        assertEquals(0.0, response.getConfidence());
+    }
 }
+
 

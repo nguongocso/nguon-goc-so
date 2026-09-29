@@ -1,12 +1,16 @@
 package vn.nguongocso.ai.service.impl;
 
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.Resource;
@@ -28,7 +32,9 @@ import vn.nguongocso.ai.dto.query.OrganizationAnalyticsDataDto;
 import vn.nguongocso.ai.dto.query.ProductionLotSummaryDto;
 import vn.nguongocso.ai.dto.request.AiChatMessageDto;
 import vn.nguongocso.ai.dto.request.AiChatRequest;
+import vn.nguongocso.ai.dto.request.AiFarmLogParseRequest;
 import vn.nguongocso.ai.dto.response.AiChatResponse;
+import vn.nguongocso.ai.dto.response.AiFarmLogParseResponse;
 import vn.nguongocso.ai.dto.response.AiPromptSuggestionResponse;
 import vn.nguongocso.ai.service.AiChatService;
 import vn.nguongocso.ai.service.AiDataQueryService;
@@ -735,6 +741,376 @@ public class AiChatServiceImpl implements AiChatService {
                 .reply(msg)
                 .timestamp(LocalDateTime.now())
                 .suggestedQuestions(extractOrGenerateFollowUpQuestions(currentUser))
+                .build();
+    }
+
+    /**
+     * Phân tích câu nói tiếng Việt của nông dân để trích xuất cấu trúc nhật ký canh tác.
+     */
+    @Override
+    public AiFarmLogParseResponse parseFarmLogVoice(AiFarmLogParseRequest request, CustomUserDetails currentUser) {
+        String voiceText = request.getVoiceText() != null ? request.getVoiceText().trim() : "";
+        if (voiceText.isEmpty()) {
+            return AiFarmLogParseResponse.builder()
+                    .activityType("OTHER")
+                    .activityLabel("Khác")
+                    .executedDate(LocalDate.now())
+                    .summaryText("Chưa nhận được nội dung giọng nói. Bác vui lòng thử nói lại nhé!")
+                    .rawVoiceText("")
+                    .confidence(0.0)
+                    .build();
+        }
+
+        // 1. Thử gọi mô hình Gemini AI nếu có cấu hình API Key
+        if (aiProperties.getApiKey() != null && !aiProperties.getApiKey().isBlank()) {
+            try {
+                AiFarmLogParseResponse aiResponse = callGeminiForFarmLog(voiceText, request.getAvailableLots(), request.getAvailableMaterials());
+                if (aiResponse != null) {
+                    aiResponse.setRawVoiceText(voiceText);
+                    return aiResponse;
+                }
+            } catch (Exception e) {
+                log.warn("Gọi Gemini bóc tách nhật ký nông dân không thành công, chuyển sang bộ phân tích quy tắc: {}", e.getMessage());
+            }
+        }
+
+        // 2. Dự phòng bằng bộ phân tích quy tắc tiếng Việt chuẩn hóa (Offline / No Key Fallback)
+        return fallbackParseFarmLog(voiceText, request.getAvailableLots(), request.getAvailableMaterials());
+    }
+
+    /**
+     * Gọi Gemini AI với chỉ dẫn trích xuất cấu trúc JSON cho nhật ký canh tác.
+     */
+    private AiFarmLogParseResponse callGeminiForFarmLog(String voiceText,
+            List<AiFarmLogParseRequest.LotHintDto> availableLots,
+            List<AiFarmLogParseRequest.MaterialHintDto> availableMaterials) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("Bạn là Trợ lý AI nông nghiệp chuyên trích xuất thông tin nhật ký canh tác từ lời nói tiếng Việt của người nông dân.\n");
+        prompt.append("Câu nói của nông dân: \"").append(voiceText).append("\"\n\n");
+        prompt.append("Hãy phân tích và trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown ```json hay giải thích) theo cấu trúc sau:\n");
+        prompt.append("{\n");
+        prompt.append("  \"activityType\": \"PLANTING|WATERING|FERTILIZING|PESTICIDE|WEEDING|HARVESTING|OTHER\",\n");
+        prompt.append("  \"activityLabel\": \"Tên hiển thị tiếng Việt (ví dụ: Bón phân, Tưới nước, Phun thuốc...)\",\n");
+        prompt.append("  \"material\": \"Tên vật tư sử dụng (nếu có, ví dụ: Phân NPK, Thuốc Sherpa, Phân hữu cơ...)\",\n");
+        prompt.append("  \"quantity\": 20.0,\n");
+        prompt.append("  \"unit\": \"kg|lít|bao|bình|chai|gói|tấn\",\n");
+        prompt.append("  \"productionLotName\": \"Tên lô sản xuất nếu được nhắc đến\",\n");
+        prompt.append("  \"executedDate\": \"YYYY-MM-DD (ngày thực hiện, nếu nói hôm qua thì lùi 1 ngày, nếu có ngày cụ thể thì ghi YYYY-MM-DD, mặc định hôm nay)\",\n");
+        prompt.append("  \"notes\": \"Ghi chú thêm về thời tiết hoặc hiện trường nếu có\",\n");
+        prompt.append("  \"summaryText\": \"Câu tóm tắt ngắn gọn, xưng hô 'bác' thân thiện để loa điện thoại đọc lại xác nhận (ví dụ: Đã ghi nhận: Bón 20 kilôgam phân NPK cho Lô Nho 01. Bác kiểm tra lại nhé!)\"\n");
+        prompt.append("}\n");
+
+        if (availableLots != null && !availableLots.isEmpty()) {
+            prompt.append("\nDanh sách lô sản xuất hợp lệ trong hệ thống:\n");
+            for (AiFarmLogParseRequest.LotHintDto lot : availableLots) {
+                prompt.append("- ID: ").append(lot.getId()).append(", Tên: ").append(lot.getName()).append("\n");
+            }
+        }
+
+        if (availableMaterials != null && !availableMaterials.isEmpty()) {
+            prompt.append("\nDanh sách vật tư hợp lệ trong kho:\n");
+            for (AiFarmLogParseRequest.MaterialHintDto mat : availableMaterials) {
+                prompt.append("- Tên: ").append(mat.getName()).append(" (Đơn vị: ").append(mat.getUnit()).append(")\n");
+            }
+        }
+
+        Map<String, Object> payload = Map.of(
+                "contents", List.of(Map.of("role", "user", "parts", List.of(Map.of("text", prompt.toString())))),
+                "generationConfig", Map.of("temperature", 0.1, "maxOutputTokens", 1024)
+        );
+
+        for (String modelName : aiProperties.getModelList()) {
+            try {
+                String url = aiProperties.getApiUrl() + "/" + modelName + ":generateContent?key=" + aiProperties.getApiKey();
+                String responseBody = aiRestClient.post()
+                        .uri(url)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(payload)
+                        .retrieve()
+                        .body(String.class);
+
+                if (responseBody != null && !responseBody.isBlank()) {
+                    String rawText = extractTextFromGeminiResponse(responseBody).trim();
+                    if (rawText.startsWith("```json")) {
+                        rawText = rawText.substring(7);
+                    } else if (rawText.startsWith("```")) {
+                        rawText = rawText.substring(3);
+                    }
+                    if (rawText.endsWith("```")) {
+                        rawText = rawText.substring(0, rawText.length() - 3);
+                    }
+                    rawText = rawText.trim();
+
+                    JsonNode json = objectMapper.readTree(rawText);
+                    String activityType = json.path("activityType").asText("OTHER");
+                    String activityLabel = json.path("activityLabel").asText("Khác");
+                    String material = json.path("material").asText("");
+                    Double quantity = json.has("quantity") && !json.path("quantity").isNull() ? json.path("quantity").asDouble() : null;
+                    String unit = json.path("unit").asText("");
+                    String lotName = json.path("productionLotName").asText("");
+                    String notes = json.path("notes").asText("");
+                    String summaryText = json.path("summaryText").asText("");
+
+                    LocalDate executedDate = LocalDate.now();
+                    String dateStr = json.path("executedDate").asText("");
+                    if (!dateStr.isBlank()) {
+                        try {
+                            executedDate = LocalDate.parse(dateStr);
+                        } catch (Exception ignored) {
+                        }
+                    }
+
+                    // Tìm ID của lô nếu khớp tên
+                    String matchedLotId = null;
+                    if (availableLots != null && !lotName.isBlank()) {
+                        for (AiFarmLogParseRequest.LotHintDto lot : availableLots) {
+                            if (lot.getName() != null && lot.getName().toLowerCase().contains(lotName.toLowerCase())) {
+                                matchedLotId = lot.getId();
+                                lotName = lot.getName();
+                                break;
+                            }
+                        }
+                    }
+
+                    return AiFarmLogParseResponse.builder()
+                            .activityType(activityType)
+                            .activityLabel(activityLabel)
+                            .material(material)
+                            .quantity(quantity != null ? BigDecimal.valueOf(quantity) : null)
+                            .unit(unit)
+                            .productionLotId(matchedLotId)
+                            .productionLotName(lotName)
+                            .executedDate(executedDate)
+                            .notes(notes)
+                            .summaryText(summaryText)
+                            .confidence(0.95)
+                            .build();
+                }
+            } catch (Exception e) {
+                log.warn("Thử mô hình {} thất bại: {}", modelName, e.getMessage());
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Bộ phân tích quy tắc tiếng Việt chuẩn hóa (chạy độc lập, không phụ thuộc API ngoài).
+     */
+    private AiFarmLogParseResponse fallbackParseFarmLog(String voiceText,
+            List<AiFarmLogParseRequest.LotHintDto> availableLots,
+            List<AiFarmLogParseRequest.MaterialHintDto> availableMaterials) {
+        String lower = voiceText.toLowerCase();
+
+        // 1. Nhận diện loại hoạt động
+        String activityType = "OTHER";
+        String activityLabel = "Khác";
+
+        if (lower.contains("bón") || lower.contains("phân") || lower.contains("đạm") || lower.contains("lân")
+                || lower.contains("kali") || lower.contains("npk") || lower.contains("hữu cơ")
+                || lower.contains("vi sinh") || lower.contains("chuồng")) {
+            activityType = "FERTILIZING";
+            activityLabel = "Bón phân";
+        } else if (lower.contains("tưới") || lower.contains("nước") || lower.contains("nhỏ giọt")
+                || lower.contains("bơm nước") || lower.contains("phun sương")) {
+            activityType = "WATERING";
+            activityLabel = "Tưới nước";
+        } else if (lower.contains("phun") || lower.contains("xịt") || lower.contains("thuốc")
+                || lower.contains("trừ sâu") || lower.contains("nấm") || lower.contains("rầy")
+                || lower.contains("diệt cỏ") || lower.contains("bảo vệ thực vật") || lower.contains("bvtv")) {
+            activityType = "PESTICIDE";
+            activityLabel = "Phun thuốc";
+        } else if (lower.contains("cỏ") || lower.contains("làm cỏ") || lower.contains("nhổ cỏ")
+                || lower.contains("xới đất") || lower.contains("làm đất")) {
+            activityType = "WEEDING";
+            activityLabel = "Làm cỏ";
+        } else if (lower.contains("thu hoạch") || lower.contains("hái") || lower.contains("cắt chùm")
+                || lower.contains("thu hái") || lower.contains("thu gom")) {
+            activityType = "HARVESTING";
+            activityLabel = "Thu hoạch";
+        } else if (lower.contains("gieo") || lower.contains("trồng") || lower.contains("xuống giống")
+                || lower.contains("cây con") || lower.contains("ươm")) {
+            activityType = "PLANTING";
+            activityLabel = "Gieo trồng";
+        }
+
+        // 2. Nhận diện số lượng và đơn vị tính
+        BigDecimal quantity = null;
+        String unit = "";
+
+        // Chuyển một số từ chữ số tiếng Việt thông dụng
+        String normalized = lower
+                .replace("hai mươi lăm", "25")
+                .replace("hai mươi", "20")
+                .replace("mười lăm", "15")
+                .replace("ba mươi", "30")
+                .replace("năm mươi", "50")
+                .replace("mười", "10")
+                .replace("một trăm", "100")
+                .replace("nửa", "0.5")
+                .replace("một", "1")
+                .replace("hai", "2")
+                .replace("ba", "3")
+                .replace("bốn", "4")
+                .replace("năm", "5")
+                .replace("sáu", "6")
+                .replace("bảy", "7")
+                .replace("tám", "8")
+                .replace("chín", "9");
+
+        Pattern numPattern = Pattern.compile("(\\d+(?:[.,]\\d+)?)\\s*(kg|kí|ký|kilôgam|cân|lít|lit|l|bao|bình|binh|chai|gói|tấn|tạ)?");
+        Matcher matcher = numPattern.matcher(normalized);
+        if (matcher.find()) {
+            try {
+                String numStr = matcher.group(1).replace(",", ".");
+                quantity = new BigDecimal(numStr);
+                String rawUnit = matcher.group(2);
+                if (rawUnit != null) {
+                    rawUnit = rawUnit.toLowerCase();
+                    if (rawUnit.contains("cân") || rawUnit.contains("kí") || rawUnit.contains("ký") || rawUnit.contains("kg") || rawUnit.contains("kilo")) {
+                        unit = "kg";
+                    } else if (rawUnit.contains("lit") || rawUnit.contains("lít") || rawUnit.equals("l")) {
+                        unit = "lít";
+                    } else if (rawUnit.contains("binh") || rawUnit.contains("bình")) {
+                        unit = "bình";
+                    } else if (rawUnit.contains("bao")) {
+                        unit = "bao";
+                    } else if (rawUnit.contains("chai")) {
+                        unit = "chai";
+                    } else if (rawUnit.contains("gói")) {
+                        unit = "gói";
+                    } else if (rawUnit.contains("tấn")) {
+                        unit = "tấn";
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        // Nếu chưa có đơn vị nhưng biết hoạt động
+        if (unit.isEmpty() && quantity != null) {
+            if ("FERTILIZING".equals(activityType)) unit = "kg";
+            else if ("WATERING".equals(activityType)) unit = "lít";
+            else if ("PESTICIDE".equals(activityType)) unit = "bình";
+            else if ("HARVESTING".equals(activityType)) unit = "kg";
+        }
+
+        // 3. Khớp tên lô sản xuất
+        String matchedLotId = null;
+        String matchedLotName = null;
+        if (availableLots != null && !availableLots.isEmpty()) {
+            for (AiFarmLogParseRequest.LotHintDto lot : availableLots) {
+                if (lot.getName() != null) {
+                    String lotLower = lot.getName().toLowerCase();
+                    if (lower.contains(lotLower) || lotLower.contains("lô 1") && lower.contains("lô 1")
+                            || lotLower.contains("lô nho 01") && (lower.contains("nho 1") || lower.contains("lô 1") || lower.contains("vườn 1"))) {
+                        matchedLotId = lot.getId();
+                        matchedLotName = lot.getName();
+                        break;
+                    }
+                }
+            }
+            if (matchedLotId == null && !availableLots.isEmpty()) {
+                // Tự động gán lô nếu đề cập chung
+                for (AiFarmLogParseRequest.LotHintDto lot : availableLots) {
+                    if (lower.contains("lô") && lot.getName() != null && lower.contains(lot.getName().toLowerCase())) {
+                        matchedLotId = lot.getId();
+                        matchedLotName = lot.getName();
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 4. Nhận diện tên vật tư
+        String material = "";
+        if (availableMaterials != null && !availableMaterials.isEmpty()) {
+            for (AiFarmLogParseRequest.MaterialHintDto mat : availableMaterials) {
+                if (mat.getName() != null && lower.contains(mat.getName().toLowerCase())) {
+                    material = mat.getName();
+                    if (unit.isEmpty() && mat.getUnit() != null) {
+                        unit = mat.getUnit();
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (material.isEmpty()) {
+            if (lower.contains("hữu cơ")) material = "Phân hữu cơ vi sinh";
+            else if (lower.contains("npk")) material = "Phân bón NPK";
+            else if (lower.contains("đạm")) material = "Phân đạm Urê";
+            else if (lower.contains("lân")) material = "Phân lân";
+            else if (lower.contains("kali")) material = "Phân kali";
+            else if (lower.contains("thuốc trừ sâu")) material = "Thuốc trừ sâu sinh học";
+            else if (lower.contains("nấm")) material = "Thuốc trừ nấm bệnh";
+            else if (lower.contains("nước")) material = "Nước sạch tưới tiêu";
+        }
+
+        // 5. Nhận diện ngày thực hiện
+        LocalDate executedDate = LocalDate.now();
+        if (lower.contains("hôm qua") || lower.contains("hôm trc") || lower.contains("hôm trước")) {
+            executedDate = LocalDate.now().minusDays(1);
+        } else {
+            Pattern datePattern1 = Pattern.compile("(?:ngày\\s*)?(\\d{1,2})[\\/\\-](\\d{1,2})(?:[\\/\\-](\\d{4}))?");
+            Pattern datePattern2 = Pattern.compile("ngày\\s*(\\d{1,2})\\s*tháng\\s*(\\d{1,2})");
+            Matcher dm1 = datePattern1.matcher(lower);
+            Matcher dm2 = datePattern2.matcher(lower);
+            if (dm1.find()) {
+                try {
+                    int day = Integer.parseInt(dm1.group(1));
+                    int month = Integer.parseInt(dm1.group(2));
+                    int year = dm1.group(3) != null ? Integer.parseInt(dm1.group(3)) : LocalDate.now().getYear();
+                    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+                        executedDate = LocalDate.of(year, month, day);
+                    }
+                } catch (Exception ignored) {}
+            } else if (dm2.find()) {
+                try {
+                    int day = Integer.parseInt(dm2.group(1));
+                    int month = Integer.parseInt(dm2.group(2));
+                    int year = LocalDate.now().getYear();
+                    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+                        executedDate = LocalDate.of(year, month, day);
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
+        // 6. Tạo câu tóm tắt (TTS Text)
+        StringBuilder summary = new StringBuilder("Đã ghi nhận: ");
+        summary.append(activityLabel);
+        if (!material.isEmpty()) {
+            summary.append(" ").append(material);
+        }
+        if (quantity != null) {
+            summary.append(", số lượng ").append(quantity.stripTrailingZeros().toPlainString());
+            if (!unit.isEmpty()) {
+                summary.append(" ").append(unit.equals("kg") ? "kilôgam" : unit);
+            }
+        }
+        if (matchedLotName != null) {
+            summary.append(" cho ").append(matchedLotName);
+        }
+        if (executedDate.equals(LocalDate.now().minusDays(1))) {
+            summary.append(" ngày hôm qua");
+        } else if (!executedDate.equals(LocalDate.now())) {
+            summary.append(" ngày ").append(executedDate.getDayOfMonth()).append(" tháng ").append(executedDate.getMonthValue());
+        }
+        summary.append(". Bác kiểm tra lại trên màn hình nhé!");
+
+        return AiFarmLogParseResponse.builder()
+                .activityType(activityType)
+                .activityLabel(activityLabel)
+                .material(material)
+                .quantity(quantity)
+                .unit(unit)
+                .productionLotId(matchedLotId)
+                .productionLotName(matchedLotName)
+                .executedDate(executedDate)
+                .notes(voiceText)
+                .summaryText(summary.toString())
+                .rawVoiceText(voiceText)
+                .confidence(0.9)
                 .build();
     }
 
