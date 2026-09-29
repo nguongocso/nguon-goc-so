@@ -269,7 +269,7 @@ describe('NCL-07-CN-008: Bảng điều khiển mức độ sử dụng nền t�
 
     // Mở select trạng thái và chọn "Cần liên hệ hỗ trợ"
     await user.click(screen.getByRole('combobox'));
-    await user.click(screen.getByRole('option', { name: 'Cần liên hệ hỗ trợ' }));
+    await user.click(await screen.findByRole('option', { name: 'Cần liên hệ hỗ trợ' }));
 
     expect(screen.queryByText('Hợp tác xã Chè Tân Cương')).not.toBeInTheDocument();
     expect(screen.getByText('Hợp tác xã Rau Sạch')).toBeInTheDocument();

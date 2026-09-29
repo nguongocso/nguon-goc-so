@@ -51,7 +51,7 @@ class BuildInfoActuatorTest {
     @DisplayName("TC-04: build-info sinh ra với version, build time và git commit")
     void buildInfoShouldContainVersionBuildTimeAndCommit() {
         assertThat(buildProperties).isNotNull();
-        assertThat(buildProperties.getVersion()).isEqualTo("1.0.0");
+        assertThat(buildProperties.getVersion()).isEqualTo("1.1.0");
         assertThat(buildProperties.getTime()).isNotNull();
         // CI truyền -Dgit.commit=<github.sha>; build local mặc định "local".
         assertThat(String.valueOf(buildProperties.get("git.commit"))).isNotBlank();
@@ -65,7 +65,7 @@ class BuildInfoActuatorTest {
 
         mockMvc.perform(get("/actuator/info"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.build.version").value("1.0.0"))
+                .andExpect(jsonPath("$.build.version").value("1.1.0"))
                 .andExpect(jsonPath("$.build.time").isNotEmpty())
                 // Commit phải xuất hiện trong response (bất kể shape lồng nhau).
                 .andExpect(content().string(containsString(commit)));

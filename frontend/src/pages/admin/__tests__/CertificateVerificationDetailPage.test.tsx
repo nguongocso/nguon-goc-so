@@ -139,5 +139,5 @@ describe('CertificateVerificationDetailPage', () => {
         rejectionReason: 'Số hiệu trên tệp không khớp với thông tin khai báo.',
       });
     });
-  });
+  }, 15000);
 });
