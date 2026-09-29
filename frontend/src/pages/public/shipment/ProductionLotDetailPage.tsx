@@ -522,6 +522,8 @@ export const ProductionLotDetailPage = () => {
   // Modal mở rộng "Lịch sử yêu cầu kiểm nghiệm" (bảng hoàn chỉnh + phân trang)
   const [showInspectionHistoryModal, setShowInspectionHistoryModal] =
     useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Lịch sử kiểm nghiệm chi tiết theo yêu cầu (lazy-load khi mở rộng)
   const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
@@ -1264,9 +1266,6 @@ export const ProductionLotDetailPage = () => {
     ? inspectionRequests
     : inspectionRequests.slice(0, HISTORY_COLLAPSED_COUNT);
   const canToggleHistory = inspectionRequests.length > HISTORY_COLLAPSED_COUNT;
-
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
