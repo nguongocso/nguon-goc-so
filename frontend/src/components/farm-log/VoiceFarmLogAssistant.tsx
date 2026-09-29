@@ -211,13 +211,45 @@ export function VoiceFarmLogAssistant({
         // Chỉ xử lý khi đang trong trạng thái chủ động nghe, chặn micro nghe lại tiếng loa
         if (!isListeningRef.current) return;
 
-        let accumulatedTranscript = '';
+        // Xử lý chống lặp giọng nói đặc thù trên Mobile Chrome (Android/iOS):
+        // Trên điện thoại, SpeechRecognition thường trả về các bản nháp trung gian (interim)
+        // hoặc các câu nối tiếp nhau trong event.results mà câu sau mở rộng/sửa đổi câu trước.
+        const pieces: string[] = [];
         for (let i = 0; i < event.results.length; i++) {
-          accumulatedTranscript += event.results[i][0].transcript + ' ';
+          const raw = event.results[i]?.[0]?.transcript?.trim();
+          if (raw) {
+            pieces.push(raw);
+          }
         }
-        const text = accumulatedTranscript.trim();
-        transcriptRef.current = text;
-        setTranscript(text);
+
+        // Lọc bỏ các bản nháp trung gian:
+        // Nếu một đoạn text ở vị trí i là tiền tố hoặc nằm trọn trong bất kỳ đoạn text nào ở vị trí sau j (j > i),
+        // thì đoạn i chỉ là kết quả nhận diện dở dang đang được hoàn thiện, ta loại bỏ đoạn i.
+        const cleanPieces: string[] = [];
+        for (let i = 0; i < pieces.length; i++) {
+          const current = pieces[i];
+          const curNorm = current.toLowerCase().replace(/[,.?!]/g, '').trim();
+
+          let isDraftOfLater = false;
+          for (let j = i + 1; j < pieces.length; j++) {
+            const later = pieces[j];
+            const laterNorm = later.toLowerCase().replace(/[,.?!]/g, '').trim();
+            if (laterNorm.startsWith(curNorm) || laterNorm.includes(curNorm)) {
+              isDraftOfLater = true;
+              break;
+            }
+          }
+
+          if (!isDraftOfLater) {
+            cleanPieces.push(current);
+          }
+        }
+
+        const text = cleanPieces.join(' ').trim();
+        if (text) {
+          transcriptRef.current = text;
+          setTranscript(text);
+        }
 
         // Reset bộ đếm im lặng: cho người dùng khoảng 3.5 giây dứt câu trước khi tự động dừng và phân tích
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
@@ -459,87 +491,84 @@ export function VoiceFarmLogAssistant({
         {/* Kết quả bóc tách thành công & Nút áp dụng vào form */}
         {parsedResult && (
           <div className="mt-4 animate-in fade-in slide-in-from-top-3 duration-300 rounded-2xl border-2 border-emerald-400 bg-white p-4 shadow-md sm:p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="w-full">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-5 text-emerald-600" />
-                  <span className="font-bold text-slate-900">
-                    AI đã bóc tách thành công thông tin:
-                  </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="size-5 text-emerald-600 shrink-0" />
+                <span className="font-bold text-slate-900 text-sm sm:text-base">
+                  AI đã bóc tách thành công thông tin:
+                </span>
+              </div>
+
+              {/* Câu đọc tóm tắt (TTS) */}
+              {parsedResult.summaryText && (
+                <div className="mt-2 flex items-center gap-2 rounded-xl bg-emerald-50 p-2.5 text-sm text-emerald-900">
+                  <Volume2 className="size-5 shrink-0 text-emerald-700" />
+                  <span className="font-medium">{parsedResult.summaryText}</span>
+                  <button
+                    type="button"
+                    onClick={() => speakSummary(parsedResult.summaryText)}
+                    className="ml-auto shrink-0 text-xs font-bold text-emerald-700 underline hover:text-emerald-900 cursor-pointer"
+                  >
+                    Nghe lại
+                  </button>
                 </div>
+              )}
 
-                {/* Câu đọc tóm tắt (TTS) */}
-                {parsedResult.summaryText && (
-                  <div className="mt-2 flex items-center gap-2 rounded-xl bg-emerald-50 p-2.5 text-sm text-emerald-900">
-                    <Volume2 className="size-5 shrink-0 text-emerald-700" />
-                    <span className="font-medium">{parsedResult.summaryText}</span>
-                    <button
-                      type="button"
-                      onClick={() => speakSummary(parsedResult.summaryText)}
-                      className="ml-auto shrink-0 text-xs font-bold text-emerald-700 underline hover:text-emerald-900"
-                    >
-                      Nghe lại
-                    </button>
-                  </div>
-                )}
-
-                {/* Các trường dữ liệu sẽ đổ vào form (gồm cả Ngày thực hiện) */}
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-5 sm:text-sm">
-                  <div className="rounded-lg bg-slate-50 p-2 border border-slate-100">
-                    <span className="text-slate-500 block text-xs">Hoạt động:</span>
-                    <strong className="text-emerald-800 font-semibold">{parsedResult.activityLabel}</strong>
-                  </div>
-                  <div className="rounded-lg bg-slate-50 p-2 border border-slate-100">
-                    <span className="text-slate-500 block text-xs">Vật tư:</span>
-                    <strong className="text-slate-800 font-semibold">{parsedResult.material || 'Không dùng'}</strong>
-                  </div>
-                  <div className="rounded-lg bg-slate-50 p-2 border border-slate-100">
-                    <span className="text-slate-500 block text-xs">Số lượng:</span>
-                    <strong className="text-slate-800 font-semibold">
-                      {parsedResult.quantity !== undefined && parsedResult.quantity !== null
-                        ? `${parsedResult.quantity} ${parsedResult.unit || ''}`
-                        : '—'}
-                    </strong>
-                  </div>
-                  <div className="rounded-lg bg-slate-50 p-2 border border-slate-100">
-                    <span className="text-slate-500 block text-xs">Ngày thực hiện:</span>
-                    <strong className="text-blue-700 font-semibold">
-                      {parsedResult.executedDate || new Date().toISOString().slice(0, 10)}
-                    </strong>
-                  </div>
-                  <div className="rounded-lg bg-slate-50 p-2 border border-slate-100 col-span-2 sm:col-span-1">
-                    <span className="text-slate-500 block text-xs">Lô sản xuất:</span>
-                    <strong className="text-emerald-700 font-semibold truncate block">
-                      {parsedResult.productionLotName || 'Chưa rõ (chọn tay)'}
-                    </strong>
-                  </div>
+              {/* Các trường dữ liệu sẽ đổ vào form (gồm cả Ngày thực hiện) */}
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-5 sm:text-sm">
+                <div className="rounded-lg bg-slate-50 p-2 border border-slate-100">
+                  <span className="text-slate-500 block text-xs">Hoạt động:</span>
+                  <strong className="text-emerald-800 font-semibold">{parsedResult.activityLabel}</strong>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-2 border border-slate-100">
+                  <span className="text-slate-500 block text-xs">Vật tư:</span>
+                  <strong className="text-slate-800 font-semibold">{parsedResult.material || 'Không dùng'}</strong>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-2 border border-slate-100">
+                  <span className="text-slate-500 block text-xs">Số lượng:</span>
+                  <strong className="text-slate-800 font-semibold">
+                    {parsedResult.quantity !== undefined && parsedResult.quantity !== null
+                      ? `${parsedResult.quantity} ${parsedResult.unit || ''}`
+                      : '—'}
+                  </strong>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-2 border border-slate-100">
+                  <span className="text-slate-500 block text-xs">Ngày thực hiện:</span>
+                  <strong className="text-blue-700 font-semibold">
+                    {parsedResult.executedDate || new Date().toISOString().slice(0, 10)}
+                  </strong>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-2 border border-slate-100 col-span-2 sm:col-span-1">
+                  <span className="text-slate-500 block text-xs">Lô sản xuất:</span>
+                  <strong className="text-emerald-700 font-semibold truncate block">
+                    {parsedResult.productionLotName || 'Chưa rõ (chọn tay)'}
+                  </strong>
                 </div>
               </div>
 
               {/* Nút hành động áp dụng */}
-              <div className="mt-2 sm:mt-0 flex sm:flex-col gap-2 shrink-0">
-                <Button
-                  type="button"
-                  onClick={handleApply}
-                  className="w-full bg-emerald-600 font-bold hover:bg-emerald-700 text-white shadow-sm"
-                >
-                  <CheckCircle2 className="mr-1.5 size-4" />
-                  Áp dụng vào Form
-                  <ArrowRight className="ml-1.5 size-4" />
-                </Button>
+              <div className="mt-4 pt-3.5 border-t border-emerald-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
                   onClick={() => {
                     setParsedResult(null);
                     setTranscript('');
                     stopSpeaking();
                   }}
-                  className="w-full text-slate-600 hover:bg-slate-100"
+                  className="w-full sm:w-auto text-slate-700 border-slate-300 hover:bg-slate-100 order-2 sm:order-1 font-medium"
                 >
-                  <RotateCcw className="mr-1.5 size-3.5" />
+                  <RotateCcw className="mr-1.5 size-4" />
                   Nói lại câu khác
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleApply}
+                  className="w-full sm:w-auto bg-emerald-600 font-bold hover:bg-emerald-700 text-white shadow-sm order-1 sm:order-2"
+                >
+                  <CheckCircle2 className="mr-1.5 size-4" />
+                  Áp dụng vào Form
+                  <ArrowRight className="ml-1.5 size-4" />
                 </Button>
               </div>
             </div>
