@@ -37,12 +37,13 @@ API layer        → hooks (optional)  → Pages         → Routes
                      (RHF + zod schemas)
      ↓
  src/components/common/   ← shared: ListPageHeader / ListCard / ListToolbar / DataTableShell / Pagination / StatusBadge / ...
- src/components/ui/       ← shadcn primitives (button, card, dialog, ...)
+ src/components/ui/       ← shadcn primitives (button, card, dialog, select, combobox, ...)
 ```
 
 - Alias: `@` = `frontend/src/`.
 - Error toasts: `sonner` `toast.error(...)`.
 - Route guard: `<RoleRoute allowedRoles={ROLE_ACCESS.xxx}>`.
+- Dropdown có tìm kiếm: dùng `ui/combobox.tsx` (Base UI Combobox, lọc client-side **không phân biệt dấu** qua `normalizeVietnamese()`, bề ngang popup = bề ngang ô chọn). Khi danh mục lớn dùng `TestingUnitSelect` / `InputMaterialSelect` / `AdministrativeAreaPicker`.
 
 ---
 
@@ -637,6 +638,7 @@ Không có Feign — mọi call đều trực tiếp trong cùng JVM qua service
 | `/admin/input-materials` | InputMaterialManagementPage | VT-01, VT-02, VT-03, VT-04 |
 | `/admin/standards` | StandardManagementPage | VT-01 |
 | `/admin/inspection-criteria` | InspectionCriteriaManagementPage | VT-01 |
+| `/admin/inspection-criteria/create` | CreateInspectionCriterionPage | VT-01 |
 | `/admin/cultivation-milestones` | CultivationMilestoneManagementPage | VT-01 |
 | `/admin/anomaly-thresholds` | AnomalyThresholdPage | VT-01 |
 | `/admin/anomaly-thresholds/categories` | CategoryOverridePage | VT-01 |

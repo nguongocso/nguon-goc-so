@@ -7,12 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Combobox,
+  ComboboxClear,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxInputGroup,
+  ComboboxItem,
+  ComboboxItemIndicator,
+  ComboboxItemText,
+  ComboboxList,
+  ComboboxTrigger,
+  type ComboboxOption,
+} from "@/components/ui/combobox";
 import { toast } from "sonner";
 import {
   createInspectionCriterion,
@@ -53,7 +60,12 @@ const formSchema = z.object({
     .min(1, "Đơn vị tính không được để trống")
     .max(30, "Đơn vị tính tối đa 30 ký tự"),
   maxThreshold: z
-    .number({ invalid_type_error: "Ngưỡng tối đa phải là số dương" })
+    .number({
+      // `required_error` áp dụng khi người dùng bỏ trống ô nhập, nếu thiếu thì
+      // Zod trả về thông báo mặc định tiếng Anh ("Required").
+      required_error: "Ngưỡng tối đa phải là số dương",
+      invalid_type_error: "Ngưỡng tối đa phải là số dương",
+    })
     .positive("Ngưỡng tối đa phải là số dương"),
   standardId: z.string().min(1, "Vui lòng chọn Tiêu chuẩn chất lượng."),
 });
@@ -159,6 +171,17 @@ export const InspectionCriterionFormContent = ({
     return options;
   }, [standards, criterion]);
 
+  // Combobox dùng shape { value, label }: value = ID tiêu chuẩn, label = tên hiển thị.
+  // Giữ nguyên thứ tự như standardOptions để không đổi hành vi danh sách.
+  const standardComboboxItems = useMemo<ComboboxOption[]>(
+    () =>
+      standardOptions.map((option) => ({
+        value: option.id,
+        label: option.name,
+      })),
+    [standardOptions]
+  );
+
   // Reset form mỗi lần criterion thay đổi (tạo mới hoặc đổi chỉ tiêu đang sửa)
   useEffect(() => {
     if (!open) return;
@@ -227,145 +250,147 @@ export const InspectionCriterionFormContent = ({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* Bố cục 1 cột ở mobile, 2 cột từ 768px:
+          Hàng 1 — Tên chỉ tiêu | Tên tiếng Anh
+          Hàng 2 — Tiêu chuẩn chất lượng (chiếm hết bề ngang)
+          Hàng 3 — Ngưỡng tối đa | Đơn vị đo */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {/* Tên chỉ tiêu */}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="name" className="text-sm font-medium">
+            Tên chỉ tiêu <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="name"
+            {...register("name")}
+            placeholder="VD: Dư lượng thuốc BVTV nhóm Lân hữu cơ"
+          />
+          {errors.name && (
+            <p className="text-sm text-red-500">{errors.name.message}</p>
+          )}
+        </div>
 
-      {/* Tiêu chuẩn tham chiếu — dropdown từ danh mục Tiêu chuẩn chất lượng */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="standardId" className="text-sm font-medium">
-          Tiêu chuẩn chất lượng <span className="text-red-500">*</span>
-        </Label>
-        <Controller
+        {/* Tên chỉ tiêu tiếng Anh */}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="nameEn" className="text-sm font-medium">
+            Tên tiếng Anh (English Name)
+          </Label>
+          <Input
+            id="nameEn"
+            {...register("nameEn")}
+            placeholder="VD: Organophosphorus Pesticide Residue"
+          />
+          {errors.nameEn && (
+            <p className="text-sm text-red-500">{errors.nameEn.message}</p>
+          )}
+        </div>
+
+        {/* Tiêu chuẩn tham chiếu — dropdown có ô tìm kiếm từ danh mục Tiêu chuẩn chất lượng */}
+        <div className="flex flex-col gap-1.5 md:col-span-2">
+          <Label htmlFor="standardId" className="text-sm font-medium">
+            Tiêu chuẩn chất lượng <span className="text-red-500">*</span>
+          </Label>
+          <Controller
             name="standardId"
             control={control}
-            render={({ field }) => {
-              const selectedOption = standardOptions.find(
-                  (option) => option.id === field.value
-              );
-              return (
-                  <Select
-                      value={field.value || ""}
-                      onValueChange={field.onChange}
-                      disabled={isSubmitting || standardNotReady}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue
-                          placeholder={
-                            standardsLoading
-                                ? "Đang tải tiêu chuẩn..."
-                                : standardsError
-                                    ? "Không tải được tiêu chuẩn"
-                                    : standardOptions.length === 0
-                                        ? "Chưa có tiêu chuẩn chất lượng"
-                                        : "Chọn tiêu chuẩn chất lượng"
-                          }
-                      >
-                        {selectedOption?.name}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="min-w-[300px] max-h-[200px]">
-                      {standardOptions.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>
-                            {option.name}
-                          </SelectItem>
-                      ))}
-                      {standardOptions.length === 0 && (
-                          <div className="px-3 py-2 text-sm text-muted-foreground">
-                            Chưa có tiêu chuẩn chất lượng
-                          </div>
-                      )}
-                    </SelectContent>
-                  </Select>
-              );
-            }}
-        />
-        {errors.standardId && (
+            render={({ field }) => (
+              <Combobox
+                items={standardComboboxItems}
+                value={field.value || null}
+                onValueChange={(value) => field.onChange(value ?? "")}
+                disabled={isSubmitting || standardNotReady}
+              >
+                <ComboboxInputGroup>
+                  <ComboboxInput
+                    id="standardId"
+                    aria-invalid={!!errors.standardId}
+                    placeholder={
+                      standardsLoading
+                        ? "Đang tải tiêu chuẩn..."
+                        : standardsError
+                          ? "Không tải được tiêu chuẩn"
+                          : standardOptions.length === 0
+                            ? "Chưa có tiêu chuẩn chất lượng"
+                            : "Chọn hoặc tìm tiêu chuẩn chất lượng"
+                    }
+                  />
+                  <ComboboxClear />
+                  <ComboboxTrigger />
+                </ComboboxInputGroup>
+                <ComboboxContent>
+                  <ComboboxEmpty>
+                    Không tìm thấy tiêu chuẩn phù hợp
+                  </ComboboxEmpty>
+                  <ComboboxList>
+                    {(option: ComboboxOption) => (
+                      <ComboboxItem key={option.value} value={option}>
+                        <ComboboxItemText>{option.label}</ComboboxItemText>
+                        <ComboboxItemIndicator />
+                      </ComboboxItem>
+                    )}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+            )}
+          />
+          {errors.standardId && (
             <p className="text-sm text-red-500">
               {errors.standardId.message}
             </p>
-        )}
-        {standardsError && (
+          )}
+          {standardsError && (
             <p className="text-sm text-red-500">
               {standardsError}{" "}
               <button
-                  type="button"
-                  onClick={() => setStandardsRetryToken((token) => token + 1)}
-                  className="font-medium underline hover:no-underline"
+                type="button"
+                onClick={() => setStandardsRetryToken((token) => token + 1)}
+                className="font-medium underline hover:no-underline"
               >
                 Thử lại
               </button>
             </p>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* Tên chỉ tiêu */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="name" className="text-sm font-medium">
-          Tên chỉ tiêu <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="name"
-          {...register("name")}
-          placeholder="VD: Dư lượng thuốc BVTV nhóm Lân hữu cơ"
-        />
-        {errors.name && (
-          <p className="text-sm text-red-500">{errors.name.message}</p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Tên chỉ tiêu không được trùng trong cùng một Tiêu chuẩn chất lượng.
-        </p>
-      </div>
-
-      {/* Tên chỉ tiêu tiếng Anh */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="nameEn" className="text-sm font-medium">
-          Tên tiếng Anh (English Name)
-        </Label>
-        <Input
-          id="nameEn"
-          {...register("nameEn")}
-          placeholder="VD: Organophosphorus Pesticide Residue"
-        />
-        {errors.nameEn && (
-          <p className="text-sm text-red-500">{errors.nameEn.message}</p>
-        )}
-      </div>
-      {/* Đơn vị đo */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="unit" className="text-sm font-medium">
-          Đơn vị đo <span className="text-red-500">*</span>
-        </Label>
-        <Input id="unit" {...register("unit")} placeholder="VD: mg/kg" />
-        {errors.unit && (
-          <p className="text-sm text-red-500">{errors.unit.message}</p>
-        )}
-      </div>
-
-      {/* Ngưỡng tối đa */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="maxThreshold" className="text-sm font-medium">
-          Ngưỡng tối đa <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="maxThreshold"
-          type="number"
-          step="0.0001"
-          min="0"
-          placeholder="VD: 0.5"
-          {...register("maxThreshold", {
-            setValueAs: (value: unknown) =>
-              value === "" || value === null || value === undefined
-                ? undefined
-                : Number(value),
-          })}
-        />
-        {errors.maxThreshold && (
-          <p className="text-sm text-red-500">
-            {errors.maxThreshold.message}
+        {/* Ngưỡng tối đa */}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="maxThreshold" className="text-sm font-medium">
+            Ngưỡng tối đa <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="maxThreshold"
+            type="number"
+            step="0.0001"
+            min="0"
+            placeholder="VD: 0.5"
+            {...register("maxThreshold", {
+              setValueAs: (value: unknown) =>
+                value === "" || value === null || value === undefined
+                  ? undefined
+                  : Number(value),
+            })}
+          />
+          {errors.maxThreshold && (
+            <p className="text-sm text-red-500">
+              {errors.maxThreshold.message}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Kết quả kiểm nghiệm vượt ngưỡng này được coi là không đạt.
           </p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Kết quả kiểm nghiệm vượt ngưỡng này được coi là không đạt.
-        </p>
+        </div>
+
+        {/* Đơn vị đo */}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="unit" className="text-sm font-medium">
+            Đơn vị đo <span className="text-red-500">*</span>
+          </Label>
+          <Input id="unit" {...register("unit")} placeholder="VD: mg/kg" />
+          {errors.unit && (
+            <p className="text-sm text-red-500">{errors.unit.message}</p>
+          )}
+        </div>
       </div>
 
       {/* Nút hành động */}

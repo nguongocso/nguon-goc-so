@@ -1,5 +1,11 @@
 package vn.nguongocso.publicapi.controller;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import vn.nguongocso.certification.service.CertificationService;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
 import vn.nguongocso.publicapi.dto.response.PublicLotCertificationsResponse;
@@ -75,6 +82,27 @@ public class PublicTraceController {
                 publicTraceService.getPublicInspections(codeValue);
 
         return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Xem tệp tài liệu (ảnh/PDF) của một chứng nhận đã được gắn cho lô của mã tem.
+     * Không mở trực tiếp đường dẫn lưu trữ vật lý.
+     */
+    @GetMapping("/{codeValue}/certifications/{certificationId}/document")
+    public ResponseEntity<Resource> getPublicCertificationDocument(
+            @PathVariable String codeValue,
+            @PathVariable UUID certificationId) {
+        CertificationService.DocumentResource documentResource =
+                publicTraceService.getPublicCertificationDocument(codeValue, certificationId);
+
+        String encodedFileName = URLEncoder.encode(documentResource.fileName(), StandardCharsets.UTF_8)
+                .replace("+", "%20");
+
+        return ResponseEntity.ok()
+                .contentType(documentResource.contentType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename*=UTF-8''" + encodedFileName)
+                .header("X-Content-Type-Options", "nosniff")
+                .body(documentResource.resource());
     }
 
     /** Lấy IP thực của client. */

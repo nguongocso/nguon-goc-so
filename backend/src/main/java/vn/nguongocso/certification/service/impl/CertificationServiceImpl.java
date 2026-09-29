@@ -404,16 +404,37 @@ public class CertificationServiceImpl implements CertificationService {
             CustomUserDetails currentUser) {
         validatePlatformAdmin(currentUser);
 
-        Certification cert = certificationRepository.findById(certificationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chứng nhận."));
+        return buildDocumentResource(findCertificationOrThrow(certificationId));
+    }
 
+    /**
+     * Lấy tài nguyên tệp đính kèm cho trang tra cứu công khai.
+     * Quyền xem công khai do lớp PublicTraceService kiểm tra trước khi gọi hàm này.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentResource getPublicDocumentResource(UUID certificationId) {
+        return buildDocumentResource(findCertificationOrThrow(certificationId));
+    }
+
+    /** Tìm chứng nhận theo ID, không tồn tại thì báo 404. */
+    private Certification findCertificationOrThrow(UUID certificationId) {
+        return certificationRepository.findById(certificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chứng nhận."));
+    }
+
+    /**
+     * Đóng gói tệp tài liệu chứng nhận thành resource để trả về, có kiểm tra an toàn
+     * đường dẫn lưu trữ (path traversal) và kiểu nội dung.
+     */
+    private DocumentResource buildDocumentResource(Certification cert) {
         if (cert.getDocumentStoragePath() == null || cert.getDocumentStoragePath().isBlank()) {
             throw new ResourceNotFoundException("Chứng nhận chưa có tệp đính kèm.");
         }
 
         Path filePath = resolveStoredDocumentPath(cert);
         if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
-            log.warn("🚨 Tệp chứng nhận vật lý bị mất trên máy chủ: certId={}, path={}", certificationId,
+            log.warn("🚨 Tệp chứng nhận vật lý bị mất trên máy chủ: certId={}, path={}", cert.getId(),
                     cert.getDocumentStoragePath());
             throw new BusinessException(HttpStatus.GONE, "Tệp chứng nhận vật lý không còn trên máy chủ.");
         }

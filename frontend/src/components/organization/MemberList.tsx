@@ -488,7 +488,7 @@ export const MemberList = () => {
               </div>
               <p className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs leading-5 text-slate-700">
                 {selectedRole?.code === 'VT-02'
-                  ? 'Quản lý dữ liệu và thành viên trong đúng phạm vi tổ chức.'
+                  ? 'Quản lý dữ liệu và thành viên của tổ chức.'
                   : 'Ghi nhật ký và sự kiện; không thể tự cấp quyền cho người khác.'}
               </p>
             </div>

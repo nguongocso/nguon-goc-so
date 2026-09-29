@@ -40,7 +40,7 @@ export const CreateInspectionCriterionPage: React.FC = () => {
       <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
         <CardHeader className="border-b border-slate-100 pb-4">
           <CardTitle className="text-lg font-semibold text-slate-900">
-            Thông tin chỉ tiêu kiểm nghiểm
+            Thông tin chỉ tiêu kiểm nghiệm
           </CardTitle>
           <CardDescription>
             Nhập tên chỉ tiêu, đơn vị đo, ngưỡng tối đa và chọn tiêu chuẩn tham

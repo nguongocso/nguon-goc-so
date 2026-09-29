@@ -188,6 +188,7 @@ Place the page header above the list card with 24px separation. In a wide toolba
 
 - Use `Card`, `CardHeader`, `CardTitle`, `CardDescription`, and `CardContent`.
 - Build fields with `Label` and `Input`, `Select`, or `Textarea`; use `Alert` when a warning is required.
+- Use `Combobox` instead of `Select` when the option list is long or the user is unlikely to know the exact value. The popup must match the input width, filter without Vietnamese diacritics, and support keyboard navigation.
 - Use one column by default and two columns from `md`, with `gap-4`.
 - Put Cancel or secondary actions before the primary action, normally right-aligned.
 
@@ -488,6 +489,7 @@ Revalidate the documented values if the technical baseline changes materially.
 - `frontend/src/components/ui/button.tsx` - variants, sizes, icon behavior, and radius.
 - `frontend/src/components/ui/input.tsx` - height and responsive font size.
 - `frontend/src/components/ui/select.tsx` - default and small variants.
+- `frontend/src/components/ui/combobox.tsx` - searchable dropdown: diacritic-insensitive client-side filter, popup width matching the input, keyboard navigation.
 - `frontend/src/components/ui/textarea.tsx` - minimum and content-driven height.
 - `frontend/src/components/ui/card.tsx` - spacing and typography by size.
 - `frontend/src/components/ui/table.tsx` - table cells and rows.

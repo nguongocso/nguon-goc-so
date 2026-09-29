@@ -50,6 +50,11 @@ export const translations = {
     cert_status_expired: 'Hết hạn',
     cert_status_pending: 'Đang chờ xác thực',
     cert_status_verified: 'Đã đạt chuẩn',
+    cert_document_view: 'Xem tệp chứng nhận',
+    cert_document_open: 'Mở tệp chứng nhận',
+    cert_document_preview: 'Xem ảnh chứng nhận',
+    cert_document_load_error: 'Không tải được ảnh chứng nhận',
+    cert_document_absent: 'Chứng nhận chưa có tệp đính kèm',
 
     // Inspections
     inspections_title: 'Kết quả kiểm nghiệm công khai',
@@ -202,6 +207,11 @@ export const translations = {
     cert_status_expired: 'Expired',
     cert_status_pending: 'Pending Verification',
     cert_status_verified: 'Verified Standard',
+    cert_document_view: 'View certificate file',
+    cert_document_open: 'Open certificate file',
+    cert_document_preview: 'View certificate image',
+    cert_document_load_error: 'Could not load the certificate image',
+    cert_document_absent: 'No attached file for this certificate',
 
     // Inspections
     inspections_title: 'Public Inspection Results',

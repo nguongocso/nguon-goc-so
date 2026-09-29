@@ -225,11 +225,8 @@ export default function InspectionCriteriaManagementPage() {
                                 </Button>
                             </>
                         )}
-                        {criterion.referenced && (
-                            <span className="text-xs text-muted-foreground">
-                                Không xóa
-                            </span>
-                        )}
+                        {/* Chỉ tiêu đã được tham chiếu thì không sửa/xóa được,
+                            ẩn hẳn nút sửa và nút xóa thay vì hiển thị nút disabled. */}
                     </div>
                 </TableCell>
             )}
