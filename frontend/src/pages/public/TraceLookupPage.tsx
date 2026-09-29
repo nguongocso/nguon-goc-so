@@ -25,6 +25,7 @@ import {
   LoaderCircle,
   MapPin,
   MessageSquareWarning,
+  QrCode,
 } from 'lucide-react';
 import { Logo } from '@/components/common/Logo';
 import {
@@ -41,7 +42,7 @@ interface TraceLookupLocationState {
 function TraceLookupContent() {
   const { codeValue } = useParams<{ codeValue: string }>();
   const location = useLocation();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const scanResult = (location.state as TraceLookupLocationState | null)?.scanResult;
   const [data, setData] = useState<PublicTraceResponse | null>(scanResult ?? null);
@@ -219,7 +220,8 @@ function TraceLookupContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-100 bg-white/95 backdrop-blur-sm sticky top-0 z-30 shadow-xs">
-        <div className="relative mx-auto max-w-5xl px-4 py-3 sm:py-4 flex items-center justify-center">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex-1" />
           <div className="flex flex-col items-center justify-center text-center">
             <Link to="/" aria-label="Về trang chủ" className="inline-block transition-transform hover:scale-105">
               <Logo height={64} />
@@ -228,33 +230,37 @@ function TraceLookupContent() {
               {t('header_subtitle')}
             </p>
           </div>
-
-          <div className="absolute right-4 top-1/2 -translate-y-1/2">
+          <div className="flex-1 flex justify-end">
             <LanguageSwitcher />
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-4 px-4 py-6">
-        <div className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm">
-          <span className="text-xs uppercase tracking-wider text-gray-400">
-            {t('code_label')}
-          </span>
-          <p className="break-all font-mono text-lg font-semibold text-gray-800">
-            {data.codeValue}
-          </p>
+      <main className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8 py-6">
+        {/* Banner mã tra cứu sản phẩm */}
+        <div className="rounded-xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+              <QrCode className="size-5" />
+            </span>
+            <div>
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                {t('code_label')}
+              </span>
+              <p className="break-all font-mono text-base sm:text-lg font-bold text-slate-800">
+                {data.codeValue}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 border border-emerald-200/60">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{data.events.length} {lang === 'en' ? 'chain events' : 'sự kiện chuỗi'}</span>
+            </span>
+          </div>
         </div>
 
-        <ProductInfo
-          productName={data.productName}
-          productNameEn={data.productNameEn}
-          productImageUrl={data.productImageUrl}
-          lotName={data.lotName}
-          lotCode={data.lotCode}
-          shipmentCode={data.shipmentCode}
-          status={data.shipmentStatus}
-        />
-
+        {/* Các cảnh báo an toàn thu hồi / khóa / xác minh */}
         {data.locked ? (
           <LockAlert
             lockReason={data.lockReason}
@@ -276,81 +282,100 @@ function TraceLookupContent() {
           />
         )}
 
-        <PublicCertificationsSection
-          data={certificationData}
-          isLoading={certificationLoading}
-          error={certificationError}
-        />
+        {/* Bố cục 2 cột tận dụng tối đa không gian màn hình lớn (1280px) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Cột trái (7 cột): Thông tin sản phẩm, Chứng nhận công khai, Kết quả kiểm nghiệm, Phản hồi */}
+          <div className="lg:col-span-7 space-y-6">
+            <ProductInfo
+              productName={data.productName}
+              productNameEn={data.productNameEn}
+              productImageUrl={data.productImageUrl}
+              lotName={data.lotName}
+              lotCode={data.lotCode}
+              shipmentCode={data.shipmentCode}
+              status={data.shipmentStatus}
+            />
 
-        <PublicInspectionSection
-          inspections={inspectionData?.inspections ?? data.inspections}
-          data={inspectionData}
-          isLoading={inspectionLoading}
-          error={inspectionError}
-        />
+            <PublicCertificationsSection
+              data={certificationData}
+              isLoading={certificationLoading}
+              error={certificationError}
+            />
 
-        {data.productionLotId ? (
-          <ProductFeedbackForm
-            productionLotId={data.productionLotId}
-            productName={data.productName}
-            traceCodeValue={codeValue}
-          />
-        ) : (
-          <section className="rounded-xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
-            <div className="flex gap-3">
-              <MessageSquareWarning className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
-              <div>
-                <h2 className="font-semibold text-gray-900">
-                  {t('feedback_title')}
-                </h2>
-                <p className="mt-1 text-sm leading-5 text-gray-600">
-                  {t('feedback_not_available')}
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
+            <PublicInspectionSection
+              inspections={inspectionData?.inspections ?? data.inspections}
+              data={inspectionData}
+              isLoading={inspectionLoading}
+              error={inspectionError}
+            />
 
-        <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-          <Tabs
-            defaultValue={hasMapData ? 'map' : 'list'}
-            className="w-full"
-          >
-            <TabsList className="h-auto w-full justify-start rounded-none rounded-t-xl border-b bg-gray-50/50 p-0">
-              <TabsTrigger
-                value="map"
-                disabled={!hasMapData}
-                className="flex items-center gap-2 rounded-t-xl rounded-b-none first:rounded-tl-xl px-4 py-3 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent"
-              >
-                <MapPin className="h-4 w-4" />
-                {t('map_tab')}
-                {!hasMapData && (
-                  <span className="text-xs font-normal text-gray-400">
-                    {t('no_location_data')}
-                  </span>
-                )}
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="list"
-                className="flex items-center gap-2 rounded-t-xl rounded-b-none first:rounded-tl-xl px-4 py-3 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent"
-              >
-                <List className="h-4 w-4" />
-                {t('list_tab')}
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="map" className="p-0">
-              <RouteMap
-                events={data.events}
-                farmAreaBoundary={data.farmAreaBoundary}
+            {data.productionLotId ? (
+              <ProductFeedbackForm
+                productionLotId={data.productionLotId}
+                productName={data.productName}
+                traceCodeValue={codeValue}
               />
-            </TabsContent>
+            ) : (
+              <section className="rounded-xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
+                <div className="flex gap-3">
+                  <MessageSquareWarning className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+                  <div>
+                    <h2 className="font-semibold text-gray-900">
+                      {t('feedback_title')}
+                    </h2>
+                    <p className="mt-1 text-sm leading-5 text-gray-600">
+                      {t('feedback_not_available')}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            )}
+          </div>
 
-            <TabsContent value="list" className="p-4">
-              <Timeline events={data.events} />
-            </TabsContent>
-          </Tabs>
+          {/* Cột phải (5 cột): Bản đồ hành trình & Nhật ký sự kiện chuỗi cung ứng (Sticky khi cuộn) */}
+          <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
+            <div className="overflow-hidden rounded-xl bg-white shadow-sm border border-slate-200/80">
+              <Tabs
+                defaultValue={hasMapData ? 'map' : 'list'}
+                className="w-full"
+              >
+                <TabsList className="h-auto w-full justify-start rounded-none rounded-t-xl border-b bg-gray-50/50 p-0">
+                  <TabsTrigger
+                    value="map"
+                    disabled={!hasMapData}
+                    className="flex items-center gap-2 rounded-t-xl rounded-b-none first:rounded-tl-xl px-4 py-3 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    {t('map_tab')}
+                    {!hasMapData && (
+                      <span className="text-xs font-normal text-gray-400">
+                        {t('no_location_data')}
+                      </span>
+                    )}
+                  </TabsTrigger>
+
+                  <TabsTrigger
+                    value="list"
+                    className="flex items-center gap-2 rounded-t-xl rounded-b-none first:rounded-tl-xl px-4 py-3 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent"
+                  >
+                    <List className="h-4 w-4" />
+                    {t('list_tab')}
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="map" className="p-0">
+                  <RouteMap
+                    events={data.events}
+                    farmAreaBoundary={data.farmAreaBoundary}
+                  />
+                </TabsContent>
+
+                <TabsContent value="list" className="p-4 max-h-[calc(100vh-180px)] overflow-y-auto">
+                  <Timeline events={data.events} />
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
         </div>
 
         <div className="border-t border-gray-200 py-4 text-center text-xs text-gray-400">

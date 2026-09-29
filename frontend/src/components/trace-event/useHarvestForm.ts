@@ -18,6 +18,70 @@ import type { HarvestEligibilityResponse } from '@/types/farmLog';
 import { getLocalDateString } from '@/utils/dateTime';
 
 const MAX_IMAGES = 5;
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+
+/**
+ * Nén và chuyển đổi tệp ảnh thành chuỗi Base64 Data URL.
+ * Tự động thu nhỏ ảnh vượt quá 1280px để giữ dung lượng tối ưu (~200KB)
+ * đảm bảo upload nhanh và hiển thị mượt mà trên Timeline.
+ */
+const compressImageToBase64 = (
+  file: File,
+  maxWidth = 1280,
+  maxHeight = 1280,
+  quality = 0.82,
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    if (file.size <= 250 * 1024) {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error('Không thể đọc tệp ảnh'));
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+
+      if (width > maxWidth || height > maxHeight) {
+        if (width / maxWidth > height / maxHeight) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Không thể đọc tệp ảnh'));
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+      resolve(canvas.toDataURL(mimeType, quality));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error('Không thể đọc tệp ảnh'));
+      reader.readAsDataURL(file);
+    };
+    img.src = objectUrl;
+  });
+};
 
 interface BackendErrorData {
   status?: number;
@@ -117,6 +181,11 @@ export function useHarvestForm({
       toast.error(`Chỉ được chọn tối đa ${MAX_IMAGES} ảnh`);
       return;
     }
+    const oversizedFile = fileArray.find((f) => f.size > MAX_IMAGE_SIZE_BYTES);
+    if (oversizedFile) {
+      toast.error(`Ảnh "${oversizedFile.name}" vượt quá dung lượng cho phép (tối đa 5MB)`);
+      return;
+    }
     setImageFiles((current) => [...current, ...fileArray]);
     setImagePreviews((current) => [
       ...current,
@@ -127,14 +196,14 @@ export function useHarvestForm({
     setImageFiles((current) => current.filter((_, i) => i !== index));
     setImagePreviews((current) => current.filter((_, i) => i !== index));
   };
-  const saveOffline = (data: FormValues) => {
+  const saveOffline = (data: FormValues, images?: string[]) => {
     const validationError = addOfflineEvent({
       eventType: ChainEventType.HARVEST,
       productionLotId,
       recordedAt: new Date().toISOString(),
       latitude: data.latitude ?? 0,
       longitude: data.longitude ?? 0,
-      images: imagePreviews,
+      images: images && images.length > 0 ? images : imagePreviews,
       deviceSource: 'WEB',
       eventData: {
         productionLotId,
@@ -174,8 +243,23 @@ export function useHarvestForm({
     }
     setIsSubmitting(true);
     setError(null);
+
+    // Chuyển đổi và nén ảnh thực địa sang base64 DataURL
+    let processedImages: string[] | undefined;
+    if (imageFiles.length > 0) {
+      try {
+        processedImages = await Promise.all(
+          imageFiles.map((file) => compressImageToBase64(file)),
+        );
+      } catch (imgError) {
+        toast.error('Có lỗi khi xử lý hình ảnh thực địa. Vui lòng thử lại.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     if (!isOnline) {
-      saveOffline(data);
+      saveOffline(data, processedImages);
       setIsSubmitting(false);
       return;
     }
@@ -186,6 +270,7 @@ export function useHarvestForm({
         quantity: data.quantity,
         latitude: data.latitude || undefined,
         longitude: data.longitude || undefined,
+        images: processedImages && processedImages.length > 0 ? processedImages : undefined,
         earlyHarvestReason: data.earlyHarvestReason?.trim() || undefined,
       });
       toast.success(`Đã ghi nhận thu hoạch cho lô "${productionLotName}"`);
@@ -199,7 +284,7 @@ export function useHarvestForm({
         requestError.message?.includes('Network') ||
         !requestError.response;
       if (isNetworkError) {
-        saveOffline(data);
+        saveOffline(data, processedImages);
         return;
       }
       const response = isAxiosError<BackendErrorData>(requestError)
