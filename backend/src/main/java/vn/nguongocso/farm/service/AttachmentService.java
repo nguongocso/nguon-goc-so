@@ -69,7 +69,7 @@ public class AttachmentService {
     }
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
-            "image/jpeg", "image/png", "application/pdf");
+            "image/jpeg", "image/jpg", "image/pjpeg", "image/png", "image/webp", "application/pdf");
 
     /** Tải lên tệp đính kèm cho nhật ký canh tác. */
     @Transactional

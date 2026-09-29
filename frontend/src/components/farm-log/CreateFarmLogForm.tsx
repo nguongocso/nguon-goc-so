@@ -161,10 +161,23 @@ export function CreateFarmLogForm({
 
   /** Thêm danh sách tệp vào danh sách chứng từ sau khi kiểm tra MIME và dung lượng. */
   const addFiles = (fileArray: File[]) => {
-    const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    const validTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/pjpeg',
+      'image/webp',
+      'application/pdf',
+    ];
+    const validExts = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
 
     for (const f of fileArray) {
-      if (!validTypes.includes(f.type)) {
+      const ext = f.name.split('.').pop()?.toLowerCase() || '';
+      const isValid =
+        (f.type && validTypes.includes(f.type.toLowerCase())) ||
+        validExts.includes(ext);
+
+      if (!isValid) {
         toast.error(`Tệp "${f.name}" không hỗ trợ. Chỉ nhận JPG, PNG, PDF.`);
         return;
       }
@@ -180,19 +193,25 @@ export function CreateFarmLogForm({
     }
 
     setAttachmentFiles((prev) => [...prev, ...fileArray]);
-    const newPreviews = fileArray.map((f) =>
-      f.type.startsWith('image/') ? URL.createObjectURL(f) : ''
-    );
+    const newPreviews = fileArray.map((f) => {
+      const ext = f.name.split('.').pop()?.toLowerCase() || '';
+      const isImg =
+        f.type.startsWith('image/') ||
+        ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
+      return isImg ? URL.createObjectURL(f) : '';
+    });
     setFilePreviews((prev) => [...prev, ...newPreviews]);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    // Xoá giá trị để chọn lại cùng một tệp vẫn kích hoạt được onChange.
-    e.target.value = '';
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
-    addFiles(Array.from(files));
+    // Lưu mảng tệp trước khi xoá e.target.value để tránh FileList bị xóa rỗng trong trình duyệt
+    const fileArray = Array.from(files);
+    e.target.value = '';
+
+    addFiles(fileArray);
   };
 
   /** Nhận ảnh chụp từ camera (mở camera thật, không phải hộp thoại chọn tệp). */
@@ -750,7 +769,7 @@ export function CreateFarmLogForm({
                   <input
                     id="farm-log-attachment-input"
                     type="file"
-                    accept="image/jpeg,image/png,application/pdf"
+                    accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
                     multiple
                     className="hidden"
                     onChange={handleFileChange}

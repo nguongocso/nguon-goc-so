@@ -142,8 +142,21 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
       return;
     }
 
-    const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (!validTypes.includes(selectedFile.type)) {
+    const validTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/pjpeg',
+      'image/webp',
+      'application/pdf',
+    ];
+    const validExts = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+    const ext = selectedFile.name.split('.').pop()?.toLowerCase() || '';
+    const isValid =
+      (selectedFile.type && validTypes.includes(selectedFile.type.toLowerCase())) ||
+      validExts.includes(ext);
+
+    if (!isValid) {
       toast.error('Chỉ hỗ trợ JPG, PNG, PDF');
       return;
     }
