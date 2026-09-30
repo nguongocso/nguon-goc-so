@@ -6,14 +6,8 @@
 
 ---
 
-## 🎬 Video giới thiệu tổng quan (1 phút)
-
 <div align="center">
-
-[![Video Giới Thiệu Nguồn Gốc Số](https://img.youtube.com/vi/nqoa4e4TzVQ/sddefault.jpg)](https://youtu.be/nqoa4e4TzVQ)
-
-*▶️ Bấm vào hình trên hoặc truy cập [https://youtu.be/nqoa4e4TzVQ](https://youtu.be/nqoa4e4TzVQ) để xem video giới thiệu trên YouTube.*
-
+https://github.com/user-attachments/assets/533d2246-db8c-4ace-b046-42a906e5325b
 </div>
 
 ---
