@@ -6,8 +6,14 @@
 
 ---
 
+## 🎬 Video giới thiệu tổng quan (1 phút)
+
+> Xem nhanh video giới thiệu nền tảng Nguồn Gốc Số và quy trình truy xuất nguồn gốc nông sản:
+
 <div align="center">
-https://github.com/user-attachments/assets/533d2246-db8c-4ace-b046-42a906e5325b
+
+<video src="https://github.com/user-attachments/assets/533d2246-db8c-4ace-b046-42a906e5325b" controls="controls" width="100%" style="max-height: 520px; border-radius: 8px;"></video>
+
 </div>
 
 ---
