@@ -6,9 +6,6 @@
 
 ---
 
-## 🎬 Video giới thiệu tổng quan (1 phút)
-
-> Xem nhanh video giới thiệu nền tảng Nguồn Gốc Số và quy trình truy xuất nguồn gốc nông sản:
 
 <div align="center">
 
