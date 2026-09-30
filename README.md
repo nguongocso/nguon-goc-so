@@ -4,9 +4,17 @@
 
 **Website triển khai:** [https://agri-trace.online](https://agri-trace.online)
 
-<video src="docs/assets/demo-gioi-thieu.mp4" poster="docs/assets/video-poster.jpg" controls="controls" width="100%" style="max-height: 500px; border-radius: 8px;">
-  Trình duyệt hoặc trình xem Markdown của bạn không hỗ trợ thẻ video HTML5 trực tiếp. Bạn có thể <a href="docs/assets/demo-gioi-thieu.mp4">mở hoặc tải trực tiếp video tại đây</a>.
-</video>
+---
+
+## 🎬 Video giới thiệu tổng quan (1 phút)
+
+<div align="center">
+
+[![Video Giới Thiệu Nguồn Gốc Số](https://img.youtube.com/vi/nqoa4e4TzVQ/sddefault.jpg)](https://youtu.be/nqoa4e4TzVQ)
+
+*▶️ Bấm vào hình trên hoặc truy cập [https://youtu.be/nqoa4e4TzVQ](https://youtu.be/nqoa4e4TzVQ) để xem video giới thiệu trên YouTube.*
+
+</div>
 
 ---
 
