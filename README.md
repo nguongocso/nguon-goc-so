@@ -6,6 +6,18 @@
 
 ---
 
+## 🎬 Video giới thiệu tổng quan (1 phút)
+
+> Giới thiệu nhanh nền tảng Nguồn Gốc Số và quy trình minh bạch chuỗi cung ứng nông sản:
+
+<video src="docs/assets/demo-gioi-thieu.mp4" poster="docs/assets/video-poster.jpg" controls="controls" width="100%" style="max-height: 500px; border-radius: 8px;">
+  Trình duyệt hoặc trình xem Markdown của bạn không hỗ trợ thẻ video HTML5 trực tiếp. Bạn có thể <a href="docs/assets/demo-gioi-thieu.mp4">mở hoặc tải trực tiếp video tại đây</a>.
+</video>
+
+*📁 Tệp video trong kho mã nguồn:* [docs/assets/demo-gioi-thieu.mp4](docs/assets/demo-gioi-thieu.mp4)
+
+---
+
 ## Tính năng hiện có
 
 ### 1. Đối với các quản trị viên của hệ thống
