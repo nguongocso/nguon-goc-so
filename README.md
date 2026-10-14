@@ -24,6 +24,10 @@
 
 *▶️ Bấm vào hình trên để xem trên **[YouTube (Full HD)](https://youtu.be/nqoa4e4TzVQ)** • 📁 [Mở / Tải tệp MP4 trực tiếp](https://github.com/user-attachments/assets/533d2246-db8c-4ace-b046-42a906e5325b)*
 
+<div align="center">
+
+<video src="https://github.com/user-attachments/assets/533d2246-db8c-4ace-b046-42a906e5325b" controls="controls" width="100%" style="max-height: 520px; border-radius: 8px;"></video>
+
 </div>
 
 ## Tính năng hiện có
