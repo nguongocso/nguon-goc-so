@@ -6,6 +6,28 @@
 
 ---
 
+## 🎬 Video giới thiệu nền tảng (1 phút)
+
+> Xem video giới thiệu nền tảng Nguồn Gốc Số và quy trình minh bạch chuỗi cung ứng nông sản:
+
+<div align="center">
+
+<a href="https://youtu.be/nqoa4e4TzVQ" target="_blank" title="Bấm để xem video giới thiệu trên YouTube (Độ nét cao 1080p)">
+  <img src="docs/assets/video-thumbnail.png" alt="Video Giới Thiệu Nguồn Gốc Số" width="860" style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+</a>
+
+<br><br>
+
+<video src="https://github.com/user-attachments/assets/533d2246-db8c-4ace-b046-42a906e5325b" controls width="100%"></video>
+
+<br>
+
+*▶️ Bấm vào hình trên để xem trên **[YouTube (Full HD)](https://youtu.be/nqoa4e4TzVQ)** • 📁 [Mở / Tải tệp MP4 trực tiếp](https://github.com/user-attachments/assets/533d2246-db8c-4ace-b046-42a906e5325b)*
+
+</div>
+
+---
+
 ## 🏷️ Tem truy xuất nguồn gốc nông sản (Mẫu quét thử nghiệm)
 
 > Quét mã QR dưới đây hoặc truy cập cổng thông tin **[https://agri-trace.online](https://agri-trace.online)** để trải nghiệm tra cứu hành trình nông sản thực tế:
@@ -13,10 +35,6 @@
 <div align="center">
 
 <img src="docs/assets/tem-truy-xuat-nguon-goc.png" alt="Tem truy xuất nguồn gốc Nguồn Gốc Số" width="860" style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
-
-<br>
-
-*🎬 Xem thêm video giới thiệu nền tảng (1 phút):* [YouTube](https://youtu.be/nqoa4e4TzVQ) • [Tệp Video MP4](https://github.com/user-attachments/assets/533d2246-db8c-4ace-b046-42a906e5325b)
 
 </div>
 
