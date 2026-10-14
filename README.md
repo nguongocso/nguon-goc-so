@@ -26,20 +26,6 @@
 
 </div>
 
----
-
-## 🏷️ Tem truy xuất nguồn gốc nông sản (Mẫu quét thử nghiệm)
-
-> Quét mã QR dưới đây hoặc truy cập cổng thông tin **[https://agri-trace.online](https://agri-trace.online)** để trải nghiệm tra cứu hành trình nông sản thực tế:
-
-<div align="center">
-
-<img src="docs/assets/tem-truy-xuat-nguon-goc.png" alt="Tem truy xuất nguồn gốc Nguồn Gốc Số" width="860" style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
-
-</div>
-
----
-
 ## Tính năng hiện có
 
 ### 1. Đối với các quản trị viên của hệ thống
