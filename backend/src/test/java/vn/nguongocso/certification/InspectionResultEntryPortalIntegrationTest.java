@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -235,6 +236,11 @@ class InspectionResultEntryPortalIntegrationTest {
         inspectionRequest = requestRepository.save(inspectionRequest);
         criterion1 = inspectionRequest.getCriteria().get(0);
         criterion2 = inspectionRequest.getCriteria().get(1);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test

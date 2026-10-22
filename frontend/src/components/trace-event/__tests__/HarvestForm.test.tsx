@@ -6,6 +6,7 @@ import { HarvestForm } from '../HarvestForm';
 
 import { recordHarvestEvent } from '@/api/traceEventApi';
 import { getHarvestEligibility } from '@/api/farmLogApi';
+import { getLocalDateString } from '@/utils/dateTime';
 
 vi.mock('@/api/traceEventApi', () => ({
   recordHarvestEvent: vi.fn(),
@@ -79,9 +80,13 @@ describe('HarvestForm (Trace Event UI)', () => {
   });
 
   it('hiển thị cảnh báo thu hoạch sớm khi thời hạn cách ly ở tương lai', async () => {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 7);
+    const eligibleHarvestDate = getLocalDateString(futureDate);
+
     vi.mocked(getHarvestEligibility).mockResolvedValueOnce({
       determined: true,
-      eligibleHarvestDate: '2026-10-15',
+      eligibleHarvestDate,
       unmatchedMaterials: [],
     });
 

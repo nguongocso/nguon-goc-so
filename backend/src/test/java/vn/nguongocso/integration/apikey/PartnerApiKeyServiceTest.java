@@ -92,6 +92,7 @@ class PartnerApiKeyServiceTest {
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.clearContext();
         orgId = UUID.randomUUID();
         userId = UUID.randomUUID();
 

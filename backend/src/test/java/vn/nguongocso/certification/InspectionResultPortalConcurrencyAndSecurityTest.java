@@ -233,6 +233,7 @@ class InspectionResultPortalConcurrencyAndSecurityTest {
         orgUserRepository.deleteAll();
         userRepository.deleteAll();
         organizationRepository.deleteAll();
+        SecurityContextHolder.clearContext();
     }
 
     @Test
