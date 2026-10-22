@@ -126,6 +126,22 @@ jobs:
           SPRING_PROFILES_ACTIVE: test
         run: ./mvnw clean test -Dgit.commit=${{ github.sha }}
 
+      - name: Display test failures on error
+        if: failure()
+        run: |
+          find target/surefire-reports -type f -name "*.txt" -exec grep -l -E "(FAILURE!|ERROR!)" {} + | while read -r file; do
+            echo "::error file=$file::$(basename "$file")"
+            cat "$file"
+          done
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: backend/target/surefire-reports/
+
+
   # ==========================================================
   # FRONTEND - LINT + TEST + BUILD
   # ==========================================================
