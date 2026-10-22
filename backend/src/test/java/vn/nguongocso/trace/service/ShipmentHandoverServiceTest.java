@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -86,6 +87,7 @@ class ShipmentHandoverServiceTest {
 
     @BeforeEach
     void setUp() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
         fromOrgId = UUID.randomUUID();
         toOrgId = UUID.randomUUID();
         shipmentId = UUID.randomUUID();
@@ -125,6 +127,11 @@ class ShipmentHandoverServiceTest {
                 mock(org.springframework.security.core.context.SecurityContext.class);
         lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
         org.springframework.security.core.context.SecurityContextHolder.setContext(securityContext);
+    }
+
+    @AfterEach
+    void tearDown() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 
     @Test

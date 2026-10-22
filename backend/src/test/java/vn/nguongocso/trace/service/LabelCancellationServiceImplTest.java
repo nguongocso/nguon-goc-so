@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -83,6 +84,7 @@ class LabelCancellationServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.clearContext();
         shipmentId = UUID.randomUUID();
         orgId = UUID.randomUUID();
         userId = UUID.randomUUID();
@@ -109,7 +111,9 @@ class LabelCancellationServiceImplTest {
         when(currentUserDetails.getRoleCode()).thenReturn("VT-02");
 
         when(authentication.getPrincipal()).thenReturn(currentUserDetails);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
         doNothing().when(permissionChecker).check(any(), any());
     }
 
@@ -193,6 +197,9 @@ class LabelCancellationServiceImplTest {
     @DisplayName("NCL-04-CN-006-TC-03: Nhập sai tiền tố hoặc mã không tồn tại -> Chặn giao dịch với lỗi rõ ràng")
     void testCancelLabels_InvalidPrefixOrNonExistentCode_TC03() {
         when(authentication.getPrincipal()).thenReturn(currentUserDetails);
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
         doNothing().when(permissionChecker).check("shipment", "UPDATE");
         when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
 

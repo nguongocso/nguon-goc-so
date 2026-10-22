@@ -1,6 +1,7 @@
 package vn.nguongocso.trace.service;
 
 import static org.assertj.core.api.Assertions.*;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -67,6 +68,7 @@ public class ShipmentServiceTest {
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.clearContext();
 
         // Mock SecurityContextHolder
         currentUser = mock(CustomUserDetails.class);
@@ -101,6 +103,11 @@ public class ShipmentServiceTest {
         // trong các test về hạn mức dải mã (không phải chủ đề của test này).
         when(inspectionEligibilityService.evaluateForShipment(productionLot))
                 .thenReturn(InspectionEligibilityResult.builder().eligible(true).build());
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
