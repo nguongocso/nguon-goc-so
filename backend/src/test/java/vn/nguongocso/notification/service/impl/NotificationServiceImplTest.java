@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import vn.nguongocso.alert.enums.NotificationType;
@@ -68,11 +70,17 @@ class NotificationServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.clearContext();
         organizationId = UUID.randomUUID();
         recipientUser = User.builder()
                 .userId(UUID.randomUUID())
                 .fullName("Quản lý Hợp tác xã")
                 .build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -201,8 +209,10 @@ class NotificationServiceImplTest {
         role.setName("Quản lý hợp tác xã");
 
         CustomUserDetails userDetails = new CustomUserDetails(currentUser, organizationUser, role);
-        SecurityContextHolder.getContext().setAuthentication(
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities()));
+        SecurityContextHolder.setContext(context);
 
         return currentUser.getUserId();
     }

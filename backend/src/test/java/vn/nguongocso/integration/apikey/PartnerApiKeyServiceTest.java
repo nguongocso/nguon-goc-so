@@ -21,6 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -91,6 +92,7 @@ class PartnerApiKeyServiceTest {
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.clearContext();
         orgId = UUID.randomUUID();
         userId = UUID.randomUUID();
 
@@ -110,6 +112,11 @@ class PartnerApiKeyServiceTest {
         orgUser.setOrganization(organization);
 
         userDetails = new CustomUserDetails(user, orgUser, role);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     private void setupSecurityContext() {
